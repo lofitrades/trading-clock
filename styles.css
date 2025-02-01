@@ -1,0 +1,518 @@
+/* CSS */
+h1 {
+  color: #4B4B4B;
+  text-align: left;
+  padding-left: 10px;
+}
+
+h2 {
+  color: #4B4B4B;
+  text-align: left;
+  padding-left: 10px;
+}
+
+h3 {
+  color: #4B4B4B;
+  text-align: left;
+  padding-left: 10px;
+}
+
+h4 {
+  color: #4B4B4B;
+  text-align: left;
+  padding-left: 10px;
+}
+
+p {
+  color: #4B4B4B;
+  text-align: left;
+  padding-left: 10px;
+}
+
+/* Base Styles */
+body {
+  color: #4B4B4B;
+  text-align: center;
+  font-family: Arial, sans-serif;
+  background-color: #fff;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  transition: all 0.3s ease; /* Smooth transition for resizing */
+  max-width: 1000px; /* Default max-width */
+  margin: 0 auto; /* Center the body */
+}
+
+#settingsButton {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #4B4B4B;
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 1000; /* Ensure it's above other elements */
+  transition: all 0.3s ease;
+}
+
+#settingsButton:hover {
+  background-color: #f0f0f0;
+  transform: scale(1.1);
+}
+
+/* Sidebar Menu */
+.sidebar {
+  height: 100%;
+  width: 0; /* Ensure sidebar is hidden by default */
+  position: fixed;
+  z-index: 1001;
+  top: 0;
+  right: 0;
+  background-color: #fff;
+  overflow-x: hidden;
+  transition: width 0.3s ease; /* Smooth and minimal animation */
+  padding-top: 20px; /* Reduced padding for a cleaner look */
+  border-left: 1px solid #e0e0e0; /* Minimal border for separation */
+  box-shadow: -4px 0 10px rgba(0, 0, 0, 0.1); /* Light shadow on the left side */
+}
+
+.sidebar-content {
+  padding: 60px 20px 20px 20px; /* Added 60px padding at the top */
+}
+
+/* Close Icon in Sidebar */
+.sidebar .close {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #4B4B4B;
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 1002; /* Ensure it's above the sidebar content */
+  transition: all 0.3s ease;
+  opacity: 0; /* Hidden by default */
+  pointer-events: none; /* Disable interaction when hidden */
+}
+
+/* Show Close Icon When Sidebar is Open */
+.sidebar[style*="width: 400px"] .close {
+  opacity: 1; /* Visible when sidebar is open */
+  pointer-events: auto; /* Enable interaction when visible */
+}
+
+/* Hover Effect for Close Icon */
+.sidebar .close:hover {
+  background-color: #f0f0f0;
+  transform: scale(1.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add hover shadow */
+}
+
+/* Mobile-friendly sidebar */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 0; /* Ensure sidebar is hidden by default in mobile view */
+    border-left: none; /* Remove border on mobile */
+  }
+
+  .sidebar-content {
+    padding: 15px; /* Slightly reduced padding for mobile */
+  }
+
+  .sidebar .close {
+    top: 15px;
+    right: 15px;
+    font-size: 1.2rem; /* Smaller close button on mobile */
+  }
+}
+
+/* Modal */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent background */
+  z-index: 1001; /* Above everything else */
+}
+
+/* Modal Content */
+.modal-content {
+  position: relative;
+  background-color: #fff;
+  margin: 5% auto; /* Center the modal */
+  padding: 20px;
+  border-radius: 10px;
+  width: 80%;
+  max-width: 600px;
+  max-height: 80vh; /* Limit height to 80% of the viewport height */
+  overflow-y: auto; /* Enable vertical scrolling */
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center content horizontally */
+  text-align: center; /* Center text */
+}
+
+/* Close Button */
+.close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 3rem;
+  font-weight: normal;
+  color: #4B4B4B;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: #555;
+}
+
+/* Clock Size Dropdown */
+#clockSizeContainer {
+  margin-bottom: 20px;
+  text-align: left; /* Center the dropdown */
+  padding-left: 10px;
+  border-width: 0px;
+}
+
+#clockSizeLabel {
+  font-size: 1rem; /* Fixed font size */
+}
+
+#clockSize {
+  padding: 5px;
+  font-size: 1rem;
+  border-width: 0;
+  color: #4B4B4B;
+}
+
+/* Canvas */
+canvas {
+  background: transparent;
+  border-radius: 50%;
+  display: block;
+  margin: 0 auto;
+  transition: all 0.3s ease; /* Smooth transition for resizing */
+}
+
+/* Digital Clock */
+#digitalClock {
+  font-size: 1.7rem;
+  font-weight: bold;
+  margin-top: 1rem;
+  margin-bottom: 0rem;
+  color: #4B4B4B;
+  padding-top: 10px;
+}
+
+/* Time Format */
+#timeFormat {
+  font-size: 1rem;
+  font-weight: normal;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Killzone Label */
+#killzoneLabel {
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  display: inline-block;
+  margin-top: 0.5rem;
+  margin-bottom: 2rem;
+  background-color: #ffffff;
+}
+
+/* Killzone Inputs */
+#killzoneInputs {
+  margin-top: 0.5rem;
+  text-align: left;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.killzone-input {
+  margin-top: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: nowrap; /* Ensure inputs stay in one row */
+}
+
+.killzone-input input {
+  padding: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.killzone-input input[type="text"] {
+  width: 120px; /* Name */
+  
+}
+
+.killzone-input input[type="text"]:nth-child(2) {
+  width: 80px; /* Start */
+}
+
+.killzone-input input[type="text"]:nth-child(3) {
+  width: 80px; /* End */
+}
+
+.killzone-input input[type="color"] {
+  width: 50px; /* Color */
+  height: 40px;
+  padding: 0;
+  border-color: #e0e0e0;
+}
+
+
+
+/* Tooltip Styles */
+.tooltip {
+  position: absolute;
+  display: none;
+  background-color: white;
+  color: #4B4B4B;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 0.9rem;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 200px;
+  text-align: center;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  body {
+    max-width: 90%;
+  }
+
+  .modal-content {
+    width: 90%;
+    padding: 15px;
+  }
+
+  #digitalClock {
+    font-size: 1.2rem;
+  }
+
+  #timeFormat {
+    font-size: 0.9rem;
+  }
+
+  #killzoneLabel {
+    font-size: 1rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .killzone-input input {
+    width: 70px;
+    font-size: 0.8rem;
+  }
+
+  .killzone-input input[type="color"] {
+    width: 35px;
+    height: 35px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    max-width: 100%;
+  }
+
+  .modal-content {
+    width: 95%;
+    padding: 10px;
+  }
+
+  #digitalClock {
+    font-size: 1rem;
+  }
+
+  #timeFormat {
+    font-size: 0.8rem;
+  }
+
+  #killzoneLabel {
+    font-size: 0.9rem;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .killzone-input input {
+    width: 60px;
+    font-size: 0.7rem;
+  }
+
+  .killzone-input input[type="color"] {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+/* Style for the timezone dropdown */
+#timezoneDropdown {
+  width: 170px;
+  font-size: 0.7rem;
+  padding: 5px;
+  margin-top: 0px;
+  border: none; /* Remove borders */
+  background-color: transparent; /* Make background transparent */
+  text-align: left; /* Center-align text */
+  cursor: pointer;
+  appearance: none; /* Remove default dropdown arrow (optional) */
+  -webkit-appearance: none; /* For Safari */
+  -moz-appearance: none; /* For Firefox */
+}
+
+/* Optional: Add a custom dropdown arrow */
+#timezoneDropdown {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black" width="18px" height="18px"><path d="M7 10l5 5 5-5z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 5px center; /* Position the arrow */
+  padding-right: 25px; /* Add space for the arrow */
+}
+
+/* Hover effect for the dropdown */
+#timezoneDropdown:hover {
+  background-color: #f0f0f0; /* Light gray background on hover */
+}
+
+/* Focus effect for the dropdown */
+#timezoneDropdown:focus {
+  outline: none; /* Remove the default focus outline */
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); /* Add a subtle shadow */
+}
+
+/* Style for the killzone headers */
+.killzone-headers {
+  display: flex;
+  justify-content: space-between;
+  gap: 2.6rem;
+  margin-bottom: 0.5rem;
+  font-weight: normal;
+  text-align: center;
+  padding-top: 0px;
+  font-size: 0.8rem;
+}
+
+.killzone-headers span {
+  display: inline-block;
+  flex: 1; /* Ensure headers take equal space */
+  text-align: left;
+}
+
+/* Align headers with inputs */
+.killzone-headers span:nth-child(1) { width: 80; } /* Name */
+.killzone-headers span:nth-child(2) { width: 80px; } /* Start */
+.killzone-headers span:nth-child(3) { width: 80px; } /* End */
+.killzone-headers span:nth-child(4) { width: 30px; } /* Color */
+
+/* Style for the killzone inputs */
+.killzone-input {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0 5px; /* Add padding to match headers */
+}
+
+.killzone-input input {
+  flex: 1; /* Ensure inputs take equal space */
+  text-align: left;
+}
+
+.killzone-input input[type="text"] {
+  width: 80; /* Name */
+  font-size: 0.9rem;
+  border: 1px solid #e0e0e0; /* Add a border */
+  border-radius: 4px; /* Rounded corners */
+}
+
+/* Hover effect for time inputs */
+.killzone-input input[type="text"]:hover {
+  border-color: #4B4B4B; /* Darker border on hover */
+  font-size: 0.9rem;
+  border-radius: 4px; /* Rounded corners */
+  
+}
+
+.killzone-input input[type="text"]:nth-child(2) {
+  width: 80px; /* Start */
+}
+
+.killzone-input input[type="text"]:nth-child(3) {
+  width: 80px; /* End */
+}
+
+.killzone-input input[type="color"] {
+  width: 30; /* Color */
+
+}
+
+
+
+/* Style for the time inputs */
+.killzone-input input[type="time"] {
+  width: 80px; /* Adjust width as needed */
+  padding: 0.25rem;
+  font-size: 0.9rem;
+  border: 1px solid #e0e0e0; /* Add a border */
+  border-radius: 4px; /* Rounded corners */
+  background-color: #fff; /* White background */
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+}
+
+/* Hover effect for time inputs */
+.killzone-input input[type="time"]:hover {
+  border-color: #4B4B4B; /* Darker border on hover */
+}
+
+/* Focus effect for time inputs */
+.killzone-input input[type="time"]:focus {
+  outline: none; /* Remove the default focus outline */
+  border-color: #4B4B4B; /* Darker border on focus */
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+}
+
+/* Focus effect for time inputs */
+.killzone-input input[type="text"]:focus {
+  outline: none; /* Remove the default focus outline */
+  border-color: #4B4B4B; /* Darker border on focus */
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+}
+
+/* Hover effect for time inputs */
+.killzone-input input[type="color"]:hover {
+  border-color: #4B4B4B; /* Darker border on hover */
+}
+

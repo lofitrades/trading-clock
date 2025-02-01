@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trading Clock</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=menu" />
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Clock Canvas -->
+  <canvas id="clockCanvas" width="400" height="400"></canvas>
+  <div id="digitalClock">00:00:00</div>
+  <div id="timeFormat">
+    <select id="timezoneDropdown">
+      <!-- Options will be populated dynamically -->
+    </select>
+  </div>
+  <div id="killzoneLabel"></div>
+
+  <!-- Settings Button -->
+  <span id="settingsButton" class="material-symbols-outlined">menu</span>
+
+  <!-- Sidebar Menu -->
+  <div id="sidebarMenu" class="sidebar">
+    <div class="sidebar-content">
+      <span id="closeSidebar" class="close">&times;</span>
+      <h2>Trading Clock</h2>
+      <!-- Clock Size Dropdown -->
+      <div id="clockSizeContainer">
+        <label for="clockSize" id="clockSizeLabel">Size:</label>
+        <select id="clockSize">
+          <option value="300">Aesthetic</option>
+          <option value="150">Tiny</option>
+          <option value="250">Small</option>
+          <option value="375" selected>Normal</option> <!-- Default selected -->
+          <option value="600">Big</option>
+          <option value="1200">Huge</option>
+          
+        </select>
+      </div>
+      <h4>Killzone Settings</h4>
+
+      <!-- Killzone Inputs -->
+      <!-- Inside the #killzoneInputs container, replace the text inputs with time pickers: -->
+      <div id="killzoneInputs">
+        <div class="killzone-headers">
+          <span style="width: 80px; text-align: center;">Name</span>
+          <span style="width: 50px; text-align: center;">Start Time</span>
+          <span style="width: 50px; text-align: center;">End Time</span>
+          <span style="width: 40px; text-align: center;">Color</span>
+        </div>
+        <!-- Dynamically generated killzone inputs will go here -->
+      </div>
+      
+      <p>Developed by: <strong><a href="https://instagram.com/juandiegocr" target="_blank" rel="noopener noreferrer" style="text-decoration: underline; color: inherit;">@juandiegocr</a></strong></p>
+
+    </div>
+  </div>
+
+  <!-- Tooltip -->
+  <div id="tooltip" class="tooltip"></div>
+
+  <script src="scripts.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>
