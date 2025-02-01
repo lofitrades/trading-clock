@@ -1,0 +1,177 @@
+/* General Styles */
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+    background-color: #ffffff;
+    color: #000000;
+}
+
+h2 {
+    margin-bottom: 60px;
+}
+
+h4 {
+    position: fixed;
+    font-size: 14px;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    width: 100%;
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .bubble {
+    filter: invert(1);
+}
+
+[data-theme="dark"] .score-pop {
+    color: #ffffff;
+}
+
+/* Game Container */
+#gameContainer {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* Bubble Styles */
+.bubble {
+    position: absolute;
+    cursor: pointer;
+    transition: transform 0.1s;
+    display: block;
+    z-index: 1;
+    user-select: none;
+    width: 50px;
+    height: 50px;
+}
+
+.bubble.popped {
+    animation: pop 0.1s forwards;
+}
+
+.bubble.crashed {
+    animation: pop 0.2s forwards;
+}
+
+@keyframes pop {
+    0% { transform: scale(1); }
+    100% { transform: scale(2); opacity: 0; }
+}
+
+/* Score Pop Animation */
+.score-pop {
+    position: absolute;
+    color: #333;
+    font-size: 24px;
+    animation: floatUp 0.5s ease-out;
+    z-index: 2;
+}
+
+@keyframes floatUp {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-50px); opacity: 0; }
+}
+
+/* Confetti Animation */
+.confetti {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    background: #ffd700;
+    animation: confetti 2s linear forwards;
+    z-index: 1;
+}
+
+@keyframes confetti {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+}
+
+#score {
+    position: fixed;
+    font-size: 54px;
+    bottom: 50%;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    width: 100%;
+    display: none;
+}
+
+#lives {
+    right: 20px;
+    position: fixed;
+    top: 20px;
+    font-size: 18px;
+    z-index: 2;
+}
+
+/* Theme Toggle */
+#themeToggle {
+    position: fixed;
+    top: 17px;
+    left: 20px;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 2;
+}
+
+/* Game Over Screen */
+#gameOverScreen {
+    display: none;
+    position: fixed;
+    top: 47%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    background: transparent;
+    padding: 20px;
+    border-radius: 20px;
+    border-width: 2px;
+    border-style: solid;
+    opacity: 0;
+}
+
+/* Pop Button */
+#popButton {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 45px 30px;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 100px;
+    display: block;
+    z-index: 2;
+}
+
+/* Theme-Based Styling */
+[data-theme="light"] #popButton {
+    background-color: #333;
+    color: white;
+}
+
+[data-theme="dark"] #popButton {
+    background-color: white;
+    color: #333;
+}
+
+[data-theme="light"] #playAgain {
+    background-color: #333;
+    color: white;
+}
+
+[data-theme="dark"] #playAgain {
+    background-color: white;
+    color: #333;
+}
