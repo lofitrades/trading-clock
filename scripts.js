@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
     headers.classList.add("killzone-headers");
     headers.innerHTML = `
       <span style="width: 80px; text-align: center;">Name</span>
-      <span style="width: 80px; text-align: center;">Start Time</span>
+      <span style="width: 80px; text-align: center;">  Start Time</span>
       <span style="width: 80px; text-align: center;">End Time</span>
       <span style="width: 30px; text-align: center;">Color</span>
     `;
