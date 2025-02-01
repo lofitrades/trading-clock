@@ -2,31 +2,31 @@
 h1 {
   color: #4B4B4B;
   text-align: left;
-  padding-left: 30px;
+  padding-left: 10px;
 }
 
 h2 {
   color: #4B4B4B;
   text-align: left;
-  padding-left: 30px;
+  padding-left: 10px;
 }
 
 h3 {
   color: #4B4B4B;
   text-align: left;
-  padding-left: 30px;
+  padding-left: 10px;
 }
 
 h4 {
   color: #4B4B4B;
   text-align: left;
-  padding-left: 30px;
+  padding-left: 10px;
 }
 
 p {
   color: #4B4B4B;
   text-align: left;
-  padding-left: 30px;
+  padding-left: 10px;
 }
 
 /* Base Styles */
@@ -192,7 +192,7 @@ body {
 #clockSizeContainer {
   margin-bottom: 20px;
   text-align: left; /* Center the dropdown */
-  padding-left: 30px;
+  padding-left: 10px;
   border-width: 0px;
 }
 
@@ -253,7 +253,7 @@ canvas {
   font-size: 1rem;
   margin-bottom: 1rem;
   width: 100%;
-  max-width: 400px;
+  max-width: 380;
 }
 
 .killzone-input {
