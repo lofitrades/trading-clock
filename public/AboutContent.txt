@@ -1,0 +1,8 @@
+<h2>About Trading Clock</h2>
+<p>This tool helps you track trading sessions with visual cues for active and upcoming killzones.</p>
+<ul>
+  <li>Customizable clock sizes</li>
+  <li>Color-coded killzones</li>
+  <li>Real-time market session visualization</li>
+</ul>
+<p>Follow us on <a href="https://x.com/lofi_trades" target="_blank" rel="noopener noreferrer">@lofi_trades</a></p>
