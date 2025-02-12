@@ -10,27 +10,44 @@ export default function ClockCanvas({ size, time, killzones }) {
   const canvasRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const [hoveredKillzone, setHoveredKillzone] = useState(null);
+  const staticCanvas = useRef(document.createElement('canvas'));
 
-  // Handle initial draw and resizes
+  // Initialize static canvas
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    canvas.width = size;
-    canvas.height = size;
+    const ctx = staticCanvas.current.getContext('2d');
+    staticCanvas.current.width = size;
+    staticCanvas.current.height = size;
     drawStaticElements(ctx, size);
   }, [size]);
 
-  // Handle animation and updates
+  // Animation loop
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    
+    let animationId;
+
     const animate = () => {
-      drawDynamicElements(ctx, size, killzones, time, hoveredKillzone);
-      requestAnimationFrame(animate);
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        
+        // Clear entire canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw static elements
+        ctx.drawImage(staticCanvas.current, 0, 0);
+        
+        // Draw dynamic elements
+        drawDynamicElements(ctx, size, killzones, time, hoveredKillzone);
+        
+        // Redraw numbers on top
+        const centerX = size/2, centerY = size/2;
+        const radius = Math.min(size, size)/2 - 5;
+        drawClockNumbers(ctx, centerX, centerY, radius);
+        
+        animationId = requestAnimationFrame(animate);
     };
     
-    const animationId = requestAnimationFrame(animate);
+    animationId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationId);
   }, [size, killzones, time, hoveredKillzone]);
 

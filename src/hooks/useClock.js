@@ -1,7 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 
 export const useClock = (timezone, killzones) => {
-  const [currentTime, setCurrentTime] = useState(() => new Date());
+  const getTimezoneTime = () => {
+    const now = new Date();
+    return new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+  };
+
+  const [currentTime, setCurrentTime] = useState(getTimezoneTime());
   
   const activeKillzone = useMemo(() => {
     const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
@@ -22,7 +27,7 @@ export const useClock = (timezone, killzones) => {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(new Date(new Date().toLocaleString('en-US', { timeZone: timezone })));
+      setCurrentTime(getTimezoneTime());
     }, 1000);
 
     return () => clearInterval(timer);

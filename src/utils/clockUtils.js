@@ -14,7 +14,7 @@ export const getLineWidthAndHoverArea = (clockSize) => {
     const centerX = size/2, centerY = size/2;
     const radius = Math.min(size, size)/2 - 5;
     
-    // Draw clock face
+    // Draw Clock face
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
     ctx.fillStyle = "#fff";
@@ -37,7 +37,7 @@ export const getLineWidthAndHoverArea = (clockSize) => {
     const centerX = size/2, centerY = size/2;
     const radius = Math.min(size, size)/2 - 5;
   
-    // Clear only hands area
+    // Clear only dynamic area
     ctx.clearRect(centerX - radius, centerY - radius, radius*2, radius*2);
   
     // Draw killzones FIRST
