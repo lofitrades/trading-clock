@@ -1,3 +1,4 @@
+// src/hooks/useSettings.js
 import { useState, useEffect } from 'react';
 
 const defaultKillzones = [

@@ -1,3 +1,4 @@
+// src/utils/clockUtils.js
 export const getLineWidthAndHoverArea = (clockSize) => {
     switch (clockSize) {
       case 300: return { lineWidth: 80, hoverLineWidth: 87 };
@@ -24,7 +25,6 @@ export const getLineWidthAndHoverArea = (clockSize) => {
     drawClockNumbers(ctx, centerX, centerY, radius);
   };
   
-  // Add this new function
   export const drawClockNumbers = (ctx, centerX, centerY, radius) => {
     ctx.font = `${radius * 0.075}px Arial`;
     ctx.textAlign = "center";
@@ -33,7 +33,7 @@ export const getLineWidthAndHoverArea = (clockSize) => {
     
     for (let i = 1; i <= 12; i++) {
       const angle = (i * 30) * (Math.PI / 180);
-      const numberRadius = radius * 0.3; // numbers size
+      const numberRadius = radius * 0.3;
       const x = centerX + Math.cos(angle - Math.PI/2) * numberRadius;
       const y = centerY + Math.sin(angle - Math.PI/2) * numberRadius;
       ctx.fillText(i.toString(), x, y);
@@ -47,7 +47,7 @@ export const getLineWidthAndHoverArea = (clockSize) => {
     // Clear only dynamic area
     ctx.clearRect(centerX - radius, centerY - radius, radius*2, radius*2);
   
-    // Draw killzones FIRST
+    // Draw killzones
     const totalTime = 12 * 60;
     killzones.forEach(kz => {
       if (!kz.startNY || !kz.endNY) return;
@@ -72,8 +72,10 @@ export const getLineWidthAndHoverArea = (clockSize) => {
       ctx.lineCap = 'butt';
       ctx.stroke();
     });
+
+
   
-    // Then draw hands ON TOP
+    // Draw hands
     const hours = time.getHours();
     const minutes = time.getMinutes();
     const seconds = time.getSeconds();

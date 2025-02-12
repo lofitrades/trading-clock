@@ -1,3 +1,4 @@
+// src/hooks/useClock.js
 import { useState, useEffect, useMemo } from 'react';
 
 export const useClock = (timezone, killzones) => {

@@ -1,3 +1,4 @@
+// src/components/KillzoneLabel.jsx
 import { isColorDark } from '../utils/clockUtils';
 
 export default function KillzoneLabel({ activeKillzone }) {

@@ -4,7 +4,7 @@ import {
   drawDynamicElements, 
   getLineWidthAndHoverArea, 
   isColorDark,
-  drawClockNumbers // Add this import
+  drawClockNumbers
 } from '../utils/clockUtils';
 
 export default function ClockCanvas({ size, time, killzones }) {
@@ -49,6 +49,58 @@ export default function ClockCanvas({ size, time, killzones }) {
     return () => cancelAnimationFrame(animationId);
   }, [size, killzones, time, hoveredKillzone]);
 
+  // Hover detection function
+  const detectHoveredKillzone = (canvas, mouseX, mouseY) => {
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(canvas.width, canvas.height) / 2 - 5;
+    const dx = mouseX - centerX;
+    const dy = mouseY - centerY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx) + Math.PI / 2;
+    const normalizedAngle = (angle + 2 * Math.PI) % (2 * Math.PI);
+
+    const { hoverLineWidth } = getLineWidthAndHoverArea(size);
+    const amRadius = radius * 0.52;
+    const pmRadius = radius * 0.75;
+
+    // Check AM killzones
+    if (distance >= amRadius - hoverLineWidth/2 && distance <= amRadius + hoverLineWidth/2) {
+      for (const kz of killzones) {
+        const [startHour, startMinute] = kz.startNY.split(':').map(Number);
+        const [endHour, endMinute] = kz.endNY.split(':').map(Number);
+        
+        if (startHour < 12) {
+          const totalMinutes = 12 * 60;
+          const start = ((startHour % 12) * 60 + startMinute) / totalMinutes * Math.PI * 2;
+          let end = ((endHour % 12) * 60 + endMinute) / totalMinutes * Math.PI * 2;
+          
+          if (start > end) end += Math.PI * 2;
+          if (normalizedAngle >= start && normalizedAngle <= end) return kz;
+        }
+      }
+    }
+
+    // Check PM killzones
+    if (distance >= pmRadius - hoverLineWidth/2 && distance <= pmRadius + hoverLineWidth/2) {
+      for (const kz of killzones) {
+        const [startHour, startMinute] = kz.startNY.split(':').map(Number);
+        const [endHour, endMinute] = kz.endNY.split(':').map(Number);
+        
+        if (startHour >= 12) {
+          const totalMinutes = 12 * 60;
+          const start = ((startHour % 12) * 60 + startMinute) / totalMinutes * Math.PI * 2;
+          let end = ((endHour % 12) * 60 + endMinute) / totalMinutes * Math.PI * 2;
+          
+          if (start > end) end += Math.PI * 2;
+          if (normalizedAngle >= start && normalizedAngle <= end) return kz;
+        }
+      }
+    }
+
+    return null;
+  };
+
   // Hover handling
   const handleMouseMove = (e) => {
     const canvas = canvasRef.current;
@@ -56,7 +108,7 @@ export default function ClockCanvas({ size, time, killzones }) {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
     
-    const hovered = detectHoveredKillzone(canvas, mouseX, mouseY, size, killzones);
+    const hovered = detectHoveredKillzone(canvas, mouseX, mouseY);
     setHoveredKillzone(hovered);
     setTooltip(hovered ? {
       x: e.clientX,
@@ -91,56 +143,4 @@ export default function ClockCanvas({ size, time, killzones }) {
       )}
     </div>
   );
-}
-
-
-
-function detectHoveredKillzone(canvas, mouseX, mouseY, size, killzones) {
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
-  const radius = Math.min(canvas.width, canvas.height) / 2 - 5;
-  const dx = mouseX - centerX;
-  const dy = mouseY - centerY;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-  const angle = Math.atan2(dy, dx) + Math.PI / 2;
-  const normalizedAngle = (angle + 2 * Math.PI) % (2 * Math.PI);
-
-  const { hoverLineWidth } = getLineWidthAndHoverArea(size);
-  const amRadius = radius * 0.52;
-  const pmRadius = radius * 0.75;
-
-  if (distance >= amRadius - hoverLineWidth && distance <= amRadius + hoverLineWidth) {
-    for (const kz of killzones) {
-      const [startHour, startMinute] = kz.startNY.split(':').map(Number);
-      const [endHour, endMinute] = kz.endNY.split(':').map(Number);
-      if (startHour < 12) {
-        const startAngle = ((startHour % 12) * 60 + startMinute) / (12 * 60) * Math.PI * 2;
-        let endAngle = ((endHour % 12) * 60 + endMinute) / (12 * 60) * Math.PI * 2;
-        if (startHour > endHour || (startHour === endHour && startMinute > endMinute)) {
-          endAngle += Math.PI * 2;
-        }
-        if ((normalizedAngle >= startAngle && normalizedAngle <= endAngle) ||
-            (normalizedAngle + 2 * Math.PI >= startAngle && normalizedAngle + 2 * Math.PI <= endAngle)) {
-          return kz;
-        }
-      }
-    }
-  } else if (distance >= pmRadius - hoverLineWidth && distance <= pmRadius + hoverLineWidth) {
-    for (const kz of killzones) {
-      const [startHour, startMinute] = kz.startNY.split(':').map(Number);
-      const [endHour, endMinute] = kz.endNY.split(':').map(Number);
-      if (startHour >= 12) {
-        const startAngle = ((startHour % 12) * 60 + startMinute) / (12 * 60) * Math.PI * 2;
-        let endAngle = ((endHour % 12) * 60 + endMinute) / (12 * 60) * Math.PI * 2;
-        if (startHour > endHour || (startHour === endHour && startMinute > endMinute)) {
-          endAngle += Math.PI * 2;
-        }
-        if ((normalizedAngle >= startAngle && normalizedAngle <= endAngle) ||
-            (normalizedAngle + 2 * Math.PI >= startAngle && normalizedAngle + 2 * Math.PI <= endAngle)) {
-          return kz;
-        }
-      }
-    }
-  }
-  return null;
 }

@@ -60,7 +60,7 @@ body {
   z-index: 1001;
   top: 0;
   right: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.1);
   overflow-x: hidden;
   transition: 0.3s;
 }
@@ -253,3 +253,10 @@ body {
   font-family: monospace;
 }
 
+
+canvas {
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: optimizeQuality;
+  image-rendering: crisp-edges;
+}

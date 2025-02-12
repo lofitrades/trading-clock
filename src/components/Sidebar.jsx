@@ -1,3 +1,4 @@
+// src/components/Sidebar.jsx
 import React, { useEffect } from 'react';
 
 const Sidebar = ({ open, onClose, clockSize, killzones, onSizeChange, onKillzonesChange }) => {
