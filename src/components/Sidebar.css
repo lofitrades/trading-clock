@@ -1,5 +1,3 @@
-/* src/components/Sidebar.css */
-
 /* Sidebar Container */
 .sidebar {
     position: fixed;
@@ -15,31 +13,48 @@
     z-index: 1000;
     font-family: Arial, sans-serif;
     padding: 20px;
-  }
+    /* Custom scroll bar for Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: #777 transparent;
+}
   
-  .sidebar.open {
+.sidebar.open {
     right: 0;
-  }
+}
   
-  /* Sidebar Content */
-  .sidebar-content {
+/* Custom Scrollbar for WebKit Browsers */
+.sidebar::-webkit-scrollbar {
+    width: 3px;
+}
+  
+.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+  
+.sidebar::-webkit-scrollbar-thumb {
+    background-color: #777;
+    border-radius: 1px;
+}
+  
+/* Sidebar Content */
+.sidebar-content {
     display: flex;
     flex-direction: column;
-  }
+}
   
-  .sidebar-close {
+.sidebar-close {
     align-self: flex-end;
     font-size: 24px;
     cursor: pointer;
-  }
+}
   
-  .sidebar-title {
+.sidebar-title {
     font-size: 1.5em;
     text-align: left;
     padding-bottom: 0px;
-  }
+}
 
-  .add-button {
+.add-button {
     width: auto;
     max-width: 150px;
     margin-bottom: 40px;
@@ -50,174 +65,180 @@
     border-radius: 6px;
     font-size: 0.95rem;
     cursor: pointer;
-    
-  }
+}
   
-  /* Sidebar Section */
-  .sidebar-section {
-    
+/* Sidebar Section */
+.sidebar-section {
     margin-bottom: 20px;
     border-bottom: 2px solid #ddd;
     padding-bottom: 10px;
-  }
+}
   
-  .sidebar-section-header {
+.sidebar-section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
     padding: 5px 0;
-  }
+}
   
-  .sidebar-section-title {
+.sidebar-section-title {
     font-size: 1.2em;
     font-weight: bold;
-  }
+}
   
-  .sidebar-section-arrow {
+.sidebar-section-arrow {
     font-size: 1.2em;
-  }
+}
   
-  /* Sidebar Section Content */
-  .sidebar-section-content {
+/* Sidebar Section Content */
+.sidebar-section-content {
     margin-top: 10px;
     display: flex;
     flex-direction: column;
-  }
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.4s ease, opacity 0.4s ease;
+}
   
-  /* Sidebar Controls */
-  .sidebar-control {
+.sidebar-section-content.open {
+    max-height: 1000px; /* Adjust as needed for your content */
+    opacity: 1;
+}
+  
+/* Sidebar Controls */
+.sidebar-control {
     margin-bottom: 15px;
-  }
+}
   
-  /* General Controls */
-  .clock-size-container,
-  .background-color-container,
-  .background-based-container {
+/* General Controls */
+.clock-size-container,
+.background-color-container,
+.background-based-container {
     margin-bottom: 15px;
-  }
+}
   
-  .sidebar-label {
+.sidebar-label {
     font-size: 0.9em;
     margin-bottom: 5px;
     margin-top: 5px;
     color: #333;
     display: block;
     cursor: pointer;
-  }
+}
   
-  .sidebar-select,
-  .sidebar-input,
-  .sidebar-color-picker {
+.sidebar-select,
+.sidebar-input,
+.sidebar-color-picker {
     padding: 5px;
     font-size: 0.9em;
     border: 1px solid #ccc;
     border-radius: 3px;
     width: 100%;
     box-sizing: border-box;
-  }
+}
   
-  /* Killzone Inputs */
-  .killzone-inputs {
+/* Killzone Inputs */
+.killzone-inputs {
     margin-bottom: 15px;
-  }
+}
   
-  .killzone-item {
+.killzone-item {
     margin-bottom: 15px;
-  }
+}
   
-  .killzone-name {
+.killzone-name {
     width: 100%;
     margin-bottom: 5px;
     padding: 5px;
     border: 1px solid #ccc;
     border-radius: 3px;
-  }
+}
   
-  .killzone-time-row {
+.killzone-time-row {
     display: flex;
     gap: 5px;
-  }
+}
   
-  .killzone-time-row input[type="time"],
-  .killzone-time-row input[type="color"] {
+.killzone-time-row input[type="time"],
+.killzone-time-row input[type="color"] {
     flex: 1;
     padding: 5px;
     border: 1px solid #ccc;
     border-radius: 3px;
-  }
+}
   
-  .killzone-divider {
+.killzone-divider {
     border: 0;
     border-top: 1px solid #ddd;
     margin-top: 10px;
-  }
+}
   
-  /* Toggle Button Styles */
-  .toggle-container {
+/* Toggle Button Styles */
+.toggle-container {
     display: flex;
     align-items: center; /* Aligns items vertically */
-    padding: 5px 0; /* Adds spacing for better touch experience */
-  }
+    padding: 5px 5px; /* Adds spacing for better touch experience */
+    position: relative;
+}
   
-  .toggle-icon {
+.toggle-icon {
     position: absolute;
     font-size: 28px;
     cursor: pointer;
     right: 0px;
-    margin-right: 25px;
-
-  }
+    margin-right: 10px;
+}
   
-  .toggle-on {
+.toggle-on {
     color: #4CAF50;
     font-size: 2rem;
     scale: 1.7;
     padding: 0;
     align-self: center;
-  }
+}
   
-  .toggle-off {
+.toggle-off {
     color: #333;
     font-size: 2rem;
     scale: 1.7;
     padding: 0;
     align-self: center;
-  }
+}
   
-  /* About Section */
-  .about-text p {
+/* About Section */
+.about-text p {
     font-size: 0.9em;
     margin: 0;
-  }
+}
   
-  .about-link {
+.about-link {
     margin-top: 10px;
-  }
+}
   
-  /* Sidebar Footer */
-  .sidebar-footer {
+/* Sidebar Footer */
+.sidebar-footer {
     margin-top: 5px;
     margin-bottom: 40px;
     text-align: center;
     font-size: 0.8em;
     color: #777;
-
-  }
+}
   
-  .sidebar-link {
+.sidebar-link {
     color: #007bff;
     text-decoration: none;
-  }
+}
   
-  .sidebar-link:hover {
+.sidebar-link:hover {
     text-decoration: underline;
-  }
+}
   
-  /* Responsive Styles */
+/* Responsive Styles */
   
-  /* Mobile First */
-  @media (max-width: 480px) {
+/* Mobile First */
+@media (max-width: 480px) {
     .sidebar {
       width: 80%;
       right: -100%;
@@ -225,10 +246,10 @@
     .sidebar.open {
       right: 0;
     }
-  }
+}
   
-  /* Tablet */
-  @media (min-width: 481px) and (max-width: 768px) {
+/* Tablet */
+@media (min-width: 481px) and (max-width: 768px) {
     .sidebar {
       width: 280px;
       right: -400px;
@@ -236,10 +257,10 @@
     .sidebar.open {
       right: 0;
     }
-  }
+}
   
-  /* Desktop */
-  @media (min-width: 769px) {
+/* Desktop */
+@media (min-width: 769px) {
     .sidebar {
       width: 350px;
       right: -400px;
@@ -247,5 +268,4 @@
     .sidebar.open {
       right: 0;
     }
-  }
-  
+}
