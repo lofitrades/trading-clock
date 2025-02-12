@@ -64,7 +64,11 @@ const Sidebar = ({
         onTouchEnd={handleTouchEnd}
       >
         <span className="sidebar-close close" onClick={onClose}>&times;</span>
-        <h2 className="sidebar-title">Trading Clock</h2>
+        <button className='add-button' onClick={() => { onClose(); alert("Hello world!"); }}>
+            Add new time log
+        </button>
+        {/* <h1 className="sidebar-title"></h1> */}
+
 
         {/* General Settings */}
         <div className="sidebar-section">
@@ -212,11 +216,11 @@ const Sidebar = ({
           Developed by: <strong>
             <a
               className="sidebar-link"
-              href="https://instagram.com/juandiegocr"
+              href="https://x.com/lofi_trades"
               target="_blank"
               rel="noopener noreferrer"
             >
-              @juandiegocr
+              @lofi_trades
             </a>
           </strong>
         </p>

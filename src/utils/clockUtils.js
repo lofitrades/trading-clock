@@ -1,5 +1,4 @@
 // src/utils/clockUtils.js
-
 export const getLineWidthAndHoverArea = (clockSize) => {
     switch (clockSize) {
       case 300: return { lineWidth: 80, hoverLineWidth: 87 };
