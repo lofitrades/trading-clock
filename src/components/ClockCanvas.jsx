@@ -3,7 +3,8 @@ import {
   drawStaticElements, 
   drawDynamicElements, 
   getLineWidthAndHoverArea, 
-  isColorDark 
+  isColorDark,
+  drawClockNumbers // Add this import
 } from '../utils/clockUtils';
 
 export default function ClockCanvas({ size, time, killzones }) {
@@ -27,24 +28,21 @@ export default function ClockCanvas({ size, time, killzones }) {
     let animationId;
 
     const animate = () => {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        
-        // Clear entire canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw static elements
-        ctx.drawImage(staticCanvas.current, 0, 0);
-        
-        // Draw dynamic elements
-        drawDynamicElements(ctx, size, killzones, time, hoveredKillzone);
-        
-        // Redraw numbers on top
-        const centerX = size/2, centerY = size/2;
-        const radius = Math.min(size, size)/2 - 5;
-        drawClockNumbers(ctx, centerX, centerY, radius);
-        
-        animationId = requestAnimationFrame(animate);
+      // Clear entire canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw static elements from buffer
+      ctx.drawImage(staticCanvas.current, 0, 0);
+      
+      // Draw dynamic elements
+      drawDynamicElements(ctx, size, killzones, time, hoveredKillzone);
+      
+      // Redraw numbers on top
+      const centerX = size/2, centerY = size/2;
+      const radius = Math.min(size, size)/2 - 5;
+      drawClockNumbers(ctx, centerX, centerY, radius);
+      
+      animationId = requestAnimationFrame(animate);
     };
     
     animationId = requestAnimationFrame(animate);

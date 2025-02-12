@@ -14,22 +14,29 @@ export const getLineWidthAndHoverArea = (clockSize) => {
     const centerX = size/2, centerY = size/2;
     const radius = Math.min(size, size)/2 - 5;
     
-    // Draw Clock face
+    // Draw clock face
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
     ctx.fillStyle = "#fff";
     ctx.fill();
   
     // Draw numbers
+    drawClockNumbers(ctx, centerX, centerY, radius);
+  };
+  
+  // Add this new function
+  export const drawClockNumbers = (ctx, centerX, centerY, radius) => {
     ctx.font = `${radius * 0.075}px Arial`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#303030";
+    
     for (let i = 1; i <= 12; i++) {
       const angle = (i * 30) * (Math.PI / 180);
-      const x = centerX + Math.cos(angle - Math.PI/2) * (radius * 0.3);
-      const y = centerY + Math.sin(angle - Math.PI/2) * (radius * 0.3);
-      ctx.fillText(i, x, y);
+      const numberRadius = radius * 0.3; // numbers size
+      const x = centerX + Math.cos(angle - Math.PI/2) * numberRadius;
+      const y = centerY + Math.sin(angle - Math.PI/2) * numberRadius;
+      ctx.fillText(i.toString(), x, y);
     }
   };
   
