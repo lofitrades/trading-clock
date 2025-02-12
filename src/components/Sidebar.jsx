@@ -63,7 +63,7 @@ const Sidebar = ({
         onTouchEnd={handleTouchEnd}
       >
         <span className="sidebar-close close" onClick={onClose}>&times;</span>
-        <button className="add-button" onClick={() => { onClose(); alert("Hello world!"); }}>
+        <button className="add-button" onClick={() => {alert(" Coming soon! \n This functionallity is under development."); }}>
           Add new time log
         </button>
         {/* General Settings */}
