@@ -8,23 +8,56 @@ export const useClock = (timezone, killzones) => {
   };
 
   const [currentTime, setCurrentTime] = useState(getTimezoneTime());
-  
-  const activeKillzone = useMemo(() => {
-    const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
-    
-    return killzones.find(kz => {
-      if (!kz.startNY || !kz.endNY) return false;
-      
-      const [startHour, startMinute] = kz.startNY.split(':').map(Number);
-      const [endHour, endMinute] = kz.endNY.split(':').map(Number);
-      const start = startHour * 60 + startMinute;
-      const end = endHour * 60 + endMinute;
 
-      return start <= end 
-        ? currentMinutes >= start && currentMinutes < end
-        : currentMinutes >= start || currentMinutes < end;
-    }) || null;
-  }, [currentTime, killzones]);
+  const calculateKillzoneTimes = () => {
+    const now = currentTime;
+    let activeZones = [];
+    let upcomingZones = [];
+
+    killzones.forEach(kz => {
+      if (!kz.startNY || !kz.endNY) return;
+      const [sHour, sMin] = kz.startNY.split(':').map(Number);
+      const [eHour, eMin] = kz.endNY.split(':').map(Number);
+
+      // Create Date objects for start and end times (using today's date)
+      let startDate = new Date(now);
+      startDate.setHours(sHour, sMin, 0, 0);
+      let endDate = new Date(now);
+      endDate.setHours(eHour, eMin, 0, 0);
+
+      // Adjust for killzones that span midnight
+      if (endDate <= startDate) {
+        endDate.setDate(endDate.getDate() + 1);
+      }
+
+      if (now >= startDate && now < endDate) {
+        activeZones.push({ killzone: kz, startDate, endDate });
+      } else {
+        // If start time already passed, consider the next occurrence (tomorrow)
+        if (now >= startDate) {
+          startDate.setDate(startDate.getDate() + 1);
+        }
+        upcomingZones.push({ killzone: kz, startDate });
+      }
+    });
+
+    // Sort active zones: the one that started most recently (least time ago) is “on top.”
+    activeZones.sort((a, b) => (now - a.startDate) - (now - b.startDate));
+    // Sort upcoming zones by soonest start time
+    upcomingZones.sort((a, b) => a.startDate - b.startDate);
+
+    const activeKillzone = activeZones.length > 0 ? activeZones[0].killzone : null;
+    const timeToEnd = activeZones.length > 0 ? Math.floor((activeZones[0].endDate - now) / 1000) : null;
+    const nextKillzone = upcomingZones.length > 0 ? upcomingZones[0].killzone : null;
+    const timeToStart = upcomingZones.length > 0 ? Math.floor((upcomingZones[0].startDate - now) / 1000) : null;
+
+    return { activeKillzone, timeToEnd, nextKillzone, timeToStart };
+  };
+
+  const { activeKillzone, timeToEnd, nextKillzone, timeToStart } = useMemo(
+    () => calculateKillzoneTimes(),
+    [currentTime, killzones]
+  );
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -34,5 +67,5 @@ export const useClock = (timezone, killzones) => {
     return () => clearInterval(timer);
   }, [timezone]);
 
-  return { currentTime, activeKillzone };
+  return { currentTime, activeKillzone, timeToEnd, nextKillzone, timeToStart };
 };

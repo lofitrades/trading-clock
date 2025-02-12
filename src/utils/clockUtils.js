@@ -1,4 +1,5 @@
 // src/utils/clockUtils.js
+
 export const getLineWidthAndHoverArea = (clockSize) => {
     switch (clockSize) {
       case 300: return { lineWidth: 80, hoverLineWidth: 87 };
@@ -12,9 +13,10 @@ export const getLineWidthAndHoverArea = (clockSize) => {
   };
   
   export const drawStaticElements = (ctx, size) => {
-    const centerX = size/2, centerY = size/2;
-    const radius = Math.min(size, size)/2 - 5;
-    
+    const centerX = size / 2,
+          centerY = size / 2;
+    const radius = Math.min(size, size) / 2 - 5;
+  
     // Draw clock face
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
@@ -30,33 +32,34 @@ export const getLineWidthAndHoverArea = (clockSize) => {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#303030";
-    
+  
     for (let i = 1; i <= 12; i++) {
       const angle = (i * 30) * (Math.PI / 180);
       const numberRadius = radius * 0.3;
-      const x = centerX + Math.cos(angle - Math.PI/2) * numberRadius;
-      const y = centerY + Math.sin(angle - Math.PI/2) * numberRadius;
+      const x = centerX + Math.cos(angle - Math.PI / 2) * numberRadius;
+      const y = centerY + Math.sin(angle - Math.PI / 2) * numberRadius;
       ctx.fillText(i.toString(), x, y);
     }
   };
   
   export const drawDynamicElements = (ctx, size, killzones, time, hoveredKillzone) => {
-    const centerX = size/2, centerY = size/2;
-    const radius = Math.min(size, size)/2 - 5;
+    const centerX = size / 2,
+          centerY = size / 2;
+    const radius = Math.min(size, size) / 2 - 5;
   
     // Clear only dynamic area
-    ctx.clearRect(centerX - radius, centerY - radius, radius*2, radius*2);
+    ctx.clearRect(centerX - radius, centerY - radius, radius * 2, radius * 2);
   
     // Draw killzones
     const totalTime = 12 * 60;
     killzones.forEach(kz => {
       if (!kz.startNY || !kz.endNY) return;
-      
+  
       const [startHour, startMinute] = kz.startNY.split(':').map(Number);
       const [endHour, endMinute] = kz.endNY.split(':').map(Number);
       let angleStart = ((startHour % 12) * 60 + startMinute) / totalTime * Math.PI * 2;
       let angleEnd = ((endHour % 12) * 60 + endMinute) / totalTime * Math.PI * 2;
-      
+  
       if (startHour > endHour || (startHour === endHour && startMinute > endMinute)) {
         angleEnd += Math.PI * 2;
       }
@@ -66,26 +69,24 @@ export const getLineWidthAndHoverArea = (clockSize) => {
       const currentWidth = kz === hoveredKillzone ? hoverLineWidth : lineWidth;
   
       ctx.beginPath();
-      ctx.arc(centerX, centerY, targetRadius, angleStart - Math.PI/2, angleEnd - Math.PI/2);
+      ctx.arc(centerX, centerY, targetRadius, angleStart - Math.PI / 2, angleEnd - Math.PI / 2);
       ctx.lineWidth = currentWidth;
       ctx.strokeStyle = kz.color;
       ctx.lineCap = 'butt';
       ctx.stroke();
     });
-
-
   
-    // Draw hands
+    // Draw clock hands
     const hours = time.getHours();
     const minutes = time.getMinutes();
     const seconds = time.getSeconds();
-    
+  
     const drawHand = (angle, length, width, color) => {
       ctx.beginPath();
       ctx.moveTo(centerX, centerY);
       ctx.lineTo(
-        centerX + Math.cos(angle - Math.PI/2) * length,
-        centerY + Math.sin(angle - Math.PI/2) * length
+        centerX + Math.cos(angle - Math.PI / 2) * length,
+        centerY + Math.sin(angle - Math.PI / 2) * length
       );
       ctx.strokeStyle = color;
       ctx.lineWidth = width;
@@ -114,3 +115,11 @@ export const getLineWidthAndHoverArea = (clockSize) => {
     const b = parseInt(hex.substring(4, 6), 16);
     return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.5;
   };
+  
+  export const formatTime = (seconds) => {
+    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  };
+  

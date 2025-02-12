@@ -1,3 +1,4 @@
+// src/components/ClockCanvas.jsx
 import { useEffect, useRef, useState } from 'react';
 import { 
   drawStaticElements, 

@@ -1,3 +1,4 @@
+// src/components/DigitalClock.jsx
 import React from 'react';
 
 const DigitalClock = React.memo(({ time }) => {

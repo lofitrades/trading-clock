@@ -16,15 +16,30 @@ export function useSettings() {
   const [clockSize, setClockSize] = useState(375);
   const [killzones, setKillzones] = useState([...defaultKillzones]);
   const [selectedTimezone, setSelectedTimezone] = useState('America/New_York');
+  const [backgroundColor, setBackgroundColor] = useState("#ffffff");
+  const [backgroundBasedOnKillzone, setBackgroundBasedOnKillzone] = useState(false);
+  const [showTimeToEnd, setShowTimeToEnd] = useState(true);
+  const [showTimeToStart, setShowTimeToStart] = useState(true);
 
   useEffect(() => {
     const savedSize = localStorage.getItem('clockSize');
     const savedKillzones = localStorage.getItem('killzones');
     const savedTimezone = localStorage.getItem('selectedTimezone');
+    const savedBackgroundColor = localStorage.getItem('backgroundColor');
+    const savedBackgroundBasedOnKillzone = localStorage.getItem('backgroundBasedOnKillzone');
+    const savedShowTimeToEnd = localStorage.getItem('showTimeToEnd');
+    const savedShowTimeToStart = localStorage.getItem('showTimeToStart');
 
     if (savedSize) setClockSize(parseInt(savedSize));
     if (savedKillzones) setKillzones(JSON.parse(savedKillzones));
     if (savedTimezone) setSelectedTimezone(savedTimezone);
+    if (savedBackgroundColor) setBackgroundColor(savedBackgroundColor);
+    if (savedBackgroundBasedOnKillzone !== null)
+      setBackgroundBasedOnKillzone(savedBackgroundBasedOnKillzone === 'true');
+    if (savedShowTimeToEnd !== null)
+      setShowTimeToEnd(savedShowTimeToEnd === 'true');
+    if (savedShowTimeToStart !== null)
+      setShowTimeToStart(savedShowTimeToStart === 'true');
   }, []);
 
   const updateClockSize = (size) => {
@@ -37,12 +52,46 @@ export function useSettings() {
     localStorage.setItem('killzones', JSON.stringify(newKillzones));
   };
 
+  const updateBackgroundColor = (color) => {
+    setBackgroundColor(color);
+    localStorage.setItem('backgroundColor', color);
+  };
+
+  const toggleBackgroundBasedOnKillzone = () => {
+    setBackgroundBasedOnKillzone(prev => {
+      localStorage.setItem('backgroundBasedOnKillzone', !prev);
+      return !prev;
+    });
+  };
+
+  const toggleShowTimeToEnd = () => {
+    setShowTimeToEnd(prev => {
+      localStorage.setItem('showTimeToEnd', !prev);
+      return !prev;
+    });
+  };
+
+  const toggleShowTimeToStart = () => {
+    setShowTimeToStart(prev => {
+      localStorage.setItem('showTimeToStart', !prev);
+      return !prev;
+    });
+  };
+
   return {
     clockSize,
     killzones,
     selectedTimezone,
     updateClockSize,
     updateKillzones,
-    setSelectedTimezone
+    setSelectedTimezone,
+    backgroundColor,
+    updateBackgroundColor,
+    backgroundBasedOnKillzone,
+    toggleBackgroundBasedOnKillzone,
+    showTimeToEnd,
+    showTimeToStart,
+    toggleShowTimeToEnd,
+    toggleShowTimeToStart,
   };
 }
