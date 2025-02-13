@@ -9,7 +9,6 @@ import TimezoneSelector from './components/TimezoneSelector';
 import Sidebar from './components/Sidebar';
 import './App.css';
 
-
 export default function App() {
   const {
     clockSize,
@@ -31,19 +30,19 @@ export default function App() {
   const { currentTime, activeKillzone, timeToEnd, nextKillzone, timeToStart } =
     useClock(selectedTimezone, killzones);
 
-  // Determine effective background color
+  // Decide the final background color for the entire page
   const effectiveBackground = backgroundBasedOnKillzone && activeKillzone
     ? activeKillzone.color
     : backgroundColor;
 
-  // Update the document body background so the entire page changes
+  // Apply that color to the entire document body
   useEffect(() => {
     document.body.style.backgroundColor = effectiveBackground;
   }, [effectiveBackground]);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Preserve the original placement of the timezone selector (below the digital clock)
+  // Memoize the timezone selector (optional optimization)
   const memoizedTimezoneSelector = useMemo(() => (
     <TimezoneSelector
       selectedTimezone={selectedTimezone}
@@ -55,9 +54,10 @@ export default function App() {
     <div
       className="app-container"
       style={{
+        // Remove background here so the .app-container doesn't conflict
+        // background: effectiveBackground,
         maxWidth: clockSize + 200,
-        background: effectiveBackground,
-        minHeight: '100vh'
+        minHeight: '100vh',
       }}
     >
       <button 

@@ -1,9 +1,9 @@
 /* src/index.css */
 body {
   margin: 0;
+  padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #f5f5f5;
-  color: #333;
+
 }
 
 li {
@@ -11,14 +11,15 @@ li {
 }
 
 .app-container {
-  margin: 0 auto;
+  padding: 0;
+  margin: 0 auto; /* center horizontally if you want */
+  background: transparent; 
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
   min-height: 100vh;
-  padding: 20px;
   box-sizing: border-box;
-
 }
 
 /* Settings Button */
@@ -39,12 +40,7 @@ li {
   color: #2c3e50;
 }
 
-/* Canvas Container */
-.canvas-container {
-  position: relative;
-  margin: 10px 0;
-  top: 50%;
-}
+
 
 /* Tooltip */
 .tooltip {
@@ -165,9 +161,18 @@ li {
 }
 
 
+.canvas-container {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  top: 0;
+  overflow: hidden; /* ensures no scrollbars if there's a 1px overflow */
+}
+
 canvas {
-  image-rendering: -moz-crisp-edges;
-  image-rendering: -webkit-crisp-edges;
-  image-rendering: optimizeQuality;
-  image-rendering: crisp-edges;
+  display: block;        /* remove inline spacing */
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
 }

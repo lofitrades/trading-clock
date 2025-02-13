@@ -1,3 +1,4 @@
+// src/components/Sidebar.jsx
 import React, { useState, useEffect } from 'react';
 import './Sidebar.css';
 
@@ -193,44 +194,9 @@ const Sidebar = ({
             <span className="sidebar-section-arrow">{isAboutOpen ? '▼' : '►'}</span>
           </div>
           <div className={`sidebar-section-content ${isAboutOpen ? 'open' : ''}`}>
-          <div className="sidebar-control about-text">
-            <h1><strong>Time to Trade</strong></h1>
-            <p>Time to Trade is a straightforward, powerful tool for futures and forex day traders at every level. Whether you’re just starting out or have years of experience, this app helps you keep track of the market’s key moments by turning time into clear, visual insights.</p>
-
-            <h2><strong>About the App</strong></h2>
-            <p>Trading is often seen as a solitary and abstract pursuit. With Time to Trade, you can actually see when the most important parts of your trading day are taking place. The app uses a dynamic clock display where “killzones”—vibrant colored arcs—mark crucial market periods. In this design, the inner circle represents AM hours, while the outer circle shows PM hours, giving you a quick overview of the day’s sessions.</p>
-
-            <h3><strong>Key Features</strong></h3>
-            <ul>
-            <li><strong>Dynamic Killzones Visualization:</strong><br />The clock displays your defined trading sessions as colored arcs. Customize the start and end times as well as the colors for each killzone, so you can easily tell when key market moments are active.<br /><br /></li>
-            <li><strong>Customizable Clock Settings:</strong><br />Choose from a variety of clock sizes—from a compact “Tiny” version to a bold “Huge” display. An intuitive sidebar makes it simple to adjust both the clock’s appearance and your killzone settings.<br /><br /></li>
-            <li><strong>Automatic Timezone Support:</strong><br />The clock automatically adjusts to your selected timezone, ensuring that your trading sessions and market events are accurately reflected no matter where you are.<br /><br /></li>
-            <li><strong>Easy-to-Use Interface:</strong><br />The design emphasizes clarity and ease of use. With straightforward controls, you can focus on understanding the market rather than wrestling with complicated settings.<br /><br /></li>
-            </ul>
-
-            <h2><strong>What’s Coming Soon</strong></h2>
-            <ul>
-            <li><strong>Alerts & Push Notifications:</strong><br />Stay informed with real-time updates so you never miss an important market moment.<br /><br /></li>
-            <li><strong>Personal Diary & Trading Journal:</strong><br />Log and review the significant moments of your trading day.<br /><br /></li>
-            <li><strong>Trading Buddy Chatbot:</strong><br />A custom chatbot that helps you organize ideas, identify areas for improvement, and keep your motivation high.<br /><br /></li>
-            <li><strong>High-Impact Events Visualization:</strong><br />See exactly when high-impact market events occur right on your clock.<br /><br /></li>
-            <li><strong>Integrated Music Player:</strong><br />Enjoy a built-in music player featuring curated instrumental tracks (like lofi, chill house, and synth-wave) to help you maintain focus during your sessions.<br /><br /></li>
-            </ul>
-
-            <h2><strong>About the Developer</strong></h2>
-            <p>I’m Lofi Trades—a futures trader with a passion for music and technology. I built Time to Trade because I believe that trading tools should add real value back to the community. Rather than letting trading feel empty, I wanted to create a tool that makes time itself a source of insight.</p>
-
-            <h3><strong>Get in Touch</strong></h3>
-            <p>If you have any questions, feedback, or suggestions, feel free to reach out:</p><br />
-
-            <strong></strong> <a href="https://x.com/lofi_trades" className="sidebar-link" target="_blank">Follow me on X</a><br /><br />
-            <strong></strong> <a href="mailto:lofitradesx@gmail.com" className="sidebar-link">Send me an email</a><br /><br />
-
-
-            <h2><strong>Support the Project</strong></h2>
-            <p>If you find value in Time to Trade and want to support its development, please consider offering your support:</p>
-
-            <a href="https://www.buymeacoffee.com/lofitrades" className="sidebar-link" target="_blank"><br />☕ Buy me a coffee</a><br /><br />
+            <div className="sidebar-control about-text">
+              <h1><strong>Time 2 Trade</strong></h1>
+              <p>About content...</p>
             </div>
           </div>
         </div>

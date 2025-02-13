@@ -1,3 +1,4 @@
+// src/components/ClockCanvas.jsx
 import { useEffect, useRef, useState } from 'react';
 import { 
   drawStaticElements, 
@@ -11,50 +12,40 @@ export default function ClockCanvas({ size, time, killzones }) {
   const canvasRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const [hoveredKillzone, setHoveredKillzone] = useState(null);
-  // Create an offscreen canvas for static elements
   const staticCanvas = useRef(document.createElement('canvas'));
 
-  // Initialize the static offscreen canvas with DPR scaling
   useEffect(() => {
     const dpr = window.devicePixelRatio || 1;
     const staticCtx = staticCanvas.current.getContext('2d');
 
-    // Set the offscreen canvas resolution to account for DPR
-    staticCanvas.current.width = size * dpr;
-    staticCanvas.current.height = size * dpr;
+    staticCanvas.current.width = Math.round(size * dpr);
+    staticCanvas.current.height = Math.round(size * dpr);
     staticCtx.scale(dpr, dpr);
 
-    // Draw static elements using the CSS size (size)
     drawStaticElements(staticCtx, size);
   }, [size]);
 
-  // Animation loop for the onscreen canvas with DPR scaling
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     const dpr = window.devicePixelRatio || 1;
 
-    // Set internal resolution and CSS dimensions
-    canvas.width = size * dpr;
-    canvas.height = size * dpr;
+    // Ensure integer values for width and height
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
     canvas.style.width = `${size}px`;
     canvas.style.height = `${size}px`;
 
-    // Scale the context so that drawing operations use CSS coordinates
     ctx.scale(dpr, dpr);
 
     let animationId;
     const animate = () => {
-      // Clear the full canvas (high-res dimensions)
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, size, size); // Fix clearing to use CSS size
 
-      // Draw static elements from the offscreen canvas
-      ctx.drawImage(staticCanvas.current, 0, 0);
+      ctx.drawImage(staticCanvas.current, 0, 0, size, size);
 
-      // Draw dynamic elements (pass size as the CSS dimension)
       drawDynamicElements(ctx, size, killzones, time, hoveredKillzone);
 
-      // Draw clock numbers on top
       const centerX = size / 2;
       const centerY = size / 2;
       const radius = size / 2 - 5;
@@ -67,9 +58,7 @@ export default function ClockCanvas({ size, time, killzones }) {
     return () => cancelAnimationFrame(animationId);
   }, [size, killzones, time, hoveredKillzone]);
 
-  // Use CSS coordinates for hit detection
   const detectHoveredKillzone = (canvas, mouseX, mouseY) => {
-    // Get the canvas CSS size
     const rect = canvas.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
@@ -85,7 +74,6 @@ export default function ClockCanvas({ size, time, killzones }) {
     const amRadius = radius * 0.52;
     const pmRadius = radius * 0.75;
 
-    // Check AM killzones
     if (distance >= amRadius - hoverLineWidth / 2 && distance <= amRadius + hoverLineWidth / 2) {
       for (const kz of killzones) {
         const [startHour, startMinute] = kz.startNY.split(':').map(Number);
@@ -100,7 +88,6 @@ export default function ClockCanvas({ size, time, killzones }) {
       }
     }
 
-    // Check PM killzones
     if (distance >= pmRadius - hoverLineWidth / 2 && distance <= pmRadius + hoverLineWidth / 2) {
       for (const kz of killzones) {
         const [startHour, startMinute] = kz.startNY.split(':').map(Number);
@@ -118,7 +105,6 @@ export default function ClockCanvas({ size, time, killzones }) {
     return null;
   };
 
-  // Handle mouse movement over the canvas for hover detection
   const handleMouseMove = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();

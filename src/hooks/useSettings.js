@@ -42,6 +42,43 @@ export function useSettings() {
       setShowTimeToStart(savedShowTimeToStart === 'true');
   }, []);
 
+  // NEW: Dynamically update backgroundColor based on active killzone
+  useEffect(() => {
+    let intervalId;
+    if (backgroundBasedOnKillzone) {
+      const updateDynamicBackground = () => {
+        const now = new Date();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        const activeKillzone = killzones.find(kz => {
+          // Ignore killzones with empty times
+          if (!kz.startNY || !kz.endNY) return false;
+          const [startHour, startMin] = kz.startNY.split(':').map(Number);
+          const [endHour, endMin] = kz.endNY.split(':').map(Number);
+          const startMinutes = startHour * 60 + startMin;
+          const endMinutes = endHour * 60 + endMin;
+          // Handle intervals that don't cross midnight
+          if (startMinutes <= endMinutes) {
+            return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+          } else {
+            // Handle intervals that cross midnight
+            return currentMinutes >= startMinutes || currentMinutes < endMinutes;
+          }
+        });
+        if (activeKillzone && activeKillzone.color) {
+          setBackgroundColor(activeKillzone.color);
+        } else {
+          setBackgroundColor("#ffffff");
+        }
+      };
+      updateDynamicBackground();
+      // Update every minute in case the active killzone changes
+      intervalId = setInterval(updateDynamicBackground, 60000);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [backgroundBasedOnKillzone, killzones]);
+
   const updateClockSize = (size) => {
     setClockSize(size);
     localStorage.setItem('clockSize', size);

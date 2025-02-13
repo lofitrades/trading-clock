@@ -43,12 +43,18 @@ export const getLineWidthAndHoverArea = (clockSize) => {
   
   export const drawDynamicElements = (ctx, size, killzones, time, hoveredKillzone) => {
     const centerX = size / 2,
-          centerY = size / 2;
+      centerY = size / 2;
     const radius = Math.min(size, size) / 2 - 5;
-  
-    // Clear only dynamic area
-    ctx.clearRect(centerX - radius, centerY - radius, radius * 2, radius * 2);
-  
+
+    // Clear only dynamic area, using integer rounding to avoid 1px lines
+    ctx.clearRect(
+      Math.floor(centerX - radius),
+      Math.floor(centerY - radius),
+      Math.ceil(radius * 2),
+      Math.ceil(radius * 2)
+    );
+
+    
     // Draw killzones
     const totalTime = 12 * 60;
     killzones.forEach(kz => {
