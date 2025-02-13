@@ -5,7 +5,7 @@ export const getLineWidthAndHoverArea = (clockSize) => {
       case 150: return { lineWidth: 12, hoverLineWidth: 14 };
       case 250: return { lineWidth: 18, hoverLineWidth: 21 };
       case 375: return { lineWidth: 30, hoverLineWidth: 34 };
-      case 600: return { lineWidth: 60, hoverLineWidth: 65 };
+      case 500: return { lineWidth: 45, hoverLineWidth: 50 };
       case 1200: return { lineWidth: 100, hoverLineWidth: 120 };
       default: return { lineWidth: 30, hoverLineWidth: 34 };
     }
@@ -26,53 +26,43 @@ export const getLineWidthAndHoverArea = (clockSize) => {
     drawClockNumbers(ctx, centerX, centerY, radius);
   };
   
-  export const drawClockNumbers = (ctx, centerX, centerY, radius) => {
-    ctx.font = `${radius * 0.075}px Arial`;
+  export const drawClockNumbers = (ctx, centerX, centerY, radius, textColor) => {
+    ctx.font = `${radius * 0.085}px Arial`; // change this to make it more aesthetic
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#303030";
+    ctx.fillStyle = textColor; // Apply dynamic text color
   
-    for (let i = 1; i <= 12; i++) {
-      const angle = (i * 30) * (Math.PI / 180);
-      const numberRadius = radius * 0.3;
-      const x = centerX + Math.cos(angle - Math.PI / 2) * numberRadius;
-      const y = centerY + Math.sin(angle - Math.PI / 2) * numberRadius;
-      ctx.fillText(i.toString(), x, y);
+    for (let num = 1; num <= 12; num++) {
+      const angle = ((num * 30) - 90) * (Math.PI / 180);
+      const x = centerX + Math.cos(angle) * (radius * 0.31);
+      const y = centerY + Math.sin(angle) * (radius * 0.31);
+      ctx.fillText(num.toString(), x, y);
     }
   };
   
-  export const drawDynamicElements = (ctx, size, killzones, time, hoveredKillzone) => {
+  export const drawDynamicElements = (ctx, size, killzones, time, hoveredKillzone, handColor) => {
     const centerX = size / 2,
-      centerY = size / 2;
+          centerY = size / 2;
     const radius = Math.min(size, size) / 2 - 5;
-
-    // Clear only dynamic area, using integer rounding to avoid 1px lines
     ctx.clearRect(
       Math.floor(centerX - radius),
       Math.floor(centerY - radius),
       Math.ceil(radius * 2),
       Math.ceil(radius * 2)
     );
-
-    
-    // Draw killzones
     const totalTime = 12 * 60;
     killzones.forEach(kz => {
       if (!kz.startNY || !kz.endNY) return;
-  
       const [startHour, startMinute] = kz.startNY.split(':').map(Number);
       const [endHour, endMinute] = kz.endNY.split(':').map(Number);
       let angleStart = ((startHour % 12) * 60 + startMinute) / totalTime * Math.PI * 2;
       let angleEnd = ((endHour % 12) * 60 + endMinute) / totalTime * Math.PI * 2;
-  
       if (startHour > endHour || (startHour === endHour && startMinute > endMinute)) {
         angleEnd += Math.PI * 2;
       }
-  
       const targetRadius = startHour < 12 ? radius * 0.52 : radius * 0.75;
       const { lineWidth, hoverLineWidth } = getLineWidthAndHoverArea(size);
       const currentWidth = kz === hoveredKillzone ? hoverLineWidth : lineWidth;
-  
       ctx.beginPath();
       ctx.arc(centerX, centerY, targetRadius, angleStart - Math.PI / 2, angleEnd - Math.PI / 2);
       ctx.lineWidth = currentWidth;
@@ -80,12 +70,10 @@ export const getLineWidthAndHoverArea = (clockSize) => {
       ctx.lineCap = 'butt';
       ctx.stroke();
     });
-  
-    // Draw clock hands
+    // Draw clock hands using handColor prop
     const hours = time.getHours();
     const minutes = time.getMinutes();
     const seconds = time.getSeconds();
-  
     const drawHand = (angle, length, width, color) => {
       ctx.beginPath();
       ctx.moveTo(centerX, centerY);
@@ -98,20 +86,15 @@ export const getLineWidthAndHoverArea = (clockSize) => {
       ctx.lineCap = "round";
       ctx.stroke();
     };
-  
-    // Hour hand
     const hourAngle = ((hours % 12) * 30 + minutes * 0.5) * Math.PI / 180;
     const hourLength = hours >= 12 ? radius * 0.74 : radius * 0.5;
-    drawHand(hourAngle, hourLength, 6, "#4B4B4B");
-  
-    // Minute hand
+    drawHand(hourAngle, hourLength, 6, handColor);
     const minuteAngle = (minutes * 6) * Math.PI / 180;
-    drawHand(minuteAngle, radius * 0.9, 3, "#4B4B4B");
-  
-    // Second hand
+    drawHand(minuteAngle, radius * 0.9, 3, handColor);
     const secondAngle = (seconds * 6) * Math.PI / 180;
-    drawHand(secondAngle, radius * 1, 1, "#4B4B4B");
+    drawHand(secondAngle, radius * 1, 1, handColor);
   };
+  
   
   export const isColorDark = (color) => {
     const hex = color.replace("#", "");

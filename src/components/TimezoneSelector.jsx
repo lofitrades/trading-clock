@@ -1,13 +1,11 @@
-//src/components/TimezoneSelector.jsx
+// src/components/TimezoneSelector.jsx
 import { useEffect, useState } from 'react';
 
-export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone }) {
+export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone, textColor }) {
   const [timezones, setTimezones] = useState([]);
 
   useEffect(() => {
-    // Get all available timezones and calculate their UTC offsets
     const allTimezones = Intl.supportedValuesOf('timeZone');
-    
     const timezonesWithOffsets = allTimezones.map(timezone => {
       const offset = getUTCOffset(timezone);
       return {
@@ -16,14 +14,10 @@ export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone
         sortKey: parseOffset(offset)
       };
     });
-
-    // Sort timezones by UTC offset
     timezonesWithOffsets.sort((a, b) => a.sortKey - b.sortKey);
-    
     setTimezones(timezonesWithOffsets);
   }, []);
 
-  // Helper function to get UTC offset
   const getUTCOffset = (timezone) => {
     const now = new Date();
     const formatter = new Intl.DateTimeFormat('en-US', {
@@ -35,7 +29,6 @@ export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone
     return offset.replace(/UTC|GMT/, '').trim();
   };
 
-  // Helper function to convert offset to minutes
   const parseOffset = (offset) => {
     const [hours, minutes] = offset.split(':').map(Number);
     return hours * 60 + (minutes || 0);
@@ -46,6 +39,7 @@ export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone
       <select 
         value={selectedTimezone} 
         onChange={(e) => setSelectedTimezone(e.target.value)}
+        style={{ color: textColor }}
       >
         {timezones.map(({ timezone, offset }) => (
           <option key={timezone} value={timezone}>

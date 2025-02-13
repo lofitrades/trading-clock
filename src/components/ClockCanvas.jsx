@@ -8,7 +8,7 @@ import {
   drawClockNumbers
 } from '../utils/clockUtils';
 
-export default function ClockCanvas({ size, time, killzones }) {
+export default function ClockCanvas({ size, time, killzones, handColor }) {
   const canvasRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const [hoveredKillzone, setHoveredKillzone] = useState(null);
@@ -17,11 +17,9 @@ export default function ClockCanvas({ size, time, killzones }) {
   useEffect(() => {
     const dpr = window.devicePixelRatio || 1;
     const staticCtx = staticCanvas.current.getContext('2d');
-
     staticCanvas.current.width = Math.round(size * dpr);
     staticCanvas.current.height = Math.round(size * dpr);
     staticCtx.scale(dpr, dpr);
-
     drawStaticElements(staticCtx, size);
   }, [size]);
 
@@ -29,51 +27,40 @@ export default function ClockCanvas({ size, time, killzones }) {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     const dpr = window.devicePixelRatio || 1;
-
-    // Ensure integer values for width and height
     canvas.width = Math.round(size * dpr);
     canvas.height = Math.round(size * dpr);
     canvas.style.width = `${size}px`;
     canvas.style.height = `${size}px`;
-
     ctx.scale(dpr, dpr);
 
     let animationId;
     const animate = () => {
-      ctx.clearRect(0, 0, size, size); // Fix clearing to use CSS size
-
+      ctx.clearRect(0, 0, size, size);
       ctx.drawImage(staticCanvas.current, 0, 0, size, size);
-
-      drawDynamicElements(ctx, size, killzones, time, hoveredKillzone);
-
-      const centerX = size / 2;
-      const centerY = size / 2;
-      const radius = size / 2 - 5;
-      drawClockNumbers(ctx, centerX, centerY, radius);
-
+      drawDynamicElements(ctx, size, killzones, time, hoveredKillzone, handColor);
+      
+      // Pass handColor as the text color for the clock numbers
+      drawClockNumbers(ctx, size / 2, size / 2, size / 2 - 5, handColor);
+  
       animationId = requestAnimationFrame(animate);
     };
-
     animationId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationId);
-  }, [size, killzones, time, hoveredKillzone]);
+  }, [size, killzones, time, hoveredKillzone, handColor]);
 
   const detectHoveredKillzone = (canvas, mouseX, mouseY) => {
     const rect = canvas.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
     const radius = Math.min(rect.width, rect.height) / 2 - 5;
-
     const dx = mouseX - centerX;
     const dy = mouseY - centerY;
     const distance = Math.sqrt(dx * dx + dy * dy);
     const angle = Math.atan2(dy, dx) + Math.PI / 2;
     const normalizedAngle = (angle + 2 * Math.PI) % (2 * Math.PI);
-
     const { hoverLineWidth } = getLineWidthAndHoverArea(size);
     const amRadius = radius * 0.52;
     const pmRadius = radius * 0.75;
-
     if (distance >= amRadius - hoverLineWidth / 2 && distance <= amRadius + hoverLineWidth / 2) {
       for (const kz of killzones) {
         const [startHour, startMinute] = kz.startNY.split(':').map(Number);
@@ -87,7 +74,6 @@ export default function ClockCanvas({ size, time, killzones }) {
         }
       }
     }
-
     if (distance >= pmRadius - hoverLineWidth / 2 && distance <= pmRadius + hoverLineWidth / 2) {
       for (const kz of killzones) {
         const [startHour, startMinute] = kz.startNY.split(':').map(Number);
@@ -101,7 +87,6 @@ export default function ClockCanvas({ size, time, killzones }) {
         }
       }
     }
-
     return null;
   };
 
@@ -110,13 +95,9 @@ export default function ClockCanvas({ size, time, killzones }) {
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
-
     const hovered = detectHoveredKillzone(canvas, mouseX, mouseY);
     setHoveredKillzone(hovered);
-    setTooltip(hovered
-      ? { x: e.clientX, y: e.clientY, ...hovered }
-      : null
-    );
+    setTooltip(hovered ? { x: e.clientX, y: e.clientY, ...hovered } : null);
   };
 
   return (

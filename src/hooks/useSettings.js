@@ -16,13 +16,14 @@ export function useSettings() {
   const [clockSize, setClockSize] = useState(375);
   const [killzones, setKillzones] = useState([...defaultKillzones]);
   const [selectedTimezone, setSelectedTimezone] = useState('America/New_York');
+  // User-selected background color remains independent.
   const [backgroundColor, setBackgroundColor] = useState("#ffffff");
   const [backgroundBasedOnKillzone, setBackgroundBasedOnKillzone] = useState(false);
   // New toggles for the three main clock elements
   const [showHandClock, setShowHandClock] = useState(true);
   const [showDigitalClock, setShowDigitalClock] = useState(true);
   const [showKillzoneLabel, setShowKillzoneLabel] = useState(true);
-  // Restore original killzone countdown toggles
+  // Killzone countdown toggles
   const [showTimeToEnd, setShowTimeToEnd] = useState(true);
   const [showTimeToStart, setShowTimeToStart] = useState(true);
 
@@ -55,39 +56,6 @@ export function useSettings() {
     if (savedShowTimeToStart !== null)
       setShowTimeToStart(savedShowTimeToStart === 'true');
   }, []);
-
-  // NEW: Dynamically update backgroundColor based on active killzone
-  useEffect(() => {
-    let intervalId;
-    if (backgroundBasedOnKillzone) {
-      const updateDynamicBackground = () => {
-        const now = new Date();
-        const currentMinutes = now.getHours() * 60 + now.getMinutes();
-        const activeKillzone = killzones.find(kz => {
-          if (!kz.startNY || !kz.endNY) return false;
-          const [startHour, startMin] = kz.startNY.split(':').map(Number);
-          const [endHour, endMin] = kz.endNY.split(':').map(Number);
-          const startMinutes = startHour * 60 + startMin;
-          const endMinutes = endHour * 60 + endMin;
-          if (startMinutes <= endMinutes) {
-            return currentMinutes >= startMinutes && currentMinutes < endMinutes;
-          } else {
-            return currentMinutes >= startMinutes || currentMinutes < endMinutes;
-          }
-        });
-        if (activeKillzone && activeKillzone.color) {
-          setBackgroundColor(activeKillzone.color);
-        } else {
-          setBackgroundColor("#ffffff");
-        }
-      };
-      updateDynamicBackground();
-      intervalId = setInterval(updateDynamicBackground, 60000);
-    }
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [backgroundBasedOnKillzone, killzones]);
 
   const updateClockSize = (size) => {
     setClockSize(size);
@@ -161,7 +129,6 @@ export function useSettings() {
     return true;
   };
 
-  // Restore toggle functions for killzone countdowns:
   const toggleShowTimeToEnd = () => {
     setShowTimeToEnd(prev => {
       localStorage.setItem('showTimeToEnd', !prev);

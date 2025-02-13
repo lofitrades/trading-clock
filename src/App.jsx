@@ -7,6 +7,7 @@ import DigitalClock from './components/DigitalClock';
 import KillzoneLabel from './components/KillzoneLabel';
 import TimezoneSelector from './components/TimezoneSelector';
 import Sidebar from './components/Sidebar';
+import { isColorDark } from './utils/clockUtils';
 import './App.css';
 
 export default function App() {
@@ -21,14 +22,12 @@ export default function App() {
     updateBackgroundColor,
     backgroundBasedOnKillzone,
     toggleBackgroundBasedOnKillzone,
-    // New toggles for main elements
     showHandClock,
     showDigitalClock,
     showKillzoneLabel,
     toggleShowHandClock,
     toggleShowDigitalClock,
     toggleShowKillzoneLabel,
-    // Killzone toggles (unchanged)
     showTimeToEnd,
     showTimeToStart,
     toggleShowTimeToEnd,
@@ -38,9 +37,13 @@ export default function App() {
   const { currentTime, activeKillzone, timeToEnd, nextKillzone, timeToStart } =
     useClock(selectedTimezone, killzones);
 
+  // effectiveBackground prioritizes active Killzone color if toggle is on.
   const effectiveBackground = backgroundBasedOnKillzone && activeKillzone
     ? activeKillzone.color
     : backgroundColor;
+
+  // Compute text color based on effectiveBackground
+  const effectiveTextColor = isColorDark(effectiveBackground) ? "#fff" : "#4B4B4B";
 
   useEffect(() => {
     document.body.style.backgroundColor = effectiveBackground;
@@ -52,8 +55,9 @@ export default function App() {
     <TimezoneSelector
       selectedTimezone={selectedTimezone}
       setSelectedTimezone={setSelectedTimezone}
+      textColor={effectiveTextColor}
     />
-  ), [selectedTimezone]);
+  ), [selectedTimezone, effectiveTextColor]);
 
   return (
     <div
@@ -73,24 +77,42 @@ export default function App() {
       <div className="clock-elements-container">
         {showHandClock && (
           <div className="hand-clock">
-            <ClockCanvas size={clockSize} time={currentTime} killzones={killzones} />
+            <ClockCanvas 
+              size={clockSize} 
+              time={currentTime} 
+              killzones={killzones}
+              handColor={effectiveTextColor}
+            />
           </div>
         )}
-        <div className="other-clocks">
-          {showDigitalClock && <DigitalClock time={currentTime} />}
-          {showKillzoneLabel && (
-            <KillzoneLabel
-              activeKillzone={activeKillzone}
-              showTimeToEnd={showTimeToEnd}
-              timeToEnd={timeToEnd}
-              showTimeToStart={showTimeToStart}
-              nextKillzone={nextKillzone}
-              timeToStart={timeToStart}
-            />
-          )}
-          {memoizedTimezoneSelector}
-        </div>
+        {(showDigitalClock || showKillzoneLabel) && (
+          <div className="other-clocks">
+            {showDigitalClock && (
+              <DigitalClock 
+                time={currentTime} 
+                clockSize={clockSize} 
+                textColor={effectiveTextColor}
+              />
+            )}
+            <div className="timezone-selector">
+              {memoizedTimezoneSelector}
+            </div>
+            {showKillzoneLabel && (
+              <KillzoneLabel
+                activeKillzone={activeKillzone}
+                showTimeToEnd={showTimeToEnd}
+                timeToEnd={timeToEnd}
+                showTimeToStart={showTimeToStart}
+                nextKillzone={nextKillzone}
+                timeToStart={timeToStart}
+                clockSize={clockSize}
+              />
+            )}
+          </div>
+        )}
       </div>
+
+
 
       <Sidebar
         open={sidebarOpen}
