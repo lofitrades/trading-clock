@@ -176,3 +176,49 @@ canvas {
   padding: 0;
   margin: 0;
 }
+
+/* src/index.css additional styles for responsive layout */
+
+.clock-elements-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 50px; /* adjust as needed */
+}
+
+/* For mobile portrait (default column layout) */
+@media (max-width: 600px) and (orientation: portrait) {
+  .clock-elements-container {
+    flex-direction: column;
+  }
+}
+
+/* For mobile landscape: Hand Clock on left and other clocks in a right column */
+@media (max-width: 600px) and (orientation: landscape) {
+  .clock-elements-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-gap: 10px;
+    align-items: center;
+    justify-items: center;
+  }
+  .hand-clock {
+    grid-column: 1;
+    width: 100%;
+  }
+  .other-clocks {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* Ensure canvas remains 1:1 and responsive */
+.hand-clock canvas {
+  max-width: 100%;
+  height: auto;
+}

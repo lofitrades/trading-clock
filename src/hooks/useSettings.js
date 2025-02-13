@@ -18,6 +18,11 @@ export function useSettings() {
   const [selectedTimezone, setSelectedTimezone] = useState('America/New_York');
   const [backgroundColor, setBackgroundColor] = useState("#ffffff");
   const [backgroundBasedOnKillzone, setBackgroundBasedOnKillzone] = useState(false);
+  // New toggles for the three main clock elements
+  const [showHandClock, setShowHandClock] = useState(true);
+  const [showDigitalClock, setShowDigitalClock] = useState(true);
+  const [showKillzoneLabel, setShowKillzoneLabel] = useState(true);
+  // Restore original killzone countdown toggles
   const [showTimeToEnd, setShowTimeToEnd] = useState(true);
   const [showTimeToStart, setShowTimeToStart] = useState(true);
 
@@ -27,6 +32,9 @@ export function useSettings() {
     const savedTimezone = localStorage.getItem('selectedTimezone');
     const savedBackgroundColor = localStorage.getItem('backgroundColor');
     const savedBackgroundBasedOnKillzone = localStorage.getItem('backgroundBasedOnKillzone');
+    const savedShowHandClock = localStorage.getItem('showHandClock');
+    const savedShowDigitalClock = localStorage.getItem('showDigitalClock');
+    const savedShowKillzoneLabel = localStorage.getItem('showKillzoneLabel');
     const savedShowTimeToEnd = localStorage.getItem('showTimeToEnd');
     const savedShowTimeToStart = localStorage.getItem('showTimeToStart');
 
@@ -36,6 +44,12 @@ export function useSettings() {
     if (savedBackgroundColor) setBackgroundColor(savedBackgroundColor);
     if (savedBackgroundBasedOnKillzone !== null)
       setBackgroundBasedOnKillzone(savedBackgroundBasedOnKillzone === 'true');
+    if (savedShowHandClock !== null)
+      setShowHandClock(savedShowHandClock === 'true');
+    if (savedShowDigitalClock !== null)
+      setShowDigitalClock(savedShowDigitalClock === 'true');
+    if (savedShowKillzoneLabel !== null)
+      setShowKillzoneLabel(savedShowKillzoneLabel === 'true');
     if (savedShowTimeToEnd !== null)
       setShowTimeToEnd(savedShowTimeToEnd === 'true');
     if (savedShowTimeToStart !== null)
@@ -50,17 +64,14 @@ export function useSettings() {
         const now = new Date();
         const currentMinutes = now.getHours() * 60 + now.getMinutes();
         const activeKillzone = killzones.find(kz => {
-          // Ignore killzones with empty times
           if (!kz.startNY || !kz.endNY) return false;
           const [startHour, startMin] = kz.startNY.split(':').map(Number);
           const [endHour, endMin] = kz.endNY.split(':').map(Number);
           const startMinutes = startHour * 60 + startMin;
           const endMinutes = endHour * 60 + endMin;
-          // Handle intervals that don't cross midnight
           if (startMinutes <= endMinutes) {
             return currentMinutes >= startMinutes && currentMinutes < endMinutes;
           } else {
-            // Handle intervals that cross midnight
             return currentMinutes >= startMinutes || currentMinutes < endMinutes;
           }
         });
@@ -71,7 +82,6 @@ export function useSettings() {
         }
       };
       updateDynamicBackground();
-      // Update every minute in case the active killzone changes
       intervalId = setInterval(updateDynamicBackground, 60000);
     }
     return () => {
@@ -101,6 +111,57 @@ export function useSettings() {
     });
   };
 
+  // Toggle functions for the three main elements with at-least-one-enabled check
+  const canToggleOff = (currentValue, other1, other2) => {
+    if (currentValue && !other1 && !other2) {
+      return false;
+    }
+    return true;
+  };
+
+  const toggleShowHandClock = () => {
+    if (!showHandClock) {
+      setShowHandClock(true);
+      localStorage.setItem('showHandClock', true);
+      return true;
+    }
+    if (!canToggleOff(showHandClock, showDigitalClock, showKillzoneLabel)) {
+      return false;
+    }
+    setShowHandClock(false);
+    localStorage.setItem('showHandClock', false);
+    return true;
+  };
+
+  const toggleShowDigitalClock = () => {
+    if (!showDigitalClock) {
+      setShowDigitalClock(true);
+      localStorage.setItem('showDigitalClock', true);
+      return true;
+    }
+    if (!canToggleOff(showDigitalClock, showHandClock, showKillzoneLabel)) {
+      return false;
+    }
+    setShowDigitalClock(false);
+    localStorage.setItem('showDigitalClock', false);
+    return true;
+  };
+
+  const toggleShowKillzoneLabel = () => {
+    if (!showKillzoneLabel) {
+      setShowKillzoneLabel(true);
+      localStorage.setItem('showKillzoneLabel', true);
+      return true;
+    }
+    if (!canToggleOff(showKillzoneLabel, showHandClock, showDigitalClock)) {
+      return false;
+    }
+    setShowKillzoneLabel(false);
+    localStorage.setItem('showKillzoneLabel', false);
+    return true;
+  };
+
+  // Restore toggle functions for killzone countdowns:
   const toggleShowTimeToEnd = () => {
     setShowTimeToEnd(prev => {
       localStorage.setItem('showTimeToEnd', !prev);
@@ -126,6 +187,14 @@ export function useSettings() {
     updateBackgroundColor,
     backgroundBasedOnKillzone,
     toggleBackgroundBasedOnKillzone,
+    // New toggles for main elements:
+    showHandClock,
+    showDigitalClock,
+    showKillzoneLabel,
+    toggleShowHandClock,
+    toggleShowDigitalClock,
+    toggleShowKillzoneLabel,
+    // Killzone countdown toggles:
     showTimeToEnd,
     showTimeToStart,
     toggleShowTimeToEnd,

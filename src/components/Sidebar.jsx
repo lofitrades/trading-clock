@@ -9,21 +9,29 @@ const Sidebar = ({
   killzones,
   onSizeChange,
   onKillzonesChange,
+  backgroundColor,
+  updateBackgroundColor,
+  backgroundBasedOnKillzone,
+  toggleBackgroundBasedOnKillzone,
+  // New props for main element toggles
+  showHandClock,
+  showDigitalClock,
+  showKillzoneLabel,
+  toggleShowHandClock,
+  toggleShowDigitalClock,
+  toggleShowKillzoneLabel,
+  // Existing killzone toggles (unchanged)
   showTimeToEnd,
   showTimeToStart,
   toggleShowTimeToEnd,
   toggleShowTimeToStart,
-  backgroundColor,
-  updateBackgroundColor,
-  backgroundBasedOnKillzone,
-  toggleBackgroundBasedOnKillzone
 }) => {
-  // Collapsible section states (initially closed)
   const [isGeneralOpen, setIsGeneralOpen] = useState(false);
   const [isKillzoneOpen, setIsKillzoneOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchStartY, setTouchStartY] = useState(0);
+  const [toggleError, setToggleError] = useState("");
 
   useEffect(() => {
     const handleEscape = (e) => e.key === 'Escape' && onClose();
@@ -43,7 +51,6 @@ const Sidebar = ({
     const endY = touch.clientY;
     const deltaX = endX - touchStartX;
     const deltaY = endY - touchStartY;
-
     if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 50) {
       onClose();
     }
@@ -55,6 +62,18 @@ const Sidebar = ({
     onKillzonesChange(newKillzones);
   };
 
+  // Helper to handle main element toggles with error handling
+  const handleToggle = (toggleFunc) => {
+    const success = toggleFunc();
+    if (!success) {
+      setToggleError("At least one of three elements should be enabled");
+      // Clear the error after 3 seconds
+      setTimeout(() => setToggleError(""), 3000);
+    } else {
+      setToggleError("");
+    }
+  };
+
   return (
     <div className={`sidebar ${open ? 'open' : ''}`} onClick={onClose}>
       <div 
@@ -64,7 +83,7 @@ const Sidebar = ({
         onTouchEnd={handleTouchEnd}
       >
         <span className="sidebar-close close" onClick={onClose}>&times;</span>
-        <button className="add-button" onClick={() => {alert(" Coming soon! \n This functionallity is under development."); }}>
+        <button className="add-button" onClick={() => {alert(" Coming soon! \n This functionality is under development."); }}>
           Add new time log
         </button>
         {/* General Settings */}
@@ -85,8 +104,7 @@ const Sidebar = ({
                 <option value="150">Tiny</option>
                 <option value="250">Small</option>
                 <option value="375">Normal</option>
-                <option value="600">Big</option>
-                <option value="1200">Huge</option>
+                {/* Removed Big and Huge options */}
               </select>
             </div>
             <div className="sidebar-control background-color-container">
@@ -109,9 +127,48 @@ const Sidebar = ({
                 {backgroundBasedOnKillzone ? 'toggle_on' : 'toggle_off'}
               </span>
             </div>
+            {/* New toggles for main clock elements */}
+            <div className="sidebar-control toggle-container">
+              <span className="toggle-label sidebar-label" onClick={() => handleToggle(toggleShowHandClock)}>
+                Show Hand Clock
+              </span>
+              <span
+                className={`toggle-icon material-symbols-outlined ${showHandClock ? 'toggle-on' : 'toggle-off'}`}
+                onClick={() => handleToggle(toggleShowHandClock)}
+              >
+                {showHandClock ? 'toggle_on' : 'toggle_off'}
+              </span>
+            </div>
+            <div className="sidebar-control toggle-container">
+              <span className="toggle-label sidebar-label" onClick={() => handleToggle(toggleShowDigitalClock)}>
+                Show Digital Clock
+              </span>
+              <span
+                className={`toggle-icon material-symbols-outlined ${showDigitalClock ? 'toggle-on' : 'toggle-off'}`}
+                onClick={() => handleToggle(toggleShowDigitalClock)}
+              >
+                {showDigitalClock ? 'toggle_on' : 'toggle_off'}
+              </span>
+            </div>
+            <div className="sidebar-control toggle-container">
+              <span className="toggle-label sidebar-label" onClick={() => handleToggle(toggleShowKillzoneLabel)}>
+                Show Active Killzone Label
+              </span>
+              <span
+                className={`toggle-icon material-symbols-outlined ${showKillzoneLabel ? 'toggle-on' : 'toggle-off'}`}
+                onClick={() => handleToggle(toggleShowKillzoneLabel)}
+              >
+                {showKillzoneLabel ? 'toggle_on' : 'toggle_off'}
+              </span>
+            </div>
+            {toggleError && (
+              <div style={{ fontSize: '0.7rem', color: '#E69999', marginTop: '5px' }}>
+                {toggleError}
+              </div>
+            )}
           </div>
         </div>
-        {/* Killzone Settings */}
+        {/* Killzone Settings (unchanged) */}
         <div className="sidebar-section">
           <div className="sidebar-section-header" onClick={() => setIsKillzoneOpen(!isKillzoneOpen)}>
             <span className="sidebar-section-title">Killzone Settings</span>

@@ -20,29 +20,34 @@ export default function App() {
     backgroundColor,
     updateBackgroundColor,
     backgroundBasedOnKillzone,
+    toggleBackgroundBasedOnKillzone,
+    // New toggles for main elements
+    showHandClock,
+    showDigitalClock,
+    showKillzoneLabel,
+    toggleShowHandClock,
+    toggleShowDigitalClock,
+    toggleShowKillzoneLabel,
+    // Killzone toggles (unchanged)
     showTimeToEnd,
     showTimeToStart,
     toggleShowTimeToEnd,
     toggleShowTimeToStart,
-    toggleBackgroundBasedOnKillzone,
   } = useSettings();
 
   const { currentTime, activeKillzone, timeToEnd, nextKillzone, timeToStart } =
     useClock(selectedTimezone, killzones);
 
-  // Decide the final background color for the entire page
   const effectiveBackground = backgroundBasedOnKillzone && activeKillzone
     ? activeKillzone.color
     : backgroundColor;
 
-  // Apply that color to the entire document body
   useEffect(() => {
     document.body.style.backgroundColor = effectiveBackground;
   }, [effectiveBackground]);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Memoize the timezone selector (optional optimization)
   const memoizedTimezoneSelector = useMemo(() => (
     <TimezoneSelector
       selectedTimezone={selectedTimezone}
@@ -54,8 +59,6 @@ export default function App() {
     <div
       className="app-container"
       style={{
-        // Remove background here so the .app-container doesn't conflict
-        // background: effectiveBackground,
         maxWidth: clockSize + 200,
         minHeight: '100vh',
       }}
@@ -67,17 +70,27 @@ export default function App() {
         menu
       </button>
 
-      <ClockCanvas size={clockSize} time={currentTime} killzones={killzones} />
-      <DigitalClock time={currentTime} />
-      {memoizedTimezoneSelector}
-      <KillzoneLabel
-        activeKillzone={activeKillzone}
-        showTimeToEnd={showTimeToEnd}
-        timeToEnd={timeToEnd}
-        showTimeToStart={showTimeToStart}
-        nextKillzone={nextKillzone}
-        timeToStart={timeToStart}
-      />
+      <div className="clock-elements-container">
+        {showHandClock && (
+          <div className="hand-clock">
+            <ClockCanvas size={clockSize} time={currentTime} killzones={killzones} />
+          </div>
+        )}
+        <div className="other-clocks">
+          {showDigitalClock && <DigitalClock time={currentTime} />}
+          {showKillzoneLabel && (
+            <KillzoneLabel
+              activeKillzone={activeKillzone}
+              showTimeToEnd={showTimeToEnd}
+              timeToEnd={timeToEnd}
+              showTimeToStart={showTimeToStart}
+              nextKillzone={nextKillzone}
+              timeToStart={timeToStart}
+            />
+          )}
+          {memoizedTimezoneSelector}
+        </div>
+      </div>
 
       <Sidebar
         open={sidebarOpen}
@@ -86,14 +99,20 @@ export default function App() {
         killzones={killzones}
         onSizeChange={updateClockSize}
         onKillzonesChange={updateKillzones}
-        showTimeToEnd={showTimeToEnd}
-        showTimeToStart={showTimeToStart}
-        toggleShowTimeToEnd={toggleShowTimeToEnd}
-        toggleShowTimeToStart={toggleShowTimeToStart}
         backgroundColor={backgroundColor}
         updateBackgroundColor={updateBackgroundColor}
         backgroundBasedOnKillzone={backgroundBasedOnKillzone}
         toggleBackgroundBasedOnKillzone={toggleBackgroundBasedOnKillzone}
+        showHandClock={showHandClock}
+        showDigitalClock={showDigitalClock}
+        showKillzoneLabel={showKillzoneLabel}
+        toggleShowHandClock={toggleShowHandClock}
+        toggleShowDigitalClock={toggleShowDigitalClock}
+        toggleShowKillzoneLabel={toggleShowKillzoneLabel}
+        showTimeToEnd={showTimeToEnd}
+        showTimeToStart={showTimeToStart}
+        toggleShowTimeToEnd={toggleShowTimeToEnd}
+        toggleShowTimeToStart={toggleShowTimeToStart}
       />
     </div>
   );
