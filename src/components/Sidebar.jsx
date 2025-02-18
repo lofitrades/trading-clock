@@ -116,7 +116,7 @@ const Sidebar = ({
 
         <span className="sidebar-close close" onClick={onClose}>&times;</span>
         <button className="add-button" onClick={() => {alert("Coming soon! \nThis functionality is under development."); }}>
-          Add new time log
+          Create free account
         </button>
 
         {/* About Section – Parent Section with animation */}

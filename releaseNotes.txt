@@ -12,3 +12,8 @@ Remove Huge Clock Sizes functionality.
 Hide digital clock toggle.
 Hide killzone label toggle.
 Center everything.
+
+v2: 02/17/25 11:24 PM
+Nest Settings in sub-sections.
+New switch buttons
+New settings divider
