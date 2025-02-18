@@ -17,7 +17,7 @@ export function useSettings() {
   const [killzones, setKillzones] = useState([...defaultKillzones]);
   const [selectedTimezone, setSelectedTimezone] = useState('America/New_York');
   // User-selected background color remains independent.
-  const [backgroundColor, setBackgroundColor] = useState("#ffffff");
+  const [backgroundColor, setBackgroundColor] = useState("#F9F9F9");
   const [backgroundBasedOnKillzone, setBackgroundBasedOnKillzone] = useState(false);
   // New toggles for the three main clock elements
   const [showHandClock, setShowHandClock] = useState(true);

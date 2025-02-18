@@ -23,3 +23,6 @@ Killzone label font size and width.
 Adjusted margins and font sizes of digital clock, killzone label, and timezone selector.
 Added the text below the Login/Sign Up button.
 Updated the What is a Killzone label and tooltip.
+
+v4: 
+Set F9F9F9 as default background color

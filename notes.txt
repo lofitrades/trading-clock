@@ -10,10 +10,10 @@ Time to Trade is an time visualization app designed for day traders. It visualiz
 
 
             <h1><strong>Time 2 Trade</strong></h1>
-            <p>Time 2 Trade is a straightforward, powerful tool for futures and forex day traders at every level. Whether you’re just starting out or have years of experience, this app helps you keep track of the market’s key moments by turning time into clear, visual insights.</p>
+            <p>Time 2 Trade is a straightforward, powerful tool for futures and forex traders at every level. Whether you’re just starting out or have years of experience, this app helps you keep track of the market’s key moments by turning time into clear, visual insights.</p>
 
             <h2><strong>About Time 2 Trade</strong></h2>
-            <p>Trading is often seen as a solitary and abstract pursuit. With Time 2 Trade, you can actually see when the most important parts of your trading day are taking place. The app uses a dynamic clock display where “killzones”—customizable colored arcs—mark crucial market periods. In this design, the inner circle represents AM hours, while the outer circle shows PM hours, giving you a quick overview of the day’s sessions.</p>
+            <p>With Time 2 Trade, you can actually see when the most important parts of your trading day are taking place. The app uses a dynamic clock display where “killzones”—customizable colored arcs—mark crucial market periods. In this design, the inner circle represents AM hours, while the outer circle shows PM hours, giving you a quick overview of the day’s sessions.</p>
 
             <h3><strong>Key Features</strong></h3>
             <ul>
@@ -21,6 +21,7 @@ Time to Trade is an time visualization app designed for day traders. It visualiz
             <li><strong>Customizable Clock Settings:</strong><br />Choose from a variety of clock sizes—from a compact “Tiny” version to a bold “Huge” display. An intuitive sidebar makes it simple to adjust both the clock’s appearance and your killzone settings.<br /><br /></li>
             <li><strong>Automatic Timezone Support:</strong><br />The clock automatically adjusts to your selected timezone, ensuring that your trading sessions and market events are accurately reflected no matter where you are.<br /><br /></li>
             <li><strong>Easy-to-Use Interface:</strong><br />The design emphasizes clarity and ease of use. With straightforward controls, you can focus on understanding the market rather than wrestling with complicated settings.<br /><br /></li>
+            <li><strong>Completely Free: $0</strong><br />Get access to all the features and customization by just creating a free account.<br /><br /></li>
             </ul>
 
             <h2><strong>What’s Coming Soon</strong></h2>
