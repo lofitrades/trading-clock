@@ -17,3 +17,9 @@ v2: 02/17/25 11:24 PM
 Nest Settings in sub-sections.
 New switch buttons
 New settings divider
+
+v3: 02/18/25 1:10 AM
+Killzone label font size and width.
+Adjusted margins and font sizes of digital clock, killzone label, and timezone selector.
+Added the text below the Login/Sign Up button.
+Updated the What is a Killzone label and tooltip.

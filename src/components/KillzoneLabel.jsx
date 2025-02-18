@@ -12,15 +12,15 @@ export default function KillzoneLabel({
   clockSize,
 }) {
   // Base font sizes for Normal (375): 35px for title, 16px for details.
-  const baseTitleSize = 24;
-  const baseDetailSize = 16;
-  const titleFontSize = Math.max(16, (clockSize / 375) * baseTitleSize);
-  const detailFontSize = Math.max(12, (clockSize / 375) * baseDetailSize);
+  const baseTitleSize = 22;
+  const baseDetailSize = 18;
+  const titleFontSize = Math.max(22, (clockSize / 375) * baseTitleSize);
+  const detailFontSize = Math.max(18, (clockSize / 375) * baseDetailSize);
 
   const backgroundColor = activeKillzone?.color || '#ffffff';
   const textColor = activeKillzone
-    ? (isColorDark(activeKillzone.color) ? '#fff' : '#000')
-    : '#4B4B4B';
+    ? (isColorDark(activeKillzone.color) ? '#fff' : '#333')
+    : '#333';
 
   return (
     <div
@@ -40,13 +40,13 @@ export default function KillzoneLabel({
       </div>
 
       {activeKillzone && showTimeToEnd && timeToEnd != null && (
-        <div style={{ fontSize: `${detailFontSize}px`, fontWeight: 'normal', opacity: 0.8 }}>
+        <div style={{ fontSize: `${detailFontSize}px`, fontWeight: 'normal', opacity: 1 }}>
           Time to End: {formatTime(timeToEnd)}
         </div>
       )}
 
       {!activeKillzone && showTimeToStart && nextKillzone && timeToStart != null && (
-        <div style={{ fontSize: `${detailFontSize}px`, fontWeight: 'normal', opacity: 0.8 }}>
+        <div style={{ fontSize: `${detailFontSize}px`, fontWeight: 'normal', opacity: 1 }}>
           Next: {nextKillzone.name} in {formatTime(timeToStart)}
         </div>
       )}

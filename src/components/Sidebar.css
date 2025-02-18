@@ -69,7 +69,7 @@
 .add-button {
   width: auto;
   max-width: 250px;
-  margin-bottom: 40px;
+  margin-bottom: 0px;
   height: 50px;
   background-color: #333;
   color: #fff;
@@ -78,6 +78,11 @@
   font-size: 1.1rem;
   cursor: pointer;
 
+}
+
+.free-account {
+  font-size: 0.9em;
+  margin-bottom: 40px;
 }
 
 /* Sidebar Sections */
@@ -109,6 +114,17 @@
   padding: 12px 15px;
   transition: all 0.3s ease;
   font-size: 1.2em;
+  font-weight: 600;
+  line-height: 1.5em;
+}
+.sidebar-sub-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 12px 15px;
+  transition: all 0.3s ease;
+  font-size: 1em;
   font-weight: 600;
   line-height: 1.5em;
 }

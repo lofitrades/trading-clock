@@ -116,10 +116,11 @@ const Sidebar = ({
 
         <span className="sidebar-close close" onClick={onClose}>&times;</span>
         <button className="add-button" onClick={() => {alert("Coming soon! \nThis functionality is under development."); }}>
-          Create free account
+          Login / Sing Up
         </button>
-
+        <p className='free-account'>Create a free account to unlock all the customization features.</p>
         {/* About Section – Parent Section with animation */}
+        
         <div className="sidebar-section parent-section">
           <div className="sidebar-section-header parent-section-header" onClick={() => setIsAboutOpen(!isAboutOpen)}>
             <span className="sidebar-section-title">About</span>
@@ -144,18 +145,17 @@ const Sidebar = ({
               {/* General Settings Sub-section */}
               <hr className='settings-divider'/>
               <div className="sidebar-subsection">
-                <div className="sidebar-section-header" onClick={() => setIsGeneralOpen(!isGeneralOpen)}>
+                <div className="sidebar-sub-section-header" onClick={() => setIsGeneralOpen(!isGeneralOpen)}>
                   <span className="sidebar-section-title">General Settings</span>
                   <span className="sidebar-section-arrow">{isGeneralOpen ? '▼' : '▶'}</span>
                 </div>
+                
                 <div className={`sidebar-section-content ${isGeneralOpen ? 'open' : ''}`}>
-                  
                   <div className="sidebar-control toggle-container">
                     <span className="toggle-label sidebar-label" onClick={() => handleToggle(toggleShowHandClock)}>
                       Show Hand Clock
                     </span>
                     <Switch checked={showHandClock} onChange={() => handleToggle(toggleShowHandClock)} />
-                      
                   </div>
 
                   <div className="sidebar-control toggle-container">
@@ -234,16 +234,16 @@ const Sidebar = ({
 
               {/* Killzone Settings Sub-section */}
               <div className="sidebar-subsection">
-                <div className="sidebar-section-header" onClick={() => setIsKillzoneOpen(!isKillzoneOpen)}>
+                <div className="sidebar-sub-section-header" onClick={() => setIsKillzoneOpen(!isKillzoneOpen)}>
                   <span className="sidebar-section-title">Killzone Settings</span>
                   <span className="sidebar-section-arrow">{isKillzoneOpen ? '▼' : '▶'}</span>
                 </div>
                 <div className={`sidebar-section-content ${isKillzoneOpen ? 'open' : ''}`}>
                   <div className="killzone-help" style={{ marginBottom: '10px' }}>
-                    <span style={{ marginLeft: '5px', fontSize: '0.9rem' }}>Fill out the fields for each Killzone.</span>
+                    <span style={{fontSize: '0.9rem' }}>What is a Killzone?</span>
                     <span 
                       className="help-icon material-symbols-outlined"
-                      data-tooltip="Configure each Killzone by providing a name, start/end times, and a color. These inputs determine when and how a Killzone is active."
+                      data-tooltip="A Killzone is a high-volatility trading period aligned with key market sessions (EST): Asian (8 PM–12 AM), London (2–5 AM), NY AM (8–11 AM), NY PM (1:30–4 PM), and Market Closed (5–6 PM). These times optimize trade execution during peak liquidity and price shifts."
                       onMouseEnter={handleTooltipEnter}
                       onMouseLeave={() => setCurrentTooltip(null)}
                     >
@@ -330,13 +330,14 @@ const Sidebar = ({
 
               {/* Other Settings Sub-section */}
               <div className="sidebar-subsection">
-                <div className="sidebar-section-header" onClick={() => setIsOtherSettingsOpen(!isOtherSettingsOpen)}>
-                  <span className="sidebar-section-title">Other Settings</span>
+                <div className="sidebar-sub-section-header" onClick={() => setIsOtherSettingsOpen(!isOtherSettingsOpen)}>
+                  <span className="sidebar-section-title">Economic Events</span>
                   <span className="sidebar-section-arrow">{isOtherSettingsOpen ? '▼' : '▶'}</span>
                 </div>
                 <div className={`sidebar-section-content ${isOtherSettingsOpen ? 'open' : ''}`}>
                   <div className="sidebar-control">
-                    <p>Placeholder for future settings.</p>
+                    <h3><strong>Coming soon!</strong></h3>
+                    <p>Display today's high impact Economic Events in the hand clock.</p>
                   </div>
                 </div>
               </div>
