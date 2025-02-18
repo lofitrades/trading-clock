@@ -90,15 +90,13 @@ li {
   color: #333;
 }
 
-/* Killzone Label */
 .killzone-label {
   border-radius: 4px;
   font-weight: 500;
   transition: background-color 0.3s, color 0.3s;
-  width: 90%;
-  position: relative;
-  left: 50%;
-  transform: translate(-50%, 0);
+  width: calc(100% - 150px); /* Increased from 40px to 80px for bigger side margins */
+  margin: 10px auto;
+  text-align: center;
 }
 
 /* Material Icons */

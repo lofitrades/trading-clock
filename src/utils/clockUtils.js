@@ -27,7 +27,7 @@ export const getLineWidthAndHoverArea = (clockSize) => {
   };
   
   export const drawClockNumbers = (ctx, centerX, centerY, radius, textColor) => {
-    ctx.font = `${radius * 0.085}px Arial`; // change this to make it more aesthetic
+    ctx.font = `${radius * 0.085}px Roboto`; // change this to make it more aesthetic
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = textColor; // Apply dynamic text color

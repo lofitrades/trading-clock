@@ -1,0 +1,14 @@
+v1: 02/13/25 5:27 AM
+Hovering accuracy optimization.
+Next Killzone (time to start).
+Remaining time (if active killzone).
+Settings updates:
+-- CSS optimization.
+-- Group sections with dropdown lists.
+-- Background color based on active killzone.
+-- Color picker for the background of the entire site.
+About content
+Remove Huge Clock Sizes functionality.
+Hide digital clock toggle.
+Hide killzone label toggle.
+Center everything.

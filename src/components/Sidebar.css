@@ -1,3 +1,4 @@
+/* Sidebar Container */
 .sidebar {
   position: fixed;
   top: 0;
@@ -30,6 +31,7 @@
   z-index: 900;
 }
 
+/* Scrollbar Styling */
 .sidebar::-webkit-scrollbar {
   width: 3px;
 }
@@ -43,83 +45,112 @@
   border-radius: 1px;
 }
 
+/* Sidebar Content */
 .sidebar-content {
   display: flex;
   flex-direction: column;
 }
 
+/* Sidebar Close Button */
 .sidebar-close {
   align-self: flex-end;
   font-size: 24px;
   cursor: pointer;
 }
 
+/* Sidebar Titles */
 .sidebar-title {
   font-size: 1.5em;
   text-align: left;
   padding-bottom: 0px;
 }
 
+/* Call-To-Action Button */
 .add-button {
   width: auto;
-  max-width: 150px;
+  max-width: 250px;
   margin-bottom: 40px;
-  height: 35px;
+  height: 50px;
   background-color: #333;
   color: #fff;
   border-width: 0px;
   border-radius: 6px;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   cursor: pointer;
+
 }
 
+/* Sidebar Sections */
 .sidebar-section {
-  margin-bottom: 20px;
-  border-bottom: 2px solid #ddd;
-  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 5px;
 }
 
+/* Parent Section Headers (About, Settings) */
+.parent-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 12px 15px;
+  transition: all 0.3s ease;
+  font-size: 1.4em;
+  font-weight: bold;
+  line-height: 1.5em;
+}
+
+/* Sub-section Headers (General Settings, Killzone Settings) */
 .sidebar-section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  padding: 5px 0;
+  padding: 12px 15px;
+  transition: all 0.3s ease;
+  font-size: 1.2em;
+  font-weight: 600;
+  line-height: 1.5em;
 }
 
-.sidebar-section-title {
-  font-size: 1.5em;
-  font-weight: bold;
-}
-
+/* Sidebar Section Arrow */
 .sidebar-section-arrow {
   font-size: 1.2em;
+  transition: transform 0.3s ease;
 }
 
+/* Sidebar Section Content */
 .sidebar-section-content {
-  margin-left: 20px;
-  margin-top: 20px;
-  margin-right: 20px;
+  margin: 0 15px;
   display: flex;
   flex-direction: column;
   max-height: 0;
   overflow: hidden;
   opacity: 0;
-  transition: max-height 0.4s ease, opacity 0.4s ease;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
 }
 
 .sidebar-section-content.open {
-  max-height: 2500px;
+  max-height: 3000px;
   opacity: 1;
 }
 
-.sidebar-control {
-  margin-bottom: 15px;
+/* Sub-section Styling */
+.sidebar-subsection {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+  margin-bottom: 10px;
 }
 
-.clock-size-container,
-.background-color-container,
-.background-based-container {
+/* Settings Dividers */
+.settings-divider {
+  border: 0;
+  border-top: 1px solid #ddd;
+  margin: 10px 0;
+}
+
+/* Sidebar Controls */
+.sidebar-control {
   margin-bottom: 15px;
 }
 
@@ -143,6 +174,7 @@
   box-sizing: border-box;
 }
 
+/* Background Color Picker */
 .sidebar-color-picker {
   padding: 0px;
   font-size: 0.9em;
@@ -153,6 +185,7 @@
   height: 30px;
 }
 
+/* Killzone Inputs */
 .killzone-inputs {
   margin-bottom: 15px;
 }
@@ -169,6 +202,7 @@
   border-radius: 3px;
 }
 
+/* Killzone Time Row */
 .killzone-time-row {
   display: flex;
   gap: 5px;
@@ -191,20 +225,30 @@
   width: auto;
 }
 
+/* Killzone Divider */
 .killzone-divider {
   border: 0;
-  border-top: 3px solid #ddd;
-  margin-top: 20px;
-  margin-bottom: 20px;
+  border-top: 1px solid #ddd;
+  margin: 20px 0;
 }
 
+/* Toggle Switch Styling */
 .toggle-container {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 5px 5px;
   position: relative;
 }
 
+.killzone-toggles {
+
+  align-items: center;
+  justify-content: space-between;
+
+}
+
+/* Toggle Icons */
 .toggle-icon {
   position: absolute;
   font-size: 28px;
@@ -216,7 +260,7 @@
 .toggle-on {
   color: #5b9a71;
   font-size: 2rem;
-  scale: 1.7;
+  transform: scale(1.7);
   padding: 0;
   align-self: center;
 }
@@ -224,27 +268,23 @@
 .toggle-off {
   color: #333;
   font-size: 2rem;
-  scale: 1.7;
+  transform: scale(1.7);
   padding: 0;
   align-self: center;
 }
 
+/* About Section */
 .about-text p {
   font-size: 1rem;
   margin: 0;
 }
 
+/* About Link */
 .about-link {
   margin-top: 10px;
 }
 
-.killzone-field input {
-  padding: 5px;
-  font-size: 0.9rem;
-  width: 100%;
-  box-sizing: border-box;
-}
-
+/* Killzone Field */
 .killzone-field {
   flex: 1;
   min-width: 100px;
@@ -252,6 +292,14 @@
   flex-direction: column;
 }
 
+.killzone-field input {
+  padding: 5px;
+  font-size: 0.9em;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Sidebar Footer */
 .sidebar-footer {
   margin-top: 5px;
   margin-bottom: 40px;
@@ -260,6 +308,7 @@
   color: #777;
 }
 
+/* Sidebar Links */
 .sidebar-link {
   color: #007bff;
   text-decoration: none;
@@ -269,7 +318,7 @@
   text-decoration: underline;
 }
 
-/* Responsive Styles */
+/* Responsive Styling */
 @media (max-width: 480px) {
   .sidebar {
     width: 80%;
@@ -300,33 +349,7 @@
   }
 }
 
-@media (max-width: 600px) {
-  .sidebar-content {
-    width: 100%;
-  }
-
-  .killzone-input {
-    flex-direction: column;
-  }
-
-  .killzone-headers {
-    display: none;
-  }
-
-  .killzone-input input {
-    width: 100%;
-  }
-
-  .killzone-input.killzone-color {
-    padding: 0px;
-    font-size: 0.9em;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    width: 100%;
-    box-sizing: border-box;
-  }
-}
-
+/* Sidebar Tooltip */
 .sidebar-tooltip {
   position: fixed;
   padding: 8px 12px;

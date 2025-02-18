@@ -37,13 +37,15 @@ export default function App() {
   const { currentTime, activeKillzone, timeToEnd, nextKillzone, timeToStart } =
     useClock(selectedTimezone, killzones);
 
-  // effectiveBackground prioritizes active Killzone color if toggle is on.
-  const effectiveBackground = backgroundBasedOnKillzone && activeKillzone
-    ? activeKillzone.color
-    : backgroundColor;
+  // If background toggle is on, use the active killzone color.
+  const effectiveBackground =
+    backgroundBasedOnKillzone && activeKillzone
+      ? activeKillzone.color
+      : backgroundColor;
 
-  // Compute text color based on effectiveBackground
-  const effectiveTextColor = isColorDark(effectiveBackground) ? "#fff" : "#4B4B4B";
+  const effectiveTextColor = isColorDark(effectiveBackground)
+    ? "#fff"
+    : "#4B4B4B";
 
   useEffect(() => {
     document.body.style.backgroundColor = effectiveBackground;
@@ -51,6 +53,7 @@ export default function App() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Timezone selector is always rendered at the bottom of the clock elements.
   const memoizedTimezoneSelector = useMemo(() => (
     <TimezoneSelector
       selectedTimezone={selectedTimezone}
@@ -85,34 +88,28 @@ export default function App() {
             />
           </div>
         )}
-        {(showDigitalClock || showKillzoneLabel) && (
-          <div className="other-clocks">
-            {showDigitalClock && (
-              <DigitalClock 
-                time={currentTime} 
-                clockSize={clockSize} 
-                textColor={effectiveTextColor}
-              />
-            )}
-            <div className="timezone-selector">
-              {memoizedTimezoneSelector}
-            </div>
-            {showKillzoneLabel && (
-              <KillzoneLabel
-                activeKillzone={activeKillzone}
-                showTimeToEnd={showTimeToEnd}
-                timeToEnd={timeToEnd}
-                showTimeToStart={showTimeToStart}
-                nextKillzone={nextKillzone}
-                timeToStart={timeToStart}
-                clockSize={clockSize}
-              />
-            )}
-          </div>
+        {showDigitalClock && (
+          <DigitalClock 
+            time={currentTime} 
+            clockSize={clockSize} 
+            textColor={effectiveTextColor}
+          />
         )}
+        {showKillzoneLabel && (
+          <KillzoneLabel
+            activeKillzone={activeKillzone}
+            showTimeToEnd={showTimeToEnd}
+            timeToEnd={timeToEnd}
+            showTimeToStart={showTimeToStart}
+            nextKillzone={nextKillzone}
+            timeToStart={timeToStart}
+            clockSize={clockSize}
+          />
+        )}
+        <div id="TimezoneSelector" className="timezone-selector">
+          {memoizedTimezoneSelector}
+        </div>
       </div>
-
-
 
       <Sidebar
         open={sidebarOpen}

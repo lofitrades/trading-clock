@@ -30,7 +30,7 @@ export default function KillzoneLabel({
         color: textColor,
         padding: '8px 16px',
         borderRadius: '4px',
-        margin: '10px 0',
+        margin: '10px 40px', // Updated: 20px left/right margin
         textAlign: 'center',
         transition: 'background-color 0.3s, color 0.3s',
       }}
