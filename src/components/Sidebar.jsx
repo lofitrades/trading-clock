@@ -161,7 +161,7 @@ const Sidebar = ({
           {isSettingsOpen && (
             <div className={`sidebar-section-content ${isSettingsOpen ? 'open' : ''}`}>
               {/* General Settings Sub-section */}
-              <hr className='settings-divider'/>
+
               <div className="sidebar-subsection">
                 <div className="sidebar-sub-section-header" onClick={() => setIsGeneralOpen(!isGeneralOpen)}>
                   <span className="sidebar-section-title">General Settings</span>

@@ -153,9 +153,9 @@
 
 /* Sub-section Styling */
 .sidebar-subsection {
-  border-bottom: 1px solid #eee;
-  padding-bottom: 5px;
+  border: 1px solid #eee;
   margin-bottom: 10px;
+  border-radius: 6px;
 }
 
 /* Settings Dividers */
