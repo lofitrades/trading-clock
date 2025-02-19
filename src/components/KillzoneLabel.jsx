@@ -41,7 +41,7 @@ export default function KillzoneLabel({
 
       {activeKillzone && showTimeToEnd && timeToEnd != null && (
         <div style={{ fontSize: `${detailFontSize}px`, fontWeight: 'normal', opacity: 1 }}>
-          Time to End: {formatTime(timeToEnd)}
+          Ends in: {formatTime(timeToEnd)}
         </div>
       )}
 
