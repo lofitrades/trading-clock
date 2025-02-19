@@ -30,11 +30,8 @@ const Sidebar = ({
   toggleShowTimeToStart,
 }) => {
   const { user } = useAuth();
-  const [isGeneralOpen, setIsGeneralOpen] = useState(false);
-  const [isKillzoneOpen, setIsKillzoneOpen] = useState(false);
-  const [isAboutOpen, setIsAboutOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isOtherSettingsOpen, setIsOtherSettingsOpen] = useState(false);
+  const [activeParent, setActiveParent] = useState(null);
+  const [activeSubsection, setActiveSubsection] = useState(null);
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchStartY, setTouchStartY] = useState(0);
   const [toggleError, setToggleError] = useState("");
@@ -42,6 +39,12 @@ const Sidebar = ({
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
+
+  useEffect(() => {
+    if (activeParent !== 'settings') {
+      setActiveSubsection(null);
+    }
+  }, [activeParent]);
 
   useEffect(() => {
     const handleEscape = (e) => e.key === 'Escape' && onClose();
@@ -86,7 +89,6 @@ const Sidebar = ({
     if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 50) onClose();
   };
 
-  // Updated killzone change to require logged in user
   const handleKillzoneChange = (index, field, value) => {
     if (!user) {
       setShowUnlockModal(true);
@@ -122,10 +124,10 @@ const Sidebar = ({
               left: currentTooltip.x,
               top: currentTooltip.y - 60,
             }}
-          >
-            {currentTooltip.text}
-          </div>
+            dangerouslySetInnerHTML={{ __html: currentTooltip.text }}
+          />
         )}
+
 
         <span className="sidebar-close close" onClick={onClose}>&times;</span>
         {user ? (
@@ -141,11 +143,14 @@ const Sidebar = ({
         
         {/* About Section */}
         <div className="sidebar-section parent-section">
-          <div className="sidebar-section-header parent-section-header" onClick={() => setIsAboutOpen(!isAboutOpen)}>
+          <div 
+            className="sidebar-section-header parent-section-header" 
+            onClick={() => setActiveParent(prev => prev === 'about' ? null : 'about')}
+          >
             <span className="sidebar-section-title">About</span>
-            <span className="sidebar-section-arrow">{isAboutOpen ? '−' : '+'}</span>
+            <span className="sidebar-section-arrow">{activeParent === 'about' ? '−' : '+'}</span>
           </div>
-          <div className={`sidebar-section-content ${isAboutOpen ? 'open' : ''}`}>
+          <div className={`sidebar-section-content ${activeParent === 'about' ? 'open' : ''}`}>
             <div className="sidebar-control about-text">
               <h1>Time 2 Trade</h1>
             </div>
@@ -154,208 +159,228 @@ const Sidebar = ({
 
         {/* Settings Section */}
         <div className="sidebar-section parent-section">
-          <div className="sidebar-section-header parent-section-header" onClick={() => setIsSettingsOpen(!isSettingsOpen)}>
+          <div 
+            className="sidebar-section-header parent-section-header" 
+            onClick={() => setActiveParent(prev => prev === 'settings' ? null : 'settings')}
+          >
             <span className="sidebar-section-title">Settings</span>
-            <span className="sidebar-section-arrow">{isSettingsOpen ? '−' : '+'}</span>
+            <span className="sidebar-section-arrow">{activeParent === 'settings' ? '−' : '+'}</span>
           </div>
-          {isSettingsOpen && (
-            <div className={`sidebar-section-content ${isSettingsOpen ? 'open' : ''}`}>
-              {/* General Settings Sub-section */}
-
-              <div className="sidebar-subsection">
-                <div className="sidebar-sub-section-header" onClick={() => setIsGeneralOpen(!isGeneralOpen)}>
-                  <span className="sidebar-section-title">General Settings</span>
-                  <span className="sidebar-section-arrow">{isGeneralOpen ? '−' : '+'}</span>
-                </div>
-                <div className={`sidebar-section-content ${isGeneralOpen ? 'open' : ''}`}>
-                  <div className="sidebar-control toggle-container">
-                    <span className="toggle-label sidebar-label" onClick={() => handleToggle(toggleShowHandClock)}>
-                      Show Hand Clock
-                    </span>
-                    <Switch checked={showHandClock} onChange={() => handleToggle(toggleShowHandClock)} />
-                  </div>
-
-                  <div className="sidebar-control toggle-container">
-                    <span className="toggle-label sidebar-label" onClick={() => handleToggle(toggleShowDigitalClock)}>
-                      Show Digital Clock
-                    </span>
-                    <Switch checked={showDigitalClock} onChange={() => handleToggle(toggleShowDigitalClock)} />
-                  </div>
-                  <div className="sidebar-control toggle-container">
-                    <span className="toggle-label sidebar-label" onClick={() => handleToggle(toggleShowKillzoneLabel)}>
-                      Show Active Killzone Label
-                    </span>
-                    <Switch checked={showKillzoneLabel} onChange={() => handleToggle(toggleShowKillzoneLabel)} />
-                  </div>
-                  {toggleError && (
-                    <div style={{ fontSize: '0.7rem', color: '#E69999', marginTop: '0px', marginBottom: '20px' }}>
-                      {toggleError}
-                    </div>
-                  )}
-                  <div className="sidebar-control clock-size-container">
-                    <div className="label-help-container">
-                      <label htmlFor="clock-size" className="sidebar-label">Clock Style:</label>
-                      <span 
-                        className="help-icon material-symbols-outlined"
-                        data-tooltip="Select a preset clock size."
-                        onMouseEnter={handleTooltipEnter}
-                        onMouseLeave={() => setCurrentTooltip(null)}
-                      >
-                        help
-                      </span>
-                    </div>
-                    <select
-                      id="clock-size"
-                      className="sidebar-select"
-                      value={clockSize}
-                      onChange={e => onSizeChange(parseInt(e.target.value))}
-                    >
-                      <option value="300">Aesthetic</option>
-                      <option value="150">Tiny</option>
-                      <option value="250">Small</option>
-                      <option value="375">Normal</option>
-                      <option value="500">Big (Tablet)</option>
-                    </select>
-                  </div>
-                  <div className="sidebar-control background-color-container">
-                    <div className="label-help-container">
-                      <label htmlFor="bg-color" className="sidebar-label">Background Color:</label>
-                      <span 
-                        className="help-icon material-symbols-outlined"
-                        data-tooltip="Pick a background color. This setting works independently unless overridden by active Killzone."
-                        onMouseEnter={handleTooltipEnter}
-                        onMouseLeave={() => setCurrentTooltip(null)}
-                      >
-                        help
-                      </span>
-                    </div>
-                    <input
-                      id="bg-color"
-                      type="color"
-                      className="sidebar-color-picker"
-                      value={backgroundColor}
-                      onChange={e => updateBackgroundColor(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="sidebar-control background-based-container toggle-container">
-                    <span className="toggle-label sidebar-label" onClick={() => handleToggle(toggleBackgroundBasedOnKillzone)}>
-                      Background color based on active Killzone
-                    </span>
-                    <Switch checked={backgroundBasedOnKillzone} onChange={() => toggleBackgroundBasedOnKillzone()} />
-                  </div>
-                </div>
+          <div className={`sidebar-section-content ${activeParent === 'settings' ? 'open' : ''}`}>
+            {/* General Settings Sub-section */}
+            <div className="sidebar-subsection">
+              <div 
+                className="sidebar-sub-section-header" 
+                onClick={() => setActiveSubsection(prev => prev === 'general' ? null : 'general')}
+              >
+                <span className="sidebar-section-title">General Settings</span>
+                <span className="sidebar-section-arrow">{activeSubsection === 'general' ? '−' : '+'}</span>
               </div>
-
-              {/* Killzone Settings Sub-section (protected) */}
-              <div className="sidebar-subsection">
-                <div className="sidebar-sub-section-header" onClick={() => setIsKillzoneOpen(!isKillzoneOpen)}>
-                  <span className="sidebar-section-title">Killzone Settings ★</span>
-                  <span className="sidebar-section-arrow">{isKillzoneOpen ? '−' : '+'}</span>
+              <div className={`sidebar-section-content ${activeSubsection === 'general' ? 'open' : ''}`}>
+                <div className="sidebar-control toggle-container">
+                  <span className="toggle-label sidebar-label" onClick={() => handleToggle(toggleShowHandClock)}>
+                    Show Hand Clock
+                  </span>
+                  <Switch checked={showHandClock} onChange={() => handleToggle(toggleShowHandClock)} />
                 </div>
-                <div className={`sidebar-section-content ${isKillzoneOpen ? 'open' : ''}`}>
-                  <div className="killzone-help" style={{ marginBottom: '10px' }}>
-                    <span style={{fontSize: '0.9rem' }}>What is a Killzone?</span>
+
+                <div className="sidebar-control toggle-container">
+                  <span className="toggle-label sidebar-label" onClick={() => handleToggle(toggleShowDigitalClock)}>
+                    Show Digital Clock
+                  </span>
+                  <Switch checked={showDigitalClock} onChange={() => handleToggle(toggleShowDigitalClock)} />
+                </div>
+                <div className="sidebar-control toggle-container">
+                  <span className="toggle-label sidebar-label" onClick={() => handleToggle(toggleShowKillzoneLabel)}>
+                    Show Active Killzone Label
+                  </span>
+                  <Switch checked={showKillzoneLabel} onChange={() => handleToggle(toggleShowKillzoneLabel)} />
+                </div>
+                {toggleError && (
+                  <div style={{ fontSize: '0.7rem', color: '#E69999', marginTop: '0px', marginBottom: '20px' }}>
+                    {toggleError}
+                  </div>
+                )}
+                <div className="sidebar-control clock-size-container">
+                  <div className="label-help-container">
+                    <label htmlFor="clock-size" className="sidebar-label">
+                      Clock Style:
+                    </label>
                     <span 
                       className="help-icon material-symbols-outlined"
-                      data-tooltip="A Killzone is a high-volatility trading period aligned with key market sessions."
+                      data-tooltip={
+                        `Select a clock style:<br />
+                        <br />
+                        -<b>Aesthetic*</b>: Optimized for visual appeal; some functionality may be limited.<br />
+                        -<b>Tiny</b>: Compact display for minimal space usage.<br />
+                        -<b>Small</b>: Bigger than the Tiny, smaller than the Normal style.<br />
+                        -<b>Normal</b>: Standard display—fits all screen sizes and devices.<br />
+                        -<b>Big (Tablet)</b>: Enhanced view optimized for larger tablet screens.<br />`
+                      }
                       onMouseEnter={handleTooltipEnter}
                       onMouseLeave={() => setCurrentTooltip(null)}
                     >
                       help
                     </span>
                   </div>
-                  <div className="killzone-inputs">
-                    {killzones.map((kz, index) => (
-                      <div key={index} className="killzone-item">
-                        <label htmlFor={`kz-name-${index}`} className="sidebar-label">
-                          Killzone Name {index + 1}:
-                        </label>
-                        <input
-                          id={`kz-name-${index}`}
-                          type="text"
-                          className="sidebar-input killzone-name"
-                          value={kz.name}
-                          onChange={e => handleKillzoneChange(index, 'name', e.target.value)}
-                          placeholder={`Killzone ${index + 1} Name`}
-                        />
-                        <div className="killzone-time-row">
-                          <div className="killzone-field">
-                            <label htmlFor={`kz-start-${index}`} className="sidebar-label">Start Time:</label>
-                            <input
-                              id={`kz-start-${index}`}
-                              type="time"
-                              className="sidebar-input killzone-start"
-                              value={kz.startNY}
-                              onChange={e => handleKillzoneChange(index, 'startNY', e.target.value)}
-                            />
-                          </div>
-                          <div className="killzone-field">
-                            <label htmlFor={`kz-end-${index}`} className="sidebar-label">End Time:</label>
-                            <input
-                              id={`kz-end-${index}`}
-                              type="time"
-                              className="sidebar-input killzone-end"
-                              value={kz.endNY}
-                              onChange={e => handleKillzoneChange(index, 'endNY', e.target.value)}
-                            />
-                          </div>
-                          <div className="killzone-field">
-                            <label htmlFor={`kz-color-${index}`} className="sidebar-label">Color:</label>
-                            <input
-                              id={`kz-color-${index}`}
-                              type="color"
-                              className="sidebar-input killzone-color"
-                              value={kz.color}
-                              onChange={e => handleKillzoneChange(index, 'color', e.target.value)}
-                            />
-                          </div>
-                        </div>
-                        <hr className="killzone-divider" />
-                      </div>
-                    ))}
+
+                  <select
+                    id="clock-size"
+                    className="sidebar-select"
+                    value={clockSize}
+                    onChange={e => onSizeChange(parseInt(e.target.value))}
+                  >
+                    <option value="300">Aesthetic*</option>
+                    <option value="150">Tiny</option>
+                    <option value="250">Small</option>
+                    <option value="375">Normal</option>
+                    <option value="500">Big (Tablet)</option>
+                  </select>
+                </div>
+                <div className="sidebar-control background-color-container">
+                  <div className="label-help-container">
+                    <label htmlFor="bg-color" className="sidebar-label">Background Color:</label>
+                    <span 
+                      className="help-icon material-symbols-outlined"
+                      data-tooltip="Pick a background color. This setting works independently unless overridden by active Killzone."
+                      onMouseEnter={handleTooltipEnter}
+                      onMouseLeave={() => setCurrentTooltip(null)}
+                    >
+                      help
+                    </span>
                   </div>
-                  <div className="sidebar-control killzone-toggles">
-                    <div className="toggle-container">
-                      <span
-                        className="toggle-label sidebar-label"
-                        title="Display the time remaining until the current Killzone ends"
-                        onClick={() => toggleShowTimeToEnd()}
-                      >
-                        Show Time to End
-                      </span>
-                      <Switch checked={showTimeToEnd} onChange={() => toggleShowTimeToEnd()} />
-                    </div>
-                    <hr className='settings-divider'/>
-                    <div className="toggle-container">
-                      <span
-                        className="toggle-label sidebar-label"
-                        title="Display the time until the next Killzone starts"
-                        onClick={() => toggleShowTimeToStart()}
-                      >
-                        Show Time to Start
-                      </span>
-                      <Switch checked={showTimeToStart} onChange={() => toggleShowTimeToStart()} />
-                    </div>
-                  </div>
+                  <input
+                    id="bg-color"
+                    type="color"
+                    className="sidebar-color-picker"
+                    value={backgroundColor}
+                    onChange={e => updateBackgroundColor(e.target.value)}
+                  />
+                </div>
+                
+                <div className="sidebar-control background-based-container toggle-container">
+                  <span className="toggle-label sidebar-label" onClick={() => handleToggle(toggleBackgroundBasedOnKillzone)}>
+                    Background color based on active Killzone
+                  </span>
+                  <Switch checked={backgroundBasedOnKillzone} onChange={() => toggleBackgroundBasedOnKillzone()} />
                 </div>
               </div>
+            </div>
 
-              {/* Economic Events Sub-section */}
-              <div className="sidebar-subsection">
-                <div className="sidebar-sub-section-header" onClick={() => setIsOtherSettingsOpen(!isOtherSettingsOpen)}>
-                  <span className="sidebar-section-title">Economic Events ★</span>
-                  <span className="sidebar-section-arrow">{isOtherSettingsOpen ? '−' : '+'}</span>
+            {/* Killzone Settings Sub-section */}
+            <div className="sidebar-subsection">
+              <div 
+                className="sidebar-sub-section-header" 
+                onClick={() => setActiveSubsection(prev => prev === 'killzone' ? null : 'killzone')}
+              >
+                <span className="sidebar-section-title">Killzone Settings ★</span>
+                <span className="sidebar-section-arrow">{activeSubsection === 'killzone' ? '−' : '+'}</span>
+              </div>
+              <div className={`sidebar-section-content ${activeSubsection === 'killzone' ? 'open' : ''}`}>
+                <div className="killzone-help" style={{ marginBottom: '10px' }}>
+                  <span style={{fontSize: '0.9rem' }}>What is a Killzone?</span>
+                  <span 
+                    className="help-icon material-symbols-outlined"
+                    data-tooltip="A Killzone is a high-volatility trading period aligned with key market sessions."
+                    onMouseEnter={handleTooltipEnter}
+                    onMouseLeave={() => setCurrentTooltip(null)}
+                  >
+                    help
+                  </span>
                 </div>
-                <div className={`sidebar-section-content ${isOtherSettingsOpen ? 'open' : ''}`}>
-                  <div className="sidebar-control">
-                    <h3><strong>Coming soon!</strong></h3>
-                    <p>Displays today's high impact Economic Events in the main clock.</p>
+                <div className="killzone-inputs">
+                  {killzones.map((kz, index) => (
+                    <div key={index} className="killzone-item">
+                      <label htmlFor={`kz-name-${index}`} className="sidebar-label">
+                        Killzone Name {index + 1}:
+                      </label>
+                      <input
+                        id={`kz-name-${index}`}
+                        type="text"
+                        className="sidebar-input killzone-name"
+                        value={kz.name}
+                        onChange={e => handleKillzoneChange(index, 'name', e.target.value)}
+                        placeholder={`Killzone ${index + 1} Name`}
+                      />
+                      <div className="killzone-time-row">
+                        <div className="killzone-field">
+                          <label htmlFor={`kz-start-${index}`} className="sidebar-label">Start Time:</label>
+                          <input
+                            id={`kz-start-${index}`}
+                            type="time"
+                            className="sidebar-input killzone-start"
+                            value={kz.startNY}
+                            onChange={e => handleKillzoneChange(index, 'startNY', e.target.value)}
+                          />
+                        </div>
+                        <div className="killzone-field">
+                          <label htmlFor={`kz-end-${index}`} className="sidebar-label">End Time:</label>
+                          <input
+                            id={`kz-end-${index}`}
+                            type="time"
+                            className="sidebar-input killzone-end"
+                            value={kz.endNY}
+                            onChange={e => handleKillzoneChange(index, 'endNY', e.target.value)}
+                          />
+                        </div>
+                        <div className="killzone-field">
+                          <label htmlFor={`kz-color-${index}`} className="sidebar-label">Color:</label>
+                          <input
+                            id={`kz-color-${index}`}
+                            type="color"
+                            className="sidebar-input killzone-color"
+                            value={kz.color}
+                            onChange={e => handleKillzoneChange(index, 'color', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <hr className="killzone-divider" />
+                    </div>
+                  ))}
+                </div>
+                <div className="sidebar-control killzone-toggles">
+                  <div className="toggle-container">
+                    <span
+                      className="toggle-label sidebar-label"
+                      title="Display the time remaining until the current Killzone ends"
+                      onClick={() => toggleShowTimeToEnd()}
+                    >
+                      Show Time to End
+                    </span>
+                    <Switch checked={showTimeToEnd} onChange={() => toggleShowTimeToEnd()} />
+                  </div>
+                  <hr className='settings-divider'/>
+                  <div className="toggle-container">
+                    <span
+                      className="toggle-label sidebar-label"
+                      title="Display the time until the next Killzone starts"
+                      onClick={() => toggleShowTimeToStart()}
+                    >
+                      Show Time to Start
+                    </span>
+                    <Switch checked={showTimeToStart} onChange={() => toggleShowTimeToStart()} />
                   </div>
                 </div>
               </div>
             </div>
-          )}
+
+            {/* Economic Events Sub-section */}
+            <div className="sidebar-subsection">
+              <div 
+                className="sidebar-sub-section-header" 
+                onClick={() => setActiveSubsection(prev => prev === 'economic' ? null : 'economic')}
+              >
+                <span className="sidebar-section-title">Economic Events ★</span>
+                <span className="sidebar-section-arrow">{activeSubsection === 'economic' ? '−' : '+'}</span>
+              </div>
+              <div className={`sidebar-section-content ${activeSubsection === 'economic' ? 'open' : ''}`}>
+                <div className="sidebar-control">
+                  <h3><strong>Coming soon!</strong></h3>
+                  <p>Displays today's high impact Economic Events in the main clock.</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <p className="sidebar-footer">

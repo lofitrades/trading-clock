@@ -34,5 +34,8 @@ Added meta for google ad sense in head
 v6: 02/18/25 TBD
 First implementation of Firebase Auth.
 
-v7: 02/19/25 2:20 AM
+v7: 02/19/25 1:20 AM
 Minor update to the Killzone label time to end/start format.
+
+v8: 02/19/25 1:45 AM
+Updated style of the sub sections in the sidebar (borders)
