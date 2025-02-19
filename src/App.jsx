@@ -8,7 +8,8 @@ import KillzoneLabel from './components/KillzoneLabel';
 import TimezoneSelector from './components/TimezoneSelector';
 import Sidebar from './components/Sidebar';
 import { isColorDark } from './utils/clockUtils';
-import './App.css';
+import './index.css';  // Import global CSS styles
+import './App.css';    // Import App-specific CSS
 
 export default function App() {
   const {

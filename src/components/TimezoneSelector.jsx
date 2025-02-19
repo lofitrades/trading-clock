@@ -1,8 +1,12 @@
 // src/components/TimezoneSelector.jsx
 import { useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import UnlockModal from './UnlockModal';
 
 export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone, textColor }) {
   const [timezones, setTimezones] = useState([]);
+  const { user } = useAuth();
+  const [showUnlock, setShowUnlock] = useState(false);
 
   useEffect(() => {
     const allTimezones = Intl.supportedValuesOf('timeZone');
@@ -34,11 +38,19 @@ export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone
     return hours * 60 + (minutes || 0);
   };
 
+  const handleChange = (e) => {
+    if (!user) {
+      setShowUnlock(true);
+    } else {
+      setSelectedTimezone(e.target.value);
+    }
+  };
+
   return (
     <div className="timezone-selector">
       <select 
         value={selectedTimezone} 
-        onChange={(e) => setSelectedTimezone(e.target.value)}
+        onChange={handleChange}
         style={{ color: textColor }}
       >
         {timezones.map(({ timezone, offset }) => (
@@ -47,6 +59,15 @@ export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone
           </option>
         ))}
       </select>
+      {showUnlock && (
+        <UnlockModal 
+          onClose={() => setShowUnlock(false)}
+          onSignUp={() => {
+            setShowUnlock(false);
+            // Optionally trigger AuthModal from the parent component
+          }}
+        />
+      )}
     </div>
   );
 }

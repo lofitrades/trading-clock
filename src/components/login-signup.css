@@ -1,0 +1,144 @@
+/* src/components/login-signup.css */
+
+/* Modal Overlay */
+.ls-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Modal Content */
+  .ls-modal-content {
+    background-color: #fff;
+    border-radius: 20px;
+    padding: 30px;
+    width: 70%;
+    max-width: 450px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Form Styles */
+  .ls-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .ls-form h2 {
+    margin-bottom: 10px;
+    font-size: 1.5rem;
+    text-align: center;
+  }
+  
+  .ls-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .ls-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+  
+  .ls-textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    resize: vertical;
+  }
+  
+  .ls-button {
+    padding: 12px;
+    background-color: #333;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .ls-button:hover {
+    background-color: #555;
+  }
+  
+  .ls-link {
+    color: #2d79f3;
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+  
+  .ls-error {
+    color: red;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+  
+  .ls-success {
+    color: green;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+  
+  .ls-social-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  
+  .ls-social-button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    color: #fff;
+  }
+  
+  .ls-social-google {
+    background-color: #db4437;
+  }
+  
+  .ls-social-google:hover {
+    background-color: #c33d2e;
+  }
+  
+  .ls-social-facebook {
+    background-color: #3b5998;
+  }
+  
+  .ls-social-facebook:hover {
+    background-color: #344e86;
+  }
+  
+  .ls-social-twitter {
+    background-color: #1da1f2;
+  }
+  
+  .ls-social-twitter:hover {
+    background-color: #198fd6;
+  }
+  
+  /* Additional spacing */
+  .ls-gap {
+    margin-top: 10px;
+  }
+  

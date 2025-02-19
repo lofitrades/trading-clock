@@ -2,6 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import Switch from './Switch';
 import './Sidebar.css';
+import { useAuth } from '../contexts/AuthContext';
+import AuthModal from './AuthModal';
+import AccountModal from './AccountModal';
+import UnlockModal from './UnlockModal';
 
 const Sidebar = ({
   open,
@@ -25,6 +29,7 @@ const Sidebar = ({
   toggleShowTimeToEnd,
   toggleShowTimeToStart,
 }) => {
+  const { user } = useAuth();
   const [isGeneralOpen, setIsGeneralOpen] = useState(false);
   const [isKillzoneOpen, setIsKillzoneOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
@@ -34,6 +39,9 @@ const Sidebar = ({
   const [touchStartY, setTouchStartY] = useState(0);
   const [toggleError, setToggleError] = useState("");
   const [currentTooltip, setCurrentTooltip] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
 
   useEffect(() => {
     const handleEscape = (e) => e.key === 'Escape' && onClose();
@@ -78,7 +86,12 @@ const Sidebar = ({
     if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 50) onClose();
   };
 
+  // Updated killzone change to require logged in user
   const handleKillzoneChange = (index, field, value) => {
+    if (!user) {
+      setShowUnlockModal(true);
+      return;
+    }
     const newKillzones = [...killzones];
     newKillzones[index][field] = value;
     onKillzonesChange(newKillzones);
@@ -115,66 +128,35 @@ const Sidebar = ({
         )}
 
         <span className="sidebar-close close" onClick={onClose}>&times;</span>
-        <button className="add-button" onClick={() => {alert("Coming soon! \nThis functionality is under development."); }}>
-          Login / Sing Up
-        </button>
-        <p className='free-account'>Create a free account to unlock all the customization features.</p>
-        {/* About Section – Parent Section with animation */}
+        {user ? (
+          <div style={{cursor: 'pointer'}} onClick={() => setShowAccountModal(true)}>
+            Welcome, {user.displayName || user.email}!
+          </div>
+        ) : (
+          <button className="lsu-button" onClick={() => setShowAuthModal(true)}>
+            Login / Sign Up
+          </button>
+        )}
+        <p className='free-account'>Create a free account to unlock Pro★ Features.</p>
         
+        {/* About Section */}
         <div className="sidebar-section parent-section">
           <div className="sidebar-section-header parent-section-header" onClick={() => setIsAboutOpen(!isAboutOpen)}>
             <span className="sidebar-section-title">About</span>
-            <span className="sidebar-section-arrow">{isAboutOpen ? '▼' : '▶'}</span>
+            <span className="sidebar-section-arrow">{isAboutOpen ? '−' : '+'}</span>
           </div>
           <div className={`sidebar-section-content ${isAboutOpen ? 'open' : ''}`}>
             <div className="sidebar-control about-text">
-            <h1><strong>Time 2 Trade</strong></h1>
-            <p>Time 2 Trade is a straightforward, powerful tool for futures and forex traders at every level. Whether you’re just starting out or have years of experience, this app helps you keep track of the market’s key moments by turning time into clear, visual insights.</p>
-
-            <h2><strong>About Time 2 Trade</strong></h2>
-            <p>With Time 2 Trade, you can actually see when the most important parts of your trading day are taking place. The app uses a dynamic clock display where “killzones”—customizable colored arcs—mark crucial market periods. In this design, the inner circle represents AM hours, while the outer circle shows PM hours, giving you a quick overview of the day’s sessions.</p>
-
-            <h3><strong>Key Features</strong></h3>
-            <ul>
-            <li><strong>Dynamic Killzones Visualization:</strong><br />The clock displays your defined trading sessions as colored arcs. Customize the start and end times as well as the colors for each killzone, so you can easily tell when key market moments are active.<br /><br /></li>
-            <li><strong>Customizable Clock Settings:</strong><br />Choose from a variety of clock sizes—from a compact “Tiny” version to a bold “Huge” display. An intuitive sidebar makes it simple to adjust both the clock’s appearance and your killzone settings.<br /><br /></li>
-            <li><strong>Automatic Timezone Support:</strong><br />The clock automatically adjusts to your selected timezone, ensuring that your trading sessions and market events are accurately reflected no matter where you are.<br /><br /></li>
-            <li><strong>Easy-to-Use Interface:</strong><br />The design emphasizes clarity and ease of use. With straightforward controls, you can focus on understanding the market rather than wrestling with complicated settings.<br /><br /></li>
-            <li><strong>Completely Free: $0</strong><br />Get access to all the features and customization by just creating a free account.<br /><br /></li>
-            </ul>
-
-            <h2><strong>What’s Coming Soon</strong></h2>
-            <ul>
-            <li><strong>Alerts & Push Notifications:</strong><br />Stay informed with real-time updates so you never miss an important market moment.<br /><br /></li>
-            <li><strong>Personal Diary & Trading Journal:</strong><br />Log and review the significant moments of your trading day.<br /><br /></li>
-            <li><strong>Trading Buddy Chatbot:</strong><br />A custom chatbot that helps you organize ideas, identify areas for improvement, and keep your motivation high.<br /><br /></li>
-            <li><strong>High-Impact Events Visualization:</strong><br />See exactly when high-impact market events occur right on your clock.<br /><br /></li>
-            <li><strong>Integrated Music Player:</strong><br />Enjoy a built-in music player featuring curated instrumental tracks (like lofi, chill house, and synth-wave) to help you maintain focus during your sessions.<br /><br /></li>
-            </ul>
-
-            <h2><strong>About the Developer</strong></h2>
-            <p>I’m Lofi Trades—a futures trader with a passion for music and technology. I built Time 2 Trade because I believe that trading tools should add real value back to the community. Rather than letting trading feel empty, I wanted to create a tool that makes time itself a source of insight.</p>
-
-            <h3><strong>Get in Touch</strong></h3>
-            <p>If you have any questions, feedback, or suggestions, feel free to reach out:</p><br />
-
-            <strong></strong> <a href="https://x.com/lofi_trades" className="sidebar-link" target="_blank">Follow me on X</a><br /><br />
-            <strong></strong> <a href="mailto:lofitradesx@gmail.com" className="sidebar-link">Send me an email</a><br /><br />
-
-
-            <h2><strong>Support the Project</strong></h2>
-            <p>If you find value in Time 2 Trade and want to support its development, please consider offering your support:</p>
-
-            <a href="https://www.buymeacoffee.com/lofitrades" className="sidebar-link" target="_blank"><br />☕ Buy me a coffee</a><br /><br />
+              <h1>Time 2 Trade</h1>
             </div>
           </div>
         </div>
 
-        {/* Settings Parent Section – Parent Section with animation */}
+        {/* Settings Section */}
         <div className="sidebar-section parent-section">
           <div className="sidebar-section-header parent-section-header" onClick={() => setIsSettingsOpen(!isSettingsOpen)}>
             <span className="sidebar-section-title">Settings</span>
-            <span className="sidebar-section-arrow">{isSettingsOpen ? '▼' : '▶'}</span>
+            <span className="sidebar-section-arrow">{isSettingsOpen ? '−' : '+'}</span>
           </div>
           {isSettingsOpen && (
             <div className={`sidebar-section-content ${isSettingsOpen ? 'open' : ''}`}>
@@ -183,9 +165,8 @@ const Sidebar = ({
               <div className="sidebar-subsection">
                 <div className="sidebar-sub-section-header" onClick={() => setIsGeneralOpen(!isGeneralOpen)}>
                   <span className="sidebar-section-title">General Settings</span>
-                  <span className="sidebar-section-arrow">{isGeneralOpen ? '▼' : '▶'}</span>
+                  <span className="sidebar-section-arrow">{isGeneralOpen ? '−' : '+'}</span>
                 </div>
-                
                 <div className={`sidebar-section-content ${isGeneralOpen ? 'open' : ''}`}>
                   <div className="sidebar-control toggle-container">
                     <span className="toggle-label sidebar-label" onClick={() => handleToggle(toggleShowHandClock)}>
@@ -266,20 +247,18 @@ const Sidebar = ({
                 </div>
               </div>
 
-
-
-              {/* Killzone Settings Sub-section */}
+              {/* Killzone Settings Sub-section (protected) */}
               <div className="sidebar-subsection">
                 <div className="sidebar-sub-section-header" onClick={() => setIsKillzoneOpen(!isKillzoneOpen)}>
-                  <span className="sidebar-section-title">Killzone Settings</span>
-                  <span className="sidebar-section-arrow">{isKillzoneOpen ? '▼' : '▶'}</span>
+                  <span className="sidebar-section-title">Killzone Settings ★</span>
+                  <span className="sidebar-section-arrow">{isKillzoneOpen ? '−' : '+'}</span>
                 </div>
                 <div className={`sidebar-section-content ${isKillzoneOpen ? 'open' : ''}`}>
                   <div className="killzone-help" style={{ marginBottom: '10px' }}>
                     <span style={{fontSize: '0.9rem' }}>What is a Killzone?</span>
                     <span 
                       className="help-icon material-symbols-outlined"
-                      data-tooltip="A Killzone is a high-volatility trading period aligned with key market sessions (EST): Asian (8 PM–12 AM), London (2–5 AM), NY AM (8–11 AM), NY PM (1:30–4 PM), and Market Closed (5–6 PM). These times optimize trade execution during peak liquidity and price shifts."
+                      data-tooltip="A Killzone is a high-volatility trading period aligned with key market sessions."
                       onMouseEnter={handleTooltipEnter}
                       onMouseLeave={() => setCurrentTooltip(null)}
                     >
@@ -362,13 +341,11 @@ const Sidebar = ({
                 </div>
               </div>
 
-
-
-              {/* Other Settings Sub-section */}
+              {/* Economic Events Sub-section */}
               <div className="sidebar-subsection">
                 <div className="sidebar-sub-section-header" onClick={() => setIsOtherSettingsOpen(!isOtherSettingsOpen)}>
-                  <span className="sidebar-section-title">Economic Events</span>
-                  <span className="sidebar-section-arrow">{isOtherSettingsOpen ? '▼' : '▶'}</span>
+                  <span className="sidebar-section-title">Economic Events ★</span>
+                  <span className="sidebar-section-arrow">{isOtherSettingsOpen ? '−' : '+'}</span>
                 </div>
                 <div className={`sidebar-section-content ${isOtherSettingsOpen ? 'open' : ''}`}>
                   <div className="sidebar-control">
@@ -395,6 +372,17 @@ const Sidebar = ({
           </strong>
         </p>
       </div>
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      {showAccountModal && <AccountModal onClose={() => setShowAccountModal(false)} user={user} />}
+      {showUnlockModal && (
+        <UnlockModal
+          onClose={() => setShowUnlockModal(false)}
+          onSignUp={() => {
+            setShowUnlockModal(false);
+            setShowAuthModal(true);
+          }}
+        />
+      )}
     </div>
   );
 };
