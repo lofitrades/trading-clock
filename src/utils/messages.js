@@ -16,7 +16,7 @@ export function getFriendlyErrorMessage(errorCode) {
       case 'auth/network-request-failed':
         return 'Network error. Please check your connection.';
       default:
-        return 'An unexpected error occurred. Please try again.';
+        return 'An unexpected error occurred. Please try again or use another method.';
     }
   }
   

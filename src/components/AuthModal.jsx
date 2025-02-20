@@ -120,7 +120,7 @@ export default function AuthModal({ onClose }) {
             <form onSubmit={handleSubmit}>
               <div className="row">
                 <h2 style={{ textAlign: 'center' }}>
-                  {isLogin ? 'Login with Social Media or Manually' : 'Sign up with Social Media or Manually'}
+                  {isLogin ? 'Login to access all Pro★ Features' : 'Create a free account to access all Pro★ Features'}
                 </h2>
                 <div className="vl">
                   <span className="vl-innertext">or</span>
@@ -131,7 +131,7 @@ export default function AuthModal({ onClose }) {
                       <i className="fa fa-facebook fa-fw"></i> Login with Facebook
                     </a>
                     <a href="#" className="twitter btn" onClick={() => handleSocialLogin('twitter')}>
-                      <i className="fa fa-twitter fa-fw"></i> Login with Twitter
+                      <i className="fa fa-times fa-fw"></i> Login with X
                     </a>
                     <a href="#" className="google btn" onClick={() => handleSocialLogin('google')}>
                       <i className="fa fa-google fa-fw"></i> Login with Google+
@@ -142,8 +142,7 @@ export default function AuthModal({ onClose }) {
                   <div className="hide-md-lg">
                     <p>Or sign in manually:</p>
                   </div>
-                  {errorMsg && <p className="ls-error">{errorMsg}</p>}
-                  {successMsg && <p className="ls-success">{successMsg}</p>}
+
                   <input
                     type="email"
                     name="email"
@@ -165,6 +164,8 @@ export default function AuthModal({ onClose }) {
               </div>
             </form>
           </div>
+          {errorMsg && <p className="ls-error">{errorMsg}</p>}
+          {successMsg && <p className="ls-success">{successMsg}</p>}
           <div className="bottom-container">
             <div className="row">
               <div className="col">

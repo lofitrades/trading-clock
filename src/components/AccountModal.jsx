@@ -82,7 +82,7 @@ export default function AccountModal({ onClose, user, resetSettings }) {
     } catch (err) {
       if (err.code === 'storage/object-not-found') {
         setPhotoURL('');
-        setMessage('No photo found. Click Save to apply.');
+        setMessage('Image deleted. Click Save to apply.');
       } else {
         setError(getFriendlyErrorMessage(err.code) || err.message);
       }
@@ -105,21 +105,11 @@ export default function AccountModal({ onClose, user, resetSettings }) {
 
   return (
     <div className="ls-modal-overlay" onClick={handleOverlayClick}>
-      <div className="ls-modal-content account-modal" onClick={stopPropagation}>
+      <div className="account-modal-content account-modal" onClick={stopPropagation}>
         <form className="ls-form">
           <h2>Account Information</h2>
-          {error && <p className="ls-error">{error}</p>}
-          {message && <p className="ls-success">{message}</p>}
-
-          {/* Email */}
-          <div className="ls-gap">
-            <label className="ls-label">Email:</label>
-            <span>{user.email}</span>
-          </div>
-
           {/* Profile Picture (moved above Name input) */}
           <div className="ls-gap">
-            <label className="ls-label">Profile Picture:</label>
             <div style={{ marginBottom: '10px' }}>
               {photoURL ? (
                 <img
@@ -135,7 +125,7 @@ export default function AccountModal({ onClose, user, resetSettings }) {
             </div>
             {/* Hidden file input & link to trigger it */}
             <span className="ls-link" onClick={() => fileInputRef.current.click()}>
-              {photoURL ? 'Replace image' : 'Add image'}
+              {photoURL ? 'Replace' : 'Add image'}
             </span>
             <input
               ref={fileInputRef}
@@ -149,12 +139,16 @@ export default function AccountModal({ onClose, user, resetSettings }) {
               <>
                 {' | '}
                 <span className="ls-link" onClick={handleDeletePhoto}>
-                  Delete Photo
+                  Delete
                 </span>
               </>
             )}
           </div>
-
+          {/* Email */}
+          <div className="ls-gap">
+            <label className="ls-label">Email:</label>
+            <span>{user.email}</span>
+          </div>
           {/* User Name */}
           <div className="ls-gap">
             <label className="ls-label">Name:</label>
@@ -165,6 +159,9 @@ export default function AccountModal({ onClose, user, resetSettings }) {
               onChange={(e) => setDisplayName(e.target.value)}
             />
           </div>
+
+
+
 
           {/* Change Password */}
           <div className="ls-gap">
@@ -182,7 +179,8 @@ export default function AccountModal({ onClose, user, resetSettings }) {
               Save
             </button>
           </div>
-
+          {error && <p className="ls-error">{error}</p>}
+          {message && <p className="ls-success">{message}</p>}
           {/* More Account Settings / Hide -> Delete Account */}
           <div className="ls-gap">
             <span className="ls-link" onClick={() => setShowDelete(!showDelete)}>
@@ -193,7 +191,7 @@ export default function AccountModal({ onClose, user, resetSettings }) {
                 <button
                   type="button"
                   className="secondary-button"
-                  style={{ borderColor: 'red', color: 'red' }}
+                  style={{ borderColor: 'red', color: 'red', width: '250px' }}
                   onClick={handleDeleteAccount}
                 >
                   Delete Account

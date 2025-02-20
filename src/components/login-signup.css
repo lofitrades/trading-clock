@@ -19,6 +19,7 @@ body {
   font-weight: bold;
   cursor: pointer;
   transition: background-color 0.3s;
+  width: 120px;
 }
 .primary-button:hover {
   background-color: #444;
@@ -34,6 +35,7 @@ body {
   font-weight: bold;
   cursor: pointer;
   transition: background-color 0.3s, color 0.3s;
+  width: 120px;
 }
 .secondary-button:hover {
   background-color: #f9f9f9;
@@ -132,7 +134,7 @@ input:hover,
   color: white;
 }
 .twitter {
-  background-color: #55ACEE;
+  background-color: #000;
   color: white;
 }
 .google {
@@ -240,6 +242,16 @@ input[type=submit]:hover {
   overflow-y: auto;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
+.account-modal-content {
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 30px;
+  width: 90%;
+  max-width: 400px;
+  max-height: 100vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
 
 /* Custom Scrollbar (Webkit) */
 .ls-modal-content::-webkit-scrollbar {
@@ -304,13 +316,13 @@ input[type=submit]:hover {
 .ls-error {
   color: red;
   font-size: 0.9rem;
-  text-align: center;
+  text-align: left;
   margin-bottom: 10px;
 }
 .ls-success {
   color: green;
   font-size: 0.9rem;
-  text-align: center;
+  text-align: left;
   margin-bottom: 10px;
 }
 
