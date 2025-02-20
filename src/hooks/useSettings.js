@@ -1,5 +1,8 @@
-// src/hooks/useSettings.js
+/* src/hooks/useSettings.js */
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { db } from '../firebase';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const defaultKillzones = [
   { name: "NY AM", startNY: "07:00", endNY: "11:00", color: "#A8D8B9" },
@@ -13,21 +16,23 @@ const defaultKillzones = [
 ];
 
 export function useSettings() {
+  const { user } = useAuth();
+
   const [clockSize, setClockSize] = useState(375);
   const [killzones, setKillzones] = useState([...defaultKillzones]);
   const [selectedTimezone, setSelectedTimezone] = useState('America/New_York');
-  // User-selected background color remains independent.
   const [backgroundColor, setBackgroundColor] = useState("#F9F9F9");
   const [backgroundBasedOnKillzone, setBackgroundBasedOnKillzone] = useState(false);
-  // New toggles for the three main clock elements
   const [showHandClock, setShowHandClock] = useState(true);
   const [showDigitalClock, setShowDigitalClock] = useState(true);
   const [showKillzoneLabel, setShowKillzoneLabel] = useState(true);
-  // Killzone countdown toggles
   const [showTimeToEnd, setShowTimeToEnd] = useState(true);
   const [showTimeToStart, setShowTimeToStart] = useState(true);
 
   useEffect(() => {
+    // Remove reliance on localStorage for default settings.
+    // When the user logs out, localStorage is cleared.
+    // Here we load settings from localStorage only if available.
     const savedSize = localStorage.getItem('clockSize');
     const savedKillzones = localStorage.getItem('killzones');
     const savedTimezone = localStorage.getItem('selectedTimezone');
@@ -45,45 +50,90 @@ export function useSettings() {
     if (savedBackgroundColor) setBackgroundColor(savedBackgroundColor);
     if (savedBackgroundBasedOnKillzone !== null)
       setBackgroundBasedOnKillzone(savedBackgroundBasedOnKillzone === 'true');
-    if (savedShowHandClock !== null)
-      setShowHandClock(savedShowHandClock === 'true');
-    if (savedShowDigitalClock !== null)
-      setShowDigitalClock(savedShowDigitalClock === 'true');
-    if (savedShowKillzoneLabel !== null)
-      setShowKillzoneLabel(savedShowKillzoneLabel === 'true');
-    if (savedShowTimeToEnd !== null)
-      setShowTimeToEnd(savedShowTimeToEnd === 'true');
-    if (savedShowTimeToStart !== null)
-      setShowTimeToStart(savedShowTimeToStart === 'true');
+    if (savedShowHandClock !== null) setShowHandClock(savedShowHandClock === 'true');
+    if (savedShowDigitalClock !== null) setShowDigitalClock(savedShowDigitalClock === 'true');
+    if (savedShowKillzoneLabel !== null) setShowKillzoneLabel(savedShowKillzoneLabel === 'true');
+    if (savedShowTimeToEnd !== null) setShowTimeToEnd(savedShowTimeToEnd === 'true');
+    if (savedShowTimeToStart !== null) setShowTimeToStart(savedShowTimeToStart === 'true');
   }, []);
+
+  useEffect(() => {
+    async function loadUserSettings() {
+      if (!user) return;
+      const userRef = doc(db, 'users', user.uid);
+      const snap = await getDoc(userRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.settings) {
+          if (data.settings.clockSize) setClockSize(data.settings.clockSize);
+          if (data.settings.killzones) setKillzones(data.settings.killzones);
+          if (data.settings.selectedTimezone) setSelectedTimezone(data.settings.selectedTimezone);
+          if (data.settings.backgroundColor) setBackgroundColor(data.settings.backgroundColor);
+          if (data.settings.backgroundBasedOnKillzone !== undefined)
+            setBackgroundBasedOnKillzone(data.settings.backgroundBasedOnKillzone);
+          if (data.settings.showHandClock !== undefined) setShowHandClock(data.settings.showHandClock);
+          if (data.settings.showDigitalClock !== undefined) setShowDigitalClock(data.settings.showDigitalClock);
+          if (data.settings.showKillzoneLabel !== undefined) setShowKillzoneLabel(data.settings.showKillzoneLabel);
+          if (data.settings.showTimeToEnd !== undefined) setShowTimeToEnd(data.settings.showTimeToEnd);
+          if (data.settings.showTimeToStart !== undefined) setShowTimeToStart(data.settings.showTimeToStart);
+        }
+      } else {
+        await setDoc(userRef, {
+          email: user.email,
+          createdAt: serverTimestamp(),
+          settings: {
+            clockSize,
+            killzones,
+            selectedTimezone,
+            backgroundColor,
+            backgroundBasedOnKillzone,
+            showHandClock,
+            showDigitalClock,
+            showKillzoneLabel,
+            showTimeToEnd,
+            showTimeToStart,
+          }
+        });
+      }
+    }
+    loadUserSettings();
+  }, [user]);
+
+  async function saveSettingsToFirestore(newSettings) {
+    if (!user) return;
+    const userRef = doc(db, 'users', user.uid);
+    await setDoc(userRef, { settings: { ...newSettings } }, { merge: true });
+  }
 
   const updateClockSize = (size) => {
     setClockSize(size);
     localStorage.setItem('clockSize', size);
+    if (user) saveSettingsToFirestore({ clockSize: size });
   };
 
   const updateKillzones = (newKillzones) => {
     setKillzones([...newKillzones]);
     localStorage.setItem('killzones', JSON.stringify(newKillzones));
+    if (user) saveSettingsToFirestore({ killzones: newKillzones });
   };
 
   const updateBackgroundColor = (color) => {
     setBackgroundColor(color);
     localStorage.setItem('backgroundColor', color);
+    if (user) saveSettingsToFirestore({ backgroundColor: color });
   };
 
   const toggleBackgroundBasedOnKillzone = () => {
     setBackgroundBasedOnKillzone(prev => {
-      localStorage.setItem('backgroundBasedOnKillzone', !prev);
-      return !prev;
+      const newValue = !prev;
+      localStorage.setItem('backgroundBasedOnKillzone', newValue);
+      if (user) saveSettingsToFirestore({ backgroundBasedOnKillzone: newValue });
+      return newValue;
     });
   };
 
-  // Toggle functions for the three main elements with at-least-one-enabled check
   const canToggleOff = (currentValue, other1, other2) => {
-    if (currentValue && !other1 && !other2) {
-      return false;
-    }
+    if (currentValue && !other1 && !other2) return false;
     return true;
   };
 
@@ -91,13 +141,13 @@ export function useSettings() {
     if (!showHandClock) {
       setShowHandClock(true);
       localStorage.setItem('showHandClock', true);
+      if (user) saveSettingsToFirestore({ showHandClock: true });
       return true;
     }
-    if (!canToggleOff(showHandClock, showDigitalClock, showKillzoneLabel)) {
-      return false;
-    }
+    if (!canToggleOff(showHandClock, showDigitalClock, showKillzoneLabel)) return false;
     setShowHandClock(false);
     localStorage.setItem('showHandClock', false);
+    if (user) saveSettingsToFirestore({ showHandClock: false });
     return true;
   };
 
@@ -105,13 +155,13 @@ export function useSettings() {
     if (!showDigitalClock) {
       setShowDigitalClock(true);
       localStorage.setItem('showDigitalClock', true);
+      if (user) saveSettingsToFirestore({ showDigitalClock: true });
       return true;
     }
-    if (!canToggleOff(showDigitalClock, showHandClock, showKillzoneLabel)) {
-      return false;
-    }
+    if (!canToggleOff(showDigitalClock, showHandClock, showKillzoneLabel)) return false;
     setShowDigitalClock(false);
     localStorage.setItem('showDigitalClock', false);
+    if (user) saveSettingsToFirestore({ showDigitalClock: false });
     return true;
   };
 
@@ -119,28 +169,47 @@ export function useSettings() {
     if (!showKillzoneLabel) {
       setShowKillzoneLabel(true);
       localStorage.setItem('showKillzoneLabel', true);
+      if (user) saveSettingsToFirestore({ showKillzoneLabel: true });
       return true;
     }
-    if (!canToggleOff(showKillzoneLabel, showHandClock, showDigitalClock)) {
-      return false;
-    }
+    if (!canToggleOff(showKillzoneLabel, showHandClock, showDigitalClock)) return false;
     setShowKillzoneLabel(false);
     localStorage.setItem('showKillzoneLabel', false);
+    if (user) saveSettingsToFirestore({ showKillzoneLabel: false });
     return true;
   };
 
   const toggleShowTimeToEnd = () => {
     setShowTimeToEnd(prev => {
-      localStorage.setItem('showTimeToEnd', !prev);
-      return !prev;
+      const newValue = !prev;
+      localStorage.setItem('showTimeToEnd', newValue);
+      if (user) saveSettingsToFirestore({ showTimeToEnd: newValue });
+      return newValue;
     });
   };
 
   const toggleShowTimeToStart = () => {
     setShowTimeToStart(prev => {
-      localStorage.setItem('showTimeToStart', !prev);
-      return !prev;
+      const newValue = !prev;
+      localStorage.setItem('showTimeToStart', newValue);
+      if (user) saveSettingsToFirestore({ showTimeToStart: newValue });
+      return newValue;
     });
+  };
+
+  // Reset settings: clear localStorage and reinitialize to defaults
+  const resetSettings = () => {
+    localStorage.clear();
+    setClockSize(375);
+    setKillzones([...defaultKillzones]);
+    setSelectedTimezone('America/New_York');
+    setBackgroundColor("#F9F9F9");
+    setBackgroundBasedOnKillzone(false);
+    setShowHandClock(true);
+    setShowDigitalClock(true);
+    setShowKillzoneLabel(true);
+    setShowTimeToEnd(true);
+    setShowTimeToStart(true);
   };
 
   return {
@@ -154,17 +223,16 @@ export function useSettings() {
     updateBackgroundColor,
     backgroundBasedOnKillzone,
     toggleBackgroundBasedOnKillzone,
-    // New toggles for main elements:
     showHandClock,
     showDigitalClock,
     showKillzoneLabel,
     toggleShowHandClock,
     toggleShowDigitalClock,
     toggleShowKillzoneLabel,
-    // Killzone countdown toggles:
     showTimeToEnd,
     showTimeToStart,
     toggleShowTimeToEnd,
     toggleShowTimeToStart,
+    resetSettings,
   };
 }

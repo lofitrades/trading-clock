@@ -1,35 +1,35 @@
-// src/components/TimezoneSelector.jsx
+/* src/components/TimezoneSelector.jsx */
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import UnlockModal from './UnlockModal';
 
-export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone, textColor }) {
+export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone, textColor, onRequestSignUp }) {
   const [timezones, setTimezones] = useState([]);
   const { user } = useAuth();
   const [showUnlock, setShowUnlock] = useState(false);
 
   useEffect(() => {
     const allTimezones = Intl.supportedValuesOf('timeZone');
-    const timezonesWithOffsets = allTimezones.map(timezone => {
-      const offset = getUTCOffset(timezone);
+    const timezonesWithOffsets = allTimezones.map((tz) => {
+      const offset = getUTCOffset(tz);
       return {
-        timezone,
+        timezone: tz,
         offset,
-        sortKey: parseOffset(offset)
+        sortKey: parseOffset(offset),
       };
     });
     timezonesWithOffsets.sort((a, b) => a.sortKey - b.sortKey);
     setTimezones(timezonesWithOffsets);
   }, []);
 
-  const getUTCOffset = (timezone) => {
+  const getUTCOffset = (tz) => {
     const now = new Date();
     const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
-      timeZoneName: 'shortOffset'
+      timeZone: tz,
+      timeZoneName: 'shortOffset',
     });
     const parts = formatter.formatToParts(now);
-    const offset = parts.find(part => part.type === 'timeZoneName').value;
+    const offset = parts.find((part) => part.type === 'timeZoneName').value;
     return offset.replace(/UTC|GMT/, '').trim();
   };
 
@@ -48,11 +48,7 @@ export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone
 
   return (
     <div className="timezone-selector">
-      <select 
-        value={selectedTimezone} 
-        onChange={handleChange}
-        style={{ color: textColor }}
-      >
+      <select value={selectedTimezone} onChange={handleChange} style={{ color: textColor }}>
         {timezones.map(({ timezone, offset }) => (
           <option key={timezone} value={timezone}>
             {`(UTC${offset}) ${timezone}`}
@@ -60,11 +56,11 @@ export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone
         ))}
       </select>
       {showUnlock && (
-        <UnlockModal 
+        <UnlockModal
           onClose={() => setShowUnlock(false)}
           onSignUp={() => {
             setShowUnlock(false);
-            // Optionally trigger AuthModal from the parent component
+            onRequestSignUp && onRequestSignUp();
           }}
         />
       )}

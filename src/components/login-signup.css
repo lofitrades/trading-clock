@@ -1,144 +1,337 @@
 /* src/components/login-signup.css */
 
-/* Modal Overlay */
+/* ---------- Base Styles ---------- */
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+* {
+  box-sizing: border-box;
+}
+
+/* ---------- Common Button Styles (Non-AuthModal) ---------- */
+.primary-button {
+  background-color: #333;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+.primary-button:hover {
+  background-color: #444;
+}
+
+.secondary-button {
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+}
+.secondary-button:hover {
+  background-color: #f9f9f9;
+}
+
+/* ---------- Other Non-AuthModal Styles ---------- */
+.account-modal {
+  border-radius: 12px;
+  padding: 40px;
+  max-width: 550px;
+  margin: 0 auto;
+}
+.account-modal img {
+  border: 2px solid #ccc;
+}
+
+/* ---------- User Menu (Sidebar) ---------- */
+.sidebar-user-section {
+  margin-bottom: 1rem;
+  position: relative;
+}
+.user-menu-container {
+  position: relative;
+  display: inline-block;
+}
+.user-menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 6px;
+}
+.user-menu-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.user-menu-name {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+.user-menu-arrow {
+  font-size: 1.2rem;
+}
+.user-menu-dropdown {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  min-width: 120px;
+  z-index: 9999;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+.user-menu-item {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.user-menu-item:hover {
+  background: #f2f2f2;
+}
+
+/* ---------- AuthModal Styles (Replaced with CSS Code 2) ---------- */
+
+/* Container for AuthModal */
+.container {
+  position: relative;
+  border-radius: 5px;
+  background-color: #f2f2f2;
+  padding: 20px 0 30px 0;
+}
+
+/* Inputs and Buttons */
+input,
+.btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 4px;
+  margin: 5px 0;
+  opacity: 0.85;
+  display: inline-block;
+  font-size: 17px;
+  line-height: 20px;
+  text-decoration: none;
+}
+input:hover,
+.btn:hover {
+  opacity: 1;
+}
+
+/* Social Button Colors */
+.fb {
+  background-color: #3B5998;
+  color: white;
+}
+.twitter {
+  background-color: #55ACEE;
+  color: white;
+}
+.google {
+  background-color: #dd4b39;
+  color: white;
+}
+
+/* Submit Button */
+input[type=submit] {
+  background-color: #04AA6D;
+  color: white;
+  cursor: pointer;
+}
+input[type=submit]:hover {
+  background-color: #45a049;
+}
+
+/* Two-Column Layout */
+.col {
+  float: left;
+  width: 50%;
+  margin: auto;
+  padding: 0 50px;
+  margin-top: 6px;
+}
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* Vertical Line */
+.vl {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%);
+  border: 2px solid #ddd;
+  height: 175px;
+}
+.vl-innertext {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #f1f1f1;
+  border: 1px solid #ccc;
+  border-radius: 50%;
+  padding: 8px 10px;
+}
+
+/* Hide Text on Larger Screens */
+.hide-md-lg {
+  display: none;
+}
+
+/* Bottom Container */
+.bottom-container {
+  text-align: center;
+  background-color: #666;
+  border-radius: 0 0 4px 4px;
+}
+
+/* Responsive Layout */
+@media screen and (max-width: 650px) {
+  .col {
+    width: 100%;
+    margin-top: 0;
+  }
+  .vl {
+    display: none;
+  }
+  .hide-md-lg {
+    display: block;
+    text-align: center;
+  }
+}
+
+/* Unlock Modal Button Style */
+.lsu-button,
+.ls-button,
+.btn {
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+/* Modal Overlay & Content */
 .ls-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  /* Modal Content */
-  .ls-modal-content {
-    background-color: #fff;
-    border-radius: 20px;
-    padding: 30px;
-    width: 70%;
-    max-width: 450px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  }
-  
-  /* Form Styles */
-  .ls-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
-  
-  .ls-form h2 {
-    margin-bottom: 10px;
-    font-size: 1.5rem;
-    text-align: center;
-  }
-  
-  .ls-label {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #333;
-  }
-  
-  .ls-input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 1rem;
-    box-sizing: border-box;
-  }
-  
-  .ls-textarea {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 1rem;
-    box-sizing: border-box;
-    resize: vertical;
-  }
-  
-  .ls-button {
-    padding: 12px;
-    background-color: #333;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-  
-  .ls-button:hover {
-    background-color: #555;
-  }
-  
-  .ls-link {
-    color: #2d79f3;
-    cursor: pointer;
-    font-size: 0.9rem;
-    text-align: center;
-  }
-  
-  .ls-error {
-    color: red;
-    font-size: 0.9rem;
-    text-align: center;
-  }
-  
-  .ls-success {
-    color: green;
-    font-size: 0.9rem;
-    text-align: center;
-  }
-  
-  .ls-social-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-  }
-  
-  .ls-social-button {
-    flex: 1;
-    padding: 10px;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    color: #fff;
-  }
-  
-  .ls-social-google {
-    background-color: #db4437;
-  }
-  
-  .ls-social-google:hover {
-    background-color: #c33d2e;
-  }
-  
-  .ls-social-facebook {
-    background-color: #3b5998;
-  }
-  
-  .ls-social-facebook:hover {
-    background-color: #344e86;
-  }
-  
-  .ls-social-twitter {
-    background-color: #1da1f2;
-  }
-  
-  .ls-social-twitter:hover {
-    background-color: #198fd6;
-  }
-  
-  /* Additional spacing */
-  .ls-gap {
-    margin-top: 10px;
-  }
-  
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ls-modal-content {
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 30px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 100vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Custom Scrollbar (Webkit) */
+.ls-modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+.ls-modal-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+.ls-modal-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+.ls-modal-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* ---------- Account Modal Additional Classes ---------- */
+
+/* A flex container for the account form */
+.ls-form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Labels for "Name:", "Email:", etc. */
+.ls-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+  display: inline-block;
+}
+
+/* Inputs for the "Name" field, etc. */
+.ls-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin: 5px 0;
+  font-size: 17px;
+  line-height: 20px;
+}
+.ls-input:focus {
+  outline: none;
+  border-color: #04AA6D;
+}
+
+/* Underscored link for "Add image", "Replace image", "Delete Photo", etc. */
+.ls-link {
+  color: #2d79f3;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.ls-link:hover {
+  color: #1a5dc7;
+}
+
+/* Success and Error messages displayed in the modal */
+.ls-error {
+  color: red;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.ls-success {
+  color: green;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+/* Simple top margin to create spacing between elements */
+.ls-gap {
+  margin-top: 15px;
+}
+
+/* ---------- Account Modal Overrides for Consistency ---------- */
+.account-modal .ls-link {
+  color: #333; /* Use same color as in Sidebar */
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+.account-modal .ls-link:hover {
+  color: #333;
+}
+.account-modal .ls-input {
+  padding: 5px;
+  font-size: 0.9em;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}

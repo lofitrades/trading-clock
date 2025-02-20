@@ -37,5 +37,9 @@ First implementation of Firebase Auth.
 v7: 02/19/25 1:20 AM
 Minor update to the Killzone label time to end/start format.
 
-v8: 02/19/25 1:45 AM
+v8 (incorrectly named the comit v7): 02/19/25 1:45 AM
 Updated style of the sub sections in the sidebar (borders)
+
+v9 02/19/25 2:14 AM
+Only one section of the sidebar is expanded at a time
+Updated the clock style tooltip.
