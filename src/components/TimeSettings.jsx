@@ -22,7 +22,7 @@ const TimeSettings = ({ showTimeToEnd, showTimeToStart, toggleShowTimeToEnd, tog
         />
         <label
           htmlFor="showTimeToEnd"
-          title="Display the time remaining until the current killzone ends"
+          title="Display the time remaining until the current session ends"
           style={{ marginLeft: '5px' }}
         >
           Show Time to End
@@ -37,7 +37,7 @@ const TimeSettings = ({ showTimeToEnd, showTimeToStart, toggleShowTimeToEnd, tog
         />
         <label
           htmlFor="showTimeToStart"
-          title="Display the time until the next killzone starts"
+          title="Display the time until the next session starts"
           style={{ marginLeft: '5px' }}
         >
           Show Time to Start

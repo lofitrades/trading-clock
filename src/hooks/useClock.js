@@ -1,7 +1,7 @@
 // src/hooks/useClock.js
 import { useState, useEffect, useMemo } from 'react';
 
-export const useClock = (timezone, killzones) => {
+export const useClock = (timezone, sessions) => {
   const getTimezoneTime = () => {
     const now = new Date();
     return new Date(now.toLocaleString('en-US', { timeZone: timezone }));
@@ -9,12 +9,12 @@ export const useClock = (timezone, killzones) => {
 
   const [currentTime, setCurrentTime] = useState(getTimezoneTime());
 
-  const calculateKillzoneTimes = () => {
+  const calculateSessionTimes = () => {
     const now = currentTime;
     let activeZones = [];
     let upcomingZones = [];
 
-    killzones.forEach(kz => {
+    sessions.forEach(kz => {
       if (!kz.startNY || !kz.endNY) return;
       const [sHour, sMin] = kz.startNY.split(':').map(Number);
       const [eHour, eMin] = kz.endNY.split(':').map(Number);
@@ -25,19 +25,19 @@ export const useClock = (timezone, killzones) => {
       let endDate = new Date(now);
       endDate.setHours(eHour, eMin, 0, 0);
 
-      // Adjust for killzones that span midnight
+      // Adjust for sessions that span midnight
       if (endDate <= startDate) {
         endDate.setDate(endDate.getDate() + 1);
       }
 
       if (now >= startDate && now < endDate) {
-        activeZones.push({ killzone: kz, startDate, endDate });
+        activeZones.push({ session: kz, startDate, endDate });
       } else {
         // If start time already passed, consider the next occurrence (tomorrow)
         if (now >= startDate) {
           startDate.setDate(startDate.getDate() + 1);
         }
-        upcomingZones.push({ killzone: kz, startDate });
+        upcomingZones.push({ session: kz, startDate });
       }
     });
 
@@ -46,17 +46,17 @@ export const useClock = (timezone, killzones) => {
     // Sort upcoming zones by soonest start time
     upcomingZones.sort((a, b) => a.startDate - b.startDate);
 
-    const activeKillzone = activeZones.length > 0 ? activeZones[0].killzone : null;
+    const activeSession = activeZones.length > 0 ? activeZones[0].session : null;
     const timeToEnd = activeZones.length > 0 ? Math.floor((activeZones[0].endDate - now) / 1000) : null;
-    const nextKillzone = upcomingZones.length > 0 ? upcomingZones[0].killzone : null;
+    const nextSession = upcomingZones.length > 0 ? upcomingZones[0].session : null;
     const timeToStart = upcomingZones.length > 0 ? Math.floor((upcomingZones[0].startDate - now) / 1000) : null;
 
-    return { activeKillzone, timeToEnd, nextKillzone, timeToStart };
+    return { activeSession, timeToEnd, nextSession, timeToStart };
   };
 
-  const { activeKillzone, timeToEnd, nextKillzone, timeToStart } = useMemo(
-    () => calculateKillzoneTimes(),
-    [currentTime, killzones]
+  const { activeSession, timeToEnd, nextSession, timeToStart } = useMemo(
+    () => calculateSessionTimes(),
+    [currentTime, sessions]
   );
 
   useEffect(() => {
@@ -67,5 +67,5 @@ export const useClock = (timezone, killzones) => {
     return () => clearInterval(timer);
   }, [timezone]);
 
-  return { currentTime, activeKillzone, timeToEnd, nextKillzone, timeToStart };
+  return { currentTime, activeSession, timeToEnd, nextSession, timeToStart };
 };

@@ -3,7 +3,8 @@ body {
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: transparent;
+  background-color: #F9F9F9;
+  overflow: hidden; /* Prevent body scrolling */
 }
 
 li {
@@ -16,25 +17,13 @@ li {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
   box-sizing: border-box;
+  overflow: hidden; /* Prevent scrolling */
 }
 
-.settings-button {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 32px;
-  color: #4B4B4B;
-  z-index: 1000;
-  transition: color 0.2s;
-}
-.settings-button:hover {
-  color: #2c3e50;
-}
+/* Settings button is now handled by MUI IconButton */
 
 /* Main Clock Elements Container */
 .clock-elements-container {
@@ -46,50 +35,68 @@ li {
   width: 100%;
   box-sizing: border-box;
   text-align: center;
-  min-height: calc(100vh - 100px);
+  height: 100%;
+  overflow: hidden; /* Prevent scrolling */
 }
 
 /* Tooltip */
 .tooltip {
   position: fixed;
   padding: 8px 12px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
   pointer-events: none;
   z-index: 1000;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: opacity 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  /* GSAP will handle animations, but keep fallback */
+  transition: opacity 0.2s ease-out;
+  transform-origin: top left;
+  will-change: transform, opacity;
 }
 
 /* Digital Clock */
 .digital-clock {
   font-weight: 400;
   color: #333;
-  margin-bottom: 10px;
-  
+  margin-bottom: 5px;
+  margin-top: 5px;
 }
 
-/* Timezone Selector */
+/* Timezone Selector - Fixed to bottom of viewport */
 .timezone-selector {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
   text-align: center;
+  z-index: 100;
 }
 
 .timezone-selector select {
-  border: 0px solid #ddd;
-  border-radius: 4px;
+  border: none;
+  border-radius: 0;
   font-size: 0.7rem;
-  padding-bottom: 0px;
-  margin-bottom: 20px;
-  margin-top: 10px;
+  padding: 4px 8px;
   max-width: 300px;
-  padding-top: 0;
   background: transparent;
-  width: 66%;
-  text-align: left;
-  color: #333;
+  text-align: center;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
 
-.killzone-label {
+.timezone-selector select:hover {
+  opacity: 0.7;
+}
+
+.timezone-selector select:focus {
+  opacity: 0.8;
+}
+
+.session-label {
   border-radius: 4px;
   transition: background-color 0.3s, color 0.3s;
   width: calc(100% - 100px); /* Increased from 40px to 80px for bigger side margins */
@@ -114,6 +121,7 @@ li {
   word-wrap: normal;
   direction: ltr;
   -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
 }
 
@@ -127,7 +135,7 @@ li {
   animation: fadeIn 0.3s ease-in;
 }
 
-.killzone-container {
+.session-container {
   margin: 20px 0;
   text-align: center;
 }
@@ -159,6 +167,7 @@ canvas {
 @media (max-width: 600px) and (orientation: portrait) {
   .clock-elements-container {
     flex-direction: column;
+    padding-bottom: 60px;
   }
   
   .digital-clock {
@@ -168,7 +177,12 @@ canvas {
   }
   
   .timezone-selector {
-    left: 0;
+    bottom: 15px;
+  }
+  
+  .timezone-selector select {
+    font-size: 0.65rem;
+    padding: 3px 6px;
   }
 }
 
@@ -180,7 +194,8 @@ canvas {
     grid-gap: 10px;
     align-items: center;
     justify-items: center;
-    min-height: calc(100vh - 100px);
+    min-height: 100vh;
+    padding-bottom: 60px;
   }
   
   .hand-clock {
@@ -193,6 +208,15 @@ canvas {
     display: flex;
     flex-direction: column;
     align-items: center;
+  }
+  
+  .timezone-selector {
+    bottom: 10px;
+  }
+  
+  .timezone-selector select {
+    font-size: 0.6rem;
+    padding: 2px 5px;
   }
 }
 

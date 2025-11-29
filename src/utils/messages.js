@@ -19,7 +19,6 @@ export function getFriendlyErrorMessage(errorCode) {
         return 'An unexpected error occurred. Please try again or use another method.';
     }
   }
-  
   export function getSuccessMessage(type) {
     switch (type) {
       case 'login':

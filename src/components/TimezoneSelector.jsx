@@ -47,14 +47,20 @@ export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone
   };
 
   return (
-    <div className="timezone-selector">
-      <select value={selectedTimezone} onChange={handleChange} style={{ color: textColor }}>
-        {timezones.map(({ timezone, offset }) => (
-          <option key={timezone} value={timezone}>
-            {`(UTC${offset}) ${timezone}`}
-          </option>
-        ))}
-      </select>
+    <>
+      <div className="timezone-selector">
+        <select 
+          value={selectedTimezone} 
+          onChange={handleChange}
+          aria-label="Select timezone"
+        >
+          {timezones.map(({ timezone, offset }) => (
+            <option key={timezone} value={timezone}>
+              {`(UTC${offset}) ${timezone}`}
+            </option>
+          ))}
+        </select>
+      </div>
       {showUnlock && (
         <UnlockModal
           onClose={() => setShowUnlock(false)}
@@ -64,6 +70,6 @@ export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone
           }}
         />
       )}
-    </div>
+    </>
   );
 }

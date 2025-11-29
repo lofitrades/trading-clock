@@ -2,8 +2,8 @@
 import React from 'react';
 import { formatTime } from '../utils/clockUtils';
 
-const TimeStatus = ({ activeKillzone, timeToEnd, nextKillzone, timeToStart, showTimeToEnd, showTimeToStart }) => {
-  if (activeKillzone && showTimeToEnd && timeToEnd != null) {
+const TimeStatus = ({ activeSession, timeToEnd, nextSession, timeToStart, showTimeToEnd, showTimeToStart }) => {
+  if (activeSession && showTimeToEnd && timeToEnd != null) {
     return (
       <div
         className="time-status"
@@ -13,14 +13,14 @@ const TimeStatus = ({ activeKillzone, timeToEnd, nextKillzone, timeToStart, show
         Time to End: {formatTime(timeToEnd)}
       </div>
     );
-  } else if (!activeKillzone && nextKillzone && showTimeToStart && timeToStart != null) {
+  } else if (!activeSession && nextSession && showTimeToStart && timeToStart != null) {
     return (
       <div
         className="time-status"
         title={`Starts in: ${formatTime(timeToStart)}`}
         style={{ textAlign: 'center', marginTop: '5px' }}
       >
-        Next: {nextKillzone.name} ({formatTime(timeToStart)})
+        Next: {nextSession.name} ({formatTime(timeToStart)})
       </div>
     );
   } else {

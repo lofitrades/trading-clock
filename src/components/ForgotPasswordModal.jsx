@@ -1,22 +1,23 @@
 /* src/components/ForgotPasswordModal.jsx */
 import React, { useState } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  Alert,
+  Box,
+} from '@mui/material';
 import { auth } from '../firebase';
 import { sendPasswordResetEmail, fetchSignInMethodsForEmail } from 'firebase/auth';
 import { getFriendlyErrorMessage, getSuccessMessage } from '../utils/messages';
-import './login-signup.css';
 
 export default function ForgotPasswordModal({ onClose }) {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-
-  const handleOverlayClick = () => {
-    onClose();
-  };
-
-  const stopPropagation = (e) => {
-    e.stopPropagation();
-  };
 
   const handleReset = async (e) => {
     e.preventDefault();
@@ -36,29 +37,32 @@ export default function ForgotPasswordModal({ onClose }) {
   };
 
   return (
-    <div className="ls-modal-overlay" onClick={handleOverlayClick}>
-      <div className="ls-modal-content" onClick={stopPropagation}>
-        <form className="ls-form" onSubmit={handleReset}>
-          <h2>Forgot Password</h2>
-          {error && <p className="ls-error">{error}</p>}
-          {message && <p className="ls-success">{message}</p>}
-          <div>
-            <label className="ls-label">Email</label>
-            <input
-              className="ls-input"
-              type="email"
-              placeholder="Enter your Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <button type="submit" className="ls-button">Reset Password</button>
-          <p className="ls-link">
-            <span className="ls-link" onClick={onClose}>Close</span>
-          </p>
-        </form>
-      </div>
-    </div>
+    <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Forgot Password</DialogTitle>
+      <form onSubmit={handleReset}>
+        <DialogContent>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
+          <TextField
+            fullWidth
+            type="email"
+            label="Email"
+            placeholder="Enter your Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoFocus
+          />
+        </DialogContent>
+        <DialogActions sx={{ padding: '16px 24px' }}>
+          <Button onClick={onClose} variant="text" color="primary">
+            Close
+          </Button>
+          <Button type="submit" variant="contained" color="primary">
+            Reset Password
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 }

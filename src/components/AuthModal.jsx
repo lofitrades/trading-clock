@@ -1,6 +1,22 @@
 /* src/components/AuthModal.jsx */
 import React, { useState } from 'react';
 import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  Box,
+  Divider,
+  Typography,
+  Alert,
+  Stack,
+} from '@mui/material';
+import GoogleIcon from '@mui/icons-material/Google';
+import FacebookIcon from '@mui/icons-material/Facebook';
+import XIcon from '@mui/icons-material/X';
+import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
@@ -13,16 +29,21 @@ import {
 import { auth } from '../firebase';
 import { getFriendlyErrorMessage, getSuccessMessage } from '../utils/messages';
 import ForgotPasswordModal from './ForgotPasswordModal';
-import './login-signup.css';
 
 function ActivationModal({ onClose }) {
   return (
-    <div className="ls-modal-overlay" onClick={onClose}>
-      <div className="ls-modal-content" onClick={(e) => e.stopPropagation()}>
-        <p>Please follow the steps we send via email to activate your account.</p>
-        <button className="primary-button" onClick={onClose}>OK</button>
-      </div>
-    </div>
+    <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogContent>
+        <Typography>
+          Please follow the steps we sent via email to activate your account.
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} variant="contained" color="primary">
+          OK
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
@@ -114,74 +135,131 @@ export default function AuthModal({ onClose }) {
 
   return (
     <>
-      <div className="ls-modal-overlay" onClick={handleOverlayClick}>
-        <div className="ls-modal-content" onClick={stopPropagation}>
-          <div className="container">
-            <form onSubmit={handleSubmit}>
-              <div className="row">
-                <h2 style={{ textAlign: 'center' }}>
-                  {isLogin ? 'Login to access all Pro★ Features' : 'Create a free account to access all Pro★ Features'}
-                </h2>
-                <div className="vl">
-                  <span className="vl-innertext">or</span>
-                </div>
-                <div className="col">
-                  <div className="social-buttons">
-                    <a href="#" className="fb btn" onClick={() => handleSocialLogin('facebook')}>
-                      <i className="fa fa-facebook fa-fw"></i> Login with Facebook
-                    </a>
-                    <a href="#" className="twitter btn" onClick={() => handleSocialLogin('twitter')}>
-                      <i className="fa fa-times fa-fw"></i> Login with X
-                    </a>
-                    <a href="#" className="google btn" onClick={() => handleSocialLogin('google')}>
-                      <i className="fa fa-google fa-fw"></i> Login with Google+
-                    </a>
-                  </div>
-                </div>
-                <div className="col">
-                  <div className="hide-md-lg">
-                    <p>Or sign in manually:</p>
-                  </div>
+      <Dialog 
+        open={true} 
+        onClose={onClose} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            p: 2,
+          }
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
+          {isLogin ? 'Login to access all Pro★ Features' : 'Create a free account to access all Pro★ Features'}
+        </DialogTitle>
 
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="Email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                  <input
-                    type="password"
-                    name="password"
-                    placeholder="Password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  <input type="submit" value={isLogin ? "Login" : "Create free account"} />
-                </div>
-              </div>
-            </form>
-          </div>
-          {errorMsg && <p className="ls-error">{errorMsg}</p>}
-          {successMsg && <p className="ls-success">{successMsg}</p>}
-          <div className="bottom-container">
-            <div className="row">
-              <div className="col">
-                <a href="#" style={{ color: 'white' }} className="btn" onClick={toggleMode}>
-                  {isLogin ? 'Sign up' : 'Login'}
-                </a>
-              </div>
-              <div className="col">
-                <a href="#" style={{ color: 'white' }} className="btn" onClick={() => setShowForgotModal(true)}>
-                  Forgot password?
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+        <DialogContent>
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+            {/* Social Login Buttons */}
+            <Stack spacing={1.5} sx={{ mb: 3 }}>
+              <Button
+                variant="contained"
+                fullWidth
+                startIcon={<GoogleIcon />}
+                onClick={() => handleSocialLogin('google')}
+                sx={{
+                  backgroundColor: '#DB4437',
+                  '&:hover': { backgroundColor: '#C33D2E' },
+                  textTransform: 'none',
+                }}
+              >
+                Login with Google
+              </Button>
+              <Button
+                variant="contained"
+                fullWidth
+                startIcon={<FacebookIcon />}
+                onClick={() => handleSocialLogin('facebook')}
+                sx={{
+                  backgroundColor: '#4267B2',
+                  '&:hover': { backgroundColor: '#365899' },
+                  textTransform: 'none',
+                }}
+              >
+                Login with Facebook
+              </Button>
+              <Button
+                variant="contained"
+                fullWidth
+                startIcon={<XIcon />}
+                onClick={() => handleSocialLogin('twitter')}
+                sx={{
+                  backgroundColor: '#000000',
+                  '&:hover': { backgroundColor: '#333333' },
+                  textTransform: 'none',
+                }}
+              >
+                Login with X
+              </Button>
+            </Stack>
+
+            <Divider sx={{ my: 3 }}>
+              <Typography variant="body2" color="text.secondary">
+                or
+              </Typography>
+            </Divider>
+
+            {/* Email/Password Fields */}
+            <Stack spacing={2}>
+              <TextField
+                type="email"
+                label="Email"
+                required
+                fullWidth
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+              />
+              <TextField
+                type="password"
+                label="Password"
+                required
+                fullWidth
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={isLogin ? 'current-password' : 'new-password'}
+              />
+
+              {errorMsg && (
+                <Alert severity="error" onClose={() => setErrorMsg('')}>
+                  {errorMsg}
+                </Alert>
+              )}
+              {successMsg && (
+                <Alert severity="success" onClose={() => setSuccessMsg('')}>
+                  {successMsg}
+                </Alert>
+              )}
+
+              <Button 
+                type="submit" 
+                variant="contained" 
+                color="primary" 
+                fullWidth
+                size="large"
+                sx={{ mt: 2 }}
+              >
+                {isLogin ? 'Login' : 'Create free account'}
+              </Button>
+            </Stack>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ flexDirection: 'column', gap: 1, p: 2, pt: 0 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+            <Button onClick={toggleMode} sx={{ textTransform: 'none' }}>
+              {isLogin ? 'Sign up' : 'Login'}
+            </Button>
+            <Button onClick={() => setShowForgotModal(true)} sx={{ textTransform: 'none' }}>
+              Forgot password?
+            </Button>
+          </Box>
+        </DialogActions>
+      </Dialog>
+
       {showActivationModal && (
         <ActivationModal onClose={() => { setShowActivationModal(false); onClose(); }} />
       )}

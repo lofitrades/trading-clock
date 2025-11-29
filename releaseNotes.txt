@@ -1,16 +1,16 @@
 v1: 02/13/25 5:27 AM
 Hovering accuracy optimization.
-Next Killzone (time to start).
-Remaining time (if active killzone).
+Next Session (time to start).
+Remaining time (if active session).
 Settings updates:
 -- CSS optimization.
 -- Group sections with dropdown lists.
--- Background color based on active killzone.
+-- Background color based on active session.
 -- Color picker for the background of the entire site.
 About content
 Remove Huge Clock Sizes functionality.
 Hide digital clock toggle.
-Hide killzone label toggle.
+Hide session label toggle.
 Center everything.
 
 v2: 02/17/25 11:24 PM
@@ -19,10 +19,10 @@ New switch buttons
 New settings divider
 
 v3: 02/18/25 1:10 AM
-Killzone label font size and width.
-Adjusted margins and font sizes of digital clock, killzone label, and timezone selector.
+Session label font size and width.
+Adjusted margins and font sizes of digital clock, session label, and timezone selector.
 Added the text below the Login/Sign Up button.
-Updated the What is a Killzone label and tooltip.
+Updated the What is a Session label and tooltip.
 
 v4: 02/18/25 2:34 AM
 Set F9F9F9 as default background color
@@ -35,7 +35,7 @@ v6: 02/18/25 TBD
 First implementation of Firebase Auth.
 
 v7: 02/19/25 1:20 AM
-Minor update to the Killzone label time to end/start format.
+Minor update to the Session label time to end/start format.
 
 v8 (incorrectly named the comit v7): 02/19/25 1:45 AM
 Updated style of the sub sections in the sidebar (borders)
@@ -43,3 +43,10 @@ Updated style of the sub sections in the sidebar (borders)
 v9 02/19/25 2:14 AM
 Only one section of the sidebar is expanded at a time
 Updated the clock style tooltip.
+
+v10 02/20/25 3:00 AM
+New updates in the l/su.
+Pending CSS review
+
+v11 02/20/25 3:45 AM
+Minor updates to the CSS of the AuthModal and account modal.

@@ -1,18 +1,29 @@
 /* src/components/ConfirmModal.jsx */
 import React from 'react';
-import './login-signup.css';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+} from '@mui/material';
 
 export default function ConfirmModal({ message, onConfirm, onCancel }) {
   return (
-    <div className="ls-modal-overlay" onClick={onCancel}>
-      <div className="ls-modal-content" onClick={(e) => e.stopPropagation()}>
-        <h2 style={{ textAlign: 'center' }}>Please Confirm</h2>
-        <p style={{ textAlign: 'center' }}>{message}</p>
-        <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '20px' }}>
-          <button className="primary-button" onClick={onConfirm}>Confirm</button>
-          <button className="secondary-button" onClick={onCancel}>Cancel</button>
-        </div>
-      </div>
-    </div>
+    <Dialog open={true} onClose={onCancel} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ textAlign: 'center' }}>Please Confirm</DialogTitle>
+      <DialogContent>
+        <Typography sx={{ textAlign: 'center' }}>{message}</Typography>
+      </DialogContent>
+      <DialogActions sx={{ justifyContent: 'space-around', padding: '16px 24px' }}>
+        <Button onClick={onConfirm} variant="contained" color="primary">
+          Confirm
+        </Button>
+        <Button onClick={onCancel} variant="outlined" color="primary">
+          Cancel
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
