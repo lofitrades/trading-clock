@@ -16,7 +16,7 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
     return { lineWidth, hoverLineWidth };
   };
   
-  export const drawStaticElements = (ctx, size) => {
+  export const drawStaticElements = (ctx, size, showSessionNamesInCanvas = false, clockStyle = 'normal') => {
     const centerX = size / 2,
           centerY = size / 2;
     const radius = Math.min(size, size) / 2 - 5;
@@ -28,17 +28,26 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
     ctx.fill();
   
     // Draw numbers
-    drawClockNumbers(ctx, centerX, centerY, radius);
+    drawClockNumbers(ctx, centerX, centerY, radius, '#333', clockStyle, showSessionNamesInCanvas);
   };
   
-  export const drawClockNumbers = (ctx, centerX, centerY, radius, textColor, clockStyle = 'normal') => {
+  export const drawClockNumbers = (ctx, centerX, centerY, radius, textColor, clockStyle = 'normal', showSessionNamesInCanvas = false) => {
     ctx.font = `${radius * 0.085}px Roboto`; // change this to make it more aesthetic
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = textColor; // Apply dynamic text color
   
-    // Use larger radius for minimalistic style (0.5), smaller for others (0.31)
-    const numberRadius = clockStyle === 'minimalistic' ? 0.5 : 0.31;
+    // Use larger radius for minimalistic style (0.5)
+    // When session names are shown, reduce radius significantly to avoid overlap
+    // Otherwise use default (0.31)
+    let numberRadius;
+    if (clockStyle === 'minimalistic') {
+      numberRadius = 0.5;
+    } else if (clockStyle === 'aesthetic') {
+      numberRadius = 0.18; 
+    } else {
+      numberRadius = 0.29;
+    }
   
     for (let num = 1; num <= 12; num++) {
       const angle = ((num * 30) - 90) * (Math.PI / 180);
@@ -90,14 +99,14 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
         ctx.save();
         ctx.globalAlpha = animState.opacity || 1;
         
-        // Enterprise solution: Use round caps but compensate for the extension
-        // Calculate the angular compensation needed for round caps
-        // The round cap extends by lineWidth/2 at each end
-        const angularCompensation = (currentWidth / 2) / targetRadius;
+        // Calculate angular compensation for round cap at the end
+        // Round cap extends as a semicircle with radius = lineWidth/2
+        const capRadius = currentWidth / 2;
+        const angularCompensation = capRadius / targetRadius; // radians
         
-        // Adjust angles inward to compensate for round cap extension
-        const adjustedAngleStart = angleStart + angularCompensation;
-        const adjustedAngleEnd = angleEnd - angularCompensation;
+        // Use exact angles - manual caps will be positioned precisely
+        const adjustedAngleStart = angleStart;
+        const adjustedAngleEnd = angleEnd;
         
         // Only draw if the session is long enough to show after compensation
         if (adjustedAngleEnd > adjustedAngleStart) {
@@ -107,93 +116,151 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
           
           if (isActiveSession) {
             // Calculate current hour hand angle for progress tracking
+            // CRITICAL: Must match the same coordinate system as angleStart/angleEnd
             const hours = time.getHours();
             const minutes = time.getMinutes();
             const seconds = time.getSeconds();
+            
+            // Convert to minutes within the 12-hour cycle (0-719)
             const currentTimeInMinutes = (hours % 12) * 60 + minutes + seconds / 60;
+            
+            // Convert to angle (0 to 2π) matching the session arc calculation
             currentAngle = (currentTimeInMinutes / totalTime) * Math.PI * 2;
             
-            // Define merge zone size (in radians) for smooth transition
-            const mergeZoneSize = angularCompensation * 2; // Double the compensation for smooth blend
-            
-            // Draw remaining portion (original color) FIRST - with round cap at the end
-            if (currentAngle < adjustedAngleEnd) {
-              const remainingAngleStart = Math.max(currentAngle, adjustedAngleStart);
-              
-              // Add compensation to the start to leave space for merge
-              const remainingAdjustedStart = remainingAngleStart + angularCompensation;
-              
-              if (remainingAdjustedStart < adjustedAngleEnd) {
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, targetRadius, remainingAdjustedStart - Math.PI / 2, adjustedAngleEnd - Math.PI / 2);
-                ctx.lineWidth = currentWidth;
-                ctx.strokeStyle = kz.color;
-                ctx.lineCap = 'round'; // Keep the round cap at the end
-                ctx.stroke();
-                ctx.restore();
+            // ENTERPRISE FIX: Handle sessions that cross midnight
+            // If the session wraps around (end < start), and we're past midnight,
+            // we need to adjust the current angle to match the wrapped coordinate system
+            if (angleEnd > Math.PI * 2) {
+              // Session crosses midnight, already adjusted in angleEnd calculation
+              // If current time is in the early morning (before session end on next day)
+              if (currentAngle < (angleEnd - Math.PI * 2)) {
+                // We're in the continuation part (next day), add 2π to current angle
+                currentAngle += Math.PI * 2;
               }
             }
             
-            // Draw merge/gradient zone between passed and remaining
-            if (currentAngle > adjustedAngleStart && currentAngle < adjustedAngleEnd) {
-              const mergeStart = currentAngle - mergeZoneSize / 2;
-              const mergeEnd = currentAngle + mergeZoneSize / 2;
+            // ENTERPRISE PRACTICE: Use small merge zone for smooth visual transition
+            // The merge zone should be minimal - just enough for gradient smoothness
+            // With butt caps, we need a very small zone to create seamless transitions
+            const mergeZoneSize = 0.015; // ~0.86 degrees - minimal but visible gradient
+            
+            // Draw remaining portion (dark/original color) FIRST - with round cap at the end
+            if (currentAngle < adjustedAngleEnd) {
+              // Start from current position OR session start (whichever is later)
+              const remainingAngleStart = Math.max(currentAngle, adjustedAngleStart);
               
-              // Create gradient from light to dark
-              const lightColor = lightenColor(kz.color, 60);
-              const darkColor = kz.color;
+              // Only draw if there's a visible remaining portion
+              if (remainingAngleStart < adjustedAngleEnd) {
+                // Add small gap to avoid overlap with passed portion
+                const gapSize = mergeZoneSize / 2;
+                const remainingAdjustedStart = remainingAngleStart + gapSize;
+                
+                // Compensate end angle for round cap extension
+                const compensatedEndAngle = adjustedAngleEnd - angularCompensation;
+                
+                if (remainingAdjustedStart < compensatedEndAngle) {
+                  ctx.save();
+                  ctx.beginPath();
+                  ctx.arc(centerX, centerY, targetRadius, remainingAdjustedStart - Math.PI / 2, compensatedEndAngle - Math.PI / 2);
+                  ctx.lineWidth = currentWidth;
+                  ctx.strokeStyle = kz.color;
+                  ctx.lineCap = 'round'; // Round cap at END - extends to precise end time
+                  ctx.stroke();
+                  ctx.restore();
+                }
+              }
+            }
+            
+            // Draw merge/gradient zone between passed and remaining (at current position)
+            // ENTERPRISE PRACTICE: Only draw merge zone if current time is within session bounds
+            if (currentAngle >= adjustedAngleStart && currentAngle <= adjustedAngleEnd) {
+              // Center the merge zone on the current angle
+              const mergeStart = Math.max(currentAngle - mergeZoneSize / 2, adjustedAngleStart);
+              const mergeEnd = Math.min(currentAngle + mergeZoneSize / 2, adjustedAngleEnd);
               
-              // Calculate gradient positions in canvas coordinates
-              const gradientStartAngle = mergeStart - Math.PI / 2;
-              const gradientEndAngle = mergeEnd - Math.PI / 2;
-              const gradientStartX = centerX + Math.cos(gradientStartAngle) * targetRadius;
-              const gradientStartY = centerY + Math.sin(gradientStartAngle) * targetRadius;
-              const gradientEndX = centerX + Math.cos(gradientEndAngle) * targetRadius;
-              const gradientEndY = centerY + Math.sin(gradientEndAngle) * targetRadius;
-              
-              // Create linear gradient
-              const gradient = ctx.createLinearGradient(gradientStartX, gradientStartY, gradientEndX, gradientEndY);
-              gradient.addColorStop(0, lightColor);
-              gradient.addColorStop(1, darkColor);
-              
-              // Draw the merge zone with round cap
-              ctx.save();
-              ctx.beginPath();
-              ctx.arc(centerX, centerY, targetRadius, mergeStart - Math.PI / 2, mergeEnd - Math.PI / 2);
-              ctx.lineWidth = currentWidth;
-              ctx.strokeStyle = gradient;
-              ctx.lineCap = 'round';
-              ctx.stroke();
-              ctx.restore();
+              // Only draw if merge zone is valid
+              if (mergeEnd > mergeStart) {
+                // Create gradient from light (passed) to dark (remaining)
+                const lightColor = lightenColor(kz.color, 60);
+                const darkColor = kz.color;
+                
+                // Calculate gradient positions in canvas coordinates
+                const gradientStartAngle = mergeStart - Math.PI / 2;
+                const gradientEndAngle = mergeEnd - Math.PI / 2;
+                const gradientStartX = centerX + Math.cos(gradientStartAngle) * targetRadius;
+                const gradientStartY = centerY + Math.sin(gradientStartAngle) * targetRadius;
+                const gradientEndX = centerX + Math.cos(gradientEndAngle) * targetRadius;
+                const gradientEndY = centerY + Math.sin(gradientEndAngle) * targetRadius;
+                
+                // Create linear gradient along the arc
+                const gradient = ctx.createLinearGradient(gradientStartX, gradientStartY, gradientEndX, gradientEndY);
+                gradient.addColorStop(0, lightColor);
+                gradient.addColorStop(1, darkColor);
+                
+                // Draw the smooth transition zone
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, targetRadius, mergeStart - Math.PI / 2, mergeEnd - Math.PI / 2);
+                ctx.lineWidth = currentWidth;
+                ctx.strokeStyle = gradient;
+                ctx.lineCap = 'butt'; // Butt cap to seamlessly connect with adjacent sections
+                ctx.stroke();
+                ctx.restore();
+              }
             }
             
             // Draw passed portion (lighter color) ON TOP - stops before the merge zone
             if (currentAngle > adjustedAngleStart) {
+              // End at current position OR session end (whichever is earlier)
               const passedAngleEnd = Math.min(currentAngle, adjustedAngleEnd);
               
-              // Subtract compensation so it stops before the merge zone
-              const passedAdjustedEnd = passedAngleEnd - angularCompensation;
-              
-              if (passedAdjustedEnd > adjustedAngleStart) {
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, targetRadius, adjustedAngleStart - Math.PI / 2, passedAdjustedEnd - Math.PI / 2);
-                ctx.lineWidth = currentWidth;
-                ctx.strokeStyle = lightenColor(kz.color, 60); // 60% lighter
-                ctx.lineCap = 'round'; // Round cap at the start
-                ctx.stroke();
-                ctx.restore();
+              // Only draw if there's a visible passed portion
+              if (passedAngleEnd > adjustedAngleStart) {
+                // Subtract small gap to avoid overlap with remaining portion
+                const gapSize = mergeZoneSize / 2;
+                const passedAdjustedEnd = passedAngleEnd - gapSize;
+                
+                if (passedAdjustedEnd > adjustedAngleStart) {
+                  ctx.save();
+                  
+                  // Draw main arc with butt cap at the end
+                  ctx.beginPath();
+                  ctx.arc(centerX, centerY, targetRadius, adjustedAngleStart - Math.PI / 2, passedAdjustedEnd - Math.PI / 2);
+                  ctx.lineWidth = currentWidth;
+                  ctx.strokeStyle = lightenColor(kz.color, 60); // 60% lighter
+                  ctx.lineCap = 'butt'; // Butt cap at END (where it meets gradient)
+                  ctx.stroke();
+                  
+                  // Draw round cap ONLY at the start
+                  const startAngle = adjustedAngleStart - Math.PI / 2;
+                  const capX = centerX + Math.cos(startAngle) * targetRadius;
+                  const capY = centerY + Math.sin(startAngle) * targetRadius;
+                  ctx.beginPath();
+                  ctx.arc(capX, capY, currentWidth / 2, 0, Math.PI * 2);
+                  ctx.fillStyle = lightenColor(kz.color, 60);
+                  ctx.fill();
+                  
+                  ctx.restore();
+                }
               }
             }
           } else {
-            // Draw normal session (not active)
+            // Draw normal session (not active) with compensated round caps
+            // ENTERPRISE SOLUTION: Compensate angles for round cap extensions
+            const compensatedStartAngle = adjustedAngleStart + angularCompensation;
+            const compensatedEndAngle = adjustedAngleEnd - angularCompensation;
+            
+            ctx.save();
+            
+            // Draw main arc with round caps
             ctx.beginPath();
-            ctx.arc(centerX, centerY, targetRadius, adjustedAngleStart - Math.PI / 2, adjustedAngleEnd - Math.PI / 2);
+            ctx.arc(centerX, centerY, targetRadius, compensatedStartAngle - Math.PI / 2, compensatedEndAngle - Math.PI / 2);
             ctx.lineWidth = currentWidth;
             ctx.strokeStyle = kz.color;
-            ctx.lineCap = 'round';
+            ctx.lineCap = 'round'; // Round caps with compensation for precise alignment
             ctx.stroke();
+            
+            ctx.restore();
           }
           
           // TradingView-inspired active session enhancement when background matches

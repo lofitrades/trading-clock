@@ -145,7 +145,6 @@ export default function App() {
           transition: 'opacity 0.3s ease-in-out',
         }}
       >
-        {/* Settings Button */}
         <IconButton
           className="settings-button"
           onClick={() => setSettingsOpen(true)}
@@ -216,7 +215,6 @@ export default function App() {
         {/* Fixed timezone selector at bottom of viewport */}
         {memoizedTimezoneSelector}
 
-        {/* Settings Sidebar */}
         <SettingsSidebar
           open={settingsOpen}
           onClose={() => setSettingsOpen(false)}

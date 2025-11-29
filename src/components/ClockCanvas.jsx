@@ -58,8 +58,8 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     staticCanvas.current.width = Math.round(size * dpr);
     staticCanvas.current.height = Math.round(size * dpr);
     staticCtx.scale(dpr, dpr);
-    drawStaticElements(staticCtx, size);
-  }, [size]);
+    drawStaticElements(staticCtx, size, showSessionNamesInCanvas, clockStyle);
+  }, [size, showSessionNamesInCanvas, clockStyle]);
 
   // Animate hover effects
   useEffect(() => {
