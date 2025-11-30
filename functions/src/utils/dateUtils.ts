@@ -8,10 +8,26 @@ import * as crypto from "crypto";
 /**
  * Parse JBlanked date format to JavaScript Date
  * Format: "YYYY.MM.DD HH:MM:SS"
+ * 
+ * CRITICAL: Based on JBlanked API documentation, dates are returned in GMT (UTC).
+ * The API uses offset notation: offset=0 (GMT-3), offset=3 (GMT/UTC), offset=7 (EST), offset=10 (PST)
+ * When using the default API (no offset parameter), times are in GMT (UTC).
+ * 
+ * We parse the date string and explicitly interpret it as UTC by adding 'Z' suffix.
+ * The client-side will then convert to the user's selected timezone for display.
+ * 
+ * Reference: 
+ * - JBlanked API: https://www.jblanked.com/news/api/docs/calendar/
+ * - API offset notation: jb.offset = 0 (GMT-3), 3 (GMT), 7 (EST), 10 (PST)
+ * - Default behavior: Returns GMT/UTC timestamps
  */
 export function parseJBlankedDate(dateStr: string): Date {
-  // Replace dots with dashes and space with 'T'
-  const isoFormat = dateStr.replace(/\./g, "-").replace(" ", "T");
+  // Parse: "2024.02.08 15:30:00" -> ISO format
+  // Replace dots with dashes and add 'T' separator, then add 'Z' for UTC
+  const isoFormat = dateStr.replace(/\./g, "-").replace(" ", "T") + "Z";
+  
+  // Parse as UTC - the 'Z' suffix tells Date() to interpret as UTC
+  // This preserves the exact time from the API which is already in GMT/UTC
   return new Date(isoFormat);
 }
 

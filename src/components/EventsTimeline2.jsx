@@ -295,6 +295,17 @@ const formatTime = (date, timezone) => {
       hour12: false,
       timeZone: timezone,
     });
+    
+    // Debug logging (remove in production)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[formatTime] Time conversion:', {
+        inputDate: date,
+        utcTime: dateObj.toISOString(),
+        timezone: timezone,
+        formattedTime: formatted,
+      });
+    }
+    
     return formatted;
   } catch (error) {
     console.error('[formatTime] Formatting error:', {

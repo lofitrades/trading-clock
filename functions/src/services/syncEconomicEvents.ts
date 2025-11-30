@@ -64,15 +64,36 @@ async function fetchCalendarData(
   // API returns object with 'value' array and 'Count' property
   // Reference: https://www.jblanked.com/news/api/docs/calendar/
   if (!data || typeof data !== 'object') {
-    throw new Error("Unexpected API response format: expected object");
+    const errorMsg = `Unexpected API response format: expected object, got ${typeof data}`;
+    logger.error("❌ API Response Error:", errorMsg);
+    logger.error("Response data:", data);
+    throw new Error(errorMsg);
+  }
+
+  // Check if response is already an array (direct format)
+  if (Array.isArray(data)) {
+    logger.info(`✅ API returned ${data.length} events (direct array format)`);
+    return data as JBlankedCalendarEvent[];
+  }
+
+  // Check for value property (wrapped format)
+  if (!data.value) {
+    const errorMsg = "Unexpected API response format: missing 'value' property";
+    logger.error("❌ API Response Error:", errorMsg);
+    logger.error("Response keys:", Object.keys(data));
+    logger.error("Response data:", JSON.stringify(data).substring(0, 500));
+    throw new Error(errorMsg);
   }
 
   if (!Array.isArray(data.value)) {
-    throw new Error("Unexpected API response format: 'value' property should be an array");
+    const errorMsg = `Unexpected API response format: 'value' property should be an array, got ${typeof data.value}`;
+    logger.error("❌ API Response Error:", errorMsg);
+    logger.error("data.value type:", typeof data.value);
+    logger.error("data.value:", data.value);
+    throw new Error(errorMsg);
   }
 
-  logger.info(`API returned ${data.Count || data.value.length} total events`);
-
+  logger.info(`✅ API returned ${data.Count || data.value.length} total events`);
   return data.value as JBlankedCalendarEvent[];
 }
 

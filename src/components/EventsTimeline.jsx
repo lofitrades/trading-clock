@@ -126,7 +126,7 @@ const getCurrencyFlag = (currency) => {
  * EventsTimeline Component
  * Displays economic events in a timeline with expandable details
  */
-export default function EventsTimeline({ events, loading, hasAppliedFilters, onQuickDateSelect, showQuickSelect = false }) {
+export default function EventsTimeline({ events, loading, hasAppliedFilters, onQuickDateSelect, showQuickSelect = false, timezone = 'UTC' }) {
   const [expandedRow, setExpandedRow] = useState(null);
   const [eventDescriptions, setEventDescriptions] = useState({});
   const [loadingDescriptions, setLoadingDescriptions] = useState({});
@@ -709,6 +709,7 @@ export default function EventsTimeline({ events, loading, hasAppliedFilters, onQ
                         hour: '2-digit',
                         minute: '2-digit',
                         hour12: false,
+                        timeZone: timezone || 'UTC',
                       })}
                       size="small"
                       sx={{
@@ -738,6 +739,7 @@ export default function EventsTimeline({ events, loading, hasAppliedFilters, onQ
                       hour: '2-digit',
                       minute: '2-digit',
                       hour12: false,
+                      timeZone: timezone || 'UTC',
                     })}
                     size="small"
                     sx={{

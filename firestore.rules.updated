@@ -1,0 +1,314 @@
+/**
+ * firestore.rules.updated
+ * 
+ * Purpose: Enhanced Firestore security rules with role-based access control.
+ * Supports user roles, subscription-based access, and admin privileges.
+ * 
+ * IMPORTANT: This is the NEW rules file with RBAC support.
+ * Compare with existing firestore.rules and merge carefully.
+ * 
+ * Changelog:
+ * v2.0.0 - 2025-11-30 - Added RBAC, subscription checks, admin functions
+ * v1.0.0 - 2025-09-15 - Initial implementation
+ */
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ==================== HELPER FUNCTIONS ====================
+    
+    /**
+     * Check if user is authenticated
+     */
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    /**
+     * Check if user owns the document
+     */
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    /**
+     * Get user profile document
+     */
+    function getUserProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    /**
+     * Check if user has specific role
+     */
+    function hasRole(role) {
+      return isAuthenticated() && getUserProfile().role == role;
+    }
+    
+    /**
+     * Check if user has any of the specified roles
+     */
+    function hasAnyRole(roles) {
+      return isAuthenticated() && getUserProfile().role in roles;
+    }
+    
+    /**
+     * Check if user is admin or superadmin
+     */
+    function isAdmin() {
+      return isAuthenticated() && getUserProfile().role in ['admin', 'superadmin'];
+    }
+    
+    /**
+     * Check if user is superadmin
+     */
+    function isSuperAdmin() {
+      return isAuthenticated() && getUserProfile().role == 'superadmin';
+    }
+    
+    /**
+     * Check if user has specific subscription plan
+     */
+    function hasPlan(plan) {
+      return isAuthenticated() && 
+             getUserProfile().subscription.plan == plan &&
+             getUserProfile().subscription.status == 'active';
+    }
+    
+    /**
+     * Check if user has any of the specified plans
+     */
+    function hasAnyPlan(plans) {
+      return isAuthenticated() && 
+             getUserProfile().subscription.plan in plans &&
+             getUserProfile().subscription.status == 'active';
+    }
+    
+    /**
+     * Check if user has specific feature
+     */
+    function hasFeature(feature) {
+      return isAuthenticated() && 
+             feature in getUserProfile().subscription.features;
+    }
+
+    // ==================== USERS COLLECTION ====================
+    
+    /**
+     * Users collection - store user profiles, settings, roles, subscriptions
+     * 
+     * Read: Any authenticated user can read any profile
+     * Write: Users can only write their own profile
+     * Update Role/Subscription: Only admins can update roles and subscriptions
+     */
+    match /users/{userId} {
+      // Any authenticated user can read user profiles
+      allow read: if isAuthenticated();
+      
+      // Users can create their own profile
+      allow create: if isOwner(userId) && 
+                       request.resource.data.role == 'user' && // Force default role
+                       request.resource.data.subscription.plan == 'free'; // Force free plan
+      
+      // Users can update their own profile (except role and subscription)
+      allow update: if isOwner(userId) && 
+                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'subscription']));
+      
+      // Admins can update any user's profile (including role and subscription)
+      allow update: if isAdmin();
+      
+      // Only superadmins can delete users
+      allow delete: if isSuperAdmin();
+    }
+
+    // ==================== ECONOMIC EVENTS CALENDAR ====================
+    
+    /**
+     * Economic Events Calendar - public read access for all events
+     * Only Cloud Functions can write (via service account)
+     * 
+     * This collection is populated by Cloud Functions sync job
+     */
+    match /economicEventsCalendar/{eventId} {
+      // Public read access - anyone can view economic events
+      allow read: if true;
+      
+      // Only Cloud Functions can write (via service account)
+      // Admins cannot write directly - must use Cloud Functions
+      allow write: if false;
+    }
+
+    // ==================== ECONOMIC EVENT DESCRIPTIONS ====================
+    
+    /**
+     * Economic Event Descriptions - public read access
+     * Admins can write via upload interface
+     */
+    match /economicEventDescriptions/{docId} {
+      // Public read access
+      allow read: if true;
+      
+      // Admins can create/update descriptions
+      allow create, update: if isAdmin();
+      
+      // Only superadmins can delete descriptions
+      allow delete: if isSuperAdmin();
+    }
+
+    // ==================== SYSTEM JOBS ====================
+    
+    /**
+     * System Jobs - track background job status
+     * Public read access for cache validation
+     * Only Cloud Functions can write
+     */
+    match /systemJobs/{jobId} {
+      // Public read access (used for cache validation)
+      allow read: if true;
+      
+      // Only Cloud Functions can write
+      allow write: if false;
+    }
+
+    // ==================== USER ALERTS (FUTURE) ====================
+    
+    /**
+     * User Alerts - custom alerts for economic events
+     * Requires premium or pro plan
+     */
+    match /userAlerts/{userId}/alerts/{alertId} {
+      // Users can read their own alerts
+      allow read: if isOwner(userId);
+      
+      // Users with premium/pro plan can create/update/delete their alerts
+      allow write: if isOwner(userId) && hasAnyPlan(['premium', 'pro']);
+      
+      // Admins can read/delete any alert
+      allow read, delete: if isAdmin();
+    }
+
+    // ==================== USER SETTINGS (FUTURE) ====================
+    
+    /**
+     * User Settings - extended settings separate from main profile
+     * Any authenticated user can manage their settings
+     */
+    match /userSettings/{userId} {
+      allow read, write: if isOwner(userId);
+      allow read, update: if isAdmin();
+    }
+
+    // ==================== API KEYS (FUTURE) ====================
+    
+    /**
+     * API Keys - for pro plan users
+     * Requires pro plan and api_access feature
+     */
+    match /apiKeys/{userId}/keys/{keyId} {
+      // Users can read their own API keys
+      allow read: if isOwner(userId) && hasPlan('pro');
+      
+      // Users with pro plan can create/delete API keys
+      allow create, delete: if isOwner(userId) && hasPlan('pro') && hasFeature('api_access');
+      
+      // Cannot update API keys (immutable)
+      allow update: if false;
+      
+      // Admins can read/delete any API key
+      allow read, delete: if isAdmin();
+    }
+
+    // ==================== ANALYTICS (FUTURE) ====================
+    
+    /**
+     * Analytics - system analytics data
+     * Only admins can access
+     */
+    match /analytics/{docId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only Cloud Functions write analytics
+    }
+
+    // ==================== ADMIN LOGS ====================
+    
+    /**
+     * Admin Logs - track admin actions
+     * Only admins can read
+     * Only Cloud Functions write logs
+     */
+    match /adminLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only Cloud Functions write logs
+    }
+
+    // ==================== CATCH-ALL RULE ====================
+    
+    /**
+     * Deny all other collections by default
+     * This is a security best practice
+     */
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+/**
+ * DEPLOYMENT INSTRUCTIONS
+ * =======================
+ * 
+ * 1. Test rules locally (optional):
+ *    firebase emulators:start
+ * 
+ * 2. Deploy to Firebase:
+ *    firebase deploy --only firestore:rules
+ * 
+ * 3. Verify in Firebase Console:
+ *    - Go to Firestore Database > Rules
+ *    - Check deployment timestamp
+ *    - Test with Rules Playground
+ * 
+ * 4. Monitor errors:
+ *    - Check Firebase Console > Firestore > Usage tab
+ *    - Look for rule evaluation errors
+ * 
+ * TESTING GUIDE
+ * =============
+ * 
+ * Test Cases to Verify:
+ * 
+ * 1. Unauthenticated User:
+ *    - Can read economicEventsCalendar ✓
+ *    - Can read economicEventDescriptions ✓
+ *    - Cannot read users ✗
+ *    - Cannot write anywhere ✗
+ * 
+ * 2. Regular User (authenticated):
+ *    - Can read all users ✓
+ *    - Can write own profile (except role/subscription) ✓
+ *    - Cannot write other profiles ✗
+ *    - Can read economic data ✓
+ *    - Cannot write economic data ✗
+ * 
+ * 3. Admin:
+ *    - Can read all users ✓
+ *    - Can update any user ✓
+ *    - Can write event descriptions ✓
+ *    - Cannot write calendar events ✗ (Cloud Functions only)
+ *    - Cannot delete users ✗ (superadmin only)
+ * 
+ * 4. Superadmin:
+ *    - Can do everything admins can ✓
+ *    - Can delete users ✓
+ *    - Can delete event descriptions ✓
+ * 
+ * 5. Premium User:
+ *    - Can create custom alerts ✓
+ *    - Can access premium features ✓
+ * 
+ * 6. Pro User:
+ *    - Can create API keys ✓
+ *    - Can access all pro features ✓
+ */

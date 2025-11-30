@@ -1,4 +1,15 @@
-// src/App.jsx
+/**
+ * src/App.jsx
+ * 
+ * Purpose: Main application component for the trading clock.
+ * Displays clock canvas, digital time, session labels, and economic events.
+ * Now integrated with React Router for proper routing (routing removed from this file).
+ * 
+ * Changelog:
+ * v2.0.0 - 2025-11-30 - Removed hash-based routing, now uses React Router
+ * v1.0.0 - 2025-09-15 - Initial implementation
+ */
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { IconButton } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -11,27 +22,11 @@ import TimezoneSelector from './components/TimezoneSelector';
 import SettingsSidebar from './components/SettingsSidebar';
 import EconomicEvents from './components/EconomicEvents';
 import LoadingScreen from './components/LoadingScreen';
-import UploadDescriptions from './components/UploadDescriptions';
 import { isColorDark } from './utils/clockUtils';
 import './index.css';  // Import global CSS styles
 import './App.css';    // Import App-specific CSS
 
 export default function App() {
-  // Simple hash-based routing
-  const [currentRoute, setCurrentRoute] = useState(window.location.hash.slice(1) || '/');
-
-  useEffect(() => {
-    const handleHashChange = () => {
-      setCurrentRoute(window.location.hash.slice(1) || '/');
-    };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
-
-  // Render upload page if route matches
-  if (currentRoute === '/upload-desc') {
-    return <UploadDescriptions />;
-  }
   const {
     isLoading,
     clockStyle,
