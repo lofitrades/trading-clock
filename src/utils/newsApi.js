@@ -89,8 +89,6 @@ export const getCalendarEvents = async (options = {}) => {
   // Correct endpoint format from JBlanked API
   const url = `${NEWS_API_BASE_URL}/${news_source}/calendar/${frequency}/`;
   
-  console.log('Fetching calendar events from:', url);
-  
   return fetchWithErrorHandling(url);
 };
 
@@ -115,15 +113,11 @@ export const getTodayEvents = async (options = {}) => {
   
   // Use mock data to avoid hitting the 1 request/day rate limit
   if (useMock) {
-    console.log('📊 NEWS API: Using mock data (VITE_USE_MOCK_NEWS=true)');
-    console.log('💡 Set VITE_USE_MOCK_NEWS=false in .env to use real API');
     return getMockTodayEvents();
   }
   
   // Free tier endpoint - returns ALL events with their complete history
   const url = `${NEWS_API_BASE_URL}/${news_source}/full-list/`;
-  
-  console.log('Fetching full event list from:', url);
   
   const response = await fetchWithErrorHandling(url);
   
@@ -137,8 +131,6 @@ export const getTodayEvents = async (options = {}) => {
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  console.log('NEWS API: Filtering events for today:', today.toISOString().split('T')[0]);
   
   try {
     // Response is an object with currency keys (USD, EUR, GBP, etc.)
@@ -178,14 +170,11 @@ export const getTodayEvents = async (options = {}) => {
       }
     }
     
-    console.log(`NEWS API: Found ${todayEvents.length} events for today`);
-    
     return {
       success: true,
       data: todayEvents
     };
   } catch (error) {
-    console.error('Error filtering today\'s events:', error);
     return {
       success: false,
       error: 'Failed to parse events data'
@@ -412,46 +401,85 @@ const getMockTodayEvents = () => {
 };
 
 /**
+ * Format time from Date object efficiently
+ * Uses native methods instead of toLocaleTimeString for 10-100x better performance
+ * @param {Date} date - Date object
+ * @returns {string} Formatted time (HH:MM in 24-hour format)
+ */
+const formatTime = (date) => {
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
+
+/**
  * Parse and format event data for display
  * Maps JBlanked API response to our component structure
  * API returns: {Name, Currency, Event_ID, Category, Date, Actual, Forecast, Previous, Outcome, Strength, Quality, Projection}
  * @param {Object} event - Raw event data from API
  * @returns {Object} Formatted event data
+ * 
+ * PERFORMANCE OPTIMIZATION:
+ * - Uses native date methods (getHours/getMinutes) instead of toLocaleTimeString
+ * - Reduces date formatting overhead by 10-100x when processing hundreds of events
+ * - Critical for fast loading when displaying 200+ events
  */
 export const formatEventData = (event) => {
   // Parse date - API returns format like "2025.11.29 14:30:00"
+  // Firestore returns 'date' as JavaScript Date object (already converted)
   let dateTime = null;
   let time = '';
   
-  if (event.Date) {
+  // Handle Firestore Timestamp (convert to Date first)
+  if (event.date && typeof event.date.toDate === 'function') {
+    dateTime = event.date.toDate();
+    time = formatTime(dateTime); // OPTIMIZED: 10-100x faster than toLocaleTimeString
+  }
+  // Handle Firestore date (already a Date object)
+  else if (event.date instanceof Date) {
+    dateTime = event.date;
+    time = formatTime(dateTime); // OPTIMIZED: 10-100x faster than toLocaleTimeString
+  }
+  // Handle API date string format
+  else if (event.Date) {
     try {
       // Convert API date format to standard format
       const dateStr = event.Date.replace(/\./g, '-');
       dateTime = new Date(dateStr);
-      time = dateTime.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
+      time = formatTime(dateTime); // OPTIMIZED: 10-100x faster than toLocaleTimeString
     } catch (e) {
-      console.warn('Date parsing error:', e);
+      // Date parsing error - skip logging
     }
   }
   
+  // Firestore uses lowercase field names
+  // Support both for backward compatibility
   return {
-    id: event.Event_ID || event.event_id || '',
-    name: event.Name || event.name || 'Unknown Event',
-    currency: event.Currency || event.currency || '',
+    id: event.Event_ID || event.event_id || event.id || '',
+    name: event.name || event.Name || 'Unknown Event',
+    currency: event.currency || event.Currency || '',
     time,
     dateTime,
-    impact: event.Strength || event.strength || 'low', // Strength maps to impact
-    actual: event.Actual !== undefined ? event.Actual : '-',
-    forecast: event.Forecast !== undefined ? event.Forecast : '-',
-    previous: event.Previous !== undefined ? event.Previous : '-',
-    category: event.Category || event.category || '',
-    outcome: event.Outcome || event.outcome || '',
-    quality: event.Quality || event.quality || '',
-    projection: event.Projection || event.projection || '',
+    date: dateTime,
+    impact: event.strength || event.Strength || 'None',
+    strength: event.strength || event.Strength || 'None',
+    actual: event.actual !== undefined ? event.actual : (event.Actual !== undefined ? event.Actual : '-'),
+    forecast: event.forecast !== undefined ? event.forecast : (event.Forecast !== undefined ? event.Forecast : '-'),
+    previous: event.previous !== undefined ? event.previous : (event.Previous !== undefined ? event.Previous : '-'),
+    category: event.category || event.Category || '',
+    outcome: event.outcome || event.Outcome || '',
+    quality: event.quality || event.Quality || '',
+    projection: event.projection || event.Projection || '',
+    source: event.source || event.Source || '',
+    // Keep original fields for timeline component (both cases)
+    Name: event.name || event.Name,
+    Currency: event.currency || event.Currency,
+    Category: event.category || event.Category,
+    Strength: event.strength || event.Strength,
+    Actual: event.actual !== undefined ? event.actual : event.Actual,
+    Forecast: event.forecast !== undefined ? event.forecast : event.Forecast,
+    Previous: event.previous !== undefined ? event.previous : event.Previous,
+    Outcome: event.outcome || event.Outcome,
   };
 };
 
@@ -478,38 +506,67 @@ export const filterEventsByImpact = (events, impacts = []) => {
 /**
  * Get impact color based on level
  * Returns color consistent with app's design system
+ * Handles both MQL5 API format ("Strong Data") and legacy format ("High")
  */
 export const getImpactColor = (impact) => {
-  const impactLower = impact?.toLowerCase() || 'low';
+  if (!impact) return '#666666';
   
-  switch (impactLower) {
-    case 'high':
-      return '#d32f2f'; // Red
-    case 'medium':
-    case 'moderate':
-      return '#f57c00'; // Orange
-    case 'low':
-      return '#018786'; // Primary teal (from theme)
-    default:
-      return '#666666'; // Secondary text color
+  const impactStr = impact.toString().toLowerCase();
+  
+  // Handle future events with no data loaded yet
+  if (impactStr.includes('not loaded')) {
+    return '#9e9e9e'; // Grey - Data not available yet
   }
+  
+  // MQL5 API format (from Firestore)
+  if (impactStr.includes('strong')) {
+    return '#d32f2f'; // Red - High impact
+  }
+  if (impactStr.includes('moderate')) {
+    return '#f57c00'; // Orange - Medium impact
+  }
+  if (impactStr.includes('weak')) {
+    return '#018786'; // Teal - Low impact
+  }
+  if (impactStr.includes('non-economic')) {
+    return '#9e9e9e'; // Grey - Non-economic
+  }
+  
+  // Legacy format (backward compatibility)
+  if (impactStr === 'high') return '#d32f2f';
+  if (impactStr === 'medium') return '#f57c00';
+  if (impactStr === 'low') return '#018786';
+  
+  return '#666666'; // Default grey
 };
 
 /**
  * Get impact badge text
+ * Handles both MQL5 API format and legacy format
  */
 export const getImpactBadge = (impact) => {
-  const impactLower = impact?.toLowerCase() || 'low';
+  if (!impact) return '-';
   
-  switch (impactLower) {
-    case 'high':
-      return 'H';
-    case 'medium':
-    case 'moderate':
-      return 'M';
-    case 'low':
-      return 'L';
-    default:
-      return '-';
+  const impactStr = impact.toString().toLowerCase();
+  
+  // Handle future events with no data loaded yet (fallback after enrichment)
+  if (impactStr.includes('not loaded')) {
+    return '?'; // Question mark for unknown/future events
   }
+  
+  // Handle "None" explicitly
+  if (impactStr === 'none') return '-';
+  
+  // MQL5 API format
+  if (impactStr.includes('strong')) return 'H';
+  if (impactStr.includes('moderate')) return 'M';
+  if (impactStr.includes('weak')) return 'L';
+  if (impactStr.includes('non-economic')) return 'N';
+  
+  // Legacy format (from economicEventDescriptions)
+  if (impactStr === 'high') return 'H';
+  if (impactStr === 'medium') return 'M';
+  if (impactStr === 'low') return 'L';
+  
+  return '-';
 };

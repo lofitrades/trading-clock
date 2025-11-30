@@ -18,7 +18,10 @@
     "@mui/icons-material": "^7.3.5",
     "@mui/lab": "^7.0.1-beta.19",
     "@mui/material": "^7.3.5",
+    "@mui/x-date-pickers": "^8.19.0",
+    "date-fns": "^4.1.0",
     "firebase": "^11.3.1",
+    "flag-icons": "^7.5.0",
     "gsap": "^3.13.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

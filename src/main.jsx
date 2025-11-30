@@ -2,6 +2,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { ThemeProvider } from '@mui/material/styles';
+import 'flag-icons/css/flag-icons.min.css';
 import App from './App';
 import { AuthProvider } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';

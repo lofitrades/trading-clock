@@ -1,0 +1,101 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "economicEventsCalendar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "Strength",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "economicEventsCalendar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "Category",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "economicEventsCalendar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "Currency",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "economicEventsCalendar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "Strength",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "Category",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "economicEventsCalendar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "Strength",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "Currency",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "economicEventsCalendar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "Category",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "Currency",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

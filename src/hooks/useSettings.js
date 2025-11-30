@@ -240,10 +240,14 @@ export function useSettings() {
   // Reset settings: clear localStorage and reinitialize to defaults
   const resetSettings = () => {
     localStorage.clear();
+    
+    // Create deep copy of default sessions to ensure colors are fully reset
+    const resetSessions = defaultSessions.map(session => ({ ...session }));
+    
     setClockStyle('normal');
     setCanvasSize(75);
     setClockSize(375);
-    setSessions([...defaultSessions]);
+    setSessions(resetSessions);
     setSelectedTimezone('America/New_York');
     setBackgroundColor("#F9F9F9");
     setBackgroundBasedOnSession(false);

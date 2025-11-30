@@ -62,39 +62,7 @@ li {
   margin-top: 5px;
 }
 
-/* Timezone Selector - Fixed to bottom of viewport */
-.timezone-selector {
-  position: fixed;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-  z-index: 100;
-}
-
-.timezone-selector select {
-  border: none;
-  border-radius: 0;
-  font-size: 0.7rem;
-  padding: 4px 8px;
-  max-width: 300px;
-  background: transparent;
-  text-align: center;
-  color: inherit;
-  cursor: pointer;
-  outline: none;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-}
-
-.timezone-selector select:hover {
-  opacity: 0.7;
-}
-
-.timezone-selector select:focus {
-  opacity: 0.8;
-}
+/* Timezone Selector - Now handled by MUI Autocomplete */
 
 .session-label {
   border-radius: 4px;

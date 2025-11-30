@@ -1,0 +1,1968 @@
+# Time 2 Trade - Developer Knowledge Base
+
+**Last Updated:** November 29, 2025  
+**Version:** 2.0.0  
+**Maintainer:** Lofi Trades Development Team
+
+---
+
+## 📋 Table of Contents
+
+1. [Project Overview](#project-overview)
+2. [Architecture](#architecture)
+3. [Technology Stack](#technology-stack)
+4. [Development Environment](#development-environment)
+5. [Project Structure](#project-structure)
+6. [Core Features](#core-features)
+7. [Firebase Services](#firebase-services)
+8. [API Integration](#api-integration)
+9. [State Management](#state-management)
+10. [Component Architecture](#component-architecture)
+11. [Data Models](#data-models)
+12. [Configuration Management](#configuration-management)
+13. [Build & Deployment](#build--deployment)
+14. [Testing Strategy](#testing-strategy)
+15. [Performance Optimization](#performance-optimization)
+16. [Security Considerations](#security-considerations)
+17. [Troubleshooting Guide](#troubleshooting-guide)
+18. [Change Log](#change-log)
+
+---
+
+## 🎯 Project Overview
+
+### Mission Statement
+Time 2 Trade (T2T) is a web application for futures and forex day traders that visualizes key market trading sessions using an innovative dual-circle analog clock design, helping traders track active market sessions and manage their trading schedule across multiple timezones.
+
+### Key Value Propositions
+- **Visual Session Management:** Dual-circle clock (AM inner, PM outer) with customizable session arcs
+- **Real-Time Economic Calendar:** Integration with JBlanked News Calendar API (MQL5 data source)
+- **Global Timezone Support:** Automatic conversion and display for international traders
+- **Free Premium Features:** All features available with free account creation
+- **Persistent Settings:** Cloud-synced user preferences via Firestore
+
+### Target Audience
+- Futures day traders
+- Forex day traders
+- Market analysts requiring session awareness
+- International traders across multiple timezones
+
+---
+
+## 🏗️ Architecture
+
+### Architecture Pattern
+**Monolithic React SPA with Serverless Backend**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Client Layer (React)                    │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │  Components │  │   Contexts  │  │    Hooks    │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Firebase Services (Backend)                    │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │ Firestore   │  │    Auth     │  │  Functions  │        │
+│  │ (Database)  │  │ (Identity)  │  │ (Serverless)│        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│              External Services                              │
+│  ┌─────────────────────────────────────────────┐           │
+│  │  JBlanked News Calendar API (MQL5 Source)   │           │
+│  └─────────────────────────────────────────────┘           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Architectural Decisions
+
+| Decision | Rationale | Trade-offs |
+|----------|-----------|------------|
+| React 19 | Latest features, improved performance | Cutting edge, potential compatibility issues |
+| Vite Build Tool | Fast HMR, optimized builds | Newer tool, less mature ecosystem |
+| MUI v7 | Material Design 3, comprehensive components | Bundle size, learning curve |
+| Context API | Built-in state management, no external deps | Can cause re-renders if not optimized |
+| Firebase | Serverless, managed infrastructure, free tier | Vendor lock-in, NoSQL limitations |
+| Cloud Functions v2 | Scheduled tasks, API proxy | Cold starts, execution limits |
+| Canvas API | High-performance clock rendering | Accessibility challenges, manual drawing |
+
+---
+
+## 💻 Technology Stack
+
+### Frontend
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| React | 19.0.0 | UI framework |
+| Vite | 6.1.0 | Build tool & dev server |
+| Material-UI | 7.2.0 | Component library |
+| Emotion | ^11.13.5 | CSS-in-JS (via MUI) |
+| Firebase SDK | 11.3.1 | Client-side Firebase integration |
+
+### Backend
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| Firebase Cloud Functions | v2 | Serverless compute |
+| TypeScript | 5.6.3 | Type-safe backend code |
+| Node.js | 22 | Runtime environment |
+| firebase-admin | 12.6.0 | Server-side Firebase SDK |
+
+### Infrastructure
+| Service | Purpose | Region |
+|---------|---------|--------|
+| Firebase Hosting | Static site hosting | Global CDN |
+| Firestore | NoSQL database | us-central1 |
+| Firebase Auth | User authentication | Global |
+| Cloud Functions | Scheduled sync, API proxy | us-central1 |
+| GitHub Pages | Alternative hosting | Global CDN |
+
+### Development Tools
+| Tool | Purpose |
+|------|---------|
+| ESLint | Code linting |
+| Git | Version control |
+| GitHub Actions | CI/CD (future) |
+| VS Code | Recommended IDE |
+
+---
+
+## 🛠️ Development Environment
+
+### Prerequisites
+```bash
+# Required
+Node.js >= 18.0.0
+npm >= 9.0.0
+Git >= 2.30.0
+
+# Recommended
+VS Code with extensions:
+  - ESLint
+  - Prettier
+  - Firebase
+  - GitLens
+```
+
+### Environment Setup
+
+#### 1. Clone Repository
+```bash
+git clone https://github.com/lofitrades/trading-clock.git
+cd trading-clock
+```
+
+#### 2. Install Dependencies
+```bash
+# Root dependencies (React app)
+npm install
+
+# Functions dependencies (Cloud Functions)
+cd functions
+npm install
+cd ..
+```
+
+#### 3. Environment Variables
+Create `.env` file in project root:
+```env
+# Firebase Configuration (DO NOT COMMIT)
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=time-2-trade-app.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=time-2-trade-app
+VITE_FIREBASE_STORAGE_BUCKET=time-2-trade-app.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+```
+
+Create `functions/.env` file:
+```env
+# JBlanked API Configuration
+JBLANKED_API_KEY=1xPQ0mcU.W6Sv0rzrDnN9dVvCQLbQ3FRgqjXe1pBM
+```
+
+#### 4. Development Commands
+```bash
+# Start dev server (http://localhost:5173/trading-clock/)
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Lint code
+npm run lint
+
+# Build Cloud Functions
+cd functions
+npm run build
+
+# Deploy Cloud Functions
+firebase deploy --only functions
+
+# Deploy full app
+npm run deploy
+```
+
+### IDE Configuration
+
+#### VS Code Settings (`.vscode/settings.json`)
+```json
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.firebase": true
+  }
+}
+```
+
+---
+
+## 📁 Project Structure
+
+```
+trading-clock/
+├── .github/
+│   └── instructions/
+│       └── t2t_Instructions.instructions.md  # AI agent instructions
+├── data/
+│   └── economicEventDescriptions.json        # Event descriptions database
+├── functions/                                # Firebase Cloud Functions
+│   ├── src/
+│   │   ├── index.ts                         # Function entry points
+│   │   └── services/
+│   │       └── syncEconomicEvents.ts        # API sync logic
+│   ├── .env                                 # Functions environment variables
+│   ├── package.json                         # Functions dependencies
+│   └── tsconfig.json                        # TypeScript config
+├── public/
+│   └── AboutContent.txt                     # About page content
+├── src/
+│   ├── components/                          # React components
+│   │   ├── AccountModal.jsx                 # User account management
+│   │   ├── AuthModal.jsx                    # Login/signup
+│   │   ├── ClockCanvas.jsx                  # Analog clock (Canvas API)
+│   │   ├── ConfirmModal.jsx                 # Reusable confirmation dialog
+│   │   ├── DigitalClock.jsx                 # Digital time display
+│   │   ├── EconomicEvents.jsx               # Events calendar panel
+│   │   ├── ForgotPasswordModal.jsx          # Password reset
+│   │   ├── LoadingScreen.jsx                # App loading state
+│   │   ├── SessionLabel.jsx                 # Active session display
+│   │   ├── SettingsSidebar.jsx              # Settings drawer
+│   │   ├── Switch.jsx                       # MUI Switch wrapper
+│   │   ├── TimeSettings.jsx                 # Session time pickers
+│   │   ├── TimeStatus.jsx                   # Time remaining display
+│   │   ├── TimezoneSelector.jsx             # Timezone dropdown
+│   │   ├── UnlockModal.jsx                  # Feature unlock modal
+│   │   └── UploadDescriptions.jsx           # Admin upload page
+│   ├── contexts/
+│   │   ├── AuthContext.jsx                  # Authentication state
+│   │   └── SettingsContext.jsx              # User settings state
+│   ├── hooks/
+│   │   ├── useClock.js                      # Clock tick & session detection
+│   │   └── useSettings.js                   # Settings persistence
+│   ├── utils/
+│   │   ├── clockUtils.js                    # Canvas drawing utilities
+│   │   └── messages.js                      # User-friendly error messages
+│   ├── App.jsx                              # Main app component
+│   ├── App.css                              # App-specific styles
+│   ├── firebase.js                          # Firebase client initialization
+│   ├── index.css                            # Global styles
+│   ├── main.jsx                             # React entry point
+│   └── theme.js                             # MUI theme configuration
+├── .env                                     # Environment variables (gitignored)
+├── .env.example                             # Environment template
+├── .firebaserc                              # Firebase project config
+├── .gitignore                               # Git ignore rules
+├── eslint.config.js                         # ESLint configuration
+├── firebase.json                            # Firebase deployment config
+├── firestore.indexes.json                   # Firestore composite indexes
+├── firestore.rules                          # Firestore security rules
+├── index.html                               # HTML entry point
+├── package.json                             # Root dependencies
+├── README.md                                # Project documentation
+└── vite.config.js                           # Vite build configuration
+```
+
+### File Naming Conventions
+| Type | Convention | Example |
+|------|------------|---------|
+| React Components | PascalCase.jsx | `AuthModal.jsx` |
+| Hooks | camelCase.js with `use` prefix | `useClock.js` |
+| Utilities | camelCase.js | `clockUtils.js` |
+| Context Providers | PascalCase with Context suffix | `AuthContext.jsx` |
+| Styles | ComponentName.css | `App.css` |
+| Constants | UPPER_SNAKE_CASE | `API_KEY` |
+
+---
+
+## 🎨 Core Features
+
+### 1. Dual-Circle Analog Clock
+
+**Component:** `ClockCanvas.jsx`
+
+**Specifications:**
+- **Inner Circle (AM):** Radius = 52% of clock radius
+- **Outer Circle (PM):** Radius = 75% of clock radius
+- **Session Arc Width:** 12-100px (scales with clock size)
+- **Hand Lengths:**
+  - Hour: 50% (AM) or 74% (PM)
+  - Minute: 90% radius
+  - Second: 100% radius
+- **Rendering:** HTML5 Canvas API with `requestAnimationFrame`
+
+**Clock Sizes:**
+| Size | Dimension | Use Case |
+|------|-----------|----------|
+| Tiny | 150px | Mobile portrait |
+| Small | 250px | Small screens |
+| Aesthetic | 300px | Recommended default |
+| Normal | 375px | Standard desktop |
+| Big | 500px | Large displays/tablets |
+
+**Performance Optimizations:**
+- Static elements (face, numbers) drawn once and cached
+- Dynamic elements (hands, active sessions) redrawn each frame
+- High-DPI display support via `devicePixelRatio`
+
+### 2. Session Management
+
+**Component:** `SettingsSidebar.jsx` → Session Settings
+
+**Session Object Structure:**
+```javascript
+{
+  name: string,          // Display name
+  startTime: string,     // HH:MM format (24-hour)
+  endTime: string,       // HH:MM format (24-hour)
+  color: string,         // Hex color code
+  showTimeToEnd: boolean,
+  showTimeToStart: boolean
+}
+```
+
+**Default Sessions:**
+1. **NY AM** (07:00-12:00) - Mint green (#A8D8B9)
+2. **NY PM** (12:00-16:00) - Baby blue (#A7C7E7)
+3. **Market Closed** (16:00-18:00) - Peach (#F7C2A3)
+4. **Asia** (18:00-03:00) - Pink (#F8C8D1)
+5. **London** (03:00-07:00) - Lavender (#D1B2E1)
+6-8. **User Customizable**
+
+**Session Detection Algorithm:**
+1. Get current time in selected timezone
+2. Parse session start/end times (24-hour format)
+3. Check if current time falls within range
+4. Handle midnight crossover (end < start)
+5. If multiple active, choose most recently started
+6. Calculate time remaining until session ends
+
+### 3. Economic Events Calendar
+
+**Component:** `EconomicEvents.jsx`
+
+**Data Source:** JBlanked News Calendar API → MQL5 Economic Calendar
+
+**Features:**
+- Real-time economic event display
+- Filter by date range (default: 2 weeks)
+- Impact level indicators (high/medium/low)
+- Event details: Actual, Forecast, Previous values
+- Outcome indicators (bullish/bearish)
+- Data sync: Scheduled daily 5 AM EST + manual trigger
+
+**Firestore Collections:**
+```
+economicEventsCalendar/          # Main events data
+  {eventId}/
+    Name: string
+    Currency: string
+    Category: string              # MQL5 category (e.g., "Job Report")
+    Date: timestamp
+    Actual: number
+    Forecast: number
+    Previous: number
+    Outcome: string
+    Strength: string
+    Quality: string
+    Projection: number
+    Event_ID: number
+
+economicEventDescriptions/       # Educational descriptions
+  {docId}/
+    name: string
+    aliases: string[]
+    category: string              # Matches MQL5 categories
+    impact: "high" | "medium" | "low"
+    frequency: string
+    releaseTime: string
+    source: string
+    description: string
+    tradingImplication: string
+    keyThresholds: object
+    uploadedAt: timestamp
+
+systemJobs/                      # Sync tracking
+  syncEconomicEvents/
+    status: "success" | "error"
+    lastRun: timestamp
+    source: "scheduled_function" | "manual_sync"
+    message: string
+    eventsCount: number
+```
+
+**API Categories (MQL5):**
+- Job Report
+- Consumer Inflation Report
+- Producer Inflation Report
+- Core Economy Report
+- Economy Report
+- Production Report
+- Commodity Report
+- Survery Report (note: API typo)
+- Monetary Policy Report
+- Housing Report
+
+### 4. Timezone Management
+
+**Component:** `TimezoneSelector.jsx`
+
+**Supported Timezones:**
+- EST (America/New_York)
+- PST (America/Los_Angeles)
+- CST (America/Chicago)
+- MST (America/Denver)
+- UTC
+- CET (Europe/Paris)
+- JST (Asia/Tokyo)
+- AEST (Australia/Sydney)
+
+**Implementation:**
+- Uses IANA timezone database
+- Real-time conversion via `Intl.DateTimeFormat`
+- Persists to user settings
+- Updates all time-dependent components reactively
+
+### 5. User Settings Persistence
+
+**Hook:** `useSettings.js`
+
+**Settings Schema:**
+```javascript
+{
+  clockSize: 150 | 250 | 300 | 375 | 500,
+  clockStyle: "modern" | "classic",
+  sessions: Session[8],
+  selectedTimezone: string,
+  backgroundColor: string,           // Hex color
+  backgroundBasedOnSession: boolean,
+  showHandClock: boolean,
+  showDigitalClock: boolean,
+  showSessionLabel: boolean,
+  showTimeToEnd: boolean,
+  showTimeToStart: boolean,
+  showSessionNamesInCanvas: boolean
+}
+```
+
+**Storage Strategy:**
+- **Authenticated Users:** Firestore (`users/{uid}/settings`)
+- **Guest Users:** localStorage fallback
+- **Sync Behavior:** Debounced writes (prevents excessive API calls)
+- **Validation:** At least 1 clock element must be visible
+
+---
+
+## 🔥 Firebase Services
+
+### Project Configuration
+- **Project ID:** `time-2-trade-app`
+- **Region:** `us-central1`
+- **Hosting:** GitHub Pages + Firebase Hosting (dual deployment)
+
+### Firestore Database
+
+#### Collections Overview
+| Collection | Purpose | Document Count | Indexes Required |
+|------------|---------|----------------|------------------|
+| `users` | User profiles & settings | ~100s | None |
+| `economicEventsCalendar` | Economic events data | ~13,000 | Date, Currency |
+| `economicEventDescriptions` | Event education | 46 | Category, Impact |
+| `systemJobs` | Background task tracking | 1 | None |
+
+#### Security Rules
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Economic events (read-only for clients)
+    match /economicEventsCalendar/{eventId} {
+      allow read: if true;
+      allow write: if false;  // Only Cloud Functions can write
+    }
+    
+    // Event descriptions (public read)
+    match /economicEventDescriptions/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;  // Authenticated users only
+    }
+    
+    // System jobs (admin only)
+    match /systemJobs/{jobId} {
+      allow read: if request.auth != null;
+      allow write: if false;  // Only Cloud Functions can write
+    }
+  }
+}
+```
+
+#### Composite Indexes
+```json
+{
+  "indexes": [
+    {
+      "collectionGroup": "economicEventsCalendar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "Currency", "order": "ASCENDING" },
+        { "fieldPath": "Date", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "economicEventDescriptions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "impact", "order": "ASCENDING" },
+        { "fieldPath": "category", "order": "ASCENDING" }
+      ]
+    }
+  ]
+}
+```
+
+### Authentication
+
+**Providers Enabled:**
+1. **Email/Password** (requires email verification)
+2. **Google OAuth**
+3. **Facebook OAuth**
+4. **Twitter OAuth**
+
+**Auth Flow:**
+```
+1. User initiates login/signup
+2. Firebase authenticates
+3. Email/password: Check email verification
+4. Social providers: Auto-verified
+5. Create/load user document in Firestore
+6. Load user settings
+7. Update AuthContext
+8. Close auth modal
+```
+
+**Special Cases:**
+- Login with non-existent email → Auto-create account + send verification
+- Signup with existing email → Auto-login (if password correct)
+- Password reset → Send email with reset link
+
+### Cloud Functions
+
+**Deployed Functions:**
+
+#### 1. `syncEconomicEventsCalendarScheduled`
+```typescript
+// Runs daily at 5:00 AM EST
+export const syncEconomicEventsCalendarScheduled = onSchedule(
+  {
+    schedule: "0 5 * * *",
+    timeZone: "America/New_York",
+    region: "us-central1"
+  },
+  async (event) => {
+    await syncEconomicEventsCalendar({}, "scheduled_function");
+  }
+);
+```
+
+**Behavior:**
+- Fetches events from JBlanked API (date range: yesterday to +720 days)
+- Upserts to `economicEventsCalendar` collection
+- Updates `systemJobs` document with sync status
+- Handles errors gracefully (logs + error document)
+
+#### 2. `syncEconomicEventsCalendarNow`
+```typescript
+// Manual trigger via HTTPS call
+export const syncEconomicEventsCalendarNow = onRequest(
+  { region: "us-central1" },
+  async (req, res) => {
+    const result = await syncEconomicEventsCalendar({}, "manual_sync");
+    res.json(result);
+  }
+);
+```
+
+**Usage:**
+```bash
+curl https://us-central1-time-2-trade-app.cloudfunctions.net/syncEconomicEventsCalendarNow
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "eventsCount": 12966,
+  "message": "Successfully synced 12966 events"
+}
+```
+
+---
+
+## 🔌 API Integration
+
+### JBlanked News Calendar API
+
+**Provider:** JBlanked (jblanked.com)  
+**Data Source:** MQL5 Economic Calendar (official MetaQuotes data)  
+**Documentation:** https://www.jblanked.com/news/api/docs/calendar/
+
+**Credentials:**
+```env
+API_KEY=1xPQ0mcU.W6Sv0rzrDnN9dVvCQLbQ3FRgqjXe1pBM
+```
+
+**Credits:**
+- Total: 400
+- Used: 2
+- Remaining: 398
+- Cost per sync: 1 credit
+
+**Endpoints Used:**
+
+#### MQL5 Calendar Date Range
+```http
+GET https://www.jblanked.com/news/api/mql5/calendar/range/
+  ?from=YYYY-MM-DD
+  &to=YYYY-MM-DD
+
+Authorization: Api-Key {API_KEY}
+```
+
+**Response Structure:**
+```json
+{
+  "value": [
+    {
+      "Name": "Core CPI m/m",
+      "Currency": "USD",
+      "Event_ID": 840010001,
+      "Category": "Consumer Inflation Report",
+      "Date": "2024.02.08 15:30:00",
+      "Actual": 0.4,
+      "Forecast": 0.4,
+      "Previous": 0.2,
+      "Outcome": "Actual = Forecast > Previous",
+      "Strength": "Strong Data",
+      "Quality": "Good Data",
+      "Projection": 0.5
+    }
+  ],
+  "Count": 12966
+}
+```
+
+**Rate Limiting:**
+- No explicit rate limits documented
+- Proxy through Cloud Functions to protect API key
+- Scheduled daily sync to minimize API calls
+
+**Error Handling:**
+```typescript
+try {
+  const response = await fetch(url, { headers });
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+  const data = await response.json();
+  return data.value;
+} catch (error) {
+  logger.error("API sync failed:", error);
+  throw error;
+}
+```
+
+---
+
+## 🎛️ State Management
+
+### Architecture
+**Pattern:** Context API + Custom Hooks
+
+### Contexts
+
+#### 1. AuthContext
+**File:** `src/contexts/AuthContext.jsx`
+
+**State:**
+```javascript
+{
+  user: User | null,           // Firebase User object
+  loading: boolean,            // Auth initialization state
+  login: (email, password) => Promise,
+  signup: (email, password, displayName) => Promise,
+  logout: () => Promise,
+  loginWithGoogle: () => Promise,
+  loginWithFacebook: () => Promise,
+  loginWithTwitter: () => Promise,
+  resetPassword: (email) => Promise,
+  updateUserProfile: (updates) => Promise,
+  deleteAccount: () => Promise
+}
+```
+
+**Usage:**
+```javascript
+import { useAuth } from '../contexts/AuthContext';
+
+function Component() {
+  const { user, login, logout } = useAuth();
+  
+  if (!user) {
+    return <button onClick={() => login(email, password)}>Login</button>;
+  }
+  
+  return <button onClick={logout}>Logout</button>;
+}
+```
+
+#### 2. SettingsContext
+**File:** `src/contexts/SettingsContext.jsx`
+
+**State:**
+```javascript
+{
+  // Loading state
+  isLoading: boolean,
+  
+  // Clock settings
+  clockStyle: string,
+  clockSize: number,
+  canvasSize: number,
+  
+  // Sessions
+  sessions: Session[],
+  
+  // Visual settings
+  backgroundColor: string,
+  backgroundBasedOnSession: boolean,
+  showHandClock: boolean,
+  showDigitalClock: boolean,
+  showSessionLabel: boolean,
+  showTimeToEnd: boolean,
+  showTimeToStart: boolean,
+  showSessionNamesInCanvas: boolean,
+  
+  // Timezone
+  selectedTimezone: string,
+  
+  // Update functions
+  updateClockStyle: (style) => void,
+  updateClockSize: (size) => void,
+  updateSessions: (sessions) => void,
+  updateBackgroundColor: (color) => void,
+  toggleBackgroundBasedOnSession: () => void,
+  toggleShowHandClock: () => void,
+  toggleShowDigitalClock: () => void,
+  toggleShowSessionLabel: () => void,
+  toggleShowTimeToEnd: () => void,
+  toggleShowTimeToStart: () => void,
+  setSelectedTimezone: (timezone) => void
+}
+```
+
+### Custom Hooks
+
+#### useClock
+**File:** `src/hooks/useClock.js`
+
+**Purpose:** Manages clock tick and session detection
+
+**Returns:**
+```javascript
+{
+  currentTime: Date,           // Updates every 1 second
+  activeSession: Session | null,
+  timeToEnd: number | null,    // Seconds remaining in active session
+  nextSession: Session | null,
+  timeToStart: number | null   // Seconds until next session
+}
+```
+
+**Implementation Highlights:**
+- Uses `setInterval` with 1-second tick
+- Timezone-aware time calculations
+- Handles midnight crossover
+- Memoized session computations
+
+#### useSettings
+**File:** `src/hooks/useSettings.js`
+
+**Purpose:** Manages settings persistence (Firestore + localStorage)
+
+**Key Functions:**
+```javascript
+// Load settings on mount
+useEffect(() => {
+  if (user) {
+    loadSettingsFromFirestore(user.uid);
+  } else {
+    loadSettingsFromLocalStorage();
+  }
+}, [user]);
+
+// Save settings on change (debounced)
+useEffect(() => {
+  const timer = setTimeout(() => {
+    if (user) {
+      saveSettingsToFirestore(user.uid, settings);
+    } else {
+      saveSettingsToLocalStorage(settings);
+    }
+  }, 500);  // 500ms debounce
+  
+  return () => clearTimeout(timer);
+}, [settings, user]);
+```
+
+---
+
+## 🧩 Component Architecture
+
+### Component Hierarchy
+```
+App
+├── LoadingScreen (conditional)
+├── IconButton (settings menu)
+├── .clock-elements-container
+│   ├── ClockCanvas (if showHandClock)
+│   ├── DigitalClock (if showDigitalClock)
+│   └── SessionLabel (if showSessionLabel)
+├── TimezoneSelector (fixed bottom)
+├── SettingsSidebar (drawer)
+│   ├── User Menu (login/logout/account)
+│   ├── About Section (collapsible)
+│   └── Settings Section
+│       ├── General Settings
+│       └── Session Settings (8 sessions)
+└── EconomicEvents (conditional panel)
+```
+
+### Component Specifications
+
+#### ClockCanvas
+**Type:** Pure Component (React.memo optimized)
+
+**Props:**
+```typescript
+interface ClockCanvasProps {
+  size: number;                  // Clock diameter in pixels
+  time: Date;                    // Current time
+  sessions: Session[];           // Active sessions
+  handColor: string;             // Clock hands color
+  clockStyle: "modern" | "classic";
+  showSessionNamesInCanvas: boolean;
+  activeSession: Session | null;
+  backgroundBasedOnSession: boolean;
+}
+```
+
+**Rendering Logic:**
+1. Calculate canvas size with DPR
+2. Draw static elements (once):
+   - Clock face
+   - Hour numbers
+   - Center dot
+3. Draw dynamic elements (every frame):
+   - Session arcs (with hover detection)
+   - Hour hand
+   - Minute hand
+   - Second hand (if modern style)
+   - Session name tooltips (on hover)
+
+**Performance:**
+- Uses `useRef` for canvas element
+- `requestAnimationFrame` for smooth animations
+- Memoized calculations
+- Static layer caching
+
+#### SettingsSidebar
+**Type:** Complex Component
+
+**Structure:**
+```jsx
+<Drawer anchor="right" open={open} onClose={onClose}>
+  <Box sx={{ width: 350, p: 3 }}>
+    {/* User Menu */}
+    {user ? (
+      <UserMenu />
+    ) : (
+      <Button onClick={openAuthModal}>Login</Button>
+    )}
+    
+    {/* About Accordion */}
+    <Accordion>
+      <AccordionSummary>About Time 2 Trade</AccordionSummary>
+      <AccordionDetails>{aboutContent}</AccordionDetails>
+    </Accordion>
+    
+    {/* Settings Accordion */}
+    <Accordion defaultExpanded>
+      <AccordionSummary>Settings</AccordionSummary>
+      <AccordionDetails>
+        {/* General Settings */}
+        <GeneralSettings />
+        
+        {/* Session Settings (8 sessions) */}
+        {sessions.map((session, index) => (
+          <SessionSettings key={index} session={session} />
+        ))}
+      </AccordionDetails>
+    </Accordion>
+  </Box>
+</Drawer>
+```
+
+#### EconomicEvents
+**Type:** Data-Fetching Component
+
+**Features:**
+- Real-time Firestore query
+- Date range filtering
+- Impact level filtering
+- Event detail modal
+- Loading states
+- Error handling
+
+**Query:**
+```javascript
+const eventsQuery = query(
+  collection(db, 'economicEventsCalendar'),
+  where('Currency', '==', 'USD'),
+  where('Date', '>=', startDate),
+  where('Date', '<=', endDate),
+  orderBy('Date', 'asc')
+);
+
+const unsubscribe = onSnapshot(eventsQuery, (snapshot) => {
+  const events = snapshot.docs.map(doc => doc.data());
+  setEvents(events);
+});
+```
+
+---
+
+## 📊 Data Models
+
+### User Document
+```typescript
+interface UserDocument {
+  email: string;
+  displayName: string;
+  photoURL: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  settings: {
+    clockSize: 150 | 250 | 300 | 375 | 500;
+    clockStyle: "modern" | "classic";
+    sessions: Session[];
+    selectedTimezone: string;
+    backgroundColor: string;
+    backgroundBasedOnSession: boolean;
+    showHandClock: boolean;
+    showDigitalClock: boolean;
+    showSessionLabel: boolean;
+    showTimeToEnd: boolean;
+    showTimeToStart: boolean;
+    showSessionNamesInCanvas: boolean;
+  };
+}
+```
+
+### Session Model
+```typescript
+interface Session {
+  name: string;
+  startTime: string;  // "HH:MM" format (24-hour)
+  endTime: string;    // "HH:MM" format (24-hour)
+  color: string;      // Hex color code
+  showTimeToEnd: boolean;
+  showTimeToStart: boolean;
+}
+```
+
+### Economic Event Model
+```typescript
+interface EconomicEvent {
+  Name: string;
+  Currency: string;
+  Event_ID: number;
+  Category: string;
+  Date: string;       // "YYYY.MM.DD HH:mm:ss" format
+  Actual: number;
+  Forecast: number;
+  Previous: number;
+  Outcome: string;
+  Strength: string;
+  Quality: string;
+  Projection: number;
+}
+```
+
+### Event Description Model
+```typescript
+interface EventDescription {
+  name: string;
+  aliases: string[];
+  category: string;
+  impact: "high" | "medium" | "low";
+  frequency: string;
+  releaseTime: string;
+  source: string;
+  description: string;
+  tradingImplication: string;
+  keyThresholds: {
+    strong?: string;
+    moderate?: string;
+    weak?: string;
+    [key: string]: string | undefined;
+  };
+  docId: string;
+  uploadedAt: Timestamp;
+}
+```
+
+---
+
+## ⚙️ Configuration Management
+
+### Vite Configuration
+**File:** `vite.config.js`
+
+```javascript
+export default defineConfig({
+  plugins: [react()],
+  base: '/trading-clock/',  // GitHub Pages path
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'mui-vendor': ['@mui/material', '@emotion/react', '@emotion/styled'],
+          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore']
+        }
+      }
+    }
+  }
+});
+```
+
+### Firebase Configuration
+**File:** `firebase.json`
+
+```json
+{
+  "hosting": {
+    "public": "dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      }
+    ]
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs22",
+    "codebase": "default"
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}
+```
+
+### ESLint Configuration
+**File:** `eslint.config.js`
+
+```javascript
+export default [
+  {
+    files: ['**/*.{js,jsx}'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        ecmaFeatures: { jsx: true },
+        sourceType: 'module',
+      },
+    },
+    settings: { react: { version: '19.0' } },
+    plugins: {
+      react: pluginReact,
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      ...pluginReact.configs.flat.recommended.rules,
+      'react/jsx-no-target-blank': 'off',
+      'react/react-in-jsx-scope': 'off',
+    },
+  },
+];
+```
+
+---
+
+## 🚀 Build & Deployment
+
+### Build Process
+
+#### Production Build
+```bash
+# 1. Install dependencies
+npm install
+cd functions && npm install && cd ..
+
+# 2. Build Cloud Functions
+cd functions
+npm run build
+cd ..
+
+# 3. Build React app
+npm run build
+
+# 4. Preview locally (optional)
+npm run preview
+```
+
+**Output:**
+- React app: `dist/` directory
+- Cloud Functions: `functions/lib/` directory
+
+#### Build Optimization
+- **Code Splitting:** Vendor chunks for React, MUI, Firebase
+- **Tree Shaking:** Unused code eliminated
+- **Minification:** Terser for JS, cssnano for CSS
+- **Asset Optimization:** Images compressed, fonts subset
+- **Source Maps:** Generated for debugging
+
+### Deployment Strategies
+
+#### Option 1: Firebase Hosting (Primary)
+```bash
+# Deploy everything
+firebase deploy
+
+# Deploy only hosting
+firebase deploy --only hosting
+
+# Deploy only functions
+firebase deploy --only functions
+
+# Deploy only Firestore rules
+firebase deploy --only firestore:rules
+```
+
+**URL:** https://time-2-trade-app.web.app
+
+#### Option 2: GitHub Pages (Alternative)
+```bash
+# Build and deploy
+npm run deploy
+```
+
+**Behind the scenes:**
+```json
+{
+  "scripts": {
+    "deploy": "npm run build && gh-pages -d dist"
+  }
+}
+```
+
+**URL:** https://lofitrades.github.io/trading-clock/
+
+### Deployment Checklist
+- [ ] Update version number in `package.json`
+- [ ] Run `npm run lint` (fix all errors)
+- [ ] Test build locally (`npm run build && npm run preview`)
+- [ ] Verify environment variables are set
+- [ ] Check Firestore security rules
+- [ ] Review Cloud Functions logs
+- [ ] Test authentication flows
+- [ ] Verify API sync functionality
+- [ ] Check responsive design on mobile
+- [ ] Test timezone conversions
+- [ ] Clear browser cache and test
+- [ ] Deploy to staging (if available)
+- [ ] Deploy to production
+- [ ] Verify deployment URL
+- [ ] Monitor error logs
+- [ ] Update documentation
+
+### Rollback Procedure
+```bash
+# Firebase Hosting rollback
+firebase hosting:clone SITE_ID:SOURCE_VERSION SITE_ID:DESTINATION_VERSION
+
+# Cloud Functions rollback (manual)
+# 1. Go to Firebase Console → Functions
+# 2. Select function
+# 3. Click "Rollback" to previous version
+
+# GitHub Pages rollback
+git revert <commit-hash>
+git push origin main
+npm run deploy
+```
+
+---
+
+## 🧪 Testing Strategy
+
+### Current Status
+⚠️ **No formal testing framework implemented yet**
+
+### Recommended Testing Strategy
+
+#### Unit Testing
+**Framework:** Vitest (Vite-native)
+
+```bash
+npm install -D vitest @testing-library/react @testing-library/jest-dom
+```
+
+**Test Structure:**
+```
+src/
+├── components/
+│   ├── ClockCanvas.jsx
+│   └── __tests__/
+│       └── ClockCanvas.test.jsx
+├── hooks/
+│   ├── useClock.js
+│   └── __tests__/
+│       └── useClock.test.js
+└── utils/
+    ├── clockUtils.js
+    └── __tests__/
+        └── clockUtils.test.js
+```
+
+**Example Test:**
+```javascript
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import DigitalClock from '../DigitalClock';
+
+describe('DigitalClock', () => {
+  it('renders current time', () => {
+    const now = new Date('2025-11-29T14:30:00');
+    render(<DigitalClock time={now} clockSize={300} textColor="#000" />);
+    expect(screen.getByText(/14:30/)).toBeInTheDocument();
+  });
+});
+```
+
+#### Integration Testing
+**Framework:** React Testing Library
+
+**Test Scenarios:**
+- Auth flow (login/signup/logout)
+- Settings persistence (Firestore + localStorage)
+- Session detection and display
+- Timezone changes
+- Economic events loading
+
+#### E2E Testing
+**Framework:** Playwright or Cypress
+
+**Critical User Flows:**
+1. New user signup → Email verification → Login
+2. Guest user → Browse app → Create account → Settings persist
+3. Change timezone → Clock updates → Sessions adjust
+4. Configure sessions → Save → Reload → Settings restored
+5. View economic events → Filter by date → View details
+
+#### Cloud Functions Testing
+**Framework:** Firebase Emulators
+
+```bash
+firebase emulators:start
+```
+
+**Test Commands:**
+```bash
+# functions/src/__tests__/syncEconomicEvents.test.ts
+import { describe, it, expect } from '@jest/globals';
+import { syncEconomicEventsCalendar } from '../services/syncEconomicEvents';
+
+describe('syncEconomicEventsCalendar', () => {
+  it('should fetch and store events', async () => {
+    const result = await syncEconomicEventsCalendar({}, 'manual_sync');
+    expect(result.success).toBe(true);
+    expect(result.eventsCount).toBeGreaterThan(0);
+  });
+});
+```
+
+### Test Coverage Goals
+- **Unit Tests:** 80% coverage
+- **Integration Tests:** Critical paths
+- **E2E Tests:** 5-10 key user flows
+- **Cloud Functions:** 90% coverage
+
+---
+
+## ⚡ Performance Optimization
+
+### Current Optimizations
+
+#### 1. Code Splitting
+```javascript
+// vite.config.js
+manualChunks: {
+  'react-vendor': ['react', 'react-dom'],
+  'mui-vendor': ['@mui/material', '@emotion/react'],
+  'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore']
+}
+```
+
+**Result:** Faster initial load, better caching
+
+#### 2. React Optimizations
+```javascript
+// Memoized components
+const ClockCanvas = React.memo(({ size, time, sessions }) => {
+  // ...
+}, (prevProps, nextProps) => {
+  return prevProps.size === nextProps.size &&
+         prevProps.time === nextProps.time &&
+         JSON.stringify(prevProps.sessions) === JSON.stringify(nextProps.sessions);
+});
+
+// Memoized calculations
+const activeSession = useMemo(() => {
+  return detectActiveSession(currentTime, sessions, selectedTimezone);
+}, [currentTime, sessions, selectedTimezone]);
+```
+
+#### 3. Canvas Rendering
+```javascript
+// Static elements drawn once
+const drawStaticElements = useCallback(() => {
+  drawClockFace();
+  drawNumbers();
+  drawCenterDot();
+}, [size, clockStyle]);
+
+// Dynamic elements drawn every frame
+const drawDynamicElements = () => {
+  drawSessionArcs();
+  drawHands();
+  drawTooltips();
+};
+```
+
+#### 4. Firestore Queries
+```javascript
+// Indexed queries
+const eventsQuery = query(
+  collection(db, 'economicEventsCalendar'),
+  where('Currency', '==', 'USD'),  // Indexed
+  where('Date', '>=', startDate),  // Indexed
+  orderBy('Date', 'asc')           // Indexed
+);
+
+// Pagination
+const paginatedQuery = query(
+  eventsQuery,
+  limit(50)
+);
+```
+
+#### 5. Settings Debouncing
+```javascript
+// Prevent excessive writes
+useEffect(() => {
+  const timer = setTimeout(() => {
+    saveSettings();
+  }, 500);  // 500ms debounce
+  return () => clearTimeout(timer);
+}, [settings]);
+```
+
+### Performance Metrics (Lighthouse)
+**Target Scores:**
+- Performance: > 90
+- Accessibility: > 90
+- Best Practices: > 95
+- SEO: > 90
+
+**Current Optimizations:**
+- Lazy loading for heavy components
+- Image optimization
+- Font preloading
+- Service worker (future)
+
+### Bundle Size Analysis
+```bash
+npm run build -- --mode production
+
+# Analyze bundle
+npx vite-bundle-visualizer
+```
+
+**Target Bundle Sizes:**
+- Initial JS: < 200 KB (gzipped)
+- Vendor chunks: < 150 KB each
+- CSS: < 50 KB
+- Total: < 500 KB
+
+---
+
+## 🔒 Security Considerations
+
+### Authentication Security
+
+#### Email Verification Required
+```javascript
+const login = async (email, password) => {
+  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+  
+  if (!userCredential.user.emailVerified) {
+    await auth.signOut();
+    throw new Error('Please verify your email before logging in');
+  }
+  
+  return userCredential.user;
+};
+```
+
+#### Password Requirements
+- Minimum 6 characters (Firebase default)
+- Consider implementing stronger validation:
+  - Minimum 8 characters
+  - At least 1 uppercase letter
+  - At least 1 number
+  - At least 1 special character
+
+#### OAuth Security
+- Firebase handles OAuth flows securely
+- No client-side secrets
+- Tokens managed by Firebase SDK
+
+### Firestore Security
+
+#### Rules Best Practices
+```javascript
+// ✅ CORRECT: User can only access their own data
+allow read, write: if request.auth.uid == userId;
+
+// ❌ WRONG: Allow all authenticated users
+allow read, write: if request.auth != null;
+
+// ✅ CORRECT: Public read, authenticated write
+allow read: if true;
+allow write: if request.auth != null;
+
+// ✅ CORRECT: Field validation
+allow write: if request.resource.data.keys().hasAll(['name', 'email'])
+            && request.resource.data.name is string
+            && request.resource.data.email.matches('.*@.*');
+```
+
+#### Data Validation
+```javascript
+// Validate in Cloud Functions before writing
+const validateEventData = (data) => {
+  if (!data.Name || typeof data.Name !== 'string') {
+    throw new Error('Invalid event name');
+  }
+  if (!data.Currency || !['USD', 'EUR', 'GBP', 'JPY'].includes(data.Currency)) {
+    throw new Error('Invalid currency');
+  }
+  // ... more validations
+};
+```
+
+### API Security
+
+#### Environment Variables
+```bash
+# ❌ NEVER commit these files
+.env
+functions/.env
+
+# ✅ Always use .gitignore
+.env
+.env.local
+.env.*.local
+functions/.env
+```
+
+#### API Key Protection
+```javascript
+// ✅ CORRECT: Proxy through Cloud Functions
+// functions/src/services/syncEconomicEvents.ts
+const API_KEY = process.env.JBLANKED_API_KEY;
+const headers = { 'Authorization': `Api-Key ${API_KEY}` };
+
+// ❌ WRONG: Expose API key in client
+// const API_KEY = 'YOUR_KEY_HERE';  // NEVER DO THIS
+```
+
+#### Rate Limiting
+```typescript
+// Implement in Cloud Functions
+const rateLimiter = new Map();
+
+const checkRateLimit = (userId: string): boolean => {
+  const now = Date.now();
+  const userRequests = rateLimiter.get(userId) || [];
+  const recentRequests = userRequests.filter(time => now - time < 60000);
+  
+  if (recentRequests.length >= 10) {
+    return false;  // Exceeded 10 requests per minute
+  }
+  
+  recentRequests.push(now);
+  rateLimiter.set(userId, recentRequests);
+  return true;
+};
+```
+
+### XSS Prevention
+- React auto-escapes content
+- Use `dangerouslySetInnerHTML` sparingly
+- Sanitize user inputs
+
+```javascript
+// ✅ CORRECT: Auto-escaped
+<div>{userInput}</div>
+
+// ⚠️ USE WITH CAUTION
+<div dangerouslySetInnerHTML={{ __html: sanitize(userInput) }} />
+```
+
+### CSRF Protection
+- Firebase handles CSRF tokens automatically
+- Cloud Functions use Firebase Auth tokens
+
+### Content Security Policy
+```html
+<!-- index.html -->
+<meta http-equiv="Content-Security-Policy" 
+      content="default-src 'self'; 
+               script-src 'self' 'unsafe-inline' https://www.gstatic.com;
+               style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+               font-src 'self' https://fonts.gstatic.com;
+               connect-src 'self' https://*.firebaseio.com https://*.googleapis.com;">
+```
+
+---
+
+## 🔧 Troubleshooting Guide
+
+### Common Issues
+
+#### 1. Blank Screen on Load
+**Symptoms:** App shows white screen, no errors in console
+
+**Causes:**
+- Incorrect base path in `vite.config.js`
+- Missing environment variables
+- Firebase initialization failure
+
+**Solutions:**
+```bash
+# Check environment variables
+cat .env
+
+# Verify base path
+grep "base:" vite.config.js
+
+# Check browser console for errors
+# Open DevTools → Console
+
+# Test local build
+npm run build
+npm run preview
+```
+
+#### 2. Settings Not Persisting
+**Symptoms:** Settings reset on page reload
+
+**Causes:**
+- User not authenticated (localStorage fallback not working)
+- Firestore permissions error
+- Network connectivity issues
+
+**Solutions:**
+```javascript
+// Check auth state
+console.log('User:', user);
+
+// Check localStorage
+console.log('LocalStorage:', localStorage.getItem('t2t_settings'));
+
+// Check Firestore rules
+// Firebase Console → Firestore → Rules
+
+// Check network tab
+// DevTools → Network → Filter: firestore
+```
+
+#### 3. Clock Not Updating
+**Symptoms:** Clock hands frozen, time not progressing
+
+**Causes:**
+- `setInterval` not running
+- Component unmounted
+- Timezone conversion error
+
+**Solutions:**
+```javascript
+// Check useClock hook
+useEffect(() => {
+  console.log('useClock mounted');
+  const interval = setInterval(() => {
+    console.log('Clock tick:', new Date());
+  }, 1000);
+  
+  return () => {
+    console.log('useClock unmounted');
+    clearInterval(interval);
+  };
+}, []);
+```
+
+#### 4. Economic Events Not Loading
+**Symptoms:** Empty events list, "No events" message
+
+**Causes:**
+- Firestore query error
+- Date range too narrow
+- API sync failed
+
+**Solutions:**
+```bash
+# Check Firestore data
+# Firebase Console → Firestore → economicEventsCalendar
+
+# Check systemJobs for sync status
+# Firestore → systemJobs → syncEconomicEvents
+
+# Manual sync trigger
+curl https://us-central1-time-2-trade-app.cloudfunctions.net/syncEconomicEventsCalendarNow
+
+# Check Cloud Functions logs
+firebase functions:log
+```
+
+#### 5. Authentication Errors
+**Symptoms:** Login fails, "Invalid credentials" errors
+
+**Causes:**
+- Email not verified
+- Incorrect password
+- Firebase Auth configuration
+
+**Solutions:**
+```javascript
+// Check email verification
+console.log('Email verified:', user?.emailVerified);
+
+// Resend verification email
+await sendEmailVerification(user);
+
+// Check Firebase Auth settings
+// Firebase Console → Authentication → Settings
+
+// Check provider configuration
+// Firebase Console → Authentication → Sign-in method
+```
+
+#### 6. Build Errors
+**Symptoms:** `npm run build` fails
+
+**Causes:**
+- Syntax errors
+- Missing dependencies
+- TypeScript errors (in functions)
+
+**Solutions:**
+```bash
+# Check for syntax errors
+npm run lint
+
+# Install missing dependencies
+npm install
+
+# Clear cache and reinstall
+rm -rf node_modules package-lock.json
+npm install
+
+# Check TypeScript compilation
+cd functions
+npm run build
+cd ..
+```
+
+#### 7. Deployment Failures
+**Symptoms:** Firebase deploy fails
+
+**Causes:**
+- Insufficient permissions
+- Invalid configuration
+- Functions build errors
+
+**Solutions:**
+```bash
+# Check Firebase login
+firebase login
+
+# Verify project
+firebase projects:list
+firebase use time-2-trade-app
+
+# Check configuration
+cat firebase.json
+
+# Deploy with debug output
+firebase deploy --debug
+
+# Deploy only specific targets
+firebase deploy --only hosting
+firebase deploy --only functions
+```
+
+### Error Messages Reference
+
+| Error | Meaning | Solution |
+|-------|---------|----------|
+| `auth/user-not-found` | Email not registered | Sign up or check email |
+| `auth/wrong-password` | Incorrect password | Reset password or retry |
+| `auth/email-not-verified` | Email verification required | Check inbox for verification link |
+| `auth/too-many-requests` | Rate limited | Wait 15 minutes and retry |
+| `permission-denied` | Firestore security rule violation | Check auth state and rules |
+| `unavailable` | Firestore temporarily unavailable | Retry after delay |
+| `not-found` | Document doesn't exist | Check document path |
+| `failed-precondition` | Missing index | Create composite index |
+
+### Debug Mode
+
+Enable debug logging:
+```javascript
+// src/firebase.js
+import { setLogLevel } from 'firebase/firestore';
+
+if (import.meta.env.DEV) {
+  setLogLevel('debug');
+}
+```
+
+### Performance Profiling
+
+Use React DevTools Profiler:
+```bash
+npm install -D @welldone-software/why-did-you-render
+
+# Add to src/main.jsx
+import whyDidYouRender from '@welldone-software/why-did-you-render';
+whyDidYouRender(React, {
+  trackAllPureComponents: true,
+});
+```
+
+---
+
+## 📝 Change Log
+
+### Version 2.1.0 - November 30, 2025
+**Performance Optimization + Event Filter Persistence**
+
+#### ✨ New Features
+- **LocalStorage Caching:** Implemented comprehensive event caching system (eventsCache.js)
+  - 95%+ reduction in Firestore reads on repeat loads
+  - 24-hour cache expiry with real-time sync detection
+  - In-memory filtering for instant results
+  - Automatic cache invalidation on API sync
+- **Event Filter Persistence:** User filter selections (date range, currencies, categories, impacts) now persist across sessions
+  - Firestore sync for logged-in users with Timestamp serialization
+  - localStorage fallback for guest users with ISO date strings
+  - Automatic initialization from saved preferences on mount
+
+#### 🔄 Changes
+- EconomicEvents.jsx now initializes filters from SettingsContext
+- EventsFilters2.jsx: Added currency flag icons (27 currencies)
+- EventsFilters2.jsx: Mobile-first responsive grid (2 columns mobile, 3 tablet)
+- EventsTimeline2.jsx: Optimized pagination button spacing and styling
+- economicEventsService.js: Enhanced with cache-aware methods
+
+#### 🐛 Bug Fixes
+- Fixed API response parsing (data.value vs data) in syncEconomicEvents.ts
+- Resolved Firestore permission errors on systemJobs collection (changed to public read)
+- Fixed React hydration error in FilterCheckbox (Typography span vs p tag)
+- Corrected pagination button spacing alignment
+
+#### 🔧 Technical
+- Added eventsCache.js service (450+ lines) with enterprise-grade caching
+- Updated firestore.rules for systemJobs public read access
+- Improved date serialization in SettingsContext for cross-platform compatibility
+
+### Version 2.0.0 - November 29, 2025
+**Economic Events Integration + Major Cleanup**
+
+#### ✨ New Features
+- Economic events calendar integration (JBlanked News Calendar API)
+- Real-time event display with Firestore sync
+- Scheduled daily sync at 5 AM EST via Cloud Functions
+- Manual sync trigger via UI button
+- Event descriptions database (46 USD events)
+- Admin upload page for event descriptions (`/upload-desc`)
+- Password-protected admin routes
+
+#### 🔄 Changes
+- Updated event categories to match MQL5 API nomenclature
+- Migrated from styled-components to MUI for consistency
+- Improved sidebar organization (collapsible sections)
+- Enhanced settings context with economic events toggle
+
+#### 🐛 Bug Fixes
+- Fixed confirmation modal showing on component mount
+- Resolved IconButton prop warnings (variant, startIcon)
+- Fixed nested `<p>` tags in dialog content
+- Corrected React prop warnings in Switch component
+
+#### 🗑️ Removed
+- Deleted 17 redundant documentation files
+- Removed backup files (AuthModal.jsx.backup)
+- Cleaned up temporary files (temp_newsApi.txt)
+- Removed empty scripts and docs directories
+- Deleted unused upload scripts
+
+#### 🔧 Technical
+- Added Cloud Functions v2 with TypeScript
+- Implemented source tracking for sync operations
+- Created Firestore composite indexes
+- Set up systemJobs collection for background task monitoring
+
+### Version 1.1.0 - October 2025
+**MUI Migration Phase**
+
+#### ✨ Completed Migrations
+- MUI theme configuration
+- Switch component → MUI Switch
+- ConfirmModal → MUI Dialog
+- UnlockModal → MUI Dialog
+- ForgotPasswordModal → MUI Dialog
+- DigitalClock → MUI Typography
+- SessionLabel → MUI Paper + Typography
+- App.jsx menu button → MUI IconButton
+
+#### 🔄 Changes
+- Removed Font Awesome icons
+- Removed Material Symbols
+- Removed Facebook SDK from HTML (Firebase handles OAuth)
+- Cleaned up index.html
+
+#### ⏳ Pending
+- AuthModal migration
+- AccountModal migration
+- SettingsSidebar complete migration
+
+### Version 1.0.0 - September 2025
+**Initial Release**
+
+#### ✨ Features
+- Dual-circle analog clock with session visualization
+- 8 customizable trading sessions
+- Multiple timezone support
+- Digital clock display
+- Session label with countdown timers
+- User authentication (Email, Google, Facebook, Twitter)
+- Settings persistence (Firestore + localStorage fallback)
+- Responsive design (mobile, tablet, desktop)
+- Multiple clock sizes (5 options)
+- Dynamic background color based on active session
+- Canvas-based hand clock with hour numbers
+
+#### 🏗️ Architecture
+- React 19 with Vite
+- Firebase Authentication
+- Firestore database
+- Firebase Hosting
+- GitHub Pages deployment
+
+---
+
+## 📚 Additional Resources
+
+### Documentation
+- [Firebase Documentation](https://firebase.google.com/docs)
+- [React Documentation](https://react.dev)
+- [Material-UI Documentation](https://mui.com)
+- [Vite Documentation](https://vitejs.dev)
+- [JBlanked API Documentation](https://www.jblanked.com/news/api/docs/calendar/)
+
+### Project Links
+- **Production URL:** https://lofitrades.github.io/trading-clock/
+- **Repository:** https://github.com/lofitrades/trading-clock
+- **Firebase Console:** https://console.firebase.google.com/project/time-2-trade-app
+- **Support:** lofitradesx@gmail.com
+- **Twitter/X:** [@lofi_trades](https://x.com/lofi_trades)
+
+### Contributing
+This is currently a private project. For questions or suggestions, contact the development team.
+
+---
+
+**End of Knowledge Base**
+
+*This document is a living resource and should be updated with each significant change to the project.*

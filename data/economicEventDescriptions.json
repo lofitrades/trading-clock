@@ -1,0 +1,876 @@
+{
+  "metadata": {
+    "version": "1.1.0",
+    "lastUpdated": "2025-11-30",
+    "description": "Comprehensive descriptions for major USD economic events using MQL5 Economic Calendar categories",
+    "source": "Curated from Federal Reserve, Bureau of Labor Statistics, and major forex market analysis",
+    "currency": "USD",
+    "totalEvents": 45
+  },
+  "events": [
+    {
+      "name": "Non-Farm Employment Change",
+      "aliases": [
+        "NFP",
+        "Non-Farm Payrolls",
+        "Nonfarm Payrolls"
+      ],
+      "category": "Job Report",
+      "impact": "high",
+      "frequency": "Monthly",
+      "releaseTime": "First Friday of the month at 8:30 AM ET",
+      "source": "Bureau of Labor Statistics",
+      "description": "Measures the change in the number of employed people during the previous month, excluding the farming industry. This is the most closely watched employment indicator and often causes significant market volatility.",
+      "tradingImplication": "Higher than expected readings are typically bullish for USD, while lower readings are bearish. Volatility can exceed 100 pips in major USD pairs.",
+      "keyThresholds": {
+        "strong": "> 250,000 jobs",
+        "moderate": "150,000 - 250,000 jobs",
+        "weak": "< 150,000 jobs"
+      }
+    },
+    {
+      "name": "Unemployment Rate",
+      "aliases": [
+        "U3 Unemployment",
+        "Jobless Rate"
+      ],
+      "category": "Job Report",
+      "impact": "high",
+      "frequency": "Monthly",
+      "releaseTime": "First Friday of the month at 8:30 AM ET (released with NFP)",
+      "source": "Bureau of Labor Statistics",
+      "description": "Percentage of the total workforce that is unemployed and actively seeking employment. Released simultaneously with Non-Farm Payrolls, this indicator provides insight into labor market health.",
+      "tradingImplication": "Lower unemployment rates suggest economic strength and are typically USD positive. However, extremely low rates may signal labor shortages and wage inflation concerns.",
+      "keyThresholds": {
+        "low": "< 4.0%",
+        "moderate": "4.0% - 5.0%",
+        "high": "> 5.0%"
+      }
+    },
+    {
+      "name": "Average Hourly Earnings m/m",
+      "aliases": [
+        "Wage Growth",
+        "Hourly Earnings"
+      ],
+      "category": "Job Report",
+      "impact": "high",
+      "frequency": "Monthly",
+      "releaseTime": "First Friday of the month at 8:30 AM ET (released with NFP)",
+      "source": "Bureau of Labor Statistics",
+      "description": "Measures the change in the price businesses pay for labor, including overtime. This is a key indicator of inflationary pressure and consumer spending power.",
+      "tradingImplication": "Rising wages can signal inflation concerns, potentially prompting Fed action. Higher readings are typically USD bullish but may signal future rate hikes.",
+      "keyThresholds": {
+        "strong": "> 0.4% monthly",
+        "moderate": "0.2% - 0.4% monthly",
+        "weak": "< 0.2% monthly"
+      }
+    },
+    {
+      "name": "CPI m/m",
+      "aliases": [
+        "Consumer Price Index",
+        "CPI",
+        "Inflation Rate"
+      ],
+      "category": "Consumer Inflation Report",
+      "impact": "high",
+      "frequency": "Monthly",
+      "releaseTime": "Mid-month around 8:30 AM ET",
+      "source": "Bureau of Labor Statistics",
+      "description": "Measures the change in the price of goods and services from the perspective of the consumer. It is the primary gauge of inflation and directly influences Federal Reserve monetary policy decisions.",
+      "tradingImplication": "Higher than expected inflation readings typically strengthen USD as markets anticipate Fed rate hikes. Extreme readings may cause concerns about economic overheating.",
+      "keyThresholds": {
+        "high": "> 0.4% monthly (> 4.8% annually)",
+        "target": "0.2% monthly (2.0% - 2.5% annually)",
+        "low": "< 0.1% monthly"
+      }
+    },
+    {
+      "name": "Core CPI m/m",
+      "aliases": [
+        "Core Inflation",
+        "CPI ex Food & Energy"
+      ],
+      "category": "Consumer Inflation Report",
+      "impact": "high",
+      "frequency": "Monthly",
+      "releaseTime": "Mid-month around 8:30 AM ET (released with CPI)",
+      "source": "Bureau of Labor Statistics",
+      "description": "Measures the change in consumer prices excluding volatile food and energy components. The Federal Reserve considers this a more reliable indicator of underlying inflation trends.",
+      "tradingImplication": "Often more impactful than headline CPI for Fed policy. Persistent readings above 0.3% monthly signal entrenched inflation and potential rate hikes.",
+      "keyThresholds": {
+        "high": "> 0.3% monthly",
+        "target": "0.2% monthly (Fed's 2% annual target)",
+        "low": "< 0.1% monthly"
+      }
+    },
+    {
+      "name": "Federal Funds Rate",
+      "aliases": [
+        "Fed Rate",
+        "Interest Rate Decision",
+        "FOMC Rate"
+      ],
+      "category": "Monetary Policy Report",
+      "impact": "high",
+      "frequency": "8 times per year",
+      "releaseTime": "2:00 PM ET on FOMC meeting days",
+      "source": "Federal Reserve",
+      "description": "The interest rate at which depository institutions lend reserve balances to other institutions overnight. This is the Fed's primary tool for implementing monetary policy and has widespread market impact.",
+      "tradingImplication": "Rate hikes are USD bullish, rate cuts are USD bearish. However, market reaction often depends on guidance and expectations. The accompanying statement and press conference can cause significant volatility.",
+      "keyThresholds": {
+        "restrictive": "> 5.00%",
+        "neutral": "2.50% - 4.00%",
+        "accommodative": "< 2.00%"
+      }
+    },
+    {
+      "name": "FOMC Statement",
+      "aliases": [
+        "Fed Statement",
+        "Monetary Policy Statement"
+      ],
+      "category": "Monetary Policy Report",
+      "impact": "high",
+      "frequency": "8 times per year",
+      "releaseTime": "2:00 PM ET on FOMC meeting days",
+      "source": "Federal Reserve",
+      "description": "The Federal Open Market Committee's official communication detailing its monetary policy decisions, economic outlook, and future policy direction. Markets scrutinize every word for hints about future rate moves.",
+      "tradingImplication": "Hawkish language (inflation concerns, rate hike signals) is USD bullish. Dovish language (growth concerns, rate cut signals) is USD bearish. Changes in the statement's wording can move markets significantly.",
+      "keyThresholds": null
+    },
+    {
+      "name": "FOMC Press Conference",
+      "aliases": [
+        "Fed Press Conference",
+        "Powell Press Conference"
+      ],
+      "category": "Monetary Policy Report",
+      "impact": "high",
+      "frequency": "8 times per year",
+      "releaseTime": "2:30 PM ET on FOMC meeting days",
+      "source": "Federal Reserve",
+      "description": "The Fed Chair's post-meeting press conference where they explain policy decisions, answer questions, and provide forward guidance. This often generates more volatility than the rate decision itself.",
+      "tradingImplication": "Traders watch for changes in tone, dot plot projections, and responses to economic data. Surprises in forward guidance can cause rapid market repricing.",
+      "keyThresholds": null
+    },
+    {
+      "name": "GDP Growth Rate q/q",
+      "aliases": [
+        "GDP",
+        "GDP q/q",
+        "Gross Domestic Product",
+        "Economic Growth"
+      ],
+      "category": "Core Economy Report",
+      "impact": "high",
+      "frequency": "Quarterly (three releases: advance, second, final)",
+      "releaseTime": "8:30 AM ET, last day of the month",
+      "source": "Bureau of Economic Analysis",
+      "description": "The broadest measure of economic activity, representing the total dollar value of all goods and services produced. The advance estimate, released about a month after quarter-end, generates the most market impact.",
+      "tradingImplication": "Strong GDP growth supports USD by signaling economic strength and potential Fed tightening. Weak growth may prompt dovish Fed policy and USD weakness.",
+      "keyThresholds": {
+        "strong": "> 3.0% annualized",
+        "moderate": "2.0% - 3.0% annualized",
+        "weak": "< 2.0% annualized"
+      }
+    },
+    {
+      "name": "Retail Sales m/m",
+      "aliases": [
+        "Retail Sales",
+        "Consumer Spending"
+      ],
+      "category": "Economy Report",
+      "impact": "high",
+      "frequency": "Monthly",
+      "releaseTime": "Mid-month around 8:30 AM ET",
+      "source": "Census Bureau",
+      "description": "Measures the change in the total value of sales at the retail level. As consumer spending accounts for 70% of US GDP, this is a critical indicator of economic health.",
+      "tradingImplication": "Strong retail sales suggest robust consumer confidence and economic growth, typically supporting USD. Weak readings may signal economic slowdown and dovish Fed policy.",
+      "keyThresholds": {
+        "strong": "> 0.6% monthly",
+        "moderate": "0.2% - 0.6% monthly",
+        "weak": "< 0.2% or negative"
+      }
+    },
+    {
+      "name": "Core Retail Sales m/m",
+      "aliases": [
+        "Retail Sales ex Autos",
+        "Retail Sales Control Group"
+      ],
+      "category": "Economy Report",
+      "impact": "high",
+      "frequency": "Monthly",
+      "releaseTime": "Mid-month around 8:30 AM ET (released with Retail Sales)",
+      "source": "Census Bureau",
+      "description": "Measures retail sales excluding automobiles, which are highly volatile. This provides a clearer picture of underlying consumer spending trends and is used in GDP calculations.",
+      "tradingImplication": "Often more impactful than headline retail sales as it removes volatile components. Directly feeds into GDP estimates.",
+      "keyThresholds": {
+        "strong": "> 0.5% monthly",
+        "moderate": "0.1% - 0.5% monthly",
+        "weak": "< 0.1% or negative"
+      }
+    },
+    {
+      "name": "PPI m/m",
+      "aliases": [
+        "Producer Price Index",
+        "PPI",
+        "Wholesale Inflation"
+      ],
+      "category": "Producer Inflation Report",
+      "impact": "medium",
+      "frequency": "Monthly",
+      "releaseTime": "Mid-month around 8:30 AM ET",
+      "source": "Bureau of Labor Statistics",
+      "description": "Measures the change in the price of goods sold by manufacturers and producers. This is a leading indicator of consumer inflation as producer costs are often passed to consumers.",
+      "tradingImplication": "Rising PPI may signal future CPI increases, potentially prompting Fed action. However, it has less direct impact than CPI on monetary policy.",
+      "keyThresholds": {
+        "high": "> 0.4% monthly",
+        "moderate": "0.2% - 0.4% monthly",
+        "low": "< 0.2% monthly"
+      }
+    },
+    {
+      "name": "Core PPI m/m",
+      "aliases": [
+        "Core Producer Price Index",
+        "PPI ex Food & Energy"
+      ],
+      "category": "Producer Inflation Report",
+      "impact": "medium",
+      "frequency": "Monthly",
+      "releaseTime": "Mid-month around 8:30 AM ET (released with PPI)",
+      "source": "Bureau of Labor Statistics",
+      "description": "Measures producer-level price changes excluding volatile food and energy sectors. Provides insight into underlying cost pressures in the production pipeline.",
+      "tradingImplication": "Sustained increases suggest building inflation pressures that may eventually reach consumers, potentially prompting Fed policy response.",
+      "keyThresholds": {
+        "high": "> 0.3% monthly",
+        "moderate": "0.1% - 0.3% monthly",
+        "low": "< 0.1% monthly"
+      }
+    },
+    {
+      "name": "ISM Manufacturing PMI",
+      "aliases": [
+        "ISM Manufacturing",
+        "Manufacturing PMI",
+        "ISM Index"
+      ],
+      "category": "Production Report",
+      "impact": "high",
+      "frequency": "Monthly",
+      "releaseTime": "First business day of the month at 10:00 AM ET",
+      "source": "Institute for Supply Management",
+      "description": "A survey of purchasing managers in the manufacturing sector measuring activity levels. Readings above 50 indicate expansion, below 50 indicate contraction. This is a leading indicator of economic health.",
+      "tradingImplication": "Higher readings suggest manufacturing sector strength and economic growth, typically supporting USD. This is one of the earliest monthly economic indicators.",
+      "keyThresholds": {
+        "strong": "> 55",
+        "neutral": "48 - 52",
+        "weak": "< 48"
+      }
+    },
+    {
+      "name": "ISM Services PMI",
+      "aliases": [
+        "ISM Non-Manufacturing",
+        "Services PMI",
+        "ISM NMI"
+      ],
+      "category": "Economy Report",
+      "impact": "high",
+      "frequency": "Monthly",
+      "releaseTime": "Third business day of the month at 10:00 AM ET",
+      "source": "Institute for Supply Management",
+      "description": "Survey of purchasing managers in the service sector, which comprises about 80% of US GDP. Readings above 50 indicate expansion, below 50 indicate contraction.",
+      "tradingImplication": "Given services dominate the US economy, this often has more impact than manufacturing PMI. Strong readings support USD and economic growth expectations.",
+      "keyThresholds": {
+        "strong": "> 55",
+        "neutral": "48 - 52",
+        "weak": "< 48"
+      }
+    },
+    {
+      "name": "Initial Jobless Claims",
+      "aliases": [
+        "Jobless Claims",
+        "Weekly Unemployment Claims"
+      ],
+      "category": "Job Report",
+      "impact": "medium",
+      "frequency": "Weekly",
+      "releaseTime": "Every Thursday at 8:30 AM ET",
+      "source": "Department of Labor",
+      "description": "Measures the number of individuals who filed for unemployment insurance for the first time during the past week. This is the most timely indicator of labor market conditions.",
+      "tradingImplication": "Lower claims suggest labor market strength and are USD positive. Sustained increases may signal economic weakness and prompt Fed dovishness.",
+      "keyThresholds": {
+        "strong": "< 220,000 claims",
+        "moderate": "220,000 - 260,000 claims",
+        "weak": "> 260,000 claims"
+      }
+    },
+    {
+      "name": "Continuing Jobless Claims",
+      "aliases": [
+        "Continuing Claims",
+        "Insured Unemployment"
+      ],
+      "category": "Job Report",
+      "impact": "low",
+      "frequency": "Weekly",
+      "releaseTime": "Every Thursday at 8:30 AM ET (released with Initial Claims)",
+      "source": "Department of Labor",
+      "description": "Measures the number of unemployed individuals who are currently receiving unemployment benefits. This provides insight into the duration of unemployment.",
+      "tradingImplication": "Rising continuing claims may indicate difficulty finding employment and labor market softening. Less market impact than initial claims.",
+      "keyThresholds": {
+        "low": "< 1.8 million",
+        "moderate": "1.8 - 2.2 million",
+        "high": "> 2.2 million"
+      }
+    },
+    {
+      "name": "Consumer Confidence",
+      "aliases": [
+        "CB Consumer Confidence",
+        "Consumer Sentiment"
+      ],
+      "category": "Survery Report",
+      "impact": "medium",
+      "frequency": "Monthly",
+      "releaseTime": "Last Tuesday of the month at 10:00 AM ET",
+      "source": "Conference Board",
+      "description": "Measures the level of consumer confidence in economic activity based on a survey of 5,000 households. High confidence typically leads to increased consumer spending.",
+      "tradingImplication": "Strong confidence suggests willingness to spend, supporting economic growth and USD. Declining confidence may signal future spending cuts.",
+      "keyThresholds": {
+        "strong": "> 110",
+        "moderate": "90 - 110",
+        "weak": "< 90"
+      }
+    },
+    {
+      "name": "Michigan Consumer Sentiment",
+      "aliases": [
+        "UoM Consumer Sentiment",
+        "Michigan CSI"
+      ],
+      "category": "Survery Report",
+      "impact": "medium",
+      "frequency": "Monthly (preliminary and final)",
+      "releaseTime": "Second Friday (preliminary) and last Friday (final) at 10:00 AM ET",
+      "source": "University of Michigan",
+      "description": "Survey-based measure of consumer attitudes about the economy. The preliminary reading often generates more market impact as it's released earlier in the month.",
+      "tradingImplication": "Correlates with consumer spending intentions. Divergences from Conference Board measure can signal changing economic conditions.",
+      "keyThresholds": {
+        "strong": "> 85",
+        "moderate": "70 - 85",
+        "weak": "< 70"
+      }
+    },
+    {
+      "name": "Durable Goods Orders m/m",
+      "aliases": [
+        "Durable Goods",
+        "Capital Goods Orders"
+      ],
+      "category": "Manufacturing",
+      "impact": "medium",
+      "frequency": "Monthly",
+      "releaseTime": "Fourth week of the month at 8:30 AM ET",
+      "source": "Census Bureau",
+      "description": "Measures the change in the total value of new purchase orders for long-lasting manufactured goods. This indicates business investment and manufacturing sector health.",
+      "tradingImplication": "Strong orders suggest business optimism and economic expansion. However, data is highly volatile due to large aircraft orders.",
+      "keyThresholds": {
+        "strong": "> 1.0% monthly",
+        "moderate": "-0.5% to 1.0% monthly",
+        "weak": "< -0.5% monthly"
+      }
+    },
+    {
+      "name": "Core Durable Goods Orders m/m",
+      "aliases": [
+        "Durable Goods ex Transportation",
+        "Nondefense Capital Goods"
+      ],
+      "category": "Core Economy Report",
+      "impact": "medium",
+      "frequency": "Monthly",
+      "releaseTime": "Fourth week of the month at 8:30 AM ET (released with Durable Goods)",
+      "source": "Census Bureau",
+      "description": "Measures durable goods orders excluding volatile transportation sector. Provides clearer insight into underlying business investment trends.",
+      "tradingImplication": "More reliable indicator of capital spending trends. Used as a proxy for business confidence and future economic activity.",
+      "keyThresholds": {
+        "strong": "> 0.6% monthly",
+        "moderate": "0.0% - 0.6% monthly",
+        "weak": "< 0.0% monthly"
+      }
+    },
+    {
+      "name": "Trade Balance",
+      "aliases": [
+        "International Trade",
+        "Trade Deficit"
+      ],
+      "category": "Trade",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "First week of the month at 8:30 AM ET",
+      "source": "Census Bureau",
+      "description": "Measures the difference between exports and imports of goods and services. A negative number indicates a trade deficit.",
+      "tradingImplication": "Narrowing deficit is theoretically USD positive, but market impact is typically limited. More important for long-term economic analysis.",
+      "keyThresholds": {
+        "improving": "Deficit < $70 billion",
+        "stable": "Deficit $70-80 billion",
+        "deteriorating": "Deficit > $80 billion"
+      }
+    },
+    {
+      "name": "PCE m/m",
+      "aliases": [
+        "Personal Spending",
+        "Personal Consumption Expenditures"
+      ],
+      "category": "Economy Report",
+      "impact": "medium",
+      "frequency": "Monthly",
+      "releaseTime": "End of month at 8:30 AM ET",
+      "source": "Bureau of Economic Analysis",
+      "description": "Measures the change in the value of goods and services purchased by consumers. This is the consumption component of GDP and directly impacts economic growth.",
+      "tradingImplication": "Strong spending supports economic growth and USD. However, excessive spending may raise inflation concerns.",
+      "keyThresholds": {
+        "strong": "> 0.5% monthly",
+        "moderate": "0.2% - 0.5% monthly",
+        "weak": "< 0.2% monthly"
+      }
+    },
+    {
+      "name": "Core PCE Price Index m/m",
+      "aliases": [
+        "Core PCE",
+        "Fed's Preferred Inflation Gauge"
+      ],
+      "category": "Consumer Inflation Report",
+      "impact": "high",
+      "frequency": "Monthly",
+      "releaseTime": "End of month at 8:30 AM ET",
+      "source": "Bureau of Economic Analysis",
+      "description": "The Federal Reserve's preferred inflation measure, tracking price changes in consumer goods and services excluding food and energy. This directly influences Fed policy decisions.",
+      "tradingImplication": "Often more impactful than CPI for Fed policy as it's their stated target measure. Readings above 0.2% monthly (2.4% annualized) prompt hawkish Fed concerns.",
+      "keyThresholds": {
+        "high": "> 0.3% monthly (Fed target 2.0% annually)",
+        "target": "0.17% monthly (2.0% annually)",
+        "low": "< 0.1% monthly"
+      }
+    },
+    {
+      "name": "Personal Income m/m",
+      "aliases": [
+        "Income Growth",
+        "Wages and Salaries"
+      ],
+      "category": "Economy Report",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "End of month at 8:30 AM ET (released with PCE)",
+      "source": "Bureau of Economic Analysis",
+      "description": "Measures the change in total income received by individuals from all sources. Higher income supports future consumer spending.",
+      "tradingImplication": "Rising income supports consumer spending capacity and economic growth. Often overshadowed by other data released simultaneously.",
+      "keyThresholds": {
+        "strong": "> 0.5% monthly",
+        "moderate": "0.3% - 0.5% monthly",
+        "weak": "< 0.3% monthly"
+      }
+    },
+    {
+      "name": "Building Permits",
+      "aliases": [
+        "Housing Permits",
+        "Construction Permits"
+      ],
+      "category": "Housing Report",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "Mid-month around 8:30 AM ET",
+      "source": "Census Bureau",
+      "description": "Measures the number of new building permits issued by the government. This is a leading indicator of future construction activity and housing market health.",
+      "tradingImplication": "Rising permits suggest housing market strength and future economic activity. Leading indicator of construction jobs and materials demand.",
+      "keyThresholds": {
+        "strong": "> 1.5 million annualized",
+        "moderate": "1.3 - 1.5 million annualized",
+        "weak": "< 1.3 million annualized"
+      }
+    },
+    {
+      "name": "Housing Starts",
+      "aliases": [
+        "New Home Construction",
+        "Residential Construction"
+      ],
+      "category": "Housing Report",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "Mid-month around 8:30 AM ET (released with Building Permits)",
+      "source": "Census Bureau",
+      "description": "Measures the number of new residential construction projects started during a given period. Indicates current housing market activity and builder confidence.",
+      "tradingImplication": "Strong starts suggest housing demand and economic optimism. Housing sector has multiplier effects across economy.",
+      "keyThresholds": {
+        "strong": "> 1.5 million annualized",
+        "moderate": "1.3 - 1.5 million annualized",
+        "weak": "< 1.3 million annualized"
+      }
+    },
+    {
+      "name": "Existing Home Sales",
+      "aliases": [
+        "Home Sales",
+        "Resale Market"
+      ],
+      "category": "Housing Report",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "Third week of the month at 10:00 AM ET",
+      "source": "National Association of Realtors",
+      "description": "Measures the change in the number of existing homes sold during the previous month. Represents about 90% of total home sales.",
+      "tradingImplication": "Strong sales indicate housing market health but have limited direct market impact. More relevant for real estate and mortgage sectors.",
+      "keyThresholds": {
+        "strong": "> 5.5 million annualized",
+        "moderate": "5.0 - 5.5 million annualized",
+        "weak": "< 5.0 million annualized"
+      }
+    },
+    {
+      "name": "New Home Sales",
+      "aliases": [
+        "New Residential Sales"
+      ],
+      "category": "Housing Report",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "Fourth week of the month at 10:00 AM ET",
+      "source": "Census Bureau",
+      "description": "Measures the number of newly constructed homes sold during the previous month. This is a more forward-looking indicator than existing home sales.",
+      "tradingImplication": "New home sales drive construction activity and related industries. Leading indicator of builder confidence and housing demand.",
+      "keyThresholds": {
+        "strong": "> 750,000 annualized",
+        "moderate": "650,000 - 750,000 annualized",
+        "weak": "< 650,000 annualized"
+      }
+    },
+    {
+      "name": "Industrial Production m/m",
+      "aliases": [
+        "IP",
+        "Factory Output"
+      ],
+      "category": "Production Report",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "Mid-month around 9:15 AM ET",
+      "source": "Federal Reserve",
+      "description": "Measures the change in the total inflation-adjusted value of output produced by manufacturers, mines, and utilities. Indicates industrial sector health.",
+      "tradingImplication": "Rising production suggests economic expansion and capacity utilization. Limited market impact but useful for economic health assessment.",
+      "keyThresholds": {
+        "strong": "> 0.5% monthly",
+        "moderate": "0.0% - 0.5% monthly",
+        "weak": "< 0.0% monthly"
+      }
+    },
+    {
+      "name": "Capacity Utilization Rate",
+      "aliases": [
+        "Capacity Utilization",
+        "Factory Utilization"
+      ],
+      "category": "Manufacturing",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "Mid-month around 9:15 AM ET (released with Industrial Production)",
+      "source": "Federal Reserve",
+      "description": "Measures the percentage of available resources being used in the production of goods. High utilization may signal future inflation pressures.",
+      "tradingImplication": "Utilization above 80% may indicate capacity constraints and inflationary pressures. Below 75% suggests economic slack.",
+      "keyThresholds": {
+        "high": "> 80%",
+        "moderate": "75% - 80%",
+        "low": "< 75%"
+      }
+    },
+    {
+      "name": "Factory Orders m/m",
+      "aliases": [
+        "Manufacturing Orders",
+        "New Orders"
+      ],
+      "category": "Production Report",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "First week of the month at 10:00 AM ET",
+      "source": "Census Bureau",
+      "description": "Measures the total value of new purchase orders placed with manufacturers. Indicates future manufacturing activity and business confidence.",
+      "tradingImplication": "Rising orders suggest future production increases and economic expansion. Often overshadowed by durable goods data released earlier.",
+      "keyThresholds": {
+        "strong": "> 0.8% monthly",
+        "moderate": "0.0% - 0.8% monthly",
+        "weak": "< 0.0% monthly"
+      }
+    },
+    {
+      "name": "ADP Employment Change",
+      "aliases": [
+        "ADP Non-Farm Employment Change",
+        "ADP Employment",
+        "ADP Jobs Report",
+        "ADP Nonfarm Employment Change"
+      ],
+      "category": "Job Report",
+      "impact": "medium",
+      "frequency": "Monthly",
+      "releaseTime": "First Wednesday of the month at 8:15 AM ET (two days before NFP)",
+      "source": "ADP Research Institute",
+      "description": "Measures the change in private sector employment based on ADP payroll data. Released two days before the official NFP report, often viewed as a preview.",
+      "tradingImplication": "Used by traders to position for NFP. However, correlation with NFP has been inconsistent. Strong readings are generally USD positive.",
+      "keyThresholds": {
+        "strong": "> 200,000 jobs",
+        "moderate": "120,000 - 200,000 jobs",
+        "weak": "< 120,000 jobs"
+      }
+    },
+    {
+      "name": "Chicago PMI",
+      "aliases": [
+        "Chicago Business Barometer",
+        "MNI Chicago PMI"
+      ],
+      "category": "Regional Surveys",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "Last business day of the month at 9:45 AM ET",
+      "source": "MNI Indicators",
+      "description": "Survey of business conditions in the Chicago region. As Chicago is a major manufacturing hub, this provides early insight into broader manufacturing trends.",
+      "tradingImplication": "Often serves as leading indicator for ISM Manufacturing PMI. Readings above 50 indicate expansion.",
+      "keyThresholds": {
+        "strong": "> 55",
+        "neutral": "48 - 52",
+        "weak": "< 48"
+      }
+    },
+    {
+      "name": "Philadelphia Fed Manufacturing Index",
+      "aliases": [
+        "Philly Fed",
+        "Philadelphia Fed"
+      ],
+      "category": "Regional Surveys",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "Third Thursday of the month at 8:30 AM ET",
+      "source": "Federal Reserve Bank of Philadelphia",
+      "description": "Survey of manufacturing conditions in the Philadelphia region. One of the earliest monthly indicators of manufacturing sector health.",
+      "tradingImplication": "Positive readings indicate expansion. Often influences expectations for ISM Manufacturing PMI.",
+      "keyThresholds": {
+        "strong": "> 20",
+        "neutral": "-5 to 5",
+        "weak": "< -5"
+      }
+    },
+    {
+      "name": "Empire State Manufacturing Index",
+      "aliases": [
+        "NY Empire State Index",
+        "Empire Manufacturing"
+      ],
+      "category": "Regional Surveys",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "Mid-month around 8:30 AM ET",
+      "source": "Federal Reserve Bank of New York",
+      "description": "Survey of manufacturing conditions in New York state. As one of the first monthly data releases, it can influence market expectations.",
+      "tradingImplication": "Positive readings suggest expansion. Early release timing gives it outsized attention relative to regional scope.",
+      "keyThresholds": {
+        "strong": "> 15",
+        "neutral": "-5 to 5",
+        "weak": "< -5"
+      }
+    },
+    {
+      "name": "CB Leading Index m/m",
+      "aliases": [
+        "Leading Economic Index",
+        "LEI"
+      ],
+      "category": "Economic Indicators",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "Third week of the month at 10:00 AM ET",
+      "source": "Conference Board",
+      "description": "Composite index of 10 leading economic indicators designed to predict future economic activity 3-6 months ahead.",
+      "tradingImplication": "Declining index for 3+ consecutive months may signal recession. Limited immediate market impact but useful for economic outlook.",
+      "keyThresholds": {
+        "positive": "> 0.3% monthly",
+        "neutral": "-0.1% to 0.3% monthly",
+        "negative": "< -0.1% monthly"
+      }
+    },
+    {
+      "name": "JOLTS Job Openings",
+      "aliases": [
+        "Job Openings",
+        "JOLTS Report"
+      ],
+      "category": "Job Report",
+      "impact": "medium",
+      "frequency": "Monthly",
+      "releaseTime": "First Tuesday of the month (two-month lag) at 10:00 AM ET",
+      "source": "Bureau of Labor Statistics",
+      "description": "Measures the number of job openings on the last business day of the month. Indicates labor demand and potential wage pressures.",
+      "tradingImplication": "High openings suggest tight labor market and potential wage inflation. Fed watches this closely for inflation signals.",
+      "keyThresholds": {
+        "high": "> 10 million",
+        "moderate": "8 - 10 million",
+        "low": "< 8 million"
+      }
+    },
+    {
+      "name": "Business Inventories m/m",
+      "aliases": [
+        "Wholesale Inventories",
+        "Inventory Levels"
+      ],
+      "category": "Economy Report",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "Mid-month around 10:00 AM ET",
+      "source": "Census Bureau",
+      "description": "Measures the change in the total value of inventories held by manufacturers, wholesalers, and retailers.",
+      "tradingImplication": "Rising inventories may indicate slowing demand or production buildup. Inventory changes affect GDP calculations.",
+      "keyThresholds": {
+        "high": "> 0.5% monthly",
+        "moderate": "0.0% - 0.5% monthly",
+        "declining": "< 0.0% monthly"
+      }
+    },
+    {
+      "name": "Construction Spending m/m",
+      "aliases": [
+        "Construction Outlays"
+      ],
+      "category": "Construction",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "First business day of the month at 10:00 AM ET",
+      "source": "Census Bureau",
+      "description": "Measures the change in the total dollar value of construction work done. Indicates infrastructure and real estate investment levels.",
+      "tradingImplication": "Rising spending suggests economic expansion and business confidence. Limited immediate market impact.",
+      "keyThresholds": {
+        "strong": "> 0.6% monthly",
+        "moderate": "0.0% - 0.6% monthly",
+        "weak": "< 0.0% monthly"
+      }
+    },
+    {
+      "name": "Redbook Retail Sales Index",
+      "aliases": [
+        "Redbook",
+        "Same-Store Sales"
+      ],
+      "category": "Economy Report",
+      "impact": "low",
+      "frequency": "Weekly",
+      "releaseTime": "Every Tuesday",
+      "source": "Redbook Research",
+      "description": "Measures same-store sales at major retailers on a weekly basis. Provides timely insight into consumer spending patterns.",
+      "tradingImplication": "Used as early indicator of retail sales trends. Limited market impact but watched by retail sector analysts.",
+      "keyThresholds": null
+    },
+    {
+      "name": "Pending Home Sales m/m",
+      "aliases": [
+        "Home Sales Pending",
+        "Contract Signings"
+      ],
+      "category": "Housing Report",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "Last week of the month at 10:00 AM ET",
+      "source": "National Association of Realtors",
+      "description": "Measures the change in the number of homes under contract to be sold but not yet closed. Leading indicator of existing home sales.",
+      "tradingImplication": "Leads existing home sales by 1-2 months. Limited market impact but useful for housing market outlook.",
+      "keyThresholds": {
+        "strong": "> 2.0% monthly",
+        "moderate": "0.0% - 2.0% monthly",
+        "weak": "< 0.0% monthly"
+      }
+    },
+    {
+      "name": "S&P/CS Composite-20 HPI y/y",
+      "aliases": [
+        "Case-Shiller Home Price Index",
+        "Home Price Index"
+      ],
+      "category": "Housing Report",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "Last Tuesday of the month at 9:00 AM ET",
+      "source": "S&P Dow Jones Indices",
+      "description": "Measures the change in the selling price of single-family homes in 20 major metropolitan areas. Widely regarded home price benchmark.",
+      "tradingImplication": "Rising prices indicate housing market strength but may raise affordability concerns. Limited immediate FX market impact.",
+      "keyThresholds": {
+        "rising": "> 5.0% annually",
+        "stable": "2.0% - 5.0% annually",
+        "declining": "< 2.0% annually"
+      }
+    },
+    {
+      "name": "Import Prices m/m",
+      "aliases": [
+        "Import Price Index"
+      ],
+      "category": "Trade",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "Mid-month around 8:30 AM ET",
+      "source": "Bureau of Labor Statistics",
+      "description": "Measures the change in the price of goods imported into the US. Indicates inflationary pressures from international trade.",
+      "tradingImplication": "Rising import prices may signal inflation or currency weakness. Limited market impact as more comprehensive inflation data exists.",
+      "keyThresholds": {
+        "high": "> 0.5% monthly",
+        "moderate": "0.0% - 0.5% monthly",
+        "low": "< 0.0% monthly"
+      }
+    },
+    {
+      "name": "Export Prices m/m",
+      "aliases": [
+        "Export Price Index"
+      ],
+      "category": "Trade",
+      "impact": "low",
+      "frequency": "Monthly",
+      "releaseTime": "Mid-month around 8:30 AM ET (released with Import Prices)",
+      "source": "Bureau of Labor Statistics",
+      "description": "Measures the change in the price of goods exported from the US. Indicates US competitiveness and inflation transmission.",
+      "tradingImplication": "Rising export prices may indicate strong demand for US goods or inflation. Very limited market impact.",
+      "keyThresholds": {
+        "high": "> 0.5% monthly",
+        "moderate": "0.0% - 0.5% monthly",
+        "low": "< 0.0% monthly"
+      }
+    },
+    {
+      "name": "Treasury Refunding Announcement",
+      "aliases": [
+        "Debt Auction",
+        "Treasury Auction"
+      ],
+      "category": "Government Finance",
+      "impact": "low",
+      "frequency": "Quarterly",
+      "releaseTime": "First Wednesday of February, May, August, November",
+      "source": "US Treasury",
+      "description": "Announcement of quarterly debt issuance plans. Large auctions can impact bond yields and USD.",
+      "tradingImplication": "Heavy supply may pressure yields higher. More relevant for bond markets than currency markets.",
+      "keyThresholds": null
+    }
+  ]
+}

@@ -1,8 +1,7 @@
 // src/App.jsx
 import React, { useState, useMemo, useEffect } from 'react';
-import { IconButton, Fab, Tooltip } from '@mui/material';
+import { IconButton } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { useSettings } from './contexts/SettingsContext';
 import { useClock } from './hooks/useClock';
 import ClockCanvas from './components/ClockCanvas';
@@ -12,11 +11,27 @@ import TimezoneSelector from './components/TimezoneSelector';
 import SettingsSidebar from './components/SettingsSidebar';
 import EconomicEvents from './components/EconomicEvents';
 import LoadingScreen from './components/LoadingScreen';
+import UploadDescriptions from './components/UploadDescriptions';
 import { isColorDark } from './utils/clockUtils';
 import './index.css';  // Import global CSS styles
 import './App.css';    // Import App-specific CSS
 
 export default function App() {
+  // Simple hash-based routing
+  const [currentRoute, setCurrentRoute] = useState(window.location.hash.slice(1) || '/');
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setCurrentRoute(window.location.hash.slice(1) || '/');
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Render upload page if route matches
+  if (currentRoute === '/upload-desc') {
+    return <UploadDescriptions />;
+  }
   const {
     isLoading,
     clockStyle,
@@ -129,8 +144,10 @@ export default function App() {
       selectedTimezone={selectedTimezone}
       setSelectedTimezone={setSelectedTimezone}
       textColor={effectiveTextColor}
+      eventsOpen={eventsOpen}
+      onToggleEvents={() => setEventsOpen(!eventsOpen)}
     />
-  ), [selectedTimezone, effectiveTextColor]);
+  ), [selectedTimezone, effectiveTextColor, eventsOpen]);
 
   return (
     <>
@@ -159,23 +176,6 @@ export default function App() {
         >
           <SettingsIcon sx={{ fontSize: 28 }} />
         </IconButton>
-
-        {/* Economic Events Toggle Button */}
-        <Tooltip title="Economic Events" placement="left">
-          <Fab
-            color="primary"
-            onClick={() => setEventsOpen(!eventsOpen)}
-            sx={{
-              position: 'fixed',
-              bottom: 80,
-              right: 20,
-              zIndex: 1000,
-            }}
-            aria-label="Toggle economic events"
-          >
-            <CalendarMonthIcon />
-          </Fab>
-        </Tooltip>
 
         <div className="clock-elements-container">
           {showHandClock && (
@@ -222,7 +222,10 @@ export default function App() {
 
         {/* Economic Events Panel */}
         {eventsOpen && (
-          <EconomicEvents onClose={() => setEventsOpen(false)} />
+          <EconomicEvents 
+            onClose={() => setEventsOpen(false)} 
+            timezone={selectedTimezone}
+          />
         )}
       </div>
     </>

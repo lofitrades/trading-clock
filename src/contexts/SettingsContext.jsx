@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { db } from '../firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 const defaultSessions = [
   { name: "NY AM", startNY: "07:00", endNY: "11:00", color: "#A8D8B9" },
@@ -43,6 +43,15 @@ export function SettingsProvider({ children }) {
   const [showTimeToEnd, setShowTimeToEnd] = useState(true);
   const [showTimeToStart, setShowTimeToStart] = useState(true);
   const [showSessionNamesInCanvas, setShowSessionNamesInCanvas] = useState(false);
+  
+  // Event filters state
+  const [eventFilters, setEventFilters] = useState({
+    startDate: null,
+    endDate: null,
+    impacts: [],
+    eventTypes: [],
+    currencies: [],
+  });
 
   useEffect(() => {
     const loadInitialSettings = async () => {
@@ -61,6 +70,7 @@ export function SettingsProvider({ children }) {
       const savedShowTimeToEnd = localStorage.getItem('showTimeToEnd');
       const savedShowTimeToStart = localStorage.getItem('showTimeToStart');
       const savedShowSessionNamesInCanvas = localStorage.getItem('showSessionNamesInCanvas');
+      const savedEventFilters = localStorage.getItem('eventFilters');
 
       if (savedClockStyle) setClockStyle(savedClockStyle);
       if (savedCanvasSize) setCanvasSize(parseInt(savedCanvasSize));
@@ -76,6 +86,20 @@ export function SettingsProvider({ children }) {
       if (savedShowTimeToEnd !== null) setShowTimeToEnd(savedShowTimeToEnd === 'true');
       if (savedShowTimeToStart !== null) setShowTimeToStart(savedShowTimeToStart === 'true');
       if (savedShowSessionNamesInCanvas !== null) setShowSessionNamesInCanvas(savedShowSessionNamesInCanvas === 'true');
+      
+      // Load event filters with date deserialization
+      if (savedEventFilters) {
+        try {
+          const parsed = JSON.parse(savedEventFilters);
+          setEventFilters({
+            ...parsed,
+            startDate: parsed.startDate ? new Date(parsed.startDate) : null,
+            endDate: parsed.endDate ? new Date(parsed.endDate) : null,
+          });
+        } catch (error) {
+          console.error('❌ Failed to parse saved event filters:', error);
+        }
+      }
       
       // Minimum loading time for smooth UX
       await new Promise(resolve => setTimeout(resolve, 800));
@@ -110,6 +134,16 @@ export function SettingsProvider({ children }) {
             if (data.settings.showTimeToEnd !== undefined) setShowTimeToEnd(data.settings.showTimeToEnd);
             if (data.settings.showTimeToStart !== undefined) setShowTimeToStart(data.settings.showTimeToStart);
             if (data.settings.showSessionNamesInCanvas !== undefined) setShowSessionNamesInCanvas(data.settings.showSessionNamesInCanvas);
+            
+            // Load event filters with date deserialization
+            if (data.settings.eventFilters) {
+              const filters = data.settings.eventFilters;
+              setEventFilters({
+                ...filters,
+                startDate: filters.startDate?.toDate ? filters.startDate.toDate() : (filters.startDate ? new Date(filters.startDate) : null),
+                endDate: filters.endDate?.toDate ? filters.endDate.toDate() : (filters.endDate ? new Date(filters.endDate) : null),
+              });
+            }
           }
         } else {
           await setDoc(userRef, {
@@ -260,15 +294,44 @@ export function SettingsProvider({ children }) {
     });
   };
 
+  /**
+   * Update event filters with persistence
+   */
+  const updateEventFilters = (newFilters) => {
+    setEventFilters(newFilters);
+    
+    // Serialize dates for storage
+    const serializedFilters = {
+      ...newFilters,
+      startDate: newFilters.startDate?.toISOString() || null,
+      endDate: newFilters.endDate?.toISOString() || null,
+    };
+    
+    localStorage.setItem('eventFilters', JSON.stringify(serializedFilters));
+    
+    if (user) {
+      // For Firestore, use Timestamp for dates
+      const firestoreFilters = {
+        ...newFilters,
+        startDate: newFilters.startDate ? Timestamp.fromDate(newFilters.startDate) : null,
+        endDate: newFilters.endDate ? Timestamp.fromDate(newFilters.endDate) : null,
+      };
+      saveSettingsToFirestore({ eventFilters: firestoreFilters });
+    }
+  };
+
   const resetSettings = async () => {
     // Clear localStorage
     localStorage.clear();
+    
+    // Create deep copies of default sessions to ensure colors are fully reset
+    const resetSessions = defaultSessions.map(session => ({ ...session }));
     
     // Reset all state values to defaults
     setClockStyle('normal');
     setCanvasSize(75);
     setClockSize(375);
-    setSessions([...defaultSessions]);
+    setSessions(resetSessions);
     setSelectedTimezone('America/New_York');
     setBackgroundColor("#F9F9F9");
     setBackgroundBasedOnSession(false);
@@ -285,7 +348,7 @@ export function SettingsProvider({ children }) {
         clockStyle: 'normal',
         canvasSize: 75,
         clockSize: 375,
-        sessions: [...defaultSessions],
+        sessions: defaultSessions.map(session => ({ ...session })),
         selectedTimezone: 'America/New_York',
         backgroundColor: "#F9F9F9",
         backgroundBasedOnSession: false,
@@ -329,6 +392,8 @@ export function SettingsProvider({ children }) {
     showSessionNamesInCanvas,
     toggleShowSessionNamesInCanvas,
     resetSettings,
+    eventFilters,
+    updateEventFilters,
   };
 
   return (
