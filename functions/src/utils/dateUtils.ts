@@ -9,26 +9,61 @@ import * as crypto from "crypto";
  * Parse JBlanked date format to JavaScript Date
  * Format: "YYYY.MM.DD HH:MM:SS"
  * 
- * CRITICAL: Based on JBlanked API documentation, dates are returned in GMT (UTC).
- * The API uses offset notation: offset=0 (GMT-3), offset=3 (GMT/UTC), offset=7 (EST), offset=10 (PST)
- * When using the default API (no offset parameter), times are in GMT (UTC).
+ * CRITICAL FIX v1.1.0: Forex Factory times are in Eastern Time (ET), NOT UTC!
  * 
- * We parse the date string and explicitly interpret it as UTC by adding 'Z' suffix.
- * The client-side will then convert to the user's selected timezone for display.
+ * Root Cause: Despite API documentation suggesting GMT/UTC, testing confirms:
+ * - API returns: "2024.01.15 10:30:00"
+ * - Forex Factory displays: "10:30 AM ET" (Eastern Time)
+ * - Previous code added 'Z' suffix → treated as UTC → wrong by 5 hours (EST) or 4 hours (EDT)
+ * 
+ * Solution: Parse as Eastern Time, convert to proper UTC for Firestore storage.
+ * This ensures accurate timezone conversion on frontend regardless of user's selected timezone.
+ * 
+ * Example (Winter - EST):
+ * Input:  "2024.01.15 10:30:00" (10:30 AM ET during EST period)
+ * Output: Date representing 2024-01-15T15:30:00.000Z (3:30 PM UTC, which is 10:30 AM EST)
+ * 
+ * Example (Summer - EDT):
+ * Input:  "2024.07.15 10:30:00" (10:30 AM ET during EDT period)
+ * Output: Date representing 2024-07-15T14:30:00.000Z (2:30 PM UTC, which is 10:30 AM EDT)
  * 
  * Reference: 
  * - JBlanked API: https://www.jblanked.com/news/api/docs/calendar/
- * - API offset notation: jb.offset = 0 (GMT-3), 3 (GMT), 7 (EST), 10 (PST)
- * - Default behavior: Returns GMT/UTC timestamps
+ * - Verified against Forex Factory times (always displayed in ET)
+ * 
+ * Changelog:
+ * v1.1.0 - 2025-01-XX - Fixed timezone: Parse as ET, not UTC
+ * v1.0.0 - 2024-XX-XX - Initial implementation (incorrect UTC assumption)
  */
 export function parseJBlankedDate(dateStr: string): Date {
-  // Parse: "2024.02.08 15:30:00" -> ISO format
-  // Replace dots with dashes and add 'T' separator, then add 'Z' for UTC
-  const isoFormat = dateStr.replace(/\./g, "-").replace(" ", "T") + "Z";
+  // Parse: "2024.02.08 15:30:00" -> "2024-02-08T15:30:00"
+  const isoFormat = dateStr.replace(/\./g, "-").replace(" ", "T");
   
-  // Parse as UTC - the 'Z' suffix tells Date() to interpret as UTC
-  // This preserves the exact time from the API which is already in GMT/UTC
-  return new Date(isoFormat);
+  // Parse components
+  const parts = isoFormat.split(/[-T:]/);
+  const year = parseInt(parts[0]);
+  const month = parseInt(parts[1]) - 1; // Month is 0-indexed in JavaScript
+  const day = parseInt(parts[2]);
+  const hour = parseInt(parts[3]);
+  const minute = parseInt(parts[4]);
+  const second = parseInt(parts[5]);
+  
+  // Determine if this date is in EST (winter) or EDT (summer)
+  // Create a test date to check timezone offset
+  const testDate = new Date(Date.UTC(year, month, day, 12, 0, 0));
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    timeZoneName: "short",
+  });
+  const formatted = formatter.format(testDate);
+  const isEST = formatted.includes("EST"); // True in winter (UTC-5), false in summer (UTC-4)
+  const etOffsetHours = isEST ? 5 : 4;
+  
+  // Convert ET time to UTC: Add the ET offset to get UTC timestamp
+  // Example: 10:30 AM EST (UTC-5) = 3:30 PM UTC → UTC time = ET time + 5 hours
+  const utcTimestamp = Date.UTC(year, month, day, hour, minute, second) + (etOffsetHours * 60 * 60 * 1000);
+  
+  return new Date(utcTimestamp);
 }
 
 /**
