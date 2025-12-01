@@ -53,7 +53,7 @@ const IMPACT_LEVELS = [
   { value: 'Moderate Data', label: 'Medium Impact', color: 'warning.main' },
   { value: 'Weak Data', label: 'Low Impact', color: 'info.main' },
   { value: 'Data Not Loaded', label: 'Unknown (Future)', color: 'grey.500' },
-  { value: 'Non-Economic', label: 'Non-Eco.', color: 'grey.500' },
+  { value: 'Non-Economic', label: 'Non-Economic', color: 'grey.500' },
   { value: 'None', label: 'None', color: 'grey.400' },
 ];
 

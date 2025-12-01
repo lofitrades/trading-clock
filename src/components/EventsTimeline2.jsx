@@ -27,6 +27,7 @@
  * - requestAnimationFrame for scroll operations
  * 
  * Changelog:
+ * v3.2.2 - 2025-12-01 - BUGFIX: Fixed EventModal timezone - Now passes timezone prop to EventModal so event details display in user-selected timezone
  * v3.2.1 - 2025-12-01 - BUGFIX: Fixed timezone conversion - formatTime now handles Unix timestamps (numbers) from eventsCache, properly converts to user-selected timezone
  * v3.2.0 - 2025-12-01 - Added "NOW" state: Blue badge/border for events within 5 minutes after release time. Supports multiple simultaneous events. Priority: NOW > NEXT > FUTURE > PAST
  * v3.1.0 - 2025-12-01 - Enterprise "Next" event tracking: Updates every 60 seconds using interval (Microsoft Teams/Outlook pattern) - minimal re-renders, efficient state management, automatic cleanup
@@ -1963,6 +1964,7 @@ export default function EventsTimeline2({
         open={modalOpen}
         onClose={handleModalClose}
         event={selectedEvent}
+        timezone={timezone}
       />
     </Box>
   );

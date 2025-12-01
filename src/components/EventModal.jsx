@@ -17,6 +17,9 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v1.6.2 - 2025-12-01 - Developer UX: Moved event ID to modal footer (left side), added click-to-copy functionality with visual feedback (green checkmark, "Copied!" message for 2s)
+ * v1.6.1 - 2025-12-01 - Developer UX: Added event UID display in modal header (truncated with tooltip showing full ID) for debugging and tracking
+ * v1.6.0 - 2025-12-01 - CRITICAL BUGFIX: Fixed timezone conversion - Added timezone prop, updated formatTime/formatDate to accept timezone parameter, all times now properly convert to user-selected timezone (NOT local device time)
  * v1.5.1 - 2025-11-30 - Enterprise enhancement: Ensured all tooltips work on mobile touch with proper event listeners (disableTouchListener=false, disableInteractive=false)
  * v1.5.0 - 2025-11-30 - UX enhancement: Enhanced tooltips with mobile tap support, rich descriptions for Impact/Currency chips, improved tooltip UI with light theme
  * v1.4.0 - 2025-11-30 - UX enhancement: Added help icons with tooltips to all section headers for better user guidance (enterprise copywriting standards)
@@ -197,38 +200,113 @@ const getOutcomeIcon = (outcome) => {
 };
 
 /**
- * Format time in 24-hour format
+ * Format time in 24-hour format (timezone-aware)
+ * @param {Date|string|number} date - Date object, ISO string, Unix timestamp, or time string
+ * @param {string} timezone - IANA timezone (e.g., 'America/New_York')
+ * @returns {string} Formatted time (HH:MM)
  */
-const formatTime = (date) => {
+const formatTime = (date, timezone) => {
   if (!date) return 'N/A';
   
-  // If already a time string (HH:MM format), return it
-  if (typeof date === 'string' && /^\d{2}:\d{2}/.test(date)) {
-    return date;
+  let dateObj;
+  
+  // Handle different input formats
+  if (date instanceof Date) {
+    dateObj = date;
+  } else if (typeof date === 'number') {
+    // Unix timestamp in milliseconds
+    dateObj = new Date(date);
+  } else if (typeof date === 'string') {
+    // Check if it's a time string (HH:MM or HH:MM:SS format)
+    if (/^\d{2}:\d{2}(:\d{2})?$/.test(date)) {
+      // Time string without date - return as-is since we can't convert timezone without full datetime
+      return date.slice(0, 5);
+    } else {
+      // ISO string or other date string
+      dateObj = new Date(date);
+    }
+  } else {
+    console.warn('[EventModal formatTime] Unexpected date format:', typeof date, date);
+    return 'N/A';
   }
   
-  // Otherwise format the date
-  const dateObj = new Date(date);
-  return dateObj.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+  // Validate date
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    console.warn('[EventModal formatTime] Invalid date:', {
+      input: date,
+      dateObj: dateObj,
+      isValidDate: dateObj instanceof Date,
+      timestamp: dateObj?.getTime()
+    });
+    return 'N/A';
+  }
+  
+  try {
+    // Format with timezone - converts UTC to selected timezone
+    const formatted = dateObj.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: timezone,
+    });
+    
+    return formatted;
+  } catch (error) {
+    console.error('[EventModal formatTime] Formatting error:', {
+      date,
+      dateObj,
+      timezone,
+      error: error.message
+    });
+    return 'N/A';
+  }
 };
 
 /**
- * Format date for display
+ * Format date for display (timezone-aware)
+ * @param {Date|string|number} date - Date to format (Date object, ISO string, or Unix timestamp)
+ * @param {string} timezone - IANA timezone (e.g., 'America/New_York')
+ * @returns {string} Formatted date
  */
-const formatDate = (date) => {
+const formatDate = (date, timezone) => {
   if (!date) return 'N/A';
   
-  const dateObj = new Date(date);
-  return dateObj.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  });
+  let dateObj;
+  
+  // Handle different input formats
+  if (date instanceof Date) {
+    dateObj = date;
+  } else if (typeof date === 'number') {
+    // Unix timestamp in milliseconds
+    dateObj = new Date(date);
+  } else {
+    // String (ISO or other format)
+    dateObj = new Date(date);
+  }
+  
+  // Validate date
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    console.warn('[EventModal formatDate] Invalid date:', date);
+    return 'N/A';
+  }
+  
+  try {
+    return dateObj.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: timezone,
+    });
+  } catch (error) {
+    console.error('[EventModal formatDate] Formatting error:', {
+      date,
+      dateObj,
+      timezone,
+      error: error.message
+    });
+    return 'N/A';
+  }
 };
 
 // ============================================================================
@@ -571,8 +649,12 @@ ModalSkeleton.displayName = 'ModalSkeleton';
 
 /**
  * EventModal - Enterprise-grade modal for event details
+ * @param {boolean} open - Modal open state
+ * @param {Function} onClose - Close handler
+ * @param {Object} event - Event data object
+ * @param {string} timezone - IANA timezone (e.g., 'America/New_York')
  */
-export default function EventModal({ open, onClose, event }) {
+export default function EventModal({ open, onClose, event, timezone = 'America/New_York' }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
@@ -584,6 +666,7 @@ export default function EventModal({ open, onClose, event }) {
   const [refreshingEvent, setRefreshingEvent] = useState(false);
   const [refreshedEvent, setRefreshedEvent] = useState(null);
   const [refreshSuccess, setRefreshSuccess] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // Fetch description when modal opens
   useEffect(() => {
@@ -732,13 +815,13 @@ export default function EventModal({ open, onClose, event }) {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <EventIcon sx={{ fontSize: 16 }} />
               <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                {formatDate(currentEvent.date)}
+                {formatDate(currentEvent.date, timezone)}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <AccessTimeIcon sx={{ fontSize: 16 }} />
               <Typography variant="body2" sx={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>
-                {formatTime(currentEvent.time || currentEvent.date)}
+                {formatTime(currentEvent.time || currentEvent.date, timezone)}
               </Typography>
             </Box>
           </Box>
@@ -1385,16 +1468,104 @@ export default function EventModal({ open, onClose, event }) {
           bgcolor: 'background.paper',
           borderTop: '1px solid',
           borderColor: 'divider',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 2,
         }}
       >
+        {/* Event ID - Left Side with Copy to Clipboard */}
+        {currentEvent.id && (
+          <MuiTooltip 
+            title={copySuccess ? "Copied!" : "Click to copy Event ID"}
+            arrow 
+            placement="top"
+          >
+            <Box
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(currentEvent.id);
+                  setCopySuccess(true);
+                  console.log('✅ Event ID copied to clipboard:', currentEvent.id);
+                  
+                  // Reset success state after 2 seconds
+                  setTimeout(() => {
+                    setCopySuccess(false);
+                  }, 2000);
+                } catch (error) {
+                  console.error('❌ Failed to copy to clipboard:', error);
+                }
+              }}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 1.5,
+                py: 0.75,
+                borderRadius: 1,
+                bgcolor: copySuccess 
+                  ? alpha(theme.palette.success.main, 0.12)
+                  : alpha(theme.palette.primary.main, 0.08),
+                border: '1px solid',
+                borderColor: copySuccess ? 'success.main' : 'divider',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  bgcolor: copySuccess
+                    ? alpha(theme.palette.success.main, 0.18)
+                    : alpha(theme.palette.primary.main, 0.15),
+                  borderColor: copySuccess ? 'success.main' : 'primary.main',
+                  transform: 'translateY(-1px)',
+                },
+                '&:active': {
+                  transform: 'translateY(0)',
+                },
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  fontSize: '0.7rem',
+                  fontFamily: 'monospace',
+                  color: copySuccess ? 'success.main' : 'text.secondary',
+                  fontWeight: 600,
+                  transition: 'color 0.2s ease',
+                }}
+              >
+                {copySuccess ? '✓ Copied!' : `ID: ${currentEvent.id}`}
+              </Typography>
+              {!copySuccess && (
+                <Box
+                  component="svg"
+                  sx={{
+                    width: 14,
+                    height: 14,
+                    fill: 'none',
+                    stroke: 'currentColor',
+                    strokeWidth: 2,
+                    color: 'text.secondary',
+                  }}
+                  viewBox="0 0 24 24"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </Box>
+              )}
+            </Box>
+          </MuiTooltip>
+        )}
+        
+        {/* Close Button - Right Side */}
         <Button
           onClick={onClose}
           variant="contained"
-          fullWidth={isMobile}
+          fullWidth={isMobile && !currentEvent.id}
           sx={{
             textTransform: 'none',
             fontWeight: 600,
             px: 4,
+            ml: 'auto',
           }}
         >
           Close
