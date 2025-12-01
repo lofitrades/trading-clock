@@ -27,6 +27,9 @@
  * - requestAnimationFrame for scroll operations
  * 
  * Changelog:
+ * v3.2.1 - 2025-12-01 - BUGFIX: Fixed timezone conversion - formatTime now handles Unix timestamps (numbers) from eventsCache, properly converts to user-selected timezone
+ * v3.2.0 - 2025-12-01 - Added "NOW" state: Blue badge/border for events within 5 minutes after release time. Supports multiple simultaneous events. Priority: NOW > NEXT > FUTURE > PAST
+ * v3.1.0 - 2025-12-01 - Enterprise "Next" event tracking: Updates every 60 seconds using interval (Microsoft Teams/Outlook pattern) - minimal re-renders, efficient state management, automatic cleanup
  * v3.0.0 - 2025-11-30 - BREAKING: Replaced inline expand/collapse with EventModal - Info icon opens full modal dialog with comprehensive event details (economicEventsCalendar + economicEventDescriptions data)
  * v2.7.0 - 2025-11-30 - Enterprise UX: Moved "Next" badge to top-left corner using MUI anchorOrigin (vertical: 'top', horizontal: 'left') following enterprise best practices for timeline badges
  * v2.6.0 - 2025-11-30 - Mobile-first UX: Updated "Next" badge positioning following MUI best practices (transform: translate(50%, -50%), responsive top/right values, enhanced shadow)
@@ -99,6 +102,13 @@ import EventModal from './EventModal';
 const PAGE_SIZE = 20;
 
 /**
+ * "NOW" state window duration (milliseconds)
+ * Events within this window after release time are marked as "NOW"
+ * 5 minutes gives traders time to see data and observe initial market reaction
+ */
+const NOW_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
  * Animation durations for consistent UX
  */
 const ANIMATION_DURATION = {
@@ -145,16 +155,18 @@ const IMPACT_CONFIG = {
 
 /**
  * Get time status (past/upcoming) - timezone-aware
- * @param {Date} dateTime - Event date/time
+ * @param {Date|number} dateTime - Event date/time (Date object or Unix timestamp)
  * @param {string} timezone - IANA timezone
  * @returns {'past'|'upcoming'|'unknown'} Time status
  */
 const getTimeStatus = (dateTime, timezone) => {
   if (!dateTime) return 'unknown';
   
+  // Convert to Date object if it's a Unix timestamp
+  const eventDate = typeof dateTime === 'number' ? new Date(dateTime) : new Date(dateTime);
+  
   // Get current time in the specified timezone
   const nowInTimezone = new Date(new Date().toLocaleString('en-US', { timeZone: timezone }));
-  const eventDate = new Date(dateTime);
   
   return eventDate < nowInTimezone ? 'past' : 'upcoming';
 };
@@ -215,15 +227,18 @@ const getCurrencyFlag = (currency) => {
 
 /**
  * Normalize date for comparison (removes time component)
- * @param {Date} date - Date to normalize
+ * @param {Date|number} date - Date to normalize (Date object or Unix timestamp)
  * @param {string} timezone - IANA timezone for date normalization
  * @returns {Date} Normalized date
  */
 const normalizeDate = (date, timezone) => {
   if (!date) return null;
   
+  // Convert to Date object if it's a Unix timestamp
+  const dateObj = typeof date === 'number' ? new Date(date) : new Date(date);
+  
   // Convert to timezone-specific date string, then parse back to Date at midnight
-  const dateStr = new Date(date).toLocaleDateString('en-CA', { 
+  const dateStr = dateObj.toLocaleDateString('en-CA', { 
     timeZone: timezone,
     year: 'numeric',
     month: '2-digit',
@@ -250,7 +265,7 @@ const isSameDay = (date1, date2) => {
 
 /**
  * Format time in 24-hour format (timezone-aware)
- * @param {Date|string} date - Date object, ISO string, or time string
+ * @param {Date|string|number} date - Date object, ISO string, Unix timestamp, or time string
  * @param {string} timezone - IANA timezone (e.g., 'America/New_York')
  * @returns {string} Formatted time (HH:MM)
  */
@@ -262,6 +277,9 @@ const formatTime = (date, timezone) => {
   // Handle different input formats
   if (date instanceof Date) {
     dateObj = date;
+  } else if (typeof date === 'number') {
+    // Unix timestamp in milliseconds
+    dateObj = new Date(date);
   } else if (typeof date === 'string') {
     // Check if it's a time string (HH:MM or HH:MM:SS format)
     if (/^\d{2}:\d{2}(:\d{2})?$/.test(date)) {
@@ -296,16 +314,6 @@ const formatTime = (date, timezone) => {
       timeZone: timezone,
     });
     
-    // Debug logging (remove in production)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[formatTime] Time conversion:', {
-        inputDate: date,
-        utcTime: dateObj.toISOString(),
-        timezone: timezone,
-        formattedTime: formatted,
-      });
-    }
-    
     return formatted;
   } catch (error) {
     console.error('[formatTime] Formatting error:', {
@@ -320,7 +328,7 @@ const formatTime = (date, timezone) => {
 
 /**
  * Format date for display
- * @param {Date} date - Date to format
+ * @param {Date|number} date - Date to format (Date object or Unix timestamp)
  * @param {boolean} isToday - Whether this is today
  * @param {string} timezone - IANA timezone (e.g., 'America/New_York')
  * @returns {string} Formatted date
@@ -328,8 +336,11 @@ const formatTime = (date, timezone) => {
 const formatDate = (date, isToday = false, timezone) => {
   if (!date) return '';
   
+  // Convert to Date object if it's a Unix timestamp
+  const dateObj = typeof date === 'number' ? new Date(date) : date;
+  
   if (isToday) {
-    return `Today - ${date.toLocaleDateString('en-US', {
+    return `Today - ${dateObj.toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'short',
       day: 'numeric',
@@ -338,7 +349,7 @@ const formatDate = (date, isToday = false, timezone) => {
     })}`;
   }
   
-  return date.toLocaleDateString('en-US', {
+  return dateObj.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
@@ -494,11 +505,49 @@ const TodayEmptyState = memo(({ date, timezone }) => {
 TodayEmptyState.displayName = 'TodayEmptyState';
 
 /**
- * Time Chip - Displays event time
+ * Time Chip - Displays event time with state-based styling
+ * Supports NOW, NEXT, and PAST states
  * Memoized for performance
  */
-const TimeChip = memo(({ time, isPast, isNext, timezone }) => {
+const TimeChip = memo(({ time, isPast, isNext, isNow, timezone }) => {
   const theme = useTheme();
+  
+  // Determine colors and shadows based on state priority: NOW > NEXT > PAST
+  const getStateStyles = () => {
+    if (isNow) {
+      return {
+        bgcolor: alpha(theme.palette.info.main, 0.1),
+        color: 'info.main',
+        borderColor: 'info.main',
+        boxShadow: `0 0 0 2px ${alpha(theme.palette.info.main, 0.2)}`,
+      };
+    }
+    if (isNext) {
+      return {
+        bgcolor: 'background.paper',
+        color: 'text.primary',
+        borderColor: 'primary.main',
+        boxShadow: 2,
+      };
+    }
+    if (isPast) {
+      return {
+        bgcolor: 'action.hover',
+        color: 'text.secondary',
+        borderColor: 'divider',
+        boxShadow: 'none',
+      };
+    }
+    // Future (not NEXT)
+    return {
+      bgcolor: 'background.paper',
+      color: 'text.primary',
+      borderColor: 'divider',
+      boxShadow: 'none',
+    };
+  };
+  
+  const stateStyles = getStateStyles();
   
   return (
     <Chip
@@ -509,12 +558,9 @@ const TimeChip = memo(({ time, isPast, isNext, timezone }) => {
         height: { xs: 24, sm: 28 },
         fontSize: { xs: '0.7rem', sm: '0.8rem' },
         fontWeight: 600,
-        bgcolor: isPast ? 'action.hover' : 'background.paper',
-        color: isPast ? 'text.secondary' : 'text.primary',
         border: '2px solid',
-        borderColor: isNext ? 'primary.main' : 'divider',
-        boxShadow: isNext ? 2 : 'none',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        ...stateStyles,
         '&:hover': {
           boxShadow: 3,
           transform: 'translateY(-1px)',
@@ -924,7 +970,8 @@ const EventDescription = memo(({ description, loading }) => {
 EventDescription.displayName = 'EventDescription';
 
 /**
- * Event Card - Main event display card
+ * Event Card - Main event display card with state-based styling
+ * Supports NOW, NEXT, and PAST states
  * Memoized for performance in large lists
  */
 const EventCard = memo(({
@@ -932,28 +979,52 @@ const EventCard = memo(({
   uniqueKey,
   isPast,
   isNext,
+  isNow,
   onInfoClick,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  const impactConfig = getImpactConfig(event.strength);
+  const impactConfig = getImpactConfig(event.strength || event.Strength);
+  
+  // Determine border and shadow based on state priority: NOW > NEXT > PAST
+  const getStateStyles = () => {
+    if (isNow) {
+      return {
+        borderColor: 'info.main',
+        boxShadow: `0 0 0 4px ${alpha(theme.palette.info.main, 0.1)}`,
+        bgcolor: alpha(theme.palette.info.main, 0.02),
+      };
+    }
+    if (isNext) {
+      return {
+        borderColor: 'primary.main',
+        boxShadow: 2,
+        bgcolor: 'background.paper',
+      };
+    }
+    return {
+      borderColor: 'divider',
+      boxShadow: 'none',
+      bgcolor: isPast ? alpha(theme.palette.background.paper, 0.7) : 'background.paper',
+    };
+  };
+  
+  const stateStyles = getStateStyles();
   
   const card = (
     <Card
       elevation={0}
       sx={{
         border: '2px solid',
-        borderColor: isNext ? 'primary.main' : 'divider',
         borderRadius: 2,
         overflow: 'hidden',
-        bgcolor: isPast ? alpha(theme.palette.background.paper, 0.7) : 'background.paper',
-        boxShadow: isNext ? 2 : 'none',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        ...stateStyles,
         '&:hover': {
           boxShadow: 4,
           transform: 'translateY(-2px)',
-          borderColor: 'primary.main',
+          borderColor: isNow ? 'info.dark' : 'primary.main',
         },
       }}
     >
@@ -968,7 +1039,7 @@ const EventCard = memo(({
               gap: 1,
             }}
           >
-            {/* Event Name */}
+            {/* Event Name - Support both lowercase and PascalCase */}
             <Typography
               variant="subtitle2"
               sx={{
@@ -980,7 +1051,7 @@ const EventCard = memo(({
                 minWidth: 0,
               }}
             >
-              {event.Name || 'Unnamed Event'}
+              {event.name || event.Name || 'Unnamed Event'}
             </Typography>
             
             {/* Info Button */}
@@ -1012,15 +1083,15 @@ const EventCard = memo(({
               gap: 1,
             }}
           >
-            <ImpactBadge impact={event.strength} />
+            <ImpactBadge impact={event.strength || event.Strength} />
             
-            {event.currency && (
-              <CurrencyFlag currency={event.currency} />
+            {(event.currency || event.Currency) && (
+              <CurrencyFlag currency={event.currency || event.Currency} />
             )}
             
-            {event.category && (
+            {((event.category || event.Category) && (event.category || event.Category) !== null && (event.category || event.Category) !== 'null') && (
               <Chip
-                label={event.category}
+                label={event.category || event.Category}
                 size="small"
                 variant="outlined"
                 sx={{
@@ -1158,11 +1229,60 @@ const EventCard = memo(({
     </Card>
   );
   
-  // Wrap card with Badge if it's the next event
+  // Wrap card with Badge based on state (NOW takes priority over NEXT)
+  if (isNow) {
+    return (
+      <Badge
+        badgeContent="NOW"
+        color="info"
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'left',
+        }}
+        sx={{
+          width: '100%',
+          display: 'block',
+          '& .MuiBadge-root': {
+            width: '100%',
+          },
+          '& .MuiBadge-badge': {
+            fontSize: { xs: '0.6rem', sm: '0.65rem' },
+            fontWeight: 700,
+            height: { xs: 18, sm: 20 },
+            minWidth: { xs: 36, sm: 40 },
+            padding: { xs: '0 4px', sm: '0 6px' },
+            borderRadius: '12px',
+            left: { xs: 4, sm: 6 },
+            top: { xs: 4, sm: 6 },
+            transform: 'scale(1) translate(-50%, -50%)',
+            transformOrigin: '0% 0%',
+            boxShadow: 2,
+            animation: 'pulse 2s ease-in-out infinite',
+            '@keyframes pulse': {
+              '0%, 100%': {
+                opacity: 1,
+              },
+              '50%': {
+                opacity: 0.7,
+              },
+            },
+          },
+        }}
+        componentsProps={{
+          root: {
+            style: { width: '100%', display: 'block' }
+          }
+        }}
+      >
+        {card}
+      </Badge>
+    );
+  }
+  
   if (isNext) {
     return (
       <Badge
-        badgeContent="Next"
+        badgeContent="NEXT"
         color="primary"
         anchorOrigin={{
           vertical: 'top',
@@ -1432,6 +1552,7 @@ LoadingState.displayName = 'LoadingState';
 /**
  * EventsTimeline2 - Enterprise-grade timeline component
  * Simplified pagination: always show buttons when more events available
+ * Enterprise "Next" event tracking: Updates every 60 seconds (Microsoft Teams/Outlook pattern)
  */
 export default function EventsTimeline2({ 
   events = [], 
@@ -1448,6 +1569,10 @@ export default function EventsTimeline2({
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [startIndex, setStartIndex] = useState(0);
   const [endIndex, setEndIndex] = useState(PAGE_SIZE);
+  
+  // Track current time for "next" event calculation (updates every 60 seconds)
+  // Enterprise pattern: Microsoft Teams/Outlook approach for calendar event tracking
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
   
   // ========== MEMOIZED VALUES ==========
   
@@ -1522,15 +1647,73 @@ export default function EventsTimeline2({
   const shouldShowTodayDivider = !hasTodayEvents && isTodayInRange && todayDividerIndex >= 0;
   
   /**
-   * Find next upcoming event index (timezone-aware)
+   * Calculate event states: NOW, NEXT, PAST, FUTURE
+   * Recalculates when currentTime updates (every 60 seconds)
+   * Enterprise pattern: Efficient multi-state tracking with simultaneous event support
+   * 
+   * State Priority: NOW > NEXT > FUTURE > PAST
+   * 
+   * NOW: Within 5 minutes AFTER event time (gives traders time to react)
+   * NEXT: First upcoming event(s) - supports multiple simultaneous events
+   * FUTURE: Events beyond NEXT
+   * PAST: More than 5 minutes after event time
+   */
+  const eventStates = useMemo(() => {
+    const nowIds = new Set();
+    const nextIds = new Set();
+    let nextEventTime = null;
+    
+    for (const event of visibleEvents) {
+      const eventTime = new Date(event.date).getTime();
+      const timeDiff = currentTime - eventTime;
+      
+      if (timeDiff >= 0 && timeDiff < NOW_WINDOW_MS) {
+        // Event happened within last 5 minutes = NOW
+        nowIds.add(event.id);
+      } else if (eventTime > currentTime) {
+        // Future event
+        if (nextEventTime === null) {
+          // First future event time
+          nextEventTime = eventTime;
+          nextIds.add(event.id);
+        } else if (eventTime === nextEventTime) {
+          // Simultaneous event at same time as first future event = also NEXT
+          nextIds.add(event.id);
+        }
+        // else: Later future events (not NEXT)
+      }
+      // else: Past event (more than 5 minutes ago)
+    }
+    
+    return { nowIds, nextIds };
+  }, [visibleEvents, currentTime]);
+  
+  /**
+   * Legacy nextEventIndex for backwards compatibility
+   * Returns index of first NEXT event (or -1 if none)
    */
   const nextEventIndex = useMemo(() => {
-    // Get current time in the selected timezone
-    const nowInTimezone = new Date(new Date().toLocaleString('en-US', { timeZone: timezone }));
-    return visibleEvents.findIndex(event => new Date(event.date) > nowInTimezone);
-  }, [visibleEvents, timezone]);
+    if (eventStates.nextIds.size === 0) return -1;
+    const firstNextId = Array.from(eventStates.nextIds)[0];
+    return visibleEvents.findIndex(e => e.id === firstNextId);
+  }, [eventStates, visibleEvents]);
   
   // ========== EFFECTS ==========
+  
+  /**
+   * Enterprise pattern: Update "next" event every 60 seconds
+   * Same approach as Microsoft Teams/Outlook for calendar event tracking
+   * - Minimal overhead (60s interval vs real-time)
+   * - Efficient re-rendering (only when time state changes)
+   * - Automatic cleanup on unmount
+   */
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000); // 60 seconds
+    
+    return () => clearInterval(interval);
+  }, []);
   
   /**
    * Reset pagination when events change, starting from today's position
@@ -1680,9 +1863,10 @@ export default function EventsTimeline2({
           }}
         >
         {visibleEvents.map((event, index) => {
-          const uniqueKey = event.id || `${event.Name}-${event.time}-${index}`;
+          const uniqueKey = event.id || `${event.name || event.Name}-${event.time}-${index}`;
           const isPast = getTimeStatus(event.date, timezone) === 'past';
-          const isNext = index === nextEventIndex;
+          const isNow = eventStates.nowIds.has(event.id);
+          const isNext = eventStates.nextIds.has(event.id);
           
           // Check if this is a new day
           const currentDate = new Date(event.date);
@@ -1725,6 +1909,7 @@ export default function EventsTimeline2({
                     <TimeChip 
                       time={event.time || event.date}
                       isPast={isPast}
+                      isNow={isNow}
                       isNext={isNext}
                       timezone={timezone}
                     />
@@ -1749,6 +1934,7 @@ export default function EventsTimeline2({
                     event={event}
                     uniqueKey={uniqueKey}
                     isPast={isPast}
+                    isNow={isNow}
                     isNext={isNext}
                     onInfoClick={handleInfoClick}
                   />
