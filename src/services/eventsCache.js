@@ -5,13 +5,16 @@
  * Optimizes performance by minimizing Firestore reads while ensuring data freshness
  * 
  * Strategy:
- * - Cache full event list in localStorage
+ * - Cache recent events (14d back + 8d forward) in localStorage per source
  * - Track last sync timestamp from systemJobs
  * - Invalidate cache when API sync occurs
  * - Smart cache expiration (24 hours fallback)
  * - Support for filtered queries without full refetch
+ * - Multi-source support (forex-factory, mql5, fxstreet)
  * 
  * Changelog:
+ * v2.1.0 - 2025-12-01 - Optimized to fetch only 14d back + 8d forward (not all events)
+ * v2.0.0 - 2025-12-01 - Updated to support multi-source structure (/economicEvents/{source}/events)
  * v1.0.0 - 2025-11-30 - Initial implementation with smart caching
  */
 
@@ -76,11 +79,13 @@ const CACHE_EXPIRY_HOURS = 24; // Fallback expiry if sync tracking fails
 
 /**
  * Get cache metadata
+ * @param {string} source - Data source
  * @returns {CacheMetadata|null}
  */
-function getCacheMetadata() {
+function getCacheMetadata(source = 'forex-factory') {
   try {
-    const metadata = localStorage.getItem(CACHE_METADATA_KEY);
+    const metadataKey = `${CACHE_METADATA_KEY}_${source}`;
+    const metadata = localStorage.getItem(metadataKey);
     if (!metadata) return null;
     
     const parsed = JSON.parse(metadata);
@@ -88,7 +93,7 @@ function getCacheMetadata() {
     // Version check
     if (parsed.version !== CACHE_VERSION) {
       console.log('📦 Cache version mismatch, invalidating...');
-      invalidateCache();
+      invalidateCache(source);
       return null;
     }
     
@@ -102,10 +107,12 @@ function getCacheMetadata() {
 /**
  * Set cache metadata
  * @param {CacheMetadata} metadata
+ * @param {string} source - Data source
  */
-function setCacheMetadata(metadata) {
+function setCacheMetadata(metadata, source = 'forex-factory') {
   try {
-    localStorage.setItem(CACHE_METADATA_KEY, JSON.stringify(metadata));
+    const metadataKey = `${CACHE_METADATA_KEY}_${source}`;
+    localStorage.setItem(metadataKey, JSON.stringify(metadata));
   } catch (error) {
     console.error('❌ Error writing cache metadata:', error);
   }
@@ -113,11 +120,13 @@ function setCacheMetadata(metadata) {
 
 /**
  * Get cached events
+ * @param {string} source - Data source
  * @returns {CachedEvent[]|null}
  */
-function getCachedEvents() {
+function getCachedEvents(source = 'forex-factory') {
   try {
-    const cached = localStorage.getItem(CACHE_KEY);
+    const cacheKey = `${CACHE_KEY}_${source}`;
+    const cached = localStorage.getItem(cacheKey);
     if (!cached) return null;
     
     return JSON.parse(cached);
@@ -130,10 +139,12 @@ function getCachedEvents() {
 /**
  * Set cached events
  * @param {CachedEvent[]} events
+ * @param {string} source - Data source
  */
-function setCachedEvents(events) {
+function setCachedEvents(events, source = 'forex-factory') {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(events));
+    const cacheKey = `${CACHE_KEY}_${source}`;
+    localStorage.setItem(cacheKey, JSON.stringify(events));
   } catch (error) {
     console.error('❌ Error writing cached events:', error);
     // If quota exceeded, clear old cache and retry
@@ -146,19 +157,34 @@ function setCachedEvents(events) {
 
 /**
  * Invalidate cache
+ * @param {string} source - Optional specific source to invalidate, or all if not provided
  */
-export function invalidateCache() {
-  console.log('🗑️ Invalidating events cache');
-  localStorage.removeItem(CACHE_KEY);
-  localStorage.removeItem(CACHE_METADATA_KEY);
+export function invalidateCache(source = null) {
+  if (source) {
+    console.log(`🗑️ Invalidating events cache for source: ${source}`);
+    localStorage.removeItem(`${CACHE_KEY}_${source}`);
+    localStorage.removeItem(`${CACHE_METADATA_KEY}_${source}`);
+  } else {
+    console.log('🗑️ Invalidating all events caches');
+    // Clear all source-specific caches
+    const sources = ['forex-factory', 'mql5', 'fxstreet'];
+    sources.forEach(src => {
+      localStorage.removeItem(`${CACHE_KEY}_${src}`);
+      localStorage.removeItem(`${CACHE_METADATA_KEY}_${src}`);
+    });
+    // Also clear legacy cache keys if they exist
+    localStorage.removeItem(CACHE_KEY);
+    localStorage.removeItem(CACHE_METADATA_KEY);
+  }
 }
 
 /**
  * Check if cache is valid
+ * @param {string} source - Data source
  * @returns {Promise<boolean>}
  */
-async function isCacheValid() {
-  const metadata = getCacheMetadata();
+async function isCacheValid(source = 'forex-factory') {
+  const metadata = getCacheMetadata(source);
   if (!metadata) return false;
   
   // Check if cache is too old (fallback expiry)
@@ -268,82 +294,116 @@ export function subscribeSyncStatus(onSyncUpdate) {
 // ============================================================================
 
 /**
- * Fetch all events from Firestore and cache them
+ * Fetch recent events from Firestore and cache them
+ * Supports multi-source structure (/economicEvents/{source}/events)
+ * Fetches 14 days back + 8 days forward for optimal performance
+ * 
+ * @param {string} source - Data source to fetch from ('forex-factory', 'mql5', 'fxstreet')
  * @returns {Promise<CachedEvent[]>}
  */
-async function fetchAndCacheAllEvents() {
-  console.log('📡 Fetching all events from Firestore...');
+async function fetchAndCacheAllEvents(source = 'forex-factory') {
+  console.log(`📡 Fetching recent events from source: ${source} (14d back + 8d forward)...`);
   
-  const eventsRef = collection(db, 'economicEventsCalendar');
-  const q = query(eventsRef, orderBy('date', 'asc'));
-  
-  const snapshot = await getDocs(q);
-  
-  const events = [];
-  const currencies = new Set();
-  const categories = new Set();
-  
-  snapshot.docs.forEach((doc) => {
-    const data = doc.data();
+  try {
+    // Calculate date range: 14 days back, 8 days forward
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - 14);
+    startDate.setHours(0, 0, 0, 0);
     
-    // Extract unique currencies and categories
-    if (data.currency) currencies.add(data.currency);
-    if (data.category) categories.add(data.category);
+    const endDate = new Date(now);
+    endDate.setDate(endDate.getDate() + 8);
+    endDate.setHours(23, 59, 59, 999);
     
-    // Create lightweight cached event
-    events.push({
-      id: doc.id,
-      name: data.name || data.Name,
-      currency: data.currency || data.Currency,
-      category: data.category || data.Category,
-      date: data.date?.toMillis ? data.date.toMillis() : data.date?.seconds * 1000 || 0,
-      actual: data.actual ?? data.Actual ?? null,
-      forecast: data.forecast ?? data.Forecast ?? null,
-      previous: data.previous ?? data.Previous ?? null,
-      outcome: data.outcome || data.Outcome || '',
-      strength: data.strength || data.Strength || '',
-      quality: data.quality || data.Quality || '',
-      projection: data.projection ?? data.Projection ?? null,
-      source: data.source || 'mql5',
+    const startTimestamp = Timestamp.fromDate(startDate);
+    const endTimestamp = Timestamp.fromDate(endDate);
+    
+    // Fetch from multi-source structure with date range filter
+    const eventsRef = collection(db, 'economicEvents', source, 'events');
+    const q = query(
+      eventsRef, 
+      where('date', '>=', startTimestamp),
+      where('date', '<=', endTimestamp),
+      orderBy('date', 'asc')
+    );
+    
+    const snapshot = await getDocs(q);
+    
+    const events = [];
+    const currencies = new Set();
+    const categories = new Set();
+    
+    snapshot.docs.forEach((doc) => {
+      const data = doc.data();
+      
+      // Extract unique currencies and categories
+      if (data.currency) currencies.add(data.currency);
+      if (data.category) categories.add(data.category);
+      
+      // Create lightweight cached event
+      events.push({
+        id: doc.id,
+        name: data.name || data.Name,
+        currency: data.currency || data.Currency,
+        category: data.category || data.Category,
+        date: data.date?.toMillis ? data.date.toMillis() : data.date?.seconds * 1000 || 0,
+        actual: data.actual ?? data.Actual ?? null,
+        forecast: data.forecast ?? data.Forecast ?? null,
+        previous: data.previous ?? data.Previous ?? null,
+        outcome: data.outcome || data.Outcome || '',
+        strength: data.strength || data.Strength || '',
+        quality: data.quality || data.Quality || '',
+        projection: data.projection ?? data.Projection ?? null,
+        source: source,
+      });
     });
-  });
-  
-  // Cache events
-  setCachedEvents(events);
-  
-  // Cache metadata
-  const lastSyncAt = await getLastSyncTimestamp() || Date.now();
-  setCacheMetadata({
-    version: CACHE_VERSION,
-    cachedAt: Date.now(),
-    lastSyncAt,
-    eventCount: events.length,
-    currencies: Array.from(currencies).sort(),
-    categories: Array.from(categories).sort(),
-  });
-  
-  console.log(`✅ Cached ${events.length} events`);
-  
-  return events;
+    
+    // Cache events with source identifier
+    const cacheKey = `${CACHE_KEY}_${source}`;
+    localStorage.setItem(cacheKey, JSON.stringify(events));
+    
+    // Cache metadata
+    const lastSyncAt = await getLastSyncTimestamp() || Date.now();
+    const metadata = {
+      version: CACHE_VERSION,
+      cachedAt: Date.now(),
+      lastSyncAt,
+      eventCount: events.length,
+      currencies: Array.from(currencies).sort(),
+      categories: Array.from(categories).sort(),
+      source: source,
+    };
+    
+    const metadataKey = `${CACHE_METADATA_KEY}_${source}`;
+    localStorage.setItem(metadataKey, JSON.stringify(metadata));
+    
+    console.log(`✅ Cached ${events.length} events from ${source} (14d back + 8d forward)`);
+    
+    return events;
+  } catch (error) {
+    console.error(`❌ Error fetching events from ${source}:`, error);
+    return [];
+  }
 }
 
 /**
  * Get all events (from cache or Firestore)
  * @param {boolean} forceRefresh - Force fetch from Firestore
+ * @param {string} source - Data source to fetch from
  * @returns {Promise<CachedEvent[]>}
  */
-export async function getAllEvents(forceRefresh = false) {
+export async function getAllEvents(forceRefresh = false, source = 'forex-factory') {
   // Check cache validity
-  if (!forceRefresh && await isCacheValid()) {
-    const cached = getCachedEvents();
+  if (!forceRefresh && await isCacheValid(source)) {
+    const cached = getCachedEvents(source);
     if (cached) {
-      console.log(`📦 Using cached events (${cached.length} events)`);
+      console.log(`📦 Using cached events from ${source} (${cached.length} events)`);
       return cached;
     }
   }
   
   // Fetch and cache
-  return await fetchAndCacheAllEvents();
+  return await fetchAndCacheAllEvents(source);
 }
 
 /**
@@ -354,10 +414,12 @@ export async function getAllEvents(forceRefresh = false) {
  * @param {string[]} filters.currencies
  * @param {string[]} filters.categories
  * @param {string[]} filters.impacts
+ * @param {string} filters.source - Data source
  * @returns {Promise<CachedEvent[]>}
  */
 export async function getFilteredEvents(filters = {}) {
-  const allEvents = await getAllEvents();
+  const source = filters.source || 'forex-factory';
+  const allEvents = await getAllEvents(false, source);
   
   const {
     startDate,
@@ -394,46 +456,49 @@ export async function getFilteredEvents(filters = {}) {
 
 /**
  * Get available currencies from cache
+ * @param {string} source - Data source
  * @returns {Promise<string[]>}
  */
-export async function getCachedCurrencies() {
-  const metadata = getCacheMetadata();
+export async function getCachedCurrencies(source = 'forex-factory') {
+  const metadata = getCacheMetadata(source);
   
   if (metadata && metadata.currencies) {
     return metadata.currencies;
   }
   
   // If no metadata, fetch all events to build cache
-  await getAllEvents();
+  await getAllEvents(false, source);
   
-  const updatedMetadata = getCacheMetadata();
+  const updatedMetadata = getCacheMetadata(source);
   return updatedMetadata?.currencies || [];
 }
 
 /**
  * Get available categories from cache
+ * @param {string} source - Data source
  * @returns {Promise<string[]>}
  */
-export async function getCachedCategories() {
-  const metadata = getCacheMetadata();
+export async function getCachedCategories(source = 'forex-factory') {
+  const metadata = getCacheMetadata(source);
   
   if (metadata && metadata.categories) {
     return metadata.categories;
   }
   
   // If no metadata, fetch all events to build cache
-  await getAllEvents();
+  await getAllEvents(false, source);
   
-  const updatedMetadata = getCacheMetadata();
+  const updatedMetadata = getCacheMetadata(source);
   return updatedMetadata?.categories || [];
 }
 
 /**
  * Get cache statistics
+ * @param {string} source - Data source
  * @returns {Object|null}
  */
-export function getCacheStats() {
-  const metadata = getCacheMetadata();
+export function getCacheStats(source = 'forex-factory') {
+  const metadata = getCacheMetadata(source);
   
   if (!metadata) {
     return null;
@@ -451,5 +516,6 @@ export function getCacheStats() {
     cacheAge: `${hours}h ${minutes}m`,
     cacheAgeMs: cacheAge,
     version: metadata.version,
+    source: metadata.source || source,
   };
 }

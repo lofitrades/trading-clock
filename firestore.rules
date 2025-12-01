@@ -26,6 +26,14 @@ service cloud.firestore {
       allow write: if false; // Only Cloud Functions can write
     }
 
+    // Economic Events - Multi-source subcollections (v2.2.0+)
+    // Structure: /economicEvents/{source}/events/{eventId}
+    // Public read access for all sources, only Cloud Functions can write
+    match /economicEvents/{source}/events/{eventId} {
+      allow read: if true; // Public read access
+      allow write: if false; // Only Cloud Functions can write
+    }
+
     // Economic Event Descriptions - public read access
     // Only Cloud Functions can write
     match /economicEventDescriptions/{docId} {

@@ -5,6 +5,10 @@
  * Integrates EventsFilters2 (optimized) and EventsTimeline2 (enterprise-grade) components
  * 
  * Changelog:
+ * v2.12.0 - 2025-12-01 - Performance optimization: Component stays mounted (display:none when closed), uses cache for smooth navigation, only fetches on initial mount
+ * v2.11.0 - 2025-12-01 - Moved news source selector from SettingsSidebar to EconomicEvents header (dropdown in "Last updated" row, mobile-first responsive, enterprise UX with expandable source details)
+ * v2.10.1 - 2025-12-01 - Updated Initial Sync to historical only (2y back to today), Recent Sync extended to 30 days forward for better future coverage
+ * v2.10.0 - 2025-12-01 - Added "Initial Sync" button for historical bulk sync with password confirmation (9876543210)
  * v2.9.1 - 2025-11-30 - Fixed mock data: Use proper field names (Name, date) and ISO dates, added Today/Yesterday/Tomorrow events for proper date dividers
  * v2.9.0 - 2025-11-30 - Guest preview: Show mock events timeline with clear "Preview Mode" indicator for non-authenticated users
  * v2.8.1 - 2025-11-30 - Guest UI cleanup: Hide refresh button, last updated, sync success, and event count for non-authenticated users
@@ -47,8 +51,10 @@ import {
   refreshEventsCache,
 } from '../services/economicEventsService';
 import ConfirmModal from './ConfirmModal';
+import SyncCalendarModal from './SyncCalendarModal';
 import EventsTimeline2 from './EventsTimeline2';
 import EventsFilters2 from './EventsFilters2';
+import NewsSourceSelector from './NewsSourceSelector';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -137,9 +143,10 @@ const MOCK_EVENTS = [
 /**
  * EconomicEvents Component
  * Drawer displaying economic events with filtering and timeline
+ * Kept mounted for smooth navigation - uses 'open' prop to show/hide
  */
-export default function EconomicEvents({ onClose, timezone }) {
-  const { eventFilters } = useSettings();
+export default function EconomicEvents({ open, onClose, timezone }) {
+  const { eventFilters, newsSource, updateNewsSource } = useSettings();
   const { user } = useAuth();
   
   const [events, setEvents] = useState([]);
@@ -149,6 +156,8 @@ export default function EconomicEvents({ onClose, timezone }) {
   const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(null);
   const [showSyncConfirm, setShowSyncConfirm] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [showInitialSyncConfirm, setShowInitialSyncConfirm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   
   // Filter state - Initialize from SettingsContext (persisted across sessions)
@@ -162,6 +171,16 @@ export default function EconomicEvents({ onClose, timezone }) {
   
   // Track visible event count for pagination
   const [visibleEventCount, setVisibleEventCount] = useState(0);
+  
+  /**
+   * Handle news source change
+   * Updates SettingsContext (persisted) and refetches events
+   */
+  const handleNewsSourceChange = (newSource) => {
+    console.log('📡 News source changed to:', newSource);
+    updateNewsSource(newSource);
+    // Events will auto-refetch via useEffect watching newsSource
+  };
 
   /**
    * Fetch events with current filters
@@ -180,11 +199,12 @@ export default function EconomicEvents({ onClose, timezone }) {
     setLoading(true);
     setError(null);
 
-    // Fetch events from Firestore with filters
+    // Fetch events from Firestore with filters (including news source)
     const result = await getEventsByDateRange(
       activeFilters.startDate, 
       activeFilters.endDate, 
       {
+        source: newsSource, // Use user's preferred news source
         impacts: activeFilters.impacts,
         eventTypes: activeFilters.eventTypes,
         currencies: activeFilters.currencies,
@@ -206,7 +226,7 @@ export default function EconomicEvents({ onClose, timezone }) {
   };
 
   /**
-   * Trigger manual sync from Cloud Function
+   * Trigger manual sync from Cloud Function (legacy - kept for ConfirmModal)
    */
   const handleManualSync = async () => {
     setShowSyncConfirm(false); // Close confirmation dialog
@@ -249,33 +269,154 @@ export default function EconomicEvents({ onClose, timezone }) {
   };
 
   /**
-   * Component mount - Auto-load wide date range for infinite scrolling
+   * Handle multi-source sync from SyncCalendarModal
+   * @param {string[]} selectedSources - Array of source identifiers
+   */
+  const handleMultiSourceSync = async (selectedSources) => {
+    console.log('🔄 Triggering multi-source sync:', selectedSources);
+    
+    const result = await triggerManualSync({ 
+      sources: selectedSources,
+      dryRun: false 
+    });
+
+    if (result.success) {
+      console.log('✅ Multi-source sync successful:', result.data);
+      
+      // Show success message
+      const totalRecords = result.data.totalRecordsUpserted || 0;
+      
+      // If only one source was synced and it's different from current newsSource,
+      // inform user they may want to switch sources in Settings
+      const needsSourceSwitch = selectedSources.length === 1 && 
+                                selectedSources[0] !== newsSource;
+      
+      setSyncSuccess(
+        needsSourceSwitch
+          ? `Synced ${totalRecords.toLocaleString()} events from ${selectedSources[0]}! Go to Settings to switch your preferred news source to view these events.`
+          : `Synced ${totalRecords.toLocaleString()} events from ${selectedSources.length} source${selectedSources.length > 1 ? 's' : ''}!`
+      );
+      
+      // Refresh events after sync (will fetch from current newsSource setting)
+      setTimeout(() => {
+        fetchEvents();
+      }, 2000);
+
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setSyncSuccess(null);
+      }, 5000);
+    }
+
+    return result;
+  };
+
+  /**
+   * Handle initial historical sync (2 years back, 1 year forward)
+   * Syncs ALL sources (mql5, forex-factory, fxstreet) for complete data
+   * Requires password confirmation
+   */
+  const handleInitialSync = async () => {
+    setShowInitialSyncConfirm(false);
+    setSyncing(true);
+    setSyncSuccess(null);
+    setError(null);
+
+    console.log('🏛️ Triggering initial historical sync for ALL sources...');
+
+    // Call the new syncHistoricalEvents Cloud Function
+    try {
+      const response = await fetch(
+        'https://us-central1-time-2-trade-app.cloudfunctions.net/syncHistoricalEvents',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sources: ['mql5', 'forex-factory', 'fxstreet'], // Sync ALL sources for initial bulk load
+            // TODO: Add Firebase ID token for authentication
+            // adminToken: await user.getIdToken(),
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.ok) {
+        console.log('✅ Initial sync successful:', result);
+        
+        const totalRecords = result.totalRecordsUpserted || 0;
+        const sourcesCount = result.totalSources || 0;
+        
+        setSyncSuccess(
+          `Initial sync complete! Loaded ${totalRecords.toLocaleString()} historical events from ${sourcesCount} sources (2 years back to today). Use "Sync Calendar" for future events.`
+        );
+        
+        // Refresh events after sync
+        setTimeout(() => {
+          fetchEvents();
+        }, 2000);
+
+        // Clear success message after 10 seconds
+        setTimeout(() => {
+          setSyncSuccess(null);
+        }, 10000);
+      } else {
+        setError(result.error || 'Initial sync failed');
+      }
+    } catch (error) {
+      console.error('❌ Initial sync error:', error);
+      setError('Failed to connect to sync service. Please try again.');
+    }
+
+    setSyncing(false);
+  };
+
+  /**
+   * Component mount - Auto-load wide date range once on initial mount
+   * Component stays mounted, so this only runs once
    */
   useEffect(() => {
-    // Load a wide date range (2 weeks before to 2 weeks after) for infinite pagination
-    const now = new Date();
-    const startDate = new Date(now);
-    startDate.setDate(now.getDate() - 14); // 2 weeks before
-    startDate.setHours(0, 0, 0, 0);
-    
-    const endDate = new Date(now);
-    endDate.setDate(now.getDate() + 14); // 2 weeks after
-    endDate.setHours(23, 59, 59, 999);
-    
-    const newFilters = {
-      ...filters,
-      startDate,
-      endDate,
-    };
-    
-    console.log('📅 Auto-loading wide date range for infinite pagination:', {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    });
-    
-    setFilters(newFilters);
-    fetchEvents(newFilters);
+    // Only load on initial mount if not already loaded
+    if (events.length === 0) {
+      // Load a wide date range (2 weeks before to 2 weeks after) for infinite pagination
+      const now = new Date();
+      const startDate = new Date(now);
+      startDate.setDate(now.getDate() - 14); // 2 weeks before
+      startDate.setHours(0, 0, 0, 0);
+      
+      const endDate = new Date(now);
+      endDate.setDate(now.getDate() + 14); // 2 weeks after
+      endDate.setHours(23, 59, 59, 999);
+      
+      const newFilters = {
+        ...filters,
+        startDate,
+        endDate,
+      };
+      
+      console.log('📅 Initial load: wide date range for infinite pagination (from cache):', {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+      
+      setFilters(newFilters);
+      fetchEvents(newFilters);
+    }
   }, []);
+
+  /**
+   * Watch for news source changes - Invalidate cache and refetch
+   * When user changes preferred source in Settings, ensure fresh data is loaded
+   */
+  useEffect(() => {
+    if (events.length > 0) {
+      console.log('📡 News source changed to:', newsSource);
+      console.log('🔄 Refetching events from new source...');
+      fetchEvents();
+    }
+  }, [newsSource]);
 
   /**
    * Handle filter changes (without auto-fetching)
@@ -345,7 +486,7 @@ export default function EconomicEvents({ onClose, timezone }) {
         top: 0,
         height: '100vh',
         width: { xs: '100%', sm: 380, md: 420 },
-        display: 'flex',
+        display: open ? 'flex' : 'none', // Hide when closed, don't unmount
         flexDirection: 'column',
         zIndex: 1200,
         overflow: 'hidden',
@@ -422,12 +563,44 @@ export default function EconomicEvents({ onClose, timezone }) {
             borderBottom: 1,
             borderColor: 'divider',
             bgcolor: 'background.default',
+            display: 'flex',
+            gap: 1,
           }}
         >
-          <Tooltip title="Sync 3-year calendar data from API (uses 1 API credit)">
-            <span>
+          <Tooltip title="Initial bulk sync: 2 years back + 1 year forward (high API cost)">
+            <span style={{ flex: 1 }}>
               <Button
-                onClick={() => setShowSyncConfirm(true)}
+                onClick={() => setShowInitialSyncConfirm(true)}
+                disabled={syncing || loading}
+                variant="contained"
+                color="warning"
+                startIcon={
+                  <SyncIcon
+                    sx={{
+                      animation: syncing ? 'spin 1s linear infinite' : 'none',
+                      '@keyframes spin': {
+                        '0%': { transform: 'rotate(0deg)' },
+                        '100%': { transform: 'rotate(360deg)' },
+                      },
+                    }}
+                  />
+                }
+                sx={{
+                  width: '100%',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                  py: 1,
+                }}
+              >
+                Initial Sync
+              </Button>
+            </span>
+          </Tooltip>
+          <Tooltip title="Sync calendar data from multiple news sources">
+            <span style={{ flex: 1 }}>
+              <Button
+                onClick={() => setShowSyncModal(true)}
                 disabled={syncing || loading}
                 variant="outlined"
                 startIcon={
@@ -445,7 +618,7 @@ export default function EconomicEvents({ onClose, timezone }) {
                   width: '100%',
                   textTransform: 'none',
                   fontWeight: 600,
-                  fontSize: { xs: '0.875rem', sm: '0.9375rem' },
+                  fontSize: { xs: '0.8rem', sm: '0.875rem' },
                   py: 1,
                 }}
               >
@@ -464,6 +637,7 @@ export default function EconomicEvents({ onClose, timezone }) {
           onApply={handleApplyFilters}
           loading={loading}
           timezone={timezone}
+          newsSource={newsSource}
         />
       )}
 
@@ -473,15 +647,6 @@ export default function EconomicEvents({ onClose, timezone }) {
           <Alert severity="success" sx={{ py: 0.5 }}>
             {syncSuccess}
           </Alert>
-        </Box>
-      )}
-
-      {/* Last Updated Info - Only for authenticated users */}
-      {user && lastUpdated && !loading && !syncSuccess && (
-        <Box sx={{ px: { xs: 1.5, sm: 2 }, py: 1, bgcolor: 'background.default', borderBottom: 1, borderColor: 'divider' }}>
-          <Typography variant="caption" color="text.secondary">
-            Last updated: {lastUpdated.toLocaleTimeString()}
-          </Typography>
         </Box>
       )}
 
@@ -593,24 +758,121 @@ export default function EconomicEvents({ onClose, timezone }) {
         )}
       </Box>
 
-      {/* Footer - Event Count - Only for authenticated users */}
+      {/* Footer - Event Count, Timestamp & Source Selector - Only for authenticated users */}
       {user && !loading && !error && events.length > 0 && (
         <Box
           sx={{
-            p: 1.5,
+            px: { xs: 1.5, sm: 2 },
+            py: 1.5,
             borderTop: 1,
             borderColor: 'divider',
             bgcolor: 'background.default',
-            textAlign: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2,
+            flexWrap: { xs: 'wrap', sm: 'nowrap' },
           }}
         >
-          <Typography variant="caption" color="text.secondary">
-            Showing {visibleEventCount} of {events.length} {events.length === 1 ? 'event' : 'events'}
-          </Typography>
+          {/* Left: Event Count & Timestamp */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Typography 
+              variant="caption" 
+              color="text.secondary"
+              sx={{ fontWeight: 500 }}
+            >
+              Showing {visibleEventCount} of {events.length} {events.length === 1 ? 'event' : 'events'}
+            </Typography>
+            {lastUpdated && (
+              <Typography 
+                variant="caption" 
+                color="text.secondary"
+                sx={{ fontSize: '0.7rem' }}
+              >
+                Updated {lastUpdated.toLocaleTimeString('en-US', { 
+                  hour: 'numeric', 
+                  minute: '2-digit',
+                })}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Right: News Source Selector */}
+          {!syncSuccess && (
+            <NewsSourceSelector
+              value={newsSource}
+              onChange={handleNewsSourceChange}
+            />
+          )}
         </Box>
       )}
 
-      {/* Sync Confirmation Dialog */}
+      {/* Multi-Source Sync Calendar Modal */}
+      <SyncCalendarModal
+        isOpen={showSyncModal}
+        onClose={() => setShowSyncModal(false)}
+        defaultSources={[newsSource]}
+        onSync={handleMultiSourceSync}
+      />
+
+      {/* Initial Sync Confirmation Dialog */}
+      <ConfirmModal
+        open={showInitialSyncConfirm}
+        onClose={() => setShowInitialSyncConfirm(false)}
+        onConfirm={handleInitialSync}
+        title="Initial Historical Sync - ALL Sources"
+        message={
+          <>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              This will fetch <strong>2 years of historical data</strong> (up to today) from <strong>all 3 news sources</strong>: MQL5, Forex Factory, and FXStreet.
+            </Typography>
+            <Typography variant="body2" color="warning.main" sx={{ fontWeight: 700, mb: 2 }}>
+              ⚠️ HIGH API COST: This will use approximately <strong>9 API credits</strong> (3 credits × 3 sources)
+            </Typography>
+            <Box sx={{ bgcolor: 'info.light', p: 2, borderRadius: 1, mb: 2 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                � What Gets Synced:
+              </Typography>
+              <Typography variant="caption" component="div" sx={{ mb: 0.5 }}>
+                • <strong>MQL5:</strong> ~8,500 historical events with categories
+              </Typography>
+              <Typography variant="caption" component="div" sx={{ mb: 0.5 }}>
+                • <strong>Forex Factory:</strong> ~13,500 historical events (best coverage)
+              </Typography>
+              <Typography variant="caption" component="div" sx={{ mb: 1 }}>
+                • <strong>FXStreet:</strong> Recent events only
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
+                🔮 For Future Events:
+              </Typography>
+              <Typography variant="caption" component="div" sx={{ mb: 1, fontStyle: 'italic' }}>
+                After initial sync, use <strong>"Sync Calendar"</strong> button to get upcoming scheduled events (next 30 days). The API provides better future coverage through regular syncs.
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                �📋 Use Cases:
+              </Typography>
+              <Typography variant="caption" component="div" sx={{ mb: 0.5 }}>
+                • First-time application setup
+              </Typography>
+              <Typography variant="caption" component="div" sx={{ mb: 0.5 }}>
+                • Data recovery after corruption
+              </Typography>
+              <Typography variant="caption" component="div">
+                • Historical backtesting analysis
+              </Typography>
+            </Box>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+              <strong>Note:</strong> For regular updates and future events, use the "Sync Calendar" button. The calendar also syncs automatically at 5:00 AM EST daily.
+            </Typography>
+          </>
+        }
+        confirmText="Sync All Sources"
+        cancelText="Cancel"
+        requirePassword={true}
+        password="9876543210"
+      />
+
+      {/* Legacy Sync Confirmation Dialog (kept for backward compatibility) */}
       <ConfirmModal
         open={showSyncConfirm}
         onClose={() => setShowSyncConfirm(false)}

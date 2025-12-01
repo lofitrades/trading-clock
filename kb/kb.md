@@ -668,28 +668,57 @@ GET https://www.jblanked.com/news/api/mql5/calendar/range/
 Authorization: Api-Key {API_KEY}
 ```
 
-**Response Structure:**
-```json
-{
-  "value": [
-    {
-      "Name": "Core CPI m/m",
-      "Currency": "USD",
-      "Event_ID": 840010001,
-      "Category": "Consumer Inflation Report",
-      "Date": "2024.02.08 15:30:00",
-      "Actual": 0.4,
-      "Forecast": 0.4,
-      "Previous": 0.2,
-      "Outcome": "Actual = Forecast > Previous",
-      "Strength": "Strong Data",
-      "Quality": "Good Data",
-      "Projection": 0.5
-    }
-  ],
-  "Count": 12966
-}
+**Response Format:** Direct array (12,966 events for 3-year span)  
+**Data Coverage:** Comprehensive historical and future events  
+**Recommended:** ✅ Best option for most use cases
+
+#### Forex Factory Calendar Date Range
+```http
+GET https://www.jblanked.com/news/api/forex-factory/calendar/range/
+  ?from=YYYY-MM-DD
+  &to=YYYY-MM-DD
+
+Authorization: Api-Key {API_KEY}
 ```
+
+**Response Format:** Direct array  
+**Data Coverage:** Good coverage for major economic events  
+**Recommended:** ✅ Reliable alternative source
+
+#### FXStreet Calendar Date Range
+```http
+GET https://www.jblanked.com/news/api/fxstreet/calendar/range/
+  ?from=YYYY-MM-DD
+  &to=YYYY-MM-DD
+
+Authorization: Api-Key {API_KEY}
+```
+
+**Response Format:** Direct array  
+**Data Coverage:** ⚠️ **LIMITED** - Only 10-20 future events  
+**Recommended:** ⚠️ Not recommended for primary use (sparse data)
+
+**Response Structure (All Sources):**
+```json
+[
+  {
+    "Name": "Core CPI m/m",
+    "Currency": "USD",
+    "Event_ID": 840010001,
+    "Category": "Consumer Inflation Report",
+    "Date": "2024.02.08 15:30:00",
+    "Actual": 0.4,
+    "Forecast": 0.4,
+    "Previous": 0.2,
+    "Outcome": "Actual = Forecast > Previous",
+    "Strength": "Strong Data",
+    "Quality": "Good Data",
+    "Projection": 0.5
+  }
+]
+```
+
+**Note:** All three APIs now return **direct arrays** (not wrapped in `{value: [...], Count: N}`). The `fetchCalendarData` function in Cloud Functions handles both formats for backward compatibility.
 
 **Rate Limiting:**
 - No explicit rate limits documented
@@ -1022,20 +1051,74 @@ interface Session {
 
 ### Economic Event Model
 ```typescript
+/**
+ * News Source Types (v2.2.0+)
+ * Supports multiple economic calendar providers
+ */
+type NewsSource = 'mql5' | 'forex-factory' | 'fxstreet';
+const DEFAULT_NEWS_SOURCE: NewsSource = 'mql5';
+
+/**
+ * Economic Event Document
+ * Stored in Firestore at: /economicEvents/{source}/events/{eventDocId}
+ * 
+ * IMPORTANT: Field availability varies by source
+ */
 interface EconomicEvent {
-  Name: string;
-  Currency: string;
-  Event_ID: number;
-  Category: string;
-  Date: string;       // "YYYY.MM.DD HH:mm:ss" format
-  Actual: number;
-  Forecast: number;
-  Previous: number;
-  Outcome: string;
-  Strength: string;
-  Quality: string;
-  Projection: number;
+  name: string;           // ✅ All sources
+  currency: string;       // ✅ All sources
+  date: Timestamp;        // ✅ All sources (Firestore Timestamp)
+  actual: number | null;  // ✅ All sources
+  forecast: number | null;// ✅ All sources
+  previous: number | null;// ✅ All sources
+  outcome: string | null; // ✅ All sources
+  strength: string | null;// ✅ All sources (impact level)
+  quality: string | null; // ✅ All sources
+  source: NewsSource;     // ✅ All sources (v2.2.0+)
+  lastSyncedAt: Timestamp;// ✅ All sources
+  
+  // MQL5-ONLY FIELDS (null for other sources):
+  category: string | null;    // ⚠️ MQL5 only (e.g., "Job Report", "Consumer Inflation Report")
+  projection: number | null;  // ⚠️ MQL5 only
 }
+
+/**
+ * Firestore Structure (v2.2.0+)
+ * Per-source subcollections for data isolation:
+ * 
+ * /economicEvents/
+ *   ├─ mql5/                    ✅ 12,966 events, full field support
+ *   │   └─ events/
+ *   │       ├─ {eventDocId1}
+ *   │       └─ {eventDocId2}
+ *   ├─ forex-factory/           ✅ 9,354 events, NO category/projection
+ *   │   └─ events/
+ *   │       └─ {eventDocId3}
+ *   └─ fxstreet/                ⚠️ ~10 events only, NO category/projection
+ *       └─ events/
+ *           └─ {eventDocId4}
+ * 
+ * KEY DIFFERENCES BY SOURCE:
+ * 
+ * | Field      | MQL5 | Forex Factory | FXStreet |
+ * |------------|------|---------------|----------|
+ * | name       | ✅   | ✅            | ✅       |
+ * | currency   | ✅   | ✅            | ✅       |
+ * | date       | ✅   | ✅            | ✅       |
+ * | actual     | ✅   | ✅            | ✅       |
+ * | forecast   | ✅   | ✅            | ✅       |
+ * | previous   | ✅   | ✅            | ✅       |
+ * | outcome    | ✅   | ✅            | ✅       |
+ * | strength   | ✅   | ✅            | ✅       |
+ * | quality    | ✅   | ✅            | ✅       |
+ * | category   | ✅   | ❌ null       | ❌ null  |
+ * | projection | ✅   | ❌ null       | ❌ null  |
+ * 
+ * HANDLING NULL FIELDS IN CODE:
+ * - Always use optional chaining: `event.category?.toLowerCase()`
+ * - Null checks before display: `{event.category && event.category !== null && ...}`
+ * - Filters skip null values: `if (category && category !== null && category !== 'null')`
+ */
 ```
 
 ### Event Description Model
@@ -1795,6 +1878,33 @@ firebase deploy --only functions
 | `not-found` | Document doesn't exist | Check document path |
 | `failed-precondition` | Missing index | Create composite index |
 
+### Multi-Source Troubleshooting
+
+**Issue:** Categories not loading for Forex Factory/FXStreet  
+**Cause:** These sources don't provide category data (MQL5-only field)  
+**Solution:** Expected behavior - categories will be empty array for non-MQL5 sources  
+**Code:** `getEventCategories(source)` filters out null values automatically
+
+**Issue:** Events display without category chips  
+**Cause:** Normal for Forex Factory/FXStreet events (category field is null)  
+**Solution:** Timeline conditionally renders: `{event.category && event.category !== null && ...}`  
+**Expected:** MQL5 events show categories, other sources don't - working as designed
+
+**Issue:** Sync returns 0 events despite API showing thousands  
+**Cause:** Firestore rejecting undefined fields (e.g., `category: undefined`)  
+**Solution:** Cloud Functions normalize with null: `category: event.Category || null`  
+**Fixed In:** v2.2.0 with nullable TypeScript types and proper normalization
+
+**Issue:** Filter options not updating after source change  
+**Cause:** EventsFilters2 not receiving newsSource prop  
+**Solution:** Pass `newsSource={newsSource}` prop from EconomicEvents  
+**Code:** `useEffect(() => { fetchOptions(); }, [newsSource]);`
+
+**Issue:** Cache returning wrong source data  
+**Cause:** eventsCache.js queries old collection structure  
+**Solution:** Temporarily disabled cache with TODO - falls back to Firestore  
+**Status:** Known limitation - cache refactor scheduled for v2.3.0
+
 ### Debug Mode
 
 Enable debug logging:
@@ -1823,6 +1933,45 @@ whyDidYouRender(React, {
 ---
 
 ## 📝 Change Log
+
+### Version 2.2.0 - December 2025
+**Multi-Source Economic Calendar Architecture**
+
+#### ✨ New Features
+- **Multi-Source News Providers:** Support for 3 economic calendar sources
+  - MQL5 (MetaQuotes) - Default source
+  - Forex Factory - Alternative provider
+  - FXStreet - Third option for redundancy
+- **Per-Source Firestore Subcollections:** Isolated data storage at `/economicEvents/{source}/events/{eventDocId}`
+- **User-Configurable Source:** Settings dropdown to select preferred news provider
+- **Multi-Source Sync Modal:** Enhanced sync UI with:
+  - Checkbox selection for multiple sources
+  - Per-source progress bars with visual feedback
+  - Success/error status indicators
+  - Record count reporting per source
+- **Cache Invalidation:** Automatic event refetch when user changes news source preference
+
+#### 🔄 Changes
+- Extended TypeScript types with NewsSource ('mql5' | 'forex-factory' | 'fxstreet')
+- Updated Cloud Functions to accept sources array in POST body for multi-source sync
+- Enhanced economicEventsService.js with source-aware queries
+- Added SyncCalendarModal component (300+ lines) with accessibility features
+- Updated SettingsContext with newsSource field and updateNewsSource function
+- Modified SettingsSidebar with News Source dropdown and descriptions
+
+#### 🔧 Technical
+- functions/src/types/economicEvents.ts: Added NewsSource type and DEFAULT_NEWS_SOURCE constant
+- functions/src/services/syncEconomicEvents.ts: Refactored with getCalendarPathForSource helper
+- src/services/firestoreHelpers.js: New helper for accessing per-source subcollections
+- src/types/economicEvents.js: Client-side types with NEWS_SOURCE_OPTIONS array
+- EconomicEvents.jsx: useEffect watching newsSource changes for cache invalidation
+- Cloud Functions: Support for both single-source (GET) and multi-source (POST) sync
+
+#### 📚 Architecture Decisions
+- **Subcollection Structure:** Chosen for data isolation, prevents source conflicts
+- **Sequential Sync:** Avoid parallel API calls to respect JBlanked rate limits
+- **Default Pre-selection:** SyncCalendarModal pre-selects user's preferred source
+- **Backward Compatibility:** Legacy ConfirmModal kept alongside new SyncCalendarModal
 
 ### Version 2.1.0 - November 30, 2025
 **Performance Optimization + Event Filter Persistence**

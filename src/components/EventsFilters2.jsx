@@ -690,6 +690,7 @@ export default function EventsFilters2({
   onApply,
   loading = false,
   timezone = Intl.DateTimeFormat().resolvedOptions().timeZone,
+  newsSource = 'mql5', // Default to MQL5 if not provided
 }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -744,42 +745,51 @@ export default function EventsFilters2({
   }, [filters.startDate, filters.endDate, filters.impacts?.length, filters.eventTypes?.length, filters.currencies?.length]);
 
   /**
-   * Fetch filter options on mount
+   * Fetch filter options on mount and when newsSource changes
+   * Categories and currencies are source-specific
    */
   useEffect(() => {
     const fetchOptions = async () => {
       setLoadingOptions(true);
 
       try {
+        // Pass newsSource to service functions for correct subcollection queries
         const [categoriesResult, currenciesResult] = await Promise.allSettled([
-          getEventCategories(),
-          getEventCurrencies(),
+          getEventCategories(newsSource),
+          getEventCurrencies(newsSource),
         ]);
 
         if (categoriesResult.status === 'fulfilled' && categoriesResult.value.success) {
           setCategories(categoriesResult.value.data);
+          console.log(`📋 [EventsFilters2] Loaded ${categoriesResult.value.data.length} categories from ${newsSource}`);
+        } else {
+          // Empty array on error - no categories shown if fetch fails
+          console.warn(`⚠️ [EventsFilters2] Failed to fetch categories from ${newsSource}`);
+          setCategories([]);
         }
 
         if (currenciesResult.status === 'fulfilled' && currenciesResult.value.success) {
           // Use only Firestore currencies (dynamic based on actual events)
           const firestoreCurrencies = currenciesResult.value.data || [];
           setCurrencies(firestoreCurrencies);
+          console.log(`💱 [EventsFilters2] Loaded ${firestoreCurrencies.length} currencies from ${newsSource}`);
         } else {
           // Empty array on error - no currencies shown if fetch fails
-          console.warn('⚠️ [EventsFilters2] Failed to fetch currencies from Firestore');
+          console.warn(`⚠️ [EventsFilters2] Failed to fetch currencies from ${newsSource}`);
           setCurrencies([]);
         }
       } catch (error) {
-        console.error('❌ [EventsFilters2] Error fetching options:', error);
+        console.error(`❌ [EventsFilters2] Error fetching options from ${newsSource}:`, error);
         // Empty array on error
         setCurrencies([]);
+        setCategories([]);
       } finally {
         setLoadingOptions(false);
       }
     };
 
     fetchOptions();
-  }, []);
+  }, [newsSource]); // Re-fetch when newsSource changes
 
   // ========== MEMOIZED VALUES ==========
 

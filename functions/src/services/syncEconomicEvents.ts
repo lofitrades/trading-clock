@@ -1,6 +1,9 @@
 /**
  * Core sync function for Economic Events Calendar
  * Fetches data from JBlanked News Calendar API and syncs to Firestore
+ * 
+ * Supports multiple news sources (mql5, forex-factory, fxstreet)
+ * Firestore structure: /economicEvents/{source}/events/{eventDocId}
  */
 
 import * as admin from "firebase-admin";
@@ -10,26 +13,76 @@ import {
   EconomicEventDocument,
   SyncOptions,
   SyncResult,
+  NewsSource,
+  DEFAULT_NEWS_SOURCE,
 } from "../types/economicEvents";
 import {
   parseJBlankedDate,
   toFirestoreTimestamp,
   generateEventDocId,
   getThreeYearDateRange,
+  getHistoricalDateRange,
+  getRecentDateRange,
 } from "../utils/dateUtils";
+
+// Re-export date range functions for use in index.ts
+export {getHistoricalDateRange, getRecentDateRange};
 
 // Import mock data for testing
 import mockCalendarData from "../fixtures/mockCalendarData.json";
 
 // Firestore collection names
-const EVENTS_COLLECTION = "economicEventsCalendar";
+const EVENTS_COLLECTION_ROOT = "economicEvents"; // Root collection
 const STATUS_COLLECTION = "systemJobs";
 const STATUS_DOC_ID = "economicEventsCalendarSync";
 
 /**
+ * Get Firestore subcollection reference for a specific news source (admin SDK)
+ * Firestore structure: /economicEvents/{source}/events/{eventDocId}
+ * 
+ * @param source - News source identifier
+ * @returns CollectionReference for the source's events subcollection
+ */
+export function getEconomicEventsCollectionAdminRef(source: NewsSource) {
+  const db = admin.firestore();
+  const sourceDocRef = db.collection(EVENTS_COLLECTION_ROOT).doc(source);
+  return sourceDocRef.collection('events');
+}
+
+/**
+ * Map NewsSource to JBlanked API calendar path
+ * 
+ * JBlanked API structure:
+ * - MQL5: /news/api/mql5/calendar/range/
+ * - Forex Factory: /news/api/forex-factory/calendar/range/
+ * - FXStreet: /news/api/fxstreet/calendar/range/
+ * 
+ * @param source - News source identifier
+ * @returns API path segment for the source
+ */
+function getCalendarPathForSource(source: NewsSource): string {
+  switch (source) {
+    case 'forex-factory':
+      return 'forex-factory/calendar/range';
+    case 'fxstreet':
+      return 'fxstreet/calendar/range';
+    case 'mql5':
+    default:
+      return 'mql5/calendar/range';
+  }
+}
+
+/**
  * Fetch calendar data from JBlanked API
+ * 
+ * @param source - News source to fetch from
+ * @param from - Start date (YYYY-MM-DD)
+ * @param to - End date (YYYY-MM-DD)
+ * @param apiKey - JBlanked API key
+ * @param useMock - If true, return mock data for testing
  */
 async function fetchCalendarData(
+  source: NewsSource,
   from: string,
   to: string,
   apiKey: string,
@@ -40,9 +93,10 @@ async function fetchCalendarData(
     return mockCalendarData.events as JBlankedCalendarEvent[];
   }
 
-  const url = `https://www.jblanked.com/news/api/mql5/calendar/range/?from=${from}&to=${to}`;
+  const path = getCalendarPathForSource(source);
+  const url = `https://www.jblanked.com/news/api/${path}/?from=${from}&to=${to}`;
 
-  logger.info(`Fetching calendar data: ${url}`);
+  logger.info(`Fetching calendar data from ${source}: ${url}`);
 
   const response = await fetch(url, {
     method: "GET",
@@ -99,25 +153,31 @@ async function fetchCalendarData(
 
 /**
  * Normalize API event to Firestore document
+ * 
+ * @param event - Raw event from JBlanked API
+ * @param source - News source identifier
  */
 function normalizeEvent(
-  event: JBlankedCalendarEvent
+  event: JBlankedCalendarEvent,
+  source: NewsSource
 ): EconomicEventDocument {
   const date = parseJBlankedDate(event.Date);
 
   return {
     name: event.Name,
     currency: event.Currency,
-    category: event.Category,
+    // Category is MQL5-specific, use null for sources that don't provide it
+    category: event.Category || null,
     date: toFirestoreTimestamp(date),
-    actual: event.Actual,
-    forecast: event.Forecast,
-    previous: event.Previous,
-    outcome: event.Outcome,
-    projection: event.Projection,
-    strength: event.Strength,
-    quality: event.Quality,
-    source: "mql5",
+    actual: event.Actual ?? null,
+    forecast: event.Forecast ?? null,
+    previous: event.Previous ?? null,
+    outcome: event.Outcome || null,
+    // Projection is MQL5-specific
+    projection: event.Projection ?? null,
+    strength: event.Strength || null,
+    quality: event.Quality || null,
+    source: source, // Store the origin source
     lastSyncedAt: admin.firestore.Timestamp.now(),
   };
 }
@@ -128,13 +188,21 @@ function normalizeEvent(
  */
 export async function syncEconomicEventsCalendar(
   options: SyncOptions = {},
-  source: "scheduled_function" | "manual_sync" = "manual_sync"
+  syncType:
+    | "scheduled_function"
+    | "manual_sync"
+    | "historical_bulk_sync"
+    | "recent_scheduled_sync"
+    | "recent_manual_sync" = "manual_sync"
 ): Promise<SyncResult> {
   const startTime = Date.now();
   const db = admin.firestore();
 
-  // Extract options
-  const {dryRun = false} = options;
+  // Extract options with defaults
+  const {
+    source = DEFAULT_NEWS_SOURCE as NewsSource,
+    dryRun = false,
+  } = options;
 
   // Get API key from environment
   const apiKey = process.env.NEWS_API_KEY;
@@ -147,24 +215,31 @@ export async function syncEconomicEventsCalendar(
     {from: options.from, to: options.to} :
     getThreeYearDateRange();
 
-  logger.info(`Starting calendar sync: ${from} to ${to}`, {
+  logger.info(`Starting calendar sync from ${source}: ${from} to ${to}`, {
+    source,
     dryRun,
     from,
     to,
+    syncType,
   });
 
   try {
     // Fetch data from API (or use mock data in dry run)
     const events = await fetchCalendarData(
+      source,
       from,
       to,
       apiKey || "",
       dryRun
     );
 
-    logger.info(`Fetched ${events.length} events from API`);
+    logger.info(`Fetched ${events.length} events from ${source} API`);
 
     let recordsUpserted = 0;
+
+    // Get the Firestore subcollection reference for this source
+    // Structure: /economicEvents/{source}/events/{docId}
+    const eventsCollection = getEconomicEventsCollectionAdminRef(source);
 
     // Process events in batches (Firestore batch limit is 500)
     const batchSize = 500;
@@ -177,18 +252,19 @@ export async function syncEconomicEventsCalendar(
           // Generate stable document ID
           const docId = generateEventDocId(event.Name, event.Date);
 
-          // Normalize event data
-          const normalizedEvent = normalizeEvent(event);
+          // Normalize event data with source
+          const normalizedEvent = normalizeEvent(event, source);
 
           if (!dryRun) {
-            // Upsert to Firestore
-            const docRef = db.collection(EVENTS_COLLECTION).doc(docId);
+            // Upsert to Firestore subcollection: /economicEvents/{source}/events/{docId}
+            const docRef = eventsCollection.doc(docId);
             batch.set(docRef, normalizedEvent, {merge: true});
             recordsUpserted++;
           } else {
             // Dry run: just log
             logger.debug(`[DRY RUN] Would upsert event: ${event.Name}`, {
               docId,
+              source,
               event: normalizedEvent,
             });
             recordsUpserted++;

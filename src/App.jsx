@@ -215,13 +215,12 @@ export default function App() {
           onClose={() => setSettingsOpen(false)}
         />
 
-        {/* Economic Events Panel */}
-        {eventsOpen && (
-          <EconomicEvents 
-            onClose={() => setEventsOpen(false)} 
-            timezone={selectedTimezone}
-          />
-        )}
+        {/* Economic Events Panel - Keep mounted for smooth navigation */}
+        <EconomicEvents 
+          open={eventsOpen}
+          onClose={() => setEventsOpen(false)} 
+          timezone={selectedTimezone}
+        />
       </div>
     </>
   );

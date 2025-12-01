@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { DEFAULT_NEWS_SOURCE } from '../types/economicEvents';
 
 const defaultSessions = [
   { name: "NY AM", startNY: "07:00", endNY: "11:00", color: "#A8D8B9" },
@@ -44,6 +45,9 @@ export function SettingsProvider({ children }) {
   const [showTimeToStart, setShowTimeToStart] = useState(true);
   const [showSessionNamesInCanvas, setShowSessionNamesInCanvas] = useState(false);
   
+  // News source preference (for economic events calendar)
+  const [newsSource, setNewsSource] = useState(DEFAULT_NEWS_SOURCE);
+  
   // Event filters state
   const [eventFilters, setEventFilters] = useState({
     startDate: null,
@@ -70,6 +74,7 @@ export function SettingsProvider({ children }) {
       const savedShowTimeToEnd = localStorage.getItem('showTimeToEnd');
       const savedShowTimeToStart = localStorage.getItem('showTimeToStart');
       const savedShowSessionNamesInCanvas = localStorage.getItem('showSessionNamesInCanvas');
+      const savedNewsSource = localStorage.getItem('newsSource');
       const savedEventFilters = localStorage.getItem('eventFilters');
 
       if (savedClockStyle) setClockStyle(savedClockStyle);
@@ -86,6 +91,7 @@ export function SettingsProvider({ children }) {
       if (savedShowTimeToEnd !== null) setShowTimeToEnd(savedShowTimeToEnd === 'true');
       if (savedShowTimeToStart !== null) setShowTimeToStart(savedShowTimeToStart === 'true');
       if (savedShowSessionNamesInCanvas !== null) setShowSessionNamesInCanvas(savedShowSessionNamesInCanvas === 'true');
+      if (savedNewsSource) setNewsSource(savedNewsSource);
       
       // Load event filters with date deserialization
       if (savedEventFilters) {
@@ -135,6 +141,9 @@ export function SettingsProvider({ children }) {
             if (data.settings.showTimeToStart !== undefined) setShowTimeToStart(data.settings.showTimeToStart);
             if (data.settings.showSessionNamesInCanvas !== undefined) setShowSessionNamesInCanvas(data.settings.showSessionNamesInCanvas);
             
+            // Load news source preference
+            if (data.settings.newsSource) setNewsSource(data.settings.newsSource);
+            
             // Load event filters with date deserialization
             if (data.settings.eventFilters) {
               const filters = data.settings.eventFilters;
@@ -163,6 +172,7 @@ export function SettingsProvider({ children }) {
               showTimeToEnd,
               showTimeToStart,
               showSessionNamesInCanvas,
+              newsSource, // Default news source preference
             }
           });
         }
@@ -320,6 +330,19 @@ export function SettingsProvider({ children }) {
     }
   };
 
+  /**
+   * Update news source preference
+   * Saves to both localStorage and Firestore (if authenticated)
+   * Note: Components using economic events should invalidate cache when this changes
+   */
+  const updateNewsSource = (source) => {
+    setNewsSource(source);
+    localStorage.setItem('newsSource', source);
+    if (user) {
+      saveSettingsToFirestore({ newsSource: source });
+    }
+  };
+
   const resetSettings = async () => {
     // Clear localStorage
     localStorage.clear();
@@ -341,6 +364,7 @@ export function SettingsProvider({ children }) {
     setShowTimeToEnd(true);
     setShowTimeToStart(true);
     setShowSessionNamesInCanvas(false);
+    setNewsSource(DEFAULT_NEWS_SOURCE);
     
     // Also reset in Firestore if user is logged in
     if (user) {
@@ -358,6 +382,7 @@ export function SettingsProvider({ children }) {
         showTimeToEnd: true,
         showTimeToStart: true,
         showSessionNamesInCanvas: false,
+        newsSource: DEFAULT_NEWS_SOURCE,
       };
       await saveSettingsToFirestore(defaultSettings);
     }
@@ -394,6 +419,8 @@ export function SettingsProvider({ children }) {
     resetSettings,
     eventFilters,
     updateEventFilters,
+    newsSource,
+    updateNewsSource,
   };
 
   return (

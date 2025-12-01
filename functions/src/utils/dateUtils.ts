@@ -71,6 +71,62 @@ export function getThreeYearDateRange(): { from: string; to: string } {
 }
 
 /**
+ * Get date range for historical bulk sync
+ * Returns 2 years back to TODAY ONLY (no future)
+ * 
+ * Use case: Initial historical data population
+ * Note: /calendar/range/ endpoint is optimized for historical data,
+ * not future events. Use getRecentDateRange() for future events.
+ */
+export function getHistoricalDateRange(): { from: string; to: string } {
+  const now = new Date();
+  
+  // 2 years back
+  const fromDate = new Date(now);
+  fromDate.setFullYear(now.getFullYear() - 2);
+  fromDate.setMonth(0, 1); // January 1st
+  
+  // Up to today only (no future - range endpoint limitation)
+  const toDate = new Date(now);
+  
+  return {
+    from: formatDateISO(fromDate),
+    to: formatDateISO(toDate),
+  };
+}
+
+/**
+ * Get date range for recent events sync
+ * Returns 30 days back and 14 days forward (balanced coverage)
+ * 
+ * Use case: Daily/scheduled updates for near-term events
+ * Enterprise best practice: Wider historical window for accurate actuals,
+ * realistic forward window based on typical source availability:
+ * - Forex Factory: ~1-7 days forward
+ * - MQL5: ~7-14 days forward  
+ * - FXStreet: ~1-7 days forward
+ * 
+ * Includes 30 days back to capture recent actuals, revisions, and updates.
+ * Daily sync at 5 AM EST keeps data fresh despite limited forward availability.
+ */
+export function getRecentDateRange(): { from: string; to: string } {
+  const now = new Date();
+  
+  // 30 days back (includes today) - comprehensive recent history
+  const fromDate = new Date(now);
+  fromDate.setDate(now.getDate() - 30);
+  
+  // 14 days forward - realistic based on source capabilities
+  const toDate = new Date(now);
+  toDate.setDate(now.getDate() + 14);
+  
+  return {
+    from: formatDateISO(fromDate),
+    to: formatDateISO(toDate),
+  };
+}
+
+/**
  * Format date to YYYY-MM-DD
  */
 export function formatDateISO(date: Date): string {

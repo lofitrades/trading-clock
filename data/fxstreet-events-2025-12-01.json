@@ -1,0 +1,1058 @@
+[
+  {
+    "id": "00b6562777968007_20251201",
+    "source": "fxstreet",
+    "name": "Nevi Manufacturing PMI",
+    "date": {
+      "_seconds": 1764576000,
+      "_nanoseconds": 0
+    },
+    "forecast": 0,
+    "actual": 0,
+    "previous": 51.8,
+    "projection": null,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "quality": "Data Not Loaded",
+    "strength": "Data Not Loaded",
+    "category": null,
+    "currency": "EUR",
+    "outcome": "Data Not Loaded"
+  },
+  {
+    "id": "01f301f3ed875389_20251202",
+    "source": "fxstreet",
+    "name": "Building Permits (YoY)",
+    "projection": null,
+    "strength": "Data Not Loaded",
+    "category": null,
+    "date": {
+      "_seconds": 1764642600,
+      "_nanoseconds": 0
+    },
+    "actual": 0,
+    "quality": "Data Not Loaded",
+    "forecast": 0,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 770000000
+    },
+    "previous": 15.3,
+    "currency": "AUD",
+    "outcome": "Data Not Loaded"
+  },
+  {
+    "id": "028fa8e560fdbeea_20251201",
+    "source": "fxstreet",
+    "projection": null,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    },
+    "outcome": "Data Not Loaded",
+    "quality": "Data Not Loaded",
+    "category": null,
+    "actual": 0,
+    "strength": "Data Not Loaded",
+    "forecast": 0,
+    "currency": "EUR",
+    "name": "ECB's Nagel speech",
+    "previous": 0,
+    "date": {
+      "_seconds": 1764597600,
+      "_nanoseconds": 0
+    }
+  },
+  {
+    "id": "02c52ba0665b54d4_20251201",
+    "source": "fxstreet",
+    "category": null,
+    "strength": "Strong Data",
+    "forecast": 0,
+    "actual": 0,
+    "outcome": "Actual = Forecast < Previous",
+    "name": "Retail Sales (YoY)",
+    "date": {
+      "_seconds": 1764574200,
+      "_nanoseconds": 0
+    },
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "previous": 3.8,
+    "quality": "Bad Data",
+    "currency": "EUR",
+    "projection": null
+  },
+  {
+    "id": "03ab993604081621_20251201",
+    "source": "fxstreet",
+    "outcome": "Data Not Loaded",
+    "projection": null,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "category": null,
+    "strength": "Data Not Loaded",
+    "quality": "Data Not Loaded",
+    "name": "ANZ Job Advertisements",
+    "currency": "AUD",
+    "date": {
+      "_seconds": 1764556200,
+      "_nanoseconds": 0
+    },
+    "previous": -2.2,
+    "actual": 0,
+    "forecast": 0
+  },
+  {
+    "id": "0ddb4fa9d4a88f79_20251201",
+    "source": "fxstreet",
+    "currency": "CAD",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    },
+    "outcome": "Data Not Loaded",
+    "name": "S&P Global Manufacturing PMI",
+    "actual": 0,
+    "strength": "Data Not Loaded",
+    "quality": "Data Not Loaded",
+    "category": null,
+    "projection": null,
+    "previous": 49.6,
+    "date": {
+      "_seconds": 1764606600,
+      "_nanoseconds": 0
+    },
+    "forecast": 0
+  },
+  {
+    "id": "15e251cb71463ecc_20251201",
+    "source": "fxstreet",
+    "forecast": 0,
+    "previous": 310.5,
+    "projection": null,
+    "currency": "EUR",
+    "outcome": "Actual = Forecast < Previous",
+    "category": null,
+    "actual": 0,
+    "name": "Unemployment",
+    "strength": "Strong Data",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "quality": "Bad Data",
+    "date": {
+      "_seconds": 1764572400,
+      "_nanoseconds": 0
+    }
+  },
+  {
+    "id": "1762886b0355be1d_20251201",
+    "source": "fxstreet",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 772000000
+    },
+    "actual": 0,
+    "name": "Net Lending to Individuals (MoM)",
+    "date": {
+      "_seconds": 1764588600,
+      "_nanoseconds": 0
+    },
+    "strength": "Data Not Loaded",
+    "category": null,
+    "projection": null,
+    "currency": "GBP",
+    "outcome": "Data Not Loaded",
+    "previous": 7,
+    "forecast": 6.4,
+    "quality": "Data Not Loaded"
+  },
+  {
+    "id": "1ca1d8da74a09e37_20251201",
+    "source": "fxstreet",
+    "category": null,
+    "actual": 0,
+    "strength": "Data Not Loaded",
+    "forecast": 0,
+    "date": {
+      "_seconds": 1764584100,
+      "_nanoseconds": 0
+    },
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "previous": 52.1,
+    "quality": "Data Not Loaded",
+    "outcome": "Data Not Loaded",
+    "name": "HCOB Manufacturing PMI",
+    "projection": null,
+    "currency": "EUR"
+  },
+  {
+    "id": "23464996385e3382_20251201",
+    "source": "fxstreet",
+    "currency": "USD",
+    "quality": "Data Not Loaded",
+    "projection": null,
+    "actual": 0,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    },
+    "outcome": "Data Not Loaded",
+    "name": "ISM Manufacturing Employment Index",
+    "previous": 46,
+    "date": {
+      "_seconds": 1764608400,
+      "_nanoseconds": 0
+    },
+    "forecast": 0,
+    "strength": "Data Not Loaded",
+    "category": null
+  },
+  {
+    "id": "27bdc0cf98037ab9_20251202",
+    "source": "fxstreet",
+    "strength": "Data Not Loaded",
+    "quality": "Data Not Loaded",
+    "category": null,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    },
+    "forecast": 0,
+    "projection": null,
+    "outcome": "Data Not Loaded",
+    "name": "Building Permits (MoM)",
+    "currency": "AUD",
+    "actual": 0,
+    "date": {
+      "_seconds": 1764642600,
+      "_nanoseconds": 0
+    },
+    "previous": 12
+  },
+  {
+    "id": "290af962f4371fec_20251201",
+    "source": "fxstreet",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "actual": 0,
+    "previous": 1.5,
+    "outcome": "Data Not Loaded",
+    "category": null,
+    "date": {
+      "_seconds": 1764581400,
+      "_nanoseconds": 0
+    },
+    "currency": "CHF",
+    "name": "Real Retail Sales (YoY)",
+    "forecast": 1.2,
+    "strength": "Data Not Loaded",
+    "projection": null,
+    "quality": "Data Not Loaded"
+  },
+  {
+    "id": "321f542b34ca0a90_20251201",
+    "source": "fxstreet",
+    "actual": 0,
+    "category": null,
+    "strength": "Data Not Loaded",
+    "forecast": 64.4,
+    "date": {
+      "_seconds": 1764588600,
+      "_nanoseconds": 0
+    },
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 772000000
+    },
+    "quality": "Data Not Loaded",
+    "previous": 65.944,
+    "outcome": "Data Not Loaded",
+    "name": "Mortgage Approvals",
+    "projection": null,
+    "currency": "GBP"
+  },
+  {
+    "id": "374013dfd7fc3924_20251201",
+    "source": "fxstreet",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 772000000
+    },
+    "currency": "GBP",
+    "outcome": "Data Not Loaded",
+    "projection": null,
+    "date": {
+      "_seconds": 1764588600,
+      "_nanoseconds": 0
+    },
+    "name": "S&P Global Manufacturing PMI",
+    "actual": 0,
+    "strength": "Data Not Loaded",
+    "quality": "Data Not Loaded",
+    "forecast": 50.2,
+    "previous": 50.2,
+    "category": null
+  },
+  {
+    "id": "3bf644c0907c7083_20251201",
+    "source": "fxstreet",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "strength": "Data Not Loaded",
+    "actual": 0,
+    "currency": "AUD",
+    "date": {
+      "_seconds": 1764556200,
+      "_nanoseconds": 0
+    },
+    "category": null,
+    "name": "Company Gross Operating Profits (QoQ)",
+    "forecast": 1.7,
+    "quality": "Data Not Loaded",
+    "outcome": "Data Not Loaded",
+    "projection": null,
+    "previous": -2.4
+  },
+  {
+    "id": "44be65d48d9c8f9c_20251201",
+    "source": "fxstreet",
+    "forecast": 5.9,
+    "actual": 0,
+    "previous": 7.6,
+    "date": {
+      "_seconds": 1764553800,
+      "_nanoseconds": 0
+    },
+    "outcome": "Actual < Forecast < Previous",
+    "name": "Capital Spending",
+    "category": null,
+    "projection": null,
+    "currency": "JPY",
+    "quality": "Bad Data",
+    "strength": "Strong Data",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    }
+  },
+  {
+    "id": "462009e649fb43ef_20251201",
+    "source": "fxstreet",
+    "actual": 0,
+    "currency": "AUD",
+    "quality": "Bad Data",
+    "previous": 3.1,
+    "outcome": "Actual = Forecast < Previous",
+    "category": null,
+    "strength": "Strong Data",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "date": {
+      "_seconds": 1764554400,
+      "_nanoseconds": 0
+    },
+    "name": "TD-MI Inflation Gauge (YoY)",
+    "forecast": 0,
+    "projection": null
+  },
+  {
+    "id": "4c01c59df8656d79_20251202",
+    "source": "fxstreet",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 770000000
+    },
+    "name": "10-y Bond Auction",
+    "outcome": "Data Not Loaded",
+    "strength": "Data Not Loaded",
+    "category": null,
+    "projection": null,
+    "forecast": 0,
+    "previous": 1.658,
+    "date": {
+      "_seconds": 1764653700,
+      "_nanoseconds": 0
+    },
+    "quality": "Data Not Loaded",
+    "currency": "JPY",
+    "actual": 0
+  },
+  {
+    "id": "5df35831aea8e8f9_20251201",
+    "source": "fxstreet",
+    "category": null,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "projection": null,
+    "strength": "Data Not Loaded",
+    "currency": "JPY",
+    "forecast": 48.8,
+    "actual": 0,
+    "quality": "Data Not Loaded",
+    "outcome": "Data Not Loaded",
+    "name": "Jibun Bank Manufacturing PMI",
+    "previous": 48.8,
+    "date": {
+      "_seconds": 1764556200,
+      "_nanoseconds": 0
+    }
+  },
+  {
+    "id": "651b2faca01a8e1e_20251201",
+    "source": "fxstreet",
+    "date": {
+      "_seconds": 1764586800,
+      "_nanoseconds": 0
+    },
+    "quality": "Data Not Loaded",
+    "projection": null,
+    "name": "S&P Global Manufacturing PMI",
+    "strength": "Data Not Loaded",
+    "currency": "EUR",
+    "category": null,
+    "previous": 53.5,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 772000000
+    },
+    "outcome": "Data Not Loaded",
+    "actual": 0,
+    "forecast": 0
+  },
+  {
+    "id": "6a6de1a4c1d1fc9a_20251201",
+    "source": "fxstreet",
+    "strength": "Weak Data",
+    "forecast": 0,
+    "name": "RBA Commodity Index SDR (YoY)",
+    "currency": "AUD",
+    "actual": 0,
+    "category": null,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "date": {
+      "_seconds": 1764574200,
+      "_nanoseconds": 0
+    },
+    "outcome": "Actual = Forecast > Previous",
+    "projection": null,
+    "quality": "Bad Data",
+    "previous": -1.3
+  },
+  {
+    "id": "6d80ff07c5dbaac3_20251201",
+    "source": "fxstreet",
+    "quality": "Data Not Loaded",
+    "date": {
+      "_seconds": 1764608400,
+      "_nanoseconds": 0
+    },
+    "strength": "Data Not Loaded",
+    "forecast": -0.1,
+    "currency": "USD",
+    "previous": 0.2,
+    "category": null,
+    "projection": null,
+    "actual": 0,
+    "name": "Construction Spending (MoM)",
+    "outcome": "Data Not Loaded",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    }
+  },
+  {
+    "id": "707930cbab59ca91_20251201",
+    "source": "fxstreet",
+    "date": {
+      "_seconds": 1764586200,
+      "_nanoseconds": 0
+    },
+    "currency": "EUR",
+    "outcome": "Data Not Loaded",
+    "category": null,
+    "projection": null,
+    "forecast": 47.8,
+    "actual": 0,
+    "name": "HCOB Manufacturing PMI",
+    "quality": "Data Not Loaded",
+    "strength": "Data Not Loaded",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "previous": 47.8
+  },
+  {
+    "id": "7cb3d443d7da9d1c_20251201",
+    "source": "fxstreet",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "name": "Unemployment Rate",
+    "previous": 7.2,
+    "quality": "Bad Data",
+    "category": null,
+    "forecast": 0,
+    "strength": "Strong Data",
+    "currency": "EUR",
+    "date": {
+      "_seconds": 1764572400,
+      "_nanoseconds": 0
+    },
+    "outcome": "Actual = Forecast < Previous",
+    "projection": null,
+    "actual": 0
+  },
+  {
+    "id": "7d1d01fd065d7210_20251201",
+    "source": "fxstreet",
+    "name": "6-Month Bill Auction",
+    "category": null,
+    "strength": "Data Not Loaded",
+    "previous": 3.67,
+    "projection": null,
+    "quality": "Data Not Loaded",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    },
+    "actual": 0,
+    "forecast": 0,
+    "currency": "USD",
+    "date": {
+      "_seconds": 1764613800,
+      "_nanoseconds": 0
+    },
+    "outcome": "Data Not Loaded"
+  },
+  {
+    "id": "7d6b986178ff6c1e_20251201",
+    "source": "fxstreet",
+    "strength": "Data Not Loaded",
+    "forecast": 0,
+    "name": "ISM Manufacturing New Orders Index",
+    "quality": "Data Not Loaded",
+    "actual": 0,
+    "outcome": "Data Not Loaded",
+    "previous": 49.4,
+    "projection": null,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    },
+    "category": null,
+    "date": {
+      "_seconds": 1764608400,
+      "_nanoseconds": 0
+    },
+    "currency": "USD"
+  },
+  {
+    "id": "7f07ea7d2abac945_20251201",
+    "source": "fxstreet",
+    "currency": "GBP",
+    "quality": "Data Not Loaded",
+    "previous": 1.491,
+    "date": {
+      "_seconds": 1764588600,
+      "_nanoseconds": 0
+    },
+    "actual": 0,
+    "strength": "Data Not Loaded",
+    "name": "Consumer Credit",
+    "projection": null,
+    "forecast": 0,
+    "category": null,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 772000000
+    },
+    "outcome": "Data Not Loaded"
+  },
+  {
+    "id": "80597c1e238c72a3_20251201",
+    "source": "fxstreet",
+    "quality": "Data Not Loaded",
+    "currency": "EUR",
+    "previous": 49.7,
+    "date": {
+      "_seconds": 1764586800,
+      "_nanoseconds": 0
+    },
+    "strength": "Data Not Loaded",
+    "name": "HCOB Manufacturing PMI",
+    "projection": null,
+    "forecast": 49.7,
+    "outcome": "Data Not Loaded",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 772000000
+    },
+    "actual": 0,
+    "category": null
+  },
+  {
+    "id": "836b8177da53603a_20251201",
+    "source": "fxstreet",
+    "previous": 48.7,
+    "outcome": "Data Not Loaded",
+    "actual": 0,
+    "currency": "USD",
+    "projection": null,
+    "quality": "Data Not Loaded",
+    "date": {
+      "_seconds": 1764608400,
+      "_nanoseconds": 0
+    },
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    },
+    "strength": "Data Not Loaded",
+    "category": null,
+    "name": "ISM Manufacturing PMI",
+    "forecast": 48.6
+  },
+  {
+    "id": "86e7d0334344ca99_20251202",
+    "source": "fxstreet",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    },
+    "actual": 0,
+    "name": "Monetary Base (YoY)",
+    "date": {
+      "_seconds": 1764640200,
+      "_nanoseconds": 0
+    },
+    "strength": "Data Not Loaded",
+    "category": null,
+    "projection": null,
+    "currency": "JPY",
+    "outcome": "Data Not Loaded",
+    "previous": -7.8,
+    "forecast": 0,
+    "quality": "Data Not Loaded"
+  },
+  {
+    "id": "956c04e9ba0719b5_20251201",
+    "source": "fxstreet",
+    "projection": null,
+    "forecast": 0,
+    "quality": "Data Not Loaded",
+    "category": null,
+    "strength": "Data Not Loaded",
+    "actual": 0,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 772000000
+    },
+    "outcome": "Data Not Loaded",
+    "currency": "GBP",
+    "date": {
+      "_seconds": 1764588600,
+      "_nanoseconds": 0
+    },
+    "previous": 0.6,
+    "name": "M4 Money Supply (MoM)"
+  },
+  {
+    "id": "9de95c11e1436b5d_20251201",
+    "source": "fxstreet",
+    "forecast": 0,
+    "previous": 51.6,
+    "date": {
+      "_seconds": 1764547200,
+      "_nanoseconds": 0
+    },
+    "strength": "Weak Data",
+    "actual": 51.6,
+    "outcome": "Actual > Forecast  Actual = Previous",
+    "quality": "Good Data",
+    "name": "S&P Global Manufacturing PMI",
+    "lastSyncedAt": {
+      "seconds": 1764570779,
+      "nanoseconds": 290000000
+    },
+    "currency": "AUD",
+    "projection": null,
+    "category": null
+  },
+  {
+    "id": "a109b40e5ee33ee3_20251201",
+    "source": "fxstreet",
+    "projection": null,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "date": {
+      "_seconds": 1764558300,
+      "_nanoseconds": 0
+    },
+    "name": "BoJ Governor Ueda speech",
+    "forecast": 0,
+    "strength": "Data Not Loaded",
+    "category": null,
+    "currency": "JPY",
+    "outcome": "Data Not Loaded",
+    "actual": 0,
+    "previous": 0,
+    "quality": "Data Not Loaded"
+  },
+  {
+    "id": "a86aacb59a2954c9_20251201",
+    "source": "fxstreet",
+    "date": {
+      "_seconds": 1764608400,
+      "_nanoseconds": 0
+    },
+    "currency": "USD",
+    "previous": 58,
+    "projection": null,
+    "outcome": "Data Not Loaded",
+    "category": null,
+    "actual": 0,
+    "name": "ISM Manufacturing Prices Paid",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    },
+    "quality": "Data Not Loaded",
+    "forecast": 59.5,
+    "strength": "Data Not Loaded"
+  },
+  {
+    "id": "b8864e607c74c41e_20251201",
+    "source": "fxstreet",
+    "projection": null,
+    "outcome": "Data Not Loaded",
+    "forecast": 48.6,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "previous": 48.2,
+    "quality": "Data Not Loaded",
+    "strength": "Data Not Loaded",
+    "date": {
+      "_seconds": 1764585000,
+      "_nanoseconds": 0
+    },
+    "category": null,
+    "actual": 0,
+    "name": "SVME - Purchasing Managers' Index",
+    "currency": "CHF"
+  },
+  {
+    "id": "bbadf1d7e20aa426_20251202",
+    "source": "fxstreet",
+    "currency": "AUD",
+    "category": null,
+    "forecast": -10,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 770000000
+    },
+    "previous": -13.7,
+    "date": {
+      "_seconds": 1764642600,
+      "_nanoseconds": 0
+    },
+    "projection": null,
+    "quality": "Data Not Loaded",
+    "outcome": "Data Not Loaded",
+    "strength": "Data Not Loaded",
+    "actual": 0,
+    "name": "Current Account Balance"
+  },
+  {
+    "id": "d1c455a2f913909a_20251201",
+    "source": "fxstreet",
+    "forecast": 0,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 772000000
+    },
+    "date": {
+      "_seconds": 1764588600,
+      "_nanoseconds": 0
+    },
+    "strength": "Data Not Loaded",
+    "previous": 3.6,
+    "currency": "GBP",
+    "category": null,
+    "quality": "Data Not Loaded",
+    "actual": 0,
+    "projection": null,
+    "name": "M4 Money Supply (YoY)",
+    "outcome": "Data Not Loaded"
+  },
+  {
+    "id": "d5c918d812a0d6fe_20251130",
+    "source": "fxstreet",
+    "forecast": 0,
+    "lastSyncedAt": {
+      "seconds": 1764570779,
+      "nanoseconds": 290000000
+    },
+    "outcome": "Actual < Forecast < Previous",
+    "currency": "NZD",
+    "projection": null,
+    "quality": "Bad Data",
+    "actual": -0.9,
+    "date": {
+      "_seconds": 1764546300,
+      "_nanoseconds": 0
+    },
+    "category": null,
+    "name": "Building Permits s.a. (MoM)",
+    "previous": 7.3,
+    "strength": "Strong Data"
+  },
+  {
+    "id": "d7c006005ecadb47_20251202",
+    "source": "fxstreet",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    },
+    "category": null,
+    "strength": "Data Not Loaded",
+    "actual": 0,
+    "projection": null,
+    "forecast": 0,
+    "quality": "Data Not Loaded",
+    "outcome": "Data Not Loaded",
+    "previous": 1,
+    "name": "BRC Shop Price Index (YoY)",
+    "date": {
+      "_seconds": 1764640860,
+      "_nanoseconds": 0
+    },
+    "currency": "GBP"
+  },
+  {
+    "id": "e196ef21f05957c6_20251201",
+    "source": "fxstreet",
+    "quality": "Data Not Loaded",
+    "category": null,
+    "actual": 0,
+    "previous": 3.745,
+    "forecast": 0,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    },
+    "name": "3-Month Bill Auction",
+    "strength": "Data Not Loaded",
+    "currency": "USD",
+    "projection": null,
+    "outcome": "Data Not Loaded",
+    "date": {
+      "_seconds": 1764613800,
+      "_nanoseconds": 0
+    }
+  },
+  {
+    "id": "e3631d162c1f186c_20251201",
+    "source": "fxstreet",
+    "forecast": 0,
+    "outcome": "Data Not Loaded",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    },
+    "currency": "USD",
+    "strength": "Data Not Loaded",
+    "date": {
+      "_seconds": 1764601200,
+      "_nanoseconds": 0
+    },
+    "actual": 0,
+    "previous": 0,
+    "category": null,
+    "quality": "Data Not Loaded",
+    "name": "Fed's Chair Powell speech",
+    "projection": null
+  },
+  {
+    "id": "e5b248339125b123_20251201",
+    "source": "fxstreet",
+    "outcome": "Actual = Forecast < Previous",
+    "actual": 0,
+    "date": {
+      "_seconds": 1764554400,
+      "_nanoseconds": 0
+    },
+    "forecast": 0,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "quality": "Bad Data",
+    "currency": "AUD",
+    "strength": "Strong Data",
+    "name": "TD-MI Inflation Gauge (MoM)",
+    "projection": null,
+    "previous": 0.3,
+    "category": null
+  },
+  {
+    "id": "e614cd985c81d8d4_20251201",
+    "source": "fxstreet",
+    "previous": 4.1,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    },
+    "name": "Terms of Trade Index",
+    "actual": 0,
+    "quality": "Data Not Loaded",
+    "outcome": "Data Not Loaded",
+    "strength": "Data Not Loaded",
+    "date": {
+      "_seconds": 1764632700,
+      "_nanoseconds": 0
+    },
+    "forecast": 0.3,
+    "category": null,
+    "projection": null,
+    "currency": "NZD"
+  },
+  {
+    "id": "e79a8e2bff22a69a_20251201",
+    "source": "fxstreet",
+    "quality": "Data Not Loaded",
+    "projection": null,
+    "category": null,
+    "outcome": "Data Not Loaded",
+    "forecast": 0,
+    "date": {
+      "_seconds": 1764610200,
+      "_nanoseconds": 0
+    },
+    "previous": 0,
+    "strength": "Data Not Loaded",
+    "name": "BoE's Dhingra speech",
+    "currency": "GBP",
+    "actual": 0,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    }
+  },
+  {
+    "id": "e85d41bba0b1e8a5_20251201",
+    "source": "fxstreet",
+    "category": null,
+    "strength": "Data Not Loaded",
+    "date": {
+      "_seconds": 1764607500,
+      "_nanoseconds": 0
+    },
+    "outcome": "Data Not Loaded",
+    "quality": "Data Not Loaded",
+    "forecast": 51.9,
+    "currency": "USD",
+    "name": "S&P Global Manufacturing PMI",
+    "previous": 51.9,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 771000000
+    },
+    "projection": null,
+    "actual": 0
+  },
+  {
+    "id": "ee3552bdef5c9703_20251201",
+    "source": "fxstreet",
+    "previous": 48.4,
+    "outcome": "Data Not Loaded",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 772000000
+    },
+    "strength": "Data Not Loaded",
+    "actual": 0,
+    "projection": null,
+    "quality": "Data Not Loaded",
+    "name": "HCOB Manufacturing PMI",
+    "forecast": 48.4,
+    "date": {
+      "_seconds": 1764586500,
+      "_nanoseconds": 0
+    },
+    "currency": "EUR",
+    "category": null
+  },
+  {
+    "id": "f1df653bd97483f7_20251201",
+    "source": "fxstreet",
+    "name": "HCOB Manufacturing PMI",
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "currency": "EUR",
+    "outcome": "Data Not Loaded",
+    "strength": "Data Not Loaded",
+    "quality": "Data Not Loaded",
+    "date": {
+      "_seconds": 1764585900,
+      "_nanoseconds": 0
+    },
+    "actual": 0,
+    "forecast": 0,
+    "previous": 49.9,
+    "category": null,
+    "projection": null
+  },
+  {
+    "id": "f98d89b8b86ebdd0_20251201",
+    "source": "fxstreet",
+    "category": null,
+    "date": {
+      "_seconds": 1764558060,
+      "_nanoseconds": 0
+    },
+    "name": "AIB Manufacturing PMI",
+    "outcome": "Data Not Loaded",
+    "forecast": 0,
+    "quality": "Data Not Loaded",
+    "actual": 0,
+    "lastSyncedAt": {
+      "seconds": 1764567945,
+      "nanoseconds": 773000000
+    },
+    "currency": "EUR",
+    "previous": 50.9,
+    "projection": null,
+    "strength": "Data Not Loaded"
+  }
+]

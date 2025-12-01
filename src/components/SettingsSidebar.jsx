@@ -147,6 +147,8 @@ export default function SettingsSidebar({ open, onClose }) {
     toggleShowTimeToStart,
     showSessionNamesInCanvas,
     toggleShowSessionNamesInCanvas,
+    newsSource,
+    updateNewsSource,
   } = useSettings();
 
   const handleTabChange = (event, newValue) => {
@@ -527,6 +529,7 @@ export default function SettingsSidebar({ open, onClose }) {
                   onChange={toggleBackgroundBasedOnSession}
                 />
               </SettingRow>
+
             </TabPanel>
 
             {/* Session Settings Tab */}

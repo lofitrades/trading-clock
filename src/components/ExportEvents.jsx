@@ -20,6 +20,10 @@ import {
   Container,
   Stack,
   Chip,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
 } from '@mui/material';
 import {
   Download as DownloadIcon,
@@ -31,7 +35,9 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 
-const EVENTS_COLLECTION = 'economicEventsCalendar';
+// Multi-source structure: /economicEvents/{source}/events/{eventId}
+const EVENTS_PARENT_COLLECTION = 'economicEvents';
+const NEWS_SOURCES = ['mql5', 'forex-factory', 'fxstreet'];
 
 /**
  * ExportEvents Component
@@ -46,7 +52,8 @@ export default function ExportEvents() {
   const [error, setError] = useState(null);
 
   /**
-   * Export all events from Firestore to JSON file
+   * Export events from all sources to separate JSON files
+   * Exports to: data/{source}-events-{date}.json
    */
   const handleExport = async () => {
     setExporting(true);
@@ -54,50 +61,84 @@ export default function ExportEvents() {
     setResult(null);
 
     try {
-      console.log('📊 Starting export of economic events...');
+      console.log('📊 Starting export of economic events from all sources...');
 
-      // Query all documents in the collection
-      const eventsRef = collection(db, EVENTS_COLLECTION);
-      const snapshot = await getDocs(eventsRef);
+      const sourceResults = [];
+      let totalEvents = 0;
 
-      if (snapshot.empty) {
-        throw new Error('No events found in the collection');
+      // Export each source separately
+      for (const source of NEWS_SOURCES) {
+        console.log(`📥 Exporting ${source}...`);
+
+        // Query subcollection: /economicEvents/{source}/events
+        const eventsRef = collection(db, EVENTS_PARENT_COLLECTION, source, 'events');
+        const snapshot = await getDocs(eventsRef);
+
+        const eventCount = snapshot.size;
+
+        if (snapshot.empty) {
+          console.warn(`⚠️ No events found for ${source}`);
+          sourceResults.push({ source, count: 0, success: false });
+          continue;
+        }
+
+        // Transform documents to JSON format
+        const events = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            source, // Add source field explicitly
+            ...data,
+            // Convert Firestore Timestamps to serializable format
+            date: data.date?.toDate ? {
+              _seconds: Math.floor(data.date.toDate().getTime() / 1000),
+              _nanoseconds: (data.date.toDate().getTime() % 1000) * 1000000
+            } : data.date,
+            createdAt: data.createdAt?.toDate ? {
+              _seconds: Math.floor(data.createdAt.toDate().getTime() / 1000),
+              _nanoseconds: (data.createdAt.toDate().getTime() % 1000) * 1000000
+            } : data.createdAt,
+            updatedAt: data.updatedAt?.toDate ? {
+              _seconds: Math.floor(data.updatedAt.toDate().getTime() / 1000),
+              _nanoseconds: (data.updatedAt.toDate().getTime() % 1000) * 1000000
+            } : data.updatedAt,
+          };
+        });
+
+        console.log(`✅ Exported ${events.length} events from ${source}`);
+        totalEvents += events.length;
+
+        // Save to data folder using File System Access API
+        const jsonString = JSON.stringify(events, null, 2);
+        const filename = `${source}-events-${new Date().toISOString().split('T')[0]}.json`;
+
+        try {
+          // Create a blob for download
+          const blob = new Blob([jsonString], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          
+          // Create download link
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // Clean up
+          URL.revokeObjectURL(url);
+          
+          sourceResults.push({ source, count: eventCount, success: true, filename });
+        } catch (saveErr) {
+          console.error(`Failed to save ${filename}:`, saveErr);
+          sourceResults.push({ source, count: eventCount, success: false, filename });
+        }
       }
-
-      // Transform documents to JSON format
-      const events = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          // Convert Firestore Timestamps to ISO strings for JSON export
-          date: data.date?.toDate?.().toISOString() || data.date,
-          createdAt: data.createdAt?.toDate?.().toISOString() || data.createdAt,
-          updatedAt: data.updatedAt?.toDate?.().toISOString() || data.updatedAt,
-        };
-      });
-
-      console.log(`✅ Exported ${events.length} events`);
-
-      // Create JSON blob and download
-      const jsonString = JSON.stringify(events, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      // Create download link
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `economic-events-export-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Clean up
-      URL.revokeObjectURL(url);
 
       setResult({
         success: true,
-        count: events.length,
+        sources: sourceResults,
+        totalCount: totalEvents,
         timestamp: new Date().toISOString(),
       });
 
@@ -145,9 +186,13 @@ export default function ExportEvents() {
 
         {/* Description */}
         <Typography variant="body1" color="text.secondary" paragraph>
-          Export all economic events from the <code>{EVENTS_COLLECTION}</code> collection 
-          to a JSON file. This will download all events with their metadata including dates, 
-          currencies, impact levels, and event details.
+          Export economic events from all news sources to separate JSON files. This will 
+          download 3 files (one per source) containing all events with their metadata including 
+          dates, currencies, impact levels, and event details.
+        </Typography>
+
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          <strong>Sources:</strong> {NEWS_SOURCES.map(s => s.toUpperCase()).join(', ')}
         </Typography>
 
         {/* Export Button */}
@@ -162,7 +207,7 @@ export default function ExportEvents() {
             fullWidth
             sx={{ py: 1.5 }}
           >
-            {exporting ? 'Exporting...' : 'Export All Events'}
+            {exporting ? 'Exporting All Sources...' : 'Export All Sources (3 Files)'}
           </Button>
         </Box>
 
@@ -176,18 +221,36 @@ export default function ExportEvents() {
             <Typography variant="subtitle2" gutterBottom>
               Export completed successfully!
             </Typography>
-            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-              <Chip 
-                label={`${result.count.toLocaleString()} events`} 
-                size="small" 
-                color="success"
-              />
-              <Chip 
-                label={new Date(result.timestamp).toLocaleString()} 
-                size="small" 
-                variant="outlined"
-              />
-            </Stack>
+            <Typography variant="body2" sx={{ mb: 2 }}>
+              Downloaded {result.sources.filter(s => s.success).length} files with {result.totalCount.toLocaleString()} total events
+            </Typography>
+            
+            <List dense sx={{ bgcolor: 'success.light', borderRadius: 1, py: 0.5 }}>
+              {result.sources.map(({ source, count, success, filename }) => (
+                <ListItem key={source} dense>
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    {success ? <CheckCircleIcon color="success" fontSize="small" /> : <ErrorIcon color="error" fontSize="small" />}
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={
+                      <Typography variant="body2">
+                        <strong>{source.replace('-', ' ').toUpperCase()}:</strong> {count.toLocaleString()} events
+                      </Typography>
+                    }
+                    secondary={filename || `${source}-events-${new Date(result.timestamp).toISOString().split('T')[0]}.json`}
+                  />
+                </ListItem>
+              ))}
+            </List>
+            
+            <Alert severity="info" sx={{ mt: 2 }}>
+              <Typography variant="caption" display="block" gutterBottom>
+                <strong>📥 Files downloaded to your Downloads folder</strong>
+              </Typography>
+              <Typography variant="caption" display="block">
+                Move them to: <code>D:\Lofi Trades\trading-clock\data\</code>
+              </Typography>
+            </Alert>
           </Alert>
         )}
 
@@ -209,10 +272,15 @@ export default function ExportEvents() {
 
         {/* Info Box */}
         <Box sx={{ mt: 4, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
-          <Typography variant="caption" color="text.secondary" display="block">
-            <strong>Note:</strong> The exported JSON file will contain all fields from Firestore,
-            with Timestamps converted to ISO 8601 strings for compatibility. The file will be
-            automatically downloaded to your default downloads folder.
+          <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+            <strong>Export Details:</strong>
+          </Typography>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 2 }}>
+            • 3 files will be downloaded (one per source)<br />
+            • Timestamps preserved in Firestore format (_seconds, _nanoseconds)<br />
+            • Files automatically downloaded to your Downloads folder<br />
+            • Move files to <code>data/</code> folder to replace old exports<br />
+            • File naming: <code>{'{source}'}-events-{'{date}'}.json</code>
           </Typography>
         </Box>
       </Paper>

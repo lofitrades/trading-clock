@@ -1,5 +1,6 @@
 /**
  * Service for interacting with Economic Events Cloud Functions
+ * Supports multi-source economic calendar data
  */
 
 import { httpsCallable } from 'firebase/functions';
@@ -16,32 +17,37 @@ import {
   getDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { getEconomicEventsCollectionRef } from './firestoreHelpers';
+import { DEFAULT_NEWS_SOURCE } from '../types/economicEvents';
 
-// Firestore collection names
-const EVENTS_COLLECTION = 'economicEventsCalendar';
+// Firestore collection names (legacy - kept for descriptions)
 const DESCRIPTIONS_COLLECTION = 'economicEventDescriptions';
 const STATUS_COLLECTION = 'systemJobs';
 
 /**
- * Trigger manual sync of economic events calendar
+ * Trigger manual sync of economic events calendar (Recent events: 7d back + 30d forward)
+ * Supports multi-source sync via sources array
  * Automatically invalidates cache after successful sync
  * 
+ * This calls syncRecentEventsNow which syncs recent events (7 days back + 30 days forward)
+ * For historical bulk sync, use triggerHistoricalSync() instead
+ * 
  * @param {Object} options - Sync options
+ * @param {string[]} options.sources - Array of sources to sync (e.g., ['mql5', 'forex-factory'])
  * @param {boolean} options.dryRun - If true, validates without writing to Firestore
- * @param {string} options.from - Optional start date (YYYY-MM-DD)
- * @param {string} options.to - Optional end date (YYYY-MM-DD)
+ * @param {string} options.from - Optional start date (YYYY-MM-DD) - overrides recent range
+ * @param {string} options.to - Optional end date (YYYY-MM-DD) - overrides recent range
  * @returns {Promise<Object>} Sync result
  */
 export const triggerManualSync = async (options = {}) => {
   try {
-    // Always use production URL for manual sync (emulator not configured)
-    // Use localhost only if explicitly running emulator (uncomment line below)
-    const baseUrl = 'https://us-central1-time-2-trade-app.cloudfunctions.net/syncEconomicEventsCalendarNow';
+    // Use syncRecentEventsNow for Sync Calendar button (7d back + 30d forward)
+    const baseUrl = 'https://us-central1-time-2-trade-app.cloudfunctions.net/syncRecentEventsNow';
     
     // Uncomment this to use local emulator:
     // const baseUrl = import.meta.env.DEV
-    //   ? 'http://127.0.0.1:5001/time-2-trade-app/us-central1/syncEconomicEventsCalendarNow'
-    //   : 'https://us-central1-time-2-trade-app.cloudfunctions.net/syncEconomicEventsCalendarNow';
+    //   ? 'http://127.0.0.1:5001/time-2-trade-app/us-central1/syncRecentEventsNow'
+    //   : 'https://us-central1-time-2-trade-app.cloudfunctions.net/syncRecentEventsNow';
 
     const params = new URLSearchParams();
     if (options.dryRun) params.append('dryRun', 'true');
@@ -50,14 +56,18 @@ export const triggerManualSync = async (options = {}) => {
 
     const url = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
 
-    console.log('🔄 Triggering manual sync:', url);
+    console.log('🔄 Triggering recent sync (7d back + 30d forward):', url);
     console.log('Options:', options);
 
+    // Prepare request body for multi-source sync
+    const requestBody = options.sources ? { sources: options.sources } : {};
+
     const response = await fetch(url, {
-      method: 'GET',
+      method: options.sources ? 'POST' : 'GET', // Use POST for multi-source
       headers: {
         'Content-Type': 'application/json',
       },
+      ...(options.sources && { body: JSON.stringify(requestBody) }),
     });
 
     if (!response.ok) {
@@ -92,9 +102,10 @@ export const triggerManualSync = async (options = {}) => {
  * Get today's economic events from Firestore
  * 
  * @param {string} timezone - IANA timezone (e.g., 'America/New_York')
+ * @param {string} source - News source (defaults to user's preferred source)
  * @returns {Promise<Object>} Events data
  */
-export const getTodayEventsFromFirestore = async (timezone = 'UTC') => {
+export const getTodayEventsFromFirestore = async (timezone = 'UTC', source = DEFAULT_NEWS_SOURCE) => {
   try {
     // Get start and end of today in the specified timezone
     const now = new Date();
@@ -107,14 +118,15 @@ export const getTodayEventsFromFirestore = async (timezone = 'UTC') => {
     const startTimestamp = Timestamp.fromDate(startOfDay);
     const endTimestamp = Timestamp.fromDate(endOfDay);
 
-    console.log('📊 Fetching events from Firestore:', {
+    console.log('📊 Fetching today\'s events from Firestore:', {
+      source,
       timezone,
       startOfDay: startOfDay.toISOString(),
       endOfDay: endOfDay.toISOString(),
     });
 
-    // Query Firestore for today's events
-    const eventsRef = collection(db, EVENTS_COLLECTION);
+    // Query the correct source subcollection: /economicEvents/{source}/events/{eventDocId}
+    const eventsRef = getEconomicEventsCollectionRef(source);
     const q = query(
       eventsRef,
       where('date', '>=', startTimestamp),
@@ -187,6 +199,7 @@ export const getSyncStatus = async () => {
 
 /**
  * Get events for a specific date range with optional filters
+ * Uses caching service for optimal performance
  * 
  * @param {Date} startDate - Start date
  * @param {Date} endDate - End date
@@ -194,36 +207,41 @@ export const getSyncStatus = async () => {
  * @param {string[]} filters.impacts - Array of impact levels ('High', 'Medium', 'Low', 'None')
  * @param {string[]} filters.eventTypes - Array of event categories
  * @param {string[]} filters.currencies - Array of currency codes
+ * @param {boolean} filters.forceRefresh - Force fetch from Firestore (bypass cache)
  * @returns {Promise<Object>} Events data
  */
 export const getEventsByDateRange = async (startDate, endDate, filters = {}) => {
   try {
-    // Convert JavaScript Date to Firestore Timestamp
-    const startTimestamp = Timestamp.fromDate(startDate);
-    const endTimestamp = Timestamp.fromDate(endDate);
-
-    const eventsRef = collection(db, EVENTS_COLLECTION);
+    // Get the source from filters or use default
+    const source = filters.source || DEFAULT_NEWS_SOURCE;
     
-    // Build query with date range
-    let q = query(
-      eventsRef,
-      where('date', '>=', startTimestamp),
-      where('date', '<=', endTimestamp),
-      orderBy('date', 'asc')
-    );
-
-    const snapshot = await getDocs(q);
+    console.log(`📊 Fetching events from source: ${source} (using cache)`);
     
-    // Map and apply client-side filters
-    let events = snapshot.docs.map(doc => {
-      const data = doc.data();
+    // Import cache service dynamically to avoid circular dependency
+    const { getFilteredEvents } = await import('./eventsCache');
+    
+    // Use cache to get events (will fetch from Firestore if cache invalid)
+    const cachedEvents = await getFilteredEvents({
+      startDate,
+      endDate,
+      source,
+      // Note: Impact/category/currency filters applied client-side after enrichment
+    });
+    
+    // Map cached events to expected format
+    let events = cachedEvents.map(event => {
+      // Cached events already have timestamps as milliseconds
+      const eventDate = new Date(event.date);
       
-      // Convert Firestore Timestamp to JavaScript Date
-      const eventDate = data.date?.toDate ? data.date.toDate() : null;
-      
+      // Normalize field names: Provide both lowercase and PascalCase for compatibility
       return {
-        id: doc.id,
-        ...data,
+        id: event.id,
+        ...event, // lowercase fields from cache
+        // Add PascalCase aliases for backward compatibility with EventsTimeline2
+        Name: event.name || event.Name,
+        Currency: event.currency || event.Currency,
+        Category: event.category || event.Category,
+        Strength: event.strength || event.Strength,
         date: eventDate,
         // Add ISO string for easier debugging
         dateISO: eventDate?.toISOString(),
@@ -235,29 +253,43 @@ export const getEventsByDateRange = async (startDate, endDate, filters = {}) => 
     // This allows filtering by enriched impact values from descriptions collection
     events = await enrichEventsWithDescriptions(events);
 
-    // Apply impact filter (using lowercase 'strength' field from Firestore)
+    console.log(`📊 Before filters: ${events.length} events`);
+
+    // Apply impact filter (support both lowercase and PascalCase)
     if (filters.impacts && filters.impacts.length > 0) {
+      const beforeCount = events.length;
       events = events.filter(event => {
-        const strength = event.strength || event.Strength || 'None';
-        return filters.impacts.includes(strength);
+        const strength = event.strength || event.Strength || 'Data Not Loaded';
+        const matchesFilter = filters.impacts.includes(strength);
+        return matchesFilter;
       });
+      console.log(`🔍 Impact filter: ${beforeCount} → ${events.length} events (filtered by: ${filters.impacts.join(', ')})`);
     }
 
-    // Apply event type/category filter (using lowercase 'category' field from Firestore)
+    // Apply event type/category filter (support both lowercase and PascalCase)
+    // IMPORTANT: Skip null categories for non-MQL5 sources
     if (filters.eventTypes && filters.eventTypes.length > 0) {
+      const beforeCount = events.length;
       events = events.filter(event => {
         const category = event.category || event.Category;
+        // Skip events without categories (Forex Factory, FXStreet)
+        if (!category || category === null || category === 'null') return false;
         return filters.eventTypes.includes(category);
       });
+      console.log(`🔍 Event Type filter: ${beforeCount} → ${events.length} events (filtered by: ${filters.eventTypes.join(', ')})`);
     }
 
-    // Apply currency filter (using lowercase 'currency' field from Firestore)
+    // Apply currency filter (support both lowercase and PascalCase)
     if (filters.currencies && filters.currencies.length > 0) {
+      const beforeCount = events.length;
       events = events.filter(event => {
         const currency = event.currency || event.Currency;
         return filters.currencies.includes(currency);
       });
+      console.log(`🔍 Currency filter: ${beforeCount} → ${events.length} events (filtered by: ${filters.currencies.join(', ')})`);
     }
+
+    console.log(`✅ After all filters: ${events.length} events returned`);
 
     return {
       success: true,
@@ -409,9 +441,15 @@ export const enrichEventsWithDescriptions = async (events) => {
  * Get all unique categories from events
  * Uses cache for performance, falls back to Firestore
  * 
+ * IMPORTANT: Categories are source-specific
+ * - MQL5: Full category data (Job Report, Consumer Inflation Report, etc.)
+ * - Forex Factory: No category field (null)
+ * - FXStreet: No category field (null)
+ * 
+ * @param {string} source - News source (defaults to user's preferred source)
  * @returns {Promise<Object>} Unique categories array
  */
-export const getEventCategories = async () => {
+export const getEventCategories = async (source = DEFAULT_NEWS_SOURCE) => {
   try {
     // Try cache first
     const { getCachedCategories } = await import('./eventsCache');
@@ -425,9 +463,10 @@ export const getEventCategories = async () => {
       };
     }
     
-    // Fallback to Firestore (will build cache)
-    const eventsRef = collection(db, EVENTS_COLLECTION);
-    const q = query(eventsRef);
+    // Fallback to Firestore - query the correct source subcollection
+    // Structure: /economicEvents/{source}/events/{eventDocId}
+    const eventsRef = getEconomicEventsCollectionRef(source);
+    const q = query(eventsRef, limit(5000)); // Reasonable limit for category extraction
     const snapshot = await getDocs(q);
     
     const categories = new Set();
@@ -435,7 +474,10 @@ export const getEventCategories = async () => {
       const data = doc.data();
       // Support both lowercase (Firestore) and PascalCase (legacy)
       const category = data.category || data.Category;
-      if (category) categories.add(category);
+      // Only add non-null categories (Forex Factory and FXStreet don't have categories)
+      if (category && category !== null && category !== 'null') {
+        categories.add(category);
+      }
     });
 
     const sortedCategories = Array.from(categories).sort();
@@ -444,8 +486,10 @@ export const getEventCategories = async () => {
       success: true,
       data: sortedCategories,
       cached: false,
+      source, // Return source for debugging
     };
   } catch (error) {
+    console.error('❌ Failed to fetch categories:', error);
     return {
       success: false,
       error: error.message || 'Failed to fetch categories',
@@ -458,9 +502,12 @@ export const getEventCategories = async () => {
  * Get all unique currencies from events
  * Uses cache for performance, falls back to Firestore
  * 
+ * NOTE: All sources (MQL5, Forex Factory, FXStreet) provide currency data
+ * 
+ * @param {string} source - News source (defaults to user's preferred source)
  * @returns {Promise<Object>} Unique currencies array
  */
-export const getEventCurrencies = async () => {
+export const getEventCurrencies = async (source = DEFAULT_NEWS_SOURCE) => {
   try {
     // Try cache first
     const { getCachedCurrencies } = await import('./eventsCache');
@@ -474,9 +521,10 @@ export const getEventCurrencies = async () => {
       };
     }
     
-    // Fallback to Firestore (will build cache)
-    const eventsRef = collection(db, EVENTS_COLLECTION);
-    const q = query(eventsRef);
+    // Fallback to Firestore - query the correct source subcollection
+    // Structure: /economicEvents/{source}/events/{eventDocId}
+    const eventsRef = getEconomicEventsCollectionRef(source);
+    const q = query(eventsRef, limit(5000)); // Reasonable limit for currency extraction
     const snapshot = await getDocs(q);
     
     const currencies = new Set();
@@ -493,8 +541,10 @@ export const getEventCurrencies = async () => {
       success: true,
       data: sortedCurrencies,
       cached: false,
+      source, // Return source for debugging
     };
   } catch (error) {
+    console.error('❌ Failed to fetch currencies:', error);
     return {
       success: false,
       error: error.message || 'Failed to fetch currencies',
