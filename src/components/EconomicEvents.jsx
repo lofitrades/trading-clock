@@ -5,6 +5,8 @@
  * Integrates EventsFilters2 (optimized) and EventsTimeline2 (enterprise-grade) components
  * 
  * Changelog:
+ * v2.14.0 - 2025-12-08 - BUGFIX: Fixed news source propagation - refreshEventsCache now accepts source param, added comprehensive source-tracking logging throughout data flow
+ * v2.13.0 - 2025-12-01 - BUGFIX: Added key={timezone} to EventsTimeline2 to force re-render when timezone changes (fixes memoization preventing time updates)
  * v2.12.0 - 2025-12-01 - Performance optimization: Component stays mounted (display:none when closed), uses cache for smooth navigation, only fetches on initial mount
  * v2.11.0 - 2025-12-01 - Moved news source selector from SettingsSidebar to EconomicEvents header (dropdown in "Last updated" row, mobile-first responsive, enterprise UX with expandable source details)
  * v2.10.1 - 2025-12-01 - Updated Initial Sync to historical only (2y back to today), Recent Sync extended to 30 days forward for better future coverage
@@ -177,7 +179,8 @@ export default function EconomicEvents({ open, onClose, timezone }) {
    * Updates SettingsContext (persisted) and refetches events
    */
   const handleNewsSourceChange = (newSource) => {
-    console.log('📡 News source changed to:', newSource);
+    console.log(`📡 [handleNewsSourceChange] News source changed from ${newsSource} to ${newSource}`);
+    console.log('📦 [handleNewsSourceChange] Cache will switch to source-specific data');
     updateNewsSource(newSource);
     // Events will auto-refetch via useEffect watching newsSource
   };
@@ -198,6 +201,9 @@ export default function EconomicEvents({ open, onClose, timezone }) {
 
     setLoading(true);
     setError(null);
+
+    console.log(`📊 [fetchEvents] Fetching events for source: ${newsSource}`);
+    console.log(`📅 [fetchEvents] Date range: ${activeFilters.startDate?.toISOString()} to ${activeFilters.endDate?.toISOString()}`);
 
     // Fetch events from Firestore with filters (including news source)
     const result = await getEventsByDateRange(
@@ -407,13 +413,14 @@ export default function EconomicEvents({ open, onClose, timezone }) {
   }, []);
 
   /**
-   * Watch for news source changes - Invalidate cache and refetch
-   * When user changes preferred source in Settings, ensure fresh data is loaded
+   * Watch for news source changes - Refetch from new source's cache
+   * When user changes preferred source, load from that source's cache
+   * Cache is source-isolated, so switching sources is instant (from cache)
    */
   useEffect(() => {
     if (events.length > 0) {
-      console.log('📡 News source changed to:', newsSource);
-      console.log('🔄 Refetching events from new source...');
+      console.log(`📡 [useEffect-newsSource] Source changed to: ${newsSource}`);
+      console.log(`📦 [useEffect-newsSource] Loading events from ${newsSource} cache...`);
       fetchEvents();
     }
   }, [newsSource]);
@@ -451,23 +458,23 @@ export default function EconomicEvents({ open, onClose, timezone }) {
     setSyncSuccess(null);
 
     try {
-      console.log('🔄 Clearing cache and fetching fresh data from Firestore...');
+      console.log(`🔄 [handleRefresh] Clearing cache and fetching fresh data for source: ${newsSource}`);
       
-      // Step 1: Invalidate cache to force fresh Firestore read
-      await refreshEventsCache();
+      // Step 1: Invalidate cache to force fresh Firestore read (for current source)
+      await refreshEventsCache(newsSource);
       
       // Step 2: Fetch events with current filters (bypasses cache)
       await fetchEvents();
       
-      console.log('✅ Cache cleared and events refreshed from Firestore');
+      console.log(`✅ [handleRefresh] Cache cleared and events refreshed for source: ${newsSource}`);
       
       // Show success feedback briefly
-      setSyncSuccess('Events refreshed.');
+      setSyncSuccess(`Events refreshed from ${newsSource}.`);
       setTimeout(() => {
         setSyncSuccess(null);
       }, 3000);
     } catch (error) {
-      console.error('❌ Error refreshing events:', error);
+      console.error('❌ [handleRefresh] Error refreshing events:', error);
       setError('Failed to refresh events. Please try again.');
       setLoading(false); // Stop loading on error
     } finally {
@@ -748,6 +755,7 @@ export default function EconomicEvents({ open, onClose, timezone }) {
             {/* Events Timeline - Enterprise-grade component */}
             {!error && (
               <EventsTimeline2 
+                key={timezone}  // Force re-render when timezone changes
                 events={events} 
                 loading={loading}
                 onVisibleCountChange={handleVisibleCountChange}

@@ -1,6 +1,13 @@
 /**
- * Service for interacting with Economic Events Cloud Functions
- * Supports multi-source economic calendar data
+ * src/services/economicEventsService.js
+ * 
+ * Purpose: Service layer for economic events data fetching and management
+ * Supports multi-source economic calendar data (mql5, forex-factory, fxstreet)
+ * 
+ * Changelog:
+ * v2.1.0 - 2025-12-08 - BUGFIX: Fixed refreshEventsCache to accept source parameter and properly invalidate source-specific cache
+ * v2.0.0 - 2025-12-01 - Multi-source support with cache integration
+ * v1.0.0 - 2025-11-30 - Initial implementation
  */
 
 import { httpsCallable } from 'firebase/functions';
@@ -282,11 +289,25 @@ export const getEventsByDateRange = async (startDate, endDate, filters = {}) => 
     // Apply currency filter (support both lowercase and PascalCase)
     if (filters.currencies && filters.currencies.length > 0) {
       const beforeCount = events.length;
+      console.log(`🔍 [Currency Filter] Checking ${beforeCount} events against currencies:`, filters.currencies);
+      console.log(`🔍 [Currency Filter] Sample event before filter:`, {
+        currency: events[0]?.currency,
+        Currency: events[0]?.Currency,
+        name: events[0]?.name || events[0]?.Name,
+      });
+      
       events = events.filter(event => {
         const currency = event.currency || event.Currency;
-        return filters.currencies.includes(currency);
+        const matches = filters.currencies.includes(currency);
+        
+        // Debug first few events
+        if (beforeCount - events.length < 3) {
+          console.log(`  ${matches ? '✅' : '❌'} Event: ${event.name || event.Name}, Currency: ${currency}, Match: ${matches}`);
+        }
+        
+        return matches;
       });
-      console.log(`🔍 Currency filter: ${beforeCount} → ${events.length} events (filtered by: ${filters.currencies.join(', ')})`);
+      console.log(`✅ Currency filter: ${beforeCount} → ${events.length} events (filtered by: ${filters.currencies.join(', ')})`);
     }
 
     console.log(`✅ After all filters: ${events.length} events returned`);
@@ -616,11 +637,13 @@ export const getEventsCacheStats = async () => {
  * Force cache refresh
  * Useful after manual sync or when data seems stale
  * 
+ * @param {string} source - Data source to refresh (defaults to 'forex-factory')
  * @returns {Promise<void>}
  */
-export const refreshEventsCache = async () => {
+export const refreshEventsCache = async (source = 'forex-factory') => {
+  console.log(`🔄 [refreshEventsCache] Refreshing cache for source: ${source}`);
   const { invalidateCache, getAllEvents } = await import('./eventsCache');
-  invalidateCache();
-  await getAllEvents(true);
-  console.log('✅ Events cache refreshed');
+  invalidateCache(source);
+  await getAllEvents(true, source);
+  console.log(`✅ [refreshEventsCache] Cache refreshed for source: ${source}`);
 };

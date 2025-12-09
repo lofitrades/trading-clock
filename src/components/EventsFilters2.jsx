@@ -14,6 +14,8 @@
  * - Smooth animations and transitions
  * 
  * Changelog:
+ * v2.4.1 - 2025-12-08 - Fixed date calculations: always use fresh Date() dynamically, added timezone-aware logging, fixed 'This Week' calculation for accurate current week detection
+ * v2.4.0 - 2025-12-08 - Fixed active filters display: now shows only applied filters (parent state) not unapplied local state, added localActivePreset for UI feedback during editing
  * v2.3.4 - 2025-11-30 - Simplified impact labels: removed "Impact" suffix (High, Medium, Low instead of High Impact, etc.)
  * v2.3.3 - 2025-11-30 - Impact chips: replaced tooltips with labels below chips (High, Medium, Low, Unknown, Non-Economic)
  * v2.3.2 - 2025-11-30 - Impact section: always 5 columns (one per impact level) on all screen sizes, reduced gap for mobile fit
@@ -206,7 +208,14 @@ const ANIMATION_DURATION = {
  * @returns {Object} Date components { year, month, day, dayOfWeek }
  */
 const getDateInTimezone = (timezone) => {
+  // IMPORTANT: Always create fresh Date() to get current date/time
   const now = new Date();
+  
+  console.log(`📅 [EventsFilters2] Getting date in timezone ${timezone}:`, {
+    utcDate: now.toISOString(),
+    localDate: now.toLocaleString('en-US', { timeZone: timezone }),
+  });
+  
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     year: 'numeric',
@@ -223,6 +232,14 @@ const getDateInTimezone = (timezone) => {
   // Get day of week (0 = Sunday)
   const dayOfWeek = now.toLocaleDateString('en-US', { timeZone: timezone, weekday: 'short' });
   const dayOfWeekMap = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+  
+  console.log(`📅 [EventsFilters2] Parsed date components:`, {
+    year,
+    month: month + 1, // Show 1-indexed for readability
+    day,
+    dayOfWeek,
+    dayName: Object.keys(dayOfWeekMap).find(k => dayOfWeekMap[k] === dayOfWeekMap[dayOfWeek]),
+  });
   
   return {
     year,
@@ -256,6 +273,10 @@ const createUTCDate = (year, month, day, endOfDay = false) => {
 const calculateDateRange = (preset, timezone) => {
   // Get current date in the selected timezone
   const { year, month, day, dayOfWeek } = getDateInTimezone(timezone);
+  
+  console.log(`📅 [calculateDateRange] Calculating '${preset}' range for timezone ${timezone}`);
+  console.log(`📅 [calculateDateRange] Current date in TZ: ${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')} (${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayOfWeek]})`);
+  
   let startDate, endDate;
 
   switch (preset) {
@@ -275,6 +296,8 @@ const calculateDateRange = (preset, timezone) => {
       const endDay = day + (6 - dayOfWeek); // Saturday of this week
       startDate = createUTCDate(year, month, startDay, false);
       endDate = createUTCDate(year, month, endDay, true);
+      console.log(`📅 [calculateDateRange] This Week: startDay=${startDay}, endDay=${endDay}, dayOfWeek=${dayOfWeek}`);
+      console.log(`📅 [calculateDateRange] Result: ${startDate.toISOString()} to ${endDate.toISOString()}`);
       break;
     }
 
@@ -705,7 +728,6 @@ export default function EventsFilters2({
   const [accordionExpanded, setAccordionExpanded] = useState({
     dateRange: true,
     impact: false,
-    eventType: false,
     currencies: false,
   });
 
@@ -714,7 +736,6 @@ export default function EventsFilters2({
     startDate: null,
     endDate: null,
     impacts: [],
-    eventTypes: [],
     currencies: [],
   });
   
@@ -729,6 +750,42 @@ export default function EventsFilters2({
   // ========== EFFECTS ==========
 
   /**
+   * Dynamically recalculate date presets every day or when timezone changes
+   * Ensures "Today", "This Week", etc. stay accurate
+   */
+  useEffect(() => {
+    // Create a timer that fires at midnight to recalculate "Today", "This Week", etc.
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    
+    const msUntilMidnight = tomorrow.getTime() - now.getTime();
+    
+    const timer = setTimeout(() => {
+      // Recalculate if a preset is active
+      const currentPreset = detectActivePreset(localFilters.startDate, localFilters.endDate, timezone);
+      if (currentPreset) {
+        console.log(`🔄 [EventsFilters2] Recalculating '${currentPreset}' preset at midnight`);
+        const range = calculateDateRange(currentPreset, timezone);
+        if (range) {
+          const newFilters = {
+            ...localFilters,
+            startDate: range.startDate,
+            endDate: range.endDate,
+          };
+          setLocalFilters(newFilters);
+          updateEventFilters(newFilters);
+          onFiltersChange(newFilters);
+          if (onApply) onApply(newFilters);
+        }
+      }
+    }, msUntilMidnight);
+    
+    return () => clearTimeout(timer);
+  }, [localFilters, timezone, onFiltersChange, onApply, updateEventFilters]);
+
+  /**
    * Sync localFilters with incoming filters prop (on mount and after reset)
    * This ensures hasChanges doesn't show false positives
    */
@@ -738,11 +795,10 @@ export default function EventsFilters2({
         startDate: filters.startDate || null,
         endDate: filters.endDate || null,
         impacts: filters.impacts || [],
-        eventTypes: filters.eventTypes || [],
         currencies: filters.currencies || [],
       });
     }
-  }, [filters.startDate, filters.endDate, filters.impacts?.length, filters.eventTypes?.length, filters.currencies?.length]);
+  }, [filters.startDate, filters.endDate, filters.impacts?.length, filters.currencies?.length]);
 
   /**
    * Fetch filter options on mount and when newsSource changes
@@ -794,9 +850,24 @@ export default function EventsFilters2({
   // ========== MEMOIZED VALUES ==========
 
   /**
-   * Active preset detection
+   * Active preset detection - Use parent filters (applied state) for display
    */
   const activePreset = useMemo(() => {
+    const presetKey = detectActivePreset(filters.startDate, filters.endDate, timezone);
+    if (!presetKey) return null;
+
+    // Find preset config
+    for (const category of Object.values(DATE_PRESETS)) {
+      const preset = category.find(p => p.key === presetKey);
+      if (preset) return preset;
+    }
+    return null;
+  }, [filters.startDate, filters.endDate, timezone]);
+
+  /**
+   * Local preset detection - For showing active state in UI during editing
+   */
+  const localActivePreset = useMemo(() => {
     const presetKey = detectActivePreset(localFilters.startDate, localFilters.endDate, timezone);
     if (!presetKey) return null;
 
@@ -809,13 +880,13 @@ export default function EventsFilters2({
   }, [localFilters.startDate, localFilters.endDate, timezone]);
 
   /**
-   * Active filter count
+   * Active filter count - Use parent filters (applied state) for display
    * Excludes the default 4-week date range (initial mount state)
    */
   const activeFilterCount = useMemo(() => {
     // Check if current date range is the default (2 weeks before/after today)
     const isDefaultDateRange = (() => {
-      if (!localFilters.startDate || !localFilters.endDate) return false;
+      if (!filters.startDate || !filters.endDate) return true;
       
       const now = new Date();
       const expectedStart = new Date(now);
@@ -826,10 +897,10 @@ export default function EventsFilters2({
       expectedEnd.setDate(now.getDate() + 14);
       expectedEnd.setHours(23, 59, 59, 999);
       
-      const actualStart = new Date(localFilters.startDate);
+      const actualStart = new Date(filters.startDate);
       actualStart.setHours(0, 0, 0, 0);
       
-      const actualEnd = new Date(localFilters.endDate);
+      const actualEnd = new Date(filters.endDate);
       actualEnd.setHours(23, 59, 59, 999);
       
       // Allow 1 day tolerance for date comparisons
@@ -841,15 +912,14 @@ export default function EventsFilters2({
     
     // Don't count dates if they're the default range
     const dateCount = isDefaultDateRange ? 0 : (activePreset ? 1 : 
-      (localFilters.startDate ? 1 : 0) + (localFilters.endDate ? 1 : 0));
+      (filters.startDate ? 1 : 0) + (filters.endDate ? 1 : 0));
     
     return (
       dateCount +
-      (localFilters.impacts?.length || 0) +
-      (localFilters.eventTypes?.length || 0) +
-      (localFilters.currencies?.length || 0)
+      (filters.impacts?.length || 0) +
+      (filters.currencies?.length || 0)
     );
-  }, [localFilters, activePreset]);
+  }, [filters, activePreset]);
 
   /**
    * Check if local filters differ from parent's filters (unapplied changes)
@@ -911,13 +981,20 @@ export default function EventsFilters2({
         ? currentValues.filter(v => v !== value)
         : [...currentValues, value];
       
+      console.log(`🔧 [EventsFilters2] Toggle ${field}:`, {
+        value,
+        action: currentValues.includes(value) ? 'REMOVE' : 'ADD',
+        before: currentValues,
+        after: newValues,
+      });
+      
       return { ...prev, [field]: newValues };
     });
   }, []);
 
   /**
-   * Remove filter value immediately (for chip deletion in active filters)
-   * Applies changes without showing "Changes" chip
+   * Remove filter value from active filters chip
+   * Auto-applies immediately (enterprise UX: removing filters is instant)
    */
   const removeFilterImmediate = useCallback((field, value = null) => {
     const newFilters = { ...localFilters };
@@ -931,16 +1008,20 @@ export default function EventsFilters2({
       newFilters[field] = currentValues.filter(v => v !== value);
     }
     
+    console.log(`🗑️ [EventsFilters2] Remove filter ${field}:`, value, '- auto-applying');
+    
+    // Update local state
     setLocalFilters(newFilters);
     
-    // Apply immediately
+    // Auto-apply immediately (removing filters is instant in enterprise UX)
     updateEventFilters(newFilters);
     onFiltersChange(newFilters);
     if (onApply) onApply(newFilters);
   }, [localFilters, onFiltersChange, onApply, updateEventFilters]);
 
   /**
-   * Apply date preset - applies immediately without needing Apply button
+   * Apply date preset (Quick Select)
+   * Updates local state only - requires Apply button
    */
   const applyDatePreset = useCallback((presetKey) => {
     const range = calculateDateRange(presetKey, timezone);
@@ -951,12 +1032,10 @@ export default function EventsFilters2({
         endDate: range.endDate,
       };
       
-      setLocalFilters(newFilters);
+      console.log(`📅 [EventsFilters2] Quick Select '${presetKey}' selected - click Apply to confirm`);
       
-      // Apply immediately for Quick Select UX
-      updateEventFilters(newFilters);
-      onFiltersChange(newFilters);
-      if (onApply) onApply(newFilters);
+      // Update local state only - user must click Apply
+      setLocalFilters(newFilters);
     }
   }, [localFilters, onFiltersChange, onApply, updateEventFilters, timezone]);
 
@@ -964,6 +1043,15 @@ export default function EventsFilters2({
    * Apply filters and close panel
    */
   const handleApply = useCallback(() => {
+    console.log(`🎯 [EventsFilters2] Applying filters:`, {
+      dateRange: {
+        start: localFilters.startDate?.toISOString(),
+        end: localFilters.endDate?.toISOString(),
+      },
+      impacts: localFilters.impacts,
+      eventTypes: localFilters.eventTypes,
+      currencies: localFilters.currencies,
+    });
 
     // Persist to context (localStorage + Firestore)
     updateEventFilters(localFilters);
@@ -974,6 +1062,40 @@ export default function EventsFilters2({
     
     setExpanded(false);
   }, [localFilters, onFiltersChange, onApply, updateEventFilters]);
+
+  /**
+   * Remove date range chip - Resets to initial mount state (4 weeks around today)
+   * Preserves impacts and currencies
+   * Auto-applies immediately (removing filters is instant)
+   */
+  const handleRemoveDateRange = useCallback(() => {
+    // Calculate initial mount date range (2 weeks before to 2 weeks after)
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(now.getDate() - 14); // 2 weeks before
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(now);
+    endDate.setDate(now.getDate() + 14); // 2 weeks after
+    endDate.setHours(23, 59, 59, 999);
+    
+    const resetFilters = {
+      startDate,
+      endDate,
+      impacts: localFilters.impacts,
+      currencies: localFilters.currencies,
+    };
+
+    console.log('🔄 [EventsFilters2] Reset date range only (preserving other filters) - auto-applying');
+    
+    // Update local state
+    setLocalFilters(resetFilters);
+    
+    // Auto-apply immediately
+    updateEventFilters(resetFilters);
+    onFiltersChange(resetFilters);
+    if (onApply) onApply(resetFilters);
+  }, [localFilters.impacts, localFilters.currencies, onFiltersChange, onApply, updateEventFilters]);
 
   /**
    * Reset all filters - Resets to initial mount state (4 weeks around today)
@@ -993,7 +1115,6 @@ export default function EventsFilters2({
       startDate,
       endDate,
       impacts: [],
-      eventTypes: [],
       currencies: [],
     };
 
@@ -1214,7 +1335,7 @@ export default function EventsFilters2({
                           <PresetChip
                             key={preset.key}
                             preset={preset}
-                            isActive={activePreset?.key === preset.key}
+                            isActive={localActivePreset?.key === preset.key}
                             onClick={() => applyDatePreset(preset.key)}
                           />
                         ))}
@@ -1346,88 +1467,6 @@ export default function EventsFilters2({
                       />
                     ))}
                   </Box>
-                </AccordionDetails>
-              </Accordion>
-
-              {/* ========== EVENT TYPE SECTION ========== */}
-              <Accordion
-                expanded={accordionExpanded.eventType}
-                onChange={() => toggleAccordion('eventType')}
-                disableGutters
-                elevation={0}
-                sx={{
-                  '&:before': { display: 'none' },
-                  bgcolor: alpha(theme.palette.info.main, 0.03),
-                  borderRadius: 1.5,
-                  overflow: 'hidden',
-                  width: '100%',
-                }}
-              >
-                <AccordionSummary
-                  expandIcon={<ExpandMoreIcon />}
-                  sx={{
-                    minHeight: 48,
-                    px: { xs: 1.5, sm: 2 },
-                    '& .MuiAccordionSummary-content': {
-                      my: 1,
-                    },
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <CategoryIcon sx={{ fontSize: 20, color: 'info.main' }} />
-                    <Typography variant="subtitle1" fontWeight={700}>
-                      Event Type
-                    </Typography>
-                    {localFilters.eventTypes?.length > 0 && (
-                      <Chip
-                        label={localFilters.eventTypes.length}
-                        size="small"
-                        color="info"
-                        sx={{
-                          height: 22,
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                          minWidth: 24,
-                        }}
-                      />
-                    )}
-                  </Box>
-                </AccordionSummary>
-                <AccordionDetails sx={{ px: { xs: 1.5, sm: 2 }, pt: 1.5, pb: 2 }}>
-                  {loadingOptions ? (
-                    <FilterSkeleton />
-                  ) : (
-                    <FormGroup>
-                      <Box
-                        sx={{
-                          maxHeight: 200,
-                          overflow: 'auto',
-                          overflowX: 'hidden',
-                          pr: 0.5,
-                          width: '100%',
-                          '&::-webkit-scrollbar': {
-                            width: 6,
-                          },
-                          '&::-webkit-scrollbar-thumb': {
-                            bgcolor: alpha(theme.palette.primary.main, 0.3),
-                            borderRadius: 3,
-                          },
-                        }}
-                      >
-                        <Stack spacing={0.25}>
-                          {categories.map((category) => (
-                            <FilterCheckbox
-                              key={category}
-                              value={category}
-                              label={category}
-                              checked={localFilters.eventTypes?.includes(category) || false}
-                              onChange={() => toggleArrayValue('eventTypes', category)}
-                            />
-                          ))}
-                        </Stack>
-                      </Box>
-                    </FormGroup>
-                  )}
                 </AccordionDetails>
               </Accordion>
 
@@ -1640,20 +1679,20 @@ export default function EventsFilters2({
                       <span>{activePreset.label}</span>
                     </Box>
                   }
-                  onDelete={handleReset}
+                  onDelete={handleRemoveDateRange}
                   color="primary"
                 />
               ) : (
                 <>
-                  {localFilters.startDate && (
+                  {filters.startDate && (
                     <ActiveFilterChip
-                      label={`From: ${localFilters.startDate.toLocaleDateString()}`}
+                      label={`From: ${filters.startDate.toLocaleDateString()}`}
                       onDelete={() => removeFilterImmediate('startDate')}
                     />
                   )}
-                  {localFilters.endDate && (
+                  {filters.endDate && (
                     <ActiveFilterChip
-                      label={`To: ${localFilters.endDate.toLocaleDateString()}`}
+                      label={`To: ${filters.endDate.toLocaleDateString()}`}
                       onDelete={() => removeFilterImmediate('endDate')}
                     />
                   )}
@@ -1661,7 +1700,7 @@ export default function EventsFilters2({
               )}
 
               {/* Impact Chips */}
-              {localFilters.impacts?.map((impact) => {
+              {filters.impacts?.map((impact) => {
                 const impactConfig = IMPACT_LEVELS.find(i => i.value === impact);
                 // Resolve theme color path to actual color value
                 const getColorValue = (colorPath) => {
@@ -1727,20 +1766,13 @@ export default function EventsFilters2({
                 );
               })}
 
-              {/* Event Type Chips (show first 2 + count) */}
-              {localFilters.eventTypes?.slice(0, 2).map((type) => (
-                <ActiveFilterChip
-                  key={type}
-                  label={type}
-                  onDelete={() => removeFilterImmediate('eventTypes', type)}
-                  color="info"
-                />
-              ))}
-              {localFilters.eventTypes?.length > 2 && (
+              {/* Event Type section removed - no longer showing chips */}
+              {filters.eventTypes?.length > 0 && (
                 <Chip
-                  label={`+${localFilters.eventTypes.length - 2} more types`}
+                  label="Legacy filters cleared"
                   size="small"
                   color="info"
+                  sx={{ display: 'none' }} // Hidden - for backward compatibility
                   sx={{ 
                     fontSize: { xs: '0.7rem', sm: '0.75rem' },
                     height: { xs: 28, sm: 24 }, // Larger on mobile for better touch
@@ -1755,7 +1787,7 @@ export default function EventsFilters2({
               )}
 
               {/* Currency Chips (show first 3 + count) */}
-              {localFilters.currencies?.slice(0, 3).map((currency) => (
+              {filters.currencies?.slice(0, 3).map((currency) => (
                 <ActiveFilterChip
                   key={currency}
                   label={currency}
@@ -1763,9 +1795,9 @@ export default function EventsFilters2({
                   color="success"
                 />
               ))}
-              {localFilters.currencies?.length > 3 && (
+              {filters.currencies?.length > 3 && (
                 <Chip
-                  label={`+${localFilters.currencies.length - 3} more`}
+                  label={`+${filters.currencies.length - 3} more`}
                   size="small"
                   color="success"
                   sx={{ 

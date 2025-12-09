@@ -13,6 +13,8 @@
  * - Multi-source support (forex-factory, mql5, fxstreet)
  * 
  * Changelog:
+ * v2.1.2 - 2025-12-08 - Best practice confirmed: cache persists across filter changes for performance, only refreshes when stale/outdated
+ * v2.1.1 - 2025-12-08 - Fixed date calculations: always use fresh Date() on every call, added detailed logging for cache date range debugging
  * v2.1.0 - 2025-12-01 - Optimized to fetch only 14d back + 8d forward (not all events)
  * v2.0.0 - 2025-12-01 - Updated to support multi-source structure (/economicEvents/{source}/events)
  * v1.0.0 - 2025-11-30 - Initial implementation with smart caching
@@ -197,6 +199,50 @@ async function isCacheValid(source = 'forex-factory') {
     return false;
   }
   
+  // CRITICAL: Check if cached date range is still current
+  // Cache should cover: 14 days back + 8 days forward from NOW
+  // If cache was created days ago, it won't have today's events
+  const currentDate = new Date();
+  const expectedStartDate = new Date(currentDate);
+  expectedStartDate.setDate(expectedStartDate.getDate() - 14);
+  expectedStartDate.setHours(0, 0, 0, 0);
+  
+  const expectedEndDate = new Date(currentDate);
+  expectedEndDate.setDate(expectedEndDate.getDate() + 8);
+  expectedEndDate.setHours(23, 59, 59, 999);
+  
+  // Get cached events to check their date range
+  const cachedEvents = getCachedEvents(source);
+  if (!cachedEvents || cachedEvents.length === 0) {
+    console.log('⚠️ Cache invalid: no cached events found');
+    return false;
+  }
+  
+  // Check if cache covers expected range
+  const cachedDates = cachedEvents.map(e => e.date).sort((a, b) => a - b);
+  const cachedStartDate = cachedDates[0];
+  const cachedEndDate = cachedDates[cachedDates.length - 1];
+  
+  // Cache is invalid if it doesn't cover at least 80% of expected range
+  const expectedStart = expectedStartDate.getTime();
+  const expectedEnd = expectedEndDate.getTime();
+  
+  console.log('📅 [isCacheValid] Checking date range coverage:', {
+    expectedStart: new Date(expectedStart).toISOString(),
+    expectedEnd: new Date(expectedEnd).toISOString(),
+    cachedStart: new Date(cachedStartDate).toISOString(),
+    cachedEnd: new Date(cachedEndDate).toISOString(),
+  });
+  
+  // Cache must start within 3 days of expected start and end within 3 days of expected end
+  const startDiff = Math.abs(cachedStartDate - expectedStart) / (1000 * 60 * 60 * 24);
+  const endDiff = Math.abs(cachedEndDate - expectedEnd) / (1000 * 60 * 60 * 24);
+  
+  if (startDiff > 3 || endDiff > 3) {
+    console.log(`⚠️ Cache date range outdated: startDiff=${startDiff.toFixed(1)}d, endDiff=${endDiff.toFixed(1)}d`);
+    return false;
+  }
+  
   // Check if API sync occurred after cache was created
   try {
     const syncStatus = await getLastSyncTimestamp();
@@ -306,14 +352,20 @@ async function fetchAndCacheAllEvents(source = 'forex-factory') {
   
   try {
     // Calculate date range: 14 days back, 8 days forward
-    const now = new Date();
-    const startDate = new Date(now);
+    // IMPORTANT: Use fresh Date() to ensure we get current date, not cached reference
+    const now = new Date(); // Fresh date on every call
+    console.log(`📅 [eventsCache] Current date/time: ${now.toISOString()} (${now.toLocaleString()})`);
+    
+    const startDate = new Date(now.getTime()); // Clone to avoid mutation
     startDate.setDate(startDate.getDate() - 14);
     startDate.setHours(0, 0, 0, 0);
     
-    const endDate = new Date(now);
+    const endDate = new Date(now.getTime()); // Clone to avoid mutation
     endDate.setDate(endDate.getDate() + 8);
     endDate.setHours(23, 59, 59, 999);
+    
+    console.log(`📅 [eventsCache] Fetching range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
+    console.log(`📅 [eventsCache] Date range in local time: ${startDate.toLocaleString()} to ${endDate.toLocaleString()}`);
     
     const startTimestamp = Timestamp.fromDate(startDate);
     const endTimestamp = Timestamp.fromDate(endDate);
@@ -393,21 +445,31 @@ async function fetchAndCacheAllEvents(source = 'forex-factory') {
  * @returns {Promise<CachedEvent[]>}
  */
 export async function getAllEvents(forceRefresh = false, source = 'forex-factory') {
+  console.log(`📊 [getAllEvents] Called for source: ${source} (forceRefresh: ${forceRefresh})`);
+  
   // Check cache validity
   if (!forceRefresh && await isCacheValid(source)) {
     const cached = getCachedEvents(source);
     if (cached) {
-      console.log(`📦 Using cached events from ${source} (${cached.length} events)`);
+      console.log(`✅ [getAllEvents] Using cached events from ${source} (${cached.length} events)`);
       return cached;
     }
   }
   
   // Fetch and cache
+  console.log(`🔄 [getAllEvents] Cache invalid or forceRefresh, fetching from Firestore for ${source}`);
   return await fetchAndCacheAllEvents(source);
 }
 
 /**
  * Filter cached events by criteria
+ * 
+ * BEST PRACTICE: This function applies filters to cached data in memory (client-side).
+ * - Cache is NOT invalidated on filter changes (performance optimization)
+ * - Cache only refreshes when: stale (24h+), outdated date range, or API sync occurs
+ * - Filters are instant because they operate on in-memory data
+ * - Prevents unnecessary Firestore reads (saves costs + improves UX)
+ * 
  * @param {Object} filters
  * @param {Date} filters.startDate
  * @param {Date} filters.endDate
@@ -419,7 +481,12 @@ export async function getAllEvents(forceRefresh = false, source = 'forex-factory
  */
 export async function getFilteredEvents(filters = {}) {
   const source = filters.source || 'forex-factory';
+  
+  // getAllEvents returns cached data if valid, only fetches from Firestore if needed
+  // This is CORRECT behavior - do not invalidate cache on filter changes
   const allEvents = await getAllEvents(false, source);
+  
+  console.log(`🔍 [eventsCache] Filtering ${allEvents.length} cached events from ${source}...`);
   
   const {
     startDate,
@@ -429,7 +496,14 @@ export async function getFilteredEvents(filters = {}) {
     impacts = [],
   } = filters;
   
-  return allEvents.filter((event) => {
+  console.log(`🔍 [eventsCache] Date range:`, {
+    startDate: startDate ? new Date(startDate).toISOString() : 'none',
+    endDate: endDate ? new Date(endDate).toISOString() : 'none',
+    startMs: startDate ? startDate.getTime() : null,
+    endMs: endDate ? endDate.getTime() : null,
+  });
+  
+  const filtered = allEvents.filter((event) => {
     // Date range filter
     if (startDate && event.date < startDate.getTime()) return false;
     if (endDate && event.date > endDate.getTime()) return false;
@@ -452,6 +526,11 @@ export async function getFilteredEvents(filters = {}) {
     
     return true;
   });
+  
+  console.log(`✅ [eventsCache] Filtered to ${filtered.length} events`);
+  console.log(`📊 [eventsCache] Sample filtered event:`, filtered[0]);
+  
+  return filtered;
 }
 
 /**

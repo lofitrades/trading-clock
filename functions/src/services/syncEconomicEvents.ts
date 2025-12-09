@@ -161,14 +161,29 @@ function normalizeEvent(
   event: JBlankedCalendarEvent,
   source: NewsSource
 ): EconomicEventDocument {
+  // 🔍 LOGGING: Track event transformation
+  const shouldLog = event.Name === "Final Manufacturing PMI";
+  if (shouldLog) {
+    console.log(`\n📊 [normalizeEvent] Processing event: "${event.Name}"`);
+    console.log(`   📅 Raw API Date: "${event.Date}"`);
+    console.log(`   💱 Currency: ${event.Currency}`);
+    console.log(`   🎯 Source: ${source}`);
+  }
+  
   const date = parseJBlankedDate(event.Date);
+  const firestoreTimestamp = toFirestoreTimestamp(date);
+  
+  if (shouldLog) {
+    console.log(`   🔥 Firestore Timestamp: ${firestoreTimestamp.seconds}.${firestoreTimestamp.nanoseconds}`);
+    console.log(`   📍 JS Date: ${date.toISOString()} (${date.getTime()})`);
+  }
 
-  return {
+  const normalized = {
     name: event.Name,
     currency: event.Currency,
     // Category is MQL5-specific, use null for sources that don't provide it
     category: event.Category || null,
-    date: toFirestoreTimestamp(date),
+    date: firestoreTimestamp,
     actual: event.Actual ?? null,
     forecast: event.Forecast ?? null,
     previous: event.Previous ?? null,
@@ -180,6 +195,12 @@ function normalizeEvent(
     source: source, // Store the origin source
     lastSyncedAt: admin.firestore.Timestamp.now(),
   };
+  
+  if (shouldLog) {
+    console.log(`   ✅ Normalized event ready for Firestore\n`);
+  }
+  
+  return normalized;
 }
 
 /**

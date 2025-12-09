@@ -27,6 +27,7 @@ import PublicRoute from '../components/routes/PublicRoute';
 const MainApp = lazy(() => import('../App'));
 const UploadDescriptions = lazy(() => import('../components/UploadDescriptions'));
 const ExportEvents = lazy(() => import('../components/ExportEvents'));
+const EventsPage = lazy(() => import('../components/EventsPage'));
 
 /**
  * Loading Component
@@ -107,6 +108,16 @@ export default function AppRoutes() {
           element={
             <PublicRoute>
               <MainApp />
+            </PublicRoute>
+          }
+        />
+
+        {/* Economic Events Page - Table and Timeline views */}
+        <Route
+          path="/events"
+          element={
+            <PublicRoute>
+              <EventsPage />
             </PublicRoute>
           }
         />

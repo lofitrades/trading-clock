@@ -1,11 +1,19 @@
 /* src/components/TimezoneSelector.jsx */
+/* src/components/TimezoneSelector.jsx */
 import { useState, useMemo } from 'react';
 import { IconButton, Tooltip, Autocomplete, TextField, Box } from '@mui/material';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 import UnlockModal from './UnlockModal';
-export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone, textColor, onRequestSignUp, eventsOpen, onToggleEvents }) {
+
+/**
+ * TimezoneSelector - Timezone dropdown with Firestore persistence
+ * v1.1.0 - Fixed timezone persistence by using updateSelectedTimezone() from SettingsContext
+ */
+export default function TimezoneSelector({ textColor, onRequestSignUp, eventsOpen, onToggleEvents }) {
   const { user } = useAuth();
+  const { selectedTimezone, updateSelectedTimezone } = useSettings();
   const [showUnlock, setShowUnlock] = useState(false);
 
   // Build the timezone list once. We keep label and a numeric sort key for ordering.
@@ -61,7 +69,8 @@ export default function TimezoneSelector({ selectedTimezone, setSelectedTimezone
     }
 
     if (newValue) {
-      setSelectedTimezone(newValue.timezone);
+      // CRITICAL: Use updateSelectedTimezone() to persist to Firestore
+      updateSelectedTimezone(newValue.timezone);
     }
   };
 

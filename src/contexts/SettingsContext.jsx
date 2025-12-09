@@ -215,6 +215,18 @@ export function SettingsProvider({ children }) {
     if (user) saveSettingsToFirestore({ sessions: newSessions });
   };
 
+  /**
+   * Update selected timezone with proper persistence
+   * CRITICAL: Must save to both localStorage and Firestore for authenticated users
+   */
+  const updateSelectedTimezone = (timezone) => {
+    setSelectedTimezone(timezone);
+    localStorage.setItem('selectedTimezone', timezone);
+    if (user) {
+      saveSettingsToFirestore({ selectedTimezone: timezone });
+    }
+  };
+
   const updateBackgroundColor = (color) => {
     setBackgroundColor(color);
     localStorage.setItem('backgroundColor', color);
@@ -399,7 +411,8 @@ export function SettingsProvider({ children }) {
     updateCanvasSize,
     updateClockSize,
     updateSessions,
-    setSelectedTimezone,
+    updateSelectedTimezone,  // Proper function with Firestore persistence
+    setSelectedTimezone,      // Direct setter (for backward compatibility)
     backgroundColor,
     updateBackgroundColor,
     backgroundBasedOnSession,

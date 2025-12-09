@@ -6,6 +6,7 @@
  * Automatically creates user documents with role and subscription on account creation.
  * 
  * Changelog:
+ * v2.1.1 - 2025-12-01 - Documentation: Clarified that selectedTimezone in default settings is for new user creation only, SettingsContext is source of truth
  * v2.1.0 - 2025-11-30 - Added automatic user profile creation with role & subscription documents
  * v2.0.0 - 2025-11-30 - Enhanced with user profile, roles, and subscription support
  * v1.0.0 - 2025-09-15 - Initial implementation
@@ -68,11 +69,12 @@ export const AuthProvider = ({ children }) => {
         },
         
         // Default Settings (from existing structure)
+        // NOTE: selectedTimezone managed by SettingsContext - included here for new user profile creation only
         settings: {
           clockStyle: 'normal',
           canvasSize: 100,
           clockSize: 375,
-          selectedTimezone: 'America/New_York',
+          selectedTimezone: 'America/New_York',  // Default timezone (SettingsContext is source of truth)
           backgroundColor: '#F9F9F9',
           backgroundBasedOnSession: false,
           showHandClock: true,

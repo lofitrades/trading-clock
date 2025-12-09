@@ -20,7 +20,7 @@ import DigitalClock from './components/DigitalClock';
 import SessionLabel from './components/SessionLabel';
 import TimezoneSelector from './components/TimezoneSelector';
 import SettingsSidebar from './components/SettingsSidebar';
-import EconomicEvents from './components/EconomicEvents';
+import EconomicEvents2 from './components/EconomicEvents2';
 import LoadingScreen from './components/LoadingScreen';
 import { isColorDark } from './utils/clockUtils';
 import './index.css';  // Import global CSS styles
@@ -38,7 +38,7 @@ export default function App() {
     updateCanvasSize,
     updateClockSize,
     updateSessions,
-    setSelectedTimezone,
+    // setSelectedTimezone removed - TimezoneSelector now uses updateSelectedTimezone from SettingsContext
     backgroundColor,
     updateBackgroundColor,
     backgroundBasedOnSession,
@@ -134,15 +134,14 @@ export default function App() {
   }, [effectiveBackground]);
 
   // Timezone selector is always rendered at the bottom of the clock elements.
+  // v1.1.0: TimezoneSelector now uses SettingsContext directly (removed selectedTimezone/setSelectedTimezone props)
   const memoizedTimezoneSelector = useMemo(() => (
     <TimezoneSelector
-      selectedTimezone={selectedTimezone}
-      setSelectedTimezone={setSelectedTimezone}
       textColor={effectiveTextColor}
       eventsOpen={eventsOpen}
       onToggleEvents={() => setEventsOpen(!eventsOpen)}
     />
-  ), [selectedTimezone, effectiveTextColor, eventsOpen]);
+  ), [effectiveTextColor, eventsOpen]);
 
   return (
     <>
@@ -216,7 +215,7 @@ export default function App() {
         />
 
         {/* Economic Events Panel - Keep mounted for smooth navigation */}
-        <EconomicEvents 
+        <EconomicEvents2 
           open={eventsOpen}
           onClose={() => setEventsOpen(false)} 
           timezone={selectedTimezone}

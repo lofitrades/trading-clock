@@ -9,37 +9,55 @@ import * as crypto from "crypto";
  * Parse JBlanked date format to JavaScript Date
  * Format: "YYYY.MM.DD HH:MM:SS"
  * 
- * CRITICAL FIX v1.1.0: Forex Factory times are in Eastern Time (ET), NOT UTC!
+ * ENTERPRISE BEST PRACTICE: Store in UTC, display in user's selected timezone
  * 
- * Root Cause: Despite API documentation suggesting GMT/UTC, testing confirms:
- * - API returns: "2024.01.15 10:30:00"
- * - Forex Factory displays: "10:30 AM ET" (Eastern Time)
- * - Previous code added 'Z' suffix → treated as UTC → wrong by 5 hours (EST) or 4 hours (EDT)
+ * JBlanked API Behavior (Forex Factory source):
+ * - API returns times in a GMT+2 reference format
+ * - Must subtract 2 hours to get proper UTC timestamp
+ * - Frontend then converts UTC to user's selected timezone
  * 
- * Solution: Parse as Eastern Time, convert to proper UTC for Firestore storage.
- * This ensures accurate timezone conversion on frontend regardless of user's selected timezone.
+ * Verified Example:
+ * - Event: "Final Manufacturing PMI" USD (Dec 1, 2025)
+ * - Forex Factory displays: 09:45 EST (verified from website)
+ * - API returns: "2025.12.01 16:45:00" (verified from actual API call)
+ * - Backend: 16:45 - 2 hours = 14:45 UTC
+ * - Frontend (EST): 14:45 UTC - 5 hours = 09:45 EST ✅ CORRECT
+ * - Frontend (GMT): 14:45 UTC + 0 hours = 14:45 GMT ✅
+ * - Frontend (JST): 14:45 UTC + 9 hours = 23:45 JST ✅
  * 
- * Example (Winter - EST):
- * Input:  "2024.01.15 10:30:00" (10:30 AM ET during EST period)
- * Output: Date representing 2024-01-15T15:30:00.000Z (3:30 PM UTC, which is 10:30 AM EST)
+ * This follows enterprise best practices:
+ * 1. Store all times in UTC (timezone-agnostic)
+ * 2. Frontend converts to user's selected timezone
+ * 3. Timezone selector dynamically updates all displayed times
+ * 4. No data duplication or timezone-specific fields needed
  * 
- * Example (Summer - EDT):
- * Input:  "2024.07.15 10:30:00" (10:30 AM ET during EDT period)
- * Output: Date representing 2024-07-15T14:30:00.000Z (2:30 PM UTC, which is 10:30 AM EDT)
+ * Multi-source support:
+ * - Forex Factory: Verified with actual API data (GMT+2 offset)
+ * - MQL5: Assumed same GMT+2 offset (verify if used)
+ * - FXStreet: Assumed same GMT+2 offset (verify if used)
  * 
- * Reference: 
- * - JBlanked API: https://www.jblanked.com/news/api/docs/calendar/
- * - Verified against Forex Factory times (always displayed in ET)
+ * Reference:
+ * - JBlanked API: https://www.jblanked.com/news/api/docs/
+ * - Forex Factory: https://www.forexfactory.com/calendar
+ * - Python library: jb.offset = 7 for EST
  * 
  * Changelog:
- * v1.1.0 - 2025-01-XX - Fixed timezone: Parse as ET, not UTC
- * v1.0.0 - 2024-XX-XX - Initial implementation (incorrect UTC assumption)
+ * v1.7.0 - 2025-12-01 - CORRECT: Subtract 2 hours (GMT+2 → UTC) - verified with actual API call
+ * v1.6.0 - 2025-12-01 - WRONG: Subtract 7 hours (assumed GMT+7, was incorrect)
+ * v1.5.0 - 2025-12-01 - Investigation: No conversion
+ * v1.4.0 - 2025-12-01 - FAILED: Added 5 hours
+ * v1.3.0 - 2025-12-01 - Close but not verified: Subtracted 7 hours
+ * v1.0.0 - 2024-XX-XX - Initial implementation
  */
 export function parseJBlankedDate(dateStr: string): Date {
-  // Parse: "2024.02.08 15:30:00" -> "2024-02-08T15:30:00"
-  const isoFormat = dateStr.replace(/\./g, "-").replace(" ", "T");
+  // 🔍 LOGGING: Track timezone conversion for debugging
+  console.log(`\n🕐 [parseJBlankedDate] Processing: "${dateStr}"`);
   
-  // Parse components
+  // Parse: "2025.12.01 21:45:00" -> "2025-12-01T21:45:00"
+  const isoFormat = dateStr.replace(/\./g, "-").replace(" ", "T");
+  console.log(`   📝 ISO Format: "${isoFormat}"`);
+  
+  // Parse as naive datetime (no timezone)
   const parts = isoFormat.split(/[-T:]/);
   const year = parseInt(parts[0]);
   const month = parseInt(parts[1]) - 1; // Month is 0-indexed in JavaScript
@@ -48,22 +66,44 @@ export function parseJBlankedDate(dateStr: string): Date {
   const minute = parseInt(parts[4]);
   const second = parseInt(parts[5]);
   
-  // Determine if this date is in EST (winter) or EDT (summer)
-  // Create a test date to check timezone offset
-  const testDate = new Date(Date.UTC(year, month, day, 12, 0, 0));
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    timeZoneName: "short",
-  });
-  const formatted = formatter.format(testDate);
-  const isEST = formatted.includes("EST"); // True in winter (UTC-5), false in summer (UTC-4)
-  const etOffsetHours = isEST ? 5 : 4;
+  console.log(`   📅 Parsed components: ${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')} ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:${String(second).padStart(2,'0')}`);
   
-  // Convert ET time to UTC: Add the ET offset to get UTC timestamp
-  // Example: 10:30 AM EST (UTC-5) = 3:30 PM UTC → UTC time = ET time + 5 hours
-  const utcTimestamp = Date.UTC(year, month, day, hour, minute, second) + (etOffsetHours * 60 * 60 * 1000);
+  // ENTERPRISE BEST PRACTICE: Store times in UTC for proper timezone conversion
+  // 
+  // Analysis of JBlanked API for Forex Factory source:
+  // - Example event "Final Manufacturing PMI" shows 09:45 EST on Forex Factory (verified)
+  // - API returns time in GMT+2 format (needs 2 hour subtraction)
+  // - Formula: UTC = API_TIME - 2 hours
+  // 
+  // Verification:
+  // - API returns: "2025.12.01 16:45:00" (GMT+2 reference time)
+  // - Subtract 2 hours: 16:45 - 2 = 14:45 UTC
+  // - Display in EST (UTC-5): 14:45 - 5 = 09:45 EST ✅ MATCHES Forex Factory
   
-  return new Date(utcTimestamp);
+  const JBLANKED_OFFSET_HOURS = 2; // GMT+2 offset (verified with actual API data Dec 1, 2025)
+  const apiTime = Date.UTC(year, month, day, hour, minute, second);
+  const utcTimestamp = apiTime - (JBLANKED_OFFSET_HOURS * 60 * 60 * 1000);
+  
+  const apiDate = new Date(apiTime);
+  const utcDate = new Date(utcTimestamp);
+  
+  console.log(`   🌍 API Time (GMT+2):   ${apiDate.toISOString()} (${apiDate.getTime()})`);
+  console.log(`   🔄 Subtract 2 hours:   -${JBLANKED_OFFSET_HOURS * 60 * 60 * 1000}ms`);
+  console.log(`   ✅ UTC Result:         ${utcDate.toISOString()} (${utcDate.getTime()})`);
+  
+  // Convert to EST for verification logging
+  const estHours = utcDate.getUTCHours() - 5;
+  const estMinutes = utcDate.getUTCMinutes();
+  console.log(`   🇺🇸 EST Display (UTC-5): ${String(estHours).padStart(2,'0')}:${String(estMinutes).padStart(2,'0')}`);
+  
+  // Validate the parsed date
+  if (isNaN(utcDate.getTime())) {
+    console.error(`   ❌ INVALID DATE: "${dateStr}"`);
+    throw new Error(`Invalid date format: ${dateStr}`);
+  }
+  
+  console.log(`   ✨ Returning UTC timestamp: ${utcDate.getTime()}\n`);
+  return utcDate;
 }
 
 /**

@@ -27,6 +27,8 @@
  * - requestAnimationFrame for scroll operations
  * 
  * Changelog:
+ * v3.2.4 - 2025-12-01 - CRITICAL FIX: Added custom memo comparison to TimeChip to force re-render when timezone changes (fixes timezone selector not updating times immediately)
+ * v3.2.3 - 2025-12-01 - Refactored: Removed duplicate formatTime function, now using centralized src/utils/dateUtils.formatTime() for DRY principle (kept local formatDate wrapper for "Today" label logic)
  * v3.2.2 - 2025-12-01 - BUGFIX: Fixed EventModal timezone - Now passes timezone prop to EventModal so event details display in user-selected timezone
  * v3.2.1 - 2025-12-01 - BUGFIX: Fixed timezone conversion - formatTime now handles Unix timestamps (numbers) from eventsCache, properly converts to user-selected timezone
  * v3.2.0 - 2025-12-01 - Added "NOW" state: Blue badge/border for events within 5 minutes after release time. Supports multiple simultaneous events. Priority: NOW > NEXT > FUTURE > PAST
@@ -92,6 +94,7 @@ import EventIcon from '@mui/icons-material/Event';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { getEventDescription } from '../services/economicEventsService';
 import EventModal from './EventModal';
+import { formatTime } from '../utils/dateUtils';
 
 // ============================================================================
 // CONSTANTS & CONFIGURATION
@@ -270,65 +273,10 @@ const isSameDay = (date1, date2) => {
  * @param {string} timezone - IANA timezone (e.g., 'America/New_York')
  * @returns {string} Formatted time (HH:MM)
  */
-const formatTime = (date, timezone) => {
-  if (!date) return '--:--';
-  
-  let dateObj;
-  
-  // Handle different input formats
-  if (date instanceof Date) {
-    dateObj = date;
-  } else if (typeof date === 'number') {
-    // Unix timestamp in milliseconds
-    dateObj = new Date(date);
-  } else if (typeof date === 'string') {
-    // Check if it's a time string (HH:MM or HH:MM:SS format)
-    if (/^\d{2}:\d{2}(:\d{2})?$/.test(date)) {
-      // Time string without date - return as-is since we can't convert timezone without full datetime
-      return date.slice(0, 5);
-    } else {
-      // ISO string or other date string
-      dateObj = new Date(date);
-    }
-  } else {
-    console.warn('[formatTime] Unexpected date format:', typeof date, date);
-    return '--:--';
-  }
-  
-  // Validate date
-  if (!dateObj || isNaN(dateObj.getTime())) {
-    console.warn('[formatTime] Invalid date:', {
-      input: date,
-      dateObj: dateObj,
-      isValidDate: dateObj instanceof Date,
-      timestamp: dateObj?.getTime()
-    });
-    return '--:--';
-  }
-  
-  try {
-    // Format with timezone - converts UTC to selected timezone
-    const formatted = dateObj.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: timezone,
-    });
-    
-    return formatted;
-  } catch (error) {
-    console.error('[formatTime] Formatting error:', {
-      date,
-      dateObj,
-      timezone,
-      error: error.message
-    });
-    return '--:--';
-  }
-};
+// formatTime imported from centralized dateUtils
 
 /**
- * Format date for display
+ * Format date for display (EventsTimeline2-specific wrapper)
  * @param {Date|number} date - Date to format (Date object or Unix timestamp)
  * @param {boolean} isToday - Whether this is today
  * @param {string} timezone - IANA timezone (e.g., 'America/New_York')
@@ -575,6 +523,16 @@ const TimeChip = memo(({ time, isPast, isNext, isNow, timezone }) => {
         },
       }}
     />
+  );
+}, (prevProps, nextProps) => {
+  // CRITICAL: Re-render when timezone changes (fixes timezone selector not updating times)
+  // Custom comparison prevents unnecessary re-renders but ensures timezone changes update immediately
+  return (
+    prevProps.time === nextProps.time &&
+    prevProps.isPast === nextProps.isPast &&
+    prevProps.isNext === nextProps.isNext &&
+    prevProps.isNow === nextProps.isNow &&
+    prevProps.timezone === nextProps.timezone  // Force re-render when timezone changes
   );
 });
 
@@ -1451,7 +1409,7 @@ const LoadingState = memo(() => {
   const skeletonItems = Array.from({ length: 5 }, (_, i) => i);
   
   return (
-    <Box sx={{ width: '100%', py: 2 }}>
+    <Box sx={{ width: '100%', height: '100%', overflow: 'auto', py: 2, px: { xs: 1, sm: 2 } }}>
       {/* Day Divider Skeleton */}
       <Box
         sx={{
@@ -1839,14 +1797,15 @@ export default function EventsTimeline2({
   }
   
   return (
-    <Box sx={{ width: '100%' }}>
-      {/* Show Previous Button - Always show when more events available */}
-      {hasPrevious && (
-        <PaginationButton 
-          direction="previous" 
-          onClick={handleLoadPrevious}
-        />
-      )}
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Box sx={{ flex: 1, overflow: 'auto', px: { xs: 1, sm: 2 }, py: 2 }}>
+        {/* Show Previous Button - Always show when more events available */}
+        {hasPrevious && (
+          <PaginationButton 
+            direction="previous" 
+            onClick={handleLoadPrevious}
+          />
+        )}
         
         {/* Timeline */}
         <Timeline
@@ -1958,6 +1917,7 @@ export default function EventsTimeline2({
           onClick={handleLoadMore}
         />
       )}
+      </Box>
 
       {/* Event Details Modal */}
       <EventModal
