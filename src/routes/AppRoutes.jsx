@@ -12,12 +12,14 @@
  * - Premium Routes: Require specific subscription plans
  * 
  * Changelog:
+ * v1.1.0 - 2025-12-09 - Replaced CircularProgress fallback with branded donut loader
  * v1.0.0 - 2025-11-30 - Initial implementation with RBAC and subscription support
  */
 
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Box, CircularProgress } from '@mui/material';
+import { Box } from '@mui/material';
+import RouteLoading from '../components/routes/RouteLoading';
 
 // Route Guards
 import PrivateRoute from '../components/routes/PrivateRoute';
@@ -34,18 +36,7 @@ const EventsPage = lazy(() => import('../components/EventsPage'));
  * Displayed while lazy-loaded components are loading
  */
 const LoadingFallback = () => (
-  <Box
-    sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100vh',
-      gap: 2,
-    }}
-  >
-    <CircularProgress size={60} />
-  </Box>
+  <RouteLoading message="Timing..." />
 );
 
 /**

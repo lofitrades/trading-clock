@@ -1,12 +1,24 @@
-// src/components/LoadingScreen.jsx
+/**
+ * src/components/LoadingScreen.jsx
+ * 
+ * Purpose: Fullscreen branded loading experience with donut animation.
+ * Provides smooth fade transitions and consistent UX across app entry points.
+ * 
+ * Changelog:
+ * v1.2.0 - 2025-12-09 - Reduced loader size to compact, CircularProgress-like footprint
+ * v1.1.0 - 2025-12-09 - Lengthened fade, keep-mounted transitions for smoother handoff
+ * v1.0.0 - 2025-11-30 - Initial implementation
+ */
+
 import React from 'react';
 import { Box, Fade } from '@mui/material';
 import LoadingAnimation from './LoadingAnimation';
 
 const LoadingScreen = ({ isLoading, clockSize = 375 }) => {
+  const effectiveSize = Math.min(clockSize || 375, 96);
 
   return (
-    <Fade in={isLoading} timeout={300}>
+    <Fade in={isLoading} timeout={{ enter: 400, exit: 650 }} mountOnEnter unmountOnExit>
       <Box
         sx={{
           position: 'fixed',
@@ -21,24 +33,10 @@ const LoadingScreen = ({ isLoading, clockSize = 375 }) => {
           justifyContent: 'center',
           zIndex: 9999,
           gap: 3,
+          transition: 'opacity 0.6s ease',
         }}
       >
-        <LoadingAnimation clockSize={clockSize} isLoading={isLoading} />
-        <Box
-          sx={{
-            fontSize: '1.2rem',
-            fontWeight: 500,
-            color: '#4B4B4B',
-            fontFamily: 'Roboto, sans-serif',
-            animation: 'pulse 2s ease-in-out infinite',
-            '@keyframes pulse': {
-              '0%, 100%': { opacity: 0.6 },
-              '50%': { opacity: 1 },
-            },
-          }}
-        >
-          Loading Time 2 Trade...
-        </Box>
+        <LoadingAnimation clockSize={effectiveSize} isLoading={isLoading} />
       </Box>
     </Fade>
   );

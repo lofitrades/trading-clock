@@ -615,7 +615,6 @@ export default function EventModal({ open, onClose, event, timezone = 'America/N
 
         setRefreshedEvent(updatedEvent);
         setRefreshSuccess(true);
-        console.log('✅ Event refreshed from Firestore:', updatedEvent);
         
         // Hide success message after 3 seconds
         setTimeout(() => {
@@ -1381,7 +1380,6 @@ export default function EventModal({ open, onClose, event, timezone = 'America/N
                 try {
                   await navigator.clipboard.writeText(currentEvent.id);
                   setCopySuccess(true);
-                  console.log('✅ Event ID copied to clipboard:', currentEvent.id);
                   
                   // Reset success state after 2 seconds
                   setTimeout(() => {

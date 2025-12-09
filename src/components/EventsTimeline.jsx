@@ -149,13 +149,6 @@ export default function EventsTimeline({ events, loading, hasAppliedFilters, onQ
 
   // Reset pagination when filters change, but start from today's position
   useEffect(() => {
-    console.log('🔄 [EventsTimeline] Pagination effect triggered', {
-      eventsLength: sortedEvents.length,
-      startIndex,
-      endIndex,
-      hasPrevious
-    });
-
     if (sortedEvents.length === 0) {
       setStartIndex(0);
       setEndIndex(10);
@@ -172,29 +165,16 @@ export default function EventsTimeline({ events, loading, hasAppliedFilters, onQ
       return eventDate >= todayStart;
     });
 
-    console.log('📍 [EventsTimeline] Today index found:', todayIndex, 'Total events:', sortedEvents.length);
-
     // If today's events found, start FROM today (hide previous events initially)
     if (todayIndex >= 0) {
       // Start from today, show PAGE_SIZE events forward
       const contextStart = todayIndex;
       const contextEnd = Math.min(sortedEvents.length, contextStart + PAGE_SIZE);
-      
-      console.log('✅ [EventsTimeline] Starting from today (previous events hidden initially):', { 
-        todayIndex,
-        contextStart,
-        contextEnd,
-        eventsBeforeToday: todayIndex,
-        willShowPreviousButton: todayIndex > 0,
-        willShowMoreButton: contextEnd < sortedEvents.length
-      });
-      
       setStartIndex(contextStart);
       setEndIndex(contextEnd);
     } else {
       // All events are in the past, show the last page
       const lastPageStart = Math.max(0, sortedEvents.length - PAGE_SIZE);
-      console.log('⏮️ [EventsTimeline] All past events, setting to last page:', { lastPageStart, endIndex: sortedEvents.length });
       setStartIndex(lastPageStart);
       setEndIndex(sortedEvents.length);
     }
@@ -469,15 +449,6 @@ export default function EventsTimeline({ events, loading, hasAppliedFilters, onQ
   // Find the next upcoming event (first future event)
   const now = new Date();
   const nextEventIndex = visibleEvents.findIndex(event => new Date(event.date) > now);
-
-  console.log('🎯 [EventsTimeline] Render state:', {
-    startIndex,
-    endIndex,
-    hasPrevious,
-    hasMore,
-    visibleEventsCount: visibleEvents.length,
-    totalEvents: sortedEvents.length
-  });
 
   return (
     <>

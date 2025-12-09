@@ -15,6 +15,15 @@
  * - Keyboard navigation and accessibility
  * 
  * Changelog:
+ * v1.2.7 - 2025-12-09 - Filters in compact mode now occupy full viewport height when expanded for maximum usability
+ * v1.2.6 - 2025-12-09 - Remove unnecessary filter scrolling on large screens; keep sticky clamp only on smaller viewports
+ * v1.2.5 - 2025-12-09 - Header and tabs now scroll with the page; only filters stay fixed in compact mode
+ * v1.2.4 - 2025-12-09 - Sticky filters now span full viewport width and pin to the top in compact mode
+ * v1.2.3 - 2025-12-09 - Added autoScrollToNextKey prop to allow drawer to auto-scroll timeline to next event
+ * v1.2.2 - 2025-12-09 - Header event count now reflects visible timeline items (pagination aware via onVisibleCountChange)
+ * v1.2.1 - 2025-12-09 - Added hideBackButton option for embedded/full-width drawer usage
+ * v1.2.0 - 2025-12-09 - Moved sync controls to /events header (initial sync + multi-source calendar) and kept drawer timeline-only
+ * v1.1.1 - 2025-12-09 - Embedded drawer shows timeline only (no tabs/table) to maximize vertical space
  * v1.1.0 - 2025-12-08 - Added embedded mode: forwardRef for refresh control, skip URL updates, hide header, adjust container styling for drawer integration
  * v1.0.2 - 2025-12-08 - Added comprehensive source-tracking logging to fetchEvents, handleRefresh, and newsSource useEffect for better debugging
  * v1.0.1 - 2025-12-08 - Fixed initial date range: always use fresh Date() dynamically, added current date logging for debugging
@@ -30,7 +39,10 @@ import {
   Tab,
   Paper,
   IconButton,
+  Button,
   Tooltip as MuiTooltip,
+  Alert,
+  AlertTitle,
   alpha,
   useTheme,
   useMediaQuery,
@@ -39,9 +51,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import TimelineIcon from '@mui/icons-material/Timeline';
+import SyncIcon from '@mui/icons-material/Sync';
 import EventsTable from './EventsTable';
 import EventsTimeline2 from './EventsTimeline2';
 import EventsFilters2 from './EventsFilters2';
+import ConfirmModal from './ConfirmModal';
+import SyncCalendarModal from './SyncCalendarModal';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getEventsByDateRange } from '../services/economicEventsService';
@@ -67,9 +82,10 @@ const MAX_DATE_RANGE_DAYS = 365; // 1 year maximum
  * Main page for viewing and managing economic events
  * Can be standalone (/events route) or embedded in drawer
  */
-const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) => {
+const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBackButton = false, autoScrollToNextKey = null, compactMode = false }, ref) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -84,6 +100,11 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [syncing, setSyncing] = useState(false);
+  const [syncSuccess, setSyncSuccess] = useState(null);
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [showInitialSyncConfirm, setShowInitialSyncConfirm] = useState(false);
 
   // Filter state - Initialize from SettingsContext or URL params
   const [filters, setFilters] = useState(() => {
@@ -121,7 +142,6 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) 
       // Set default range matching cache optimization (14d back + 8d forward)
       // IMPORTANT: Always use fresh Date() to get current date
       const now = new Date(); // Fresh current date
-      console.log(`📅 [EventsPage] Current date/time: ${now.toISOString()} (${now.toLocaleString()})`);
       
       const startDate = new Date(now.getTime()); // Clone to avoid mutation
       startDate.setDate(startDate.getDate() - 14); // 14 days back (matches cache)
@@ -130,13 +150,6 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) 
       const endDate = new Date(now.getTime()); // Clone to avoid mutation
       endDate.setDate(endDate.getDate() + 8); // 8 days forward (matches cache)
       endDate.setHours(23, 59, 59, 999);
-      
-      console.log('📅 [EventsPage] Setting initial date range (cache-optimized):', {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        daysBack: 14,
-        daysForward: 8,
-      });
       
       const newFilters = {
         ...filters,
@@ -148,10 +161,6 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) 
       fetchEvents(newFilters);
     } else {
       // Load data with current filters
-      console.log('📅 [EventsPage] Using existing date range:', {
-        startDate: filters.startDate?.toISOString(),
-        endDate: filters.endDate?.toISOString(),
-      });
       fetchEvents();
     }
   }, []); // Run only on mount
@@ -162,8 +171,6 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) 
    */
   useEffect(() => {
     if (filters.startDate && filters.endDate) {
-      console.log(`📡 [EventsPage.useEffect-newsSource] News source changed to: ${newsSource}`);
-      console.log(`📦 [EventsPage.useEffect-newsSource] Loading events from ${newsSource} cache...`);
       fetchEvents();
     }
   }, [newsSource]); // Only depend on newsSource
@@ -197,9 +204,6 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) 
     setLoading(true);
     setError(null);
 
-    console.log(`📊 [EventsPage.fetchEvents] Fetching events for source: ${newsSource}`);
-    console.log(`📅 [EventsPage.fetchEvents] Date range: ${activeFilters.startDate?.toISOString()} to ${activeFilters.endDate?.toISOString()}`);
-
     try {
       const result = await getEventsByDateRange(
         activeFilters.startDate,
@@ -220,14 +224,12 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) 
         const updatedTime = new Date();
         setEvents(sortedEvents);
         setLastUpdated(updatedTime);
+        setVisibleCount(sortedEvents.length); // Prime count until timeline reports visible slice
         
         // Notify parent (for drawer integration)
         if (onEventsUpdate) {
           onEventsUpdate(sortedEvents.length, updatedTime);
         }
-        
-        console.log(`✅ [EventsPage] Loaded ${sortedEvents.length} events from ${newsSource}`);
-        console.log('📊 [EventsPage] Sample event:', sortedEvents[0]);
       } else {
         console.error('❌ [EventsPage] Failed to load events:', result.error);
         setError(result.error || 'Failed to load events');
@@ -272,17 +274,94 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) 
    * Handle manual refresh - force cache invalidation and refetch
    */
   const handleRefresh = useCallback(async () => {
-    console.log(`🔄 [EventsPage.handleRefresh] Manual refresh triggered for source: ${newsSource}`);
-    console.log(`📦 [EventsPage.handleRefresh] Invalidating cache for ${newsSource}...`);
-    
     // Invalidate cache to force fresh data
     const { invalidateCache } = await import('../services/eventsCache');
     invalidateCache(newsSource);
-    
-    console.log(`✅ [EventsPage.handleRefresh] Cache invalidated, refetching events...`);
     // Refetch events
     fetchEvents();
   }, [newsSource, fetchEvents]);
+
+  /**
+   * Track visible count from timeline (pagination-aware)
+   */
+  const handleVisibleCountChange = useCallback((count) => {
+    setVisibleCount(count);
+    if (onEventsUpdate) {
+      onEventsUpdate(count, lastUpdated || new Date());
+    }
+  }, [onEventsUpdate, lastUpdated]);
+
+  /**
+   * Multi-source sync (calendar) via modal
+   */
+  const handleMultiSourceSync = useCallback(async (selectedSources) => {
+    setSyncing(true);
+    try {
+      const { triggerManualSync } = await import('../services/economicEventsService');
+      const result = await triggerManualSync({
+        sources: selectedSources,
+        dryRun: false,
+      });
+
+      if (result.success) {
+        const totalRecords = result.data.totalRecordsUpserted || 0;
+        setSyncSuccess(
+          `Synced ${totalRecords.toLocaleString()} events from ${selectedSources.length} source${selectedSources.length > 1 ? 's' : ''}!`
+        );
+        // Refresh data after sync
+        fetchEvents();
+        setTimeout(() => setSyncSuccess(null), 5000);
+      }
+
+      return result;
+    } finally {
+      setSyncing(false);
+    }
+  }, [fetchEvents]);
+
+  /**
+   * Initial historical sync (2 years back)
+   */
+  const handleInitialSync = useCallback(async () => {
+    setShowInitialSyncConfirm(false);
+    setSyncing(true);
+    setSyncSuccess(null);
+
+    try {
+      const response = await fetch(
+        'https://us-central1-time-2-trade-app.cloudfunctions.net/syncHistoricalEvents',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sources: ['mql5', 'forex-factory', 'fxstreet'],
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.ok) {
+        const totalRecords = result.totalRecordsUpserted || 0;
+        const sourcesCount = result.totalSources || 0;
+        setSyncSuccess(
+          `Initial sync complete! Loaded ${totalRecords.toLocaleString()} historical events from ${sourcesCount} sources (2 years back to today).`
+        );
+        fetchEvents();
+        setTimeout(() => setSyncSuccess(null), 10000);
+      } else {
+        setSyncSuccess(`Error: ${result.error || 'Initial sync failed'}`);
+        setTimeout(() => setSyncSuccess(null), 5000);
+      }
+    } catch (error) {
+      setSyncSuccess('Failed to connect to sync service. Please try again.');
+      setTimeout(() => setSyncSuccess(null), 5000);
+    }
+
+    setSyncing(false);
+  }, [fetchEvents]);
 
   // Expose handleRefresh to parent via ref
   useImperativeHandle(ref, () => ({
@@ -312,6 +391,19 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) 
 
   // ========== RENDER ==========
 
+  // Embedded drawer: force timeline view to reclaim vertical space
+  const currentTab = embedded ? TAB_VALUES.TIMELINE : activeTab;
+  const displayEventCount = currentTab === TAB_VALUES.TIMELINE
+    ? (visibleCount || events.length)
+    : events.length;
+  const headerPaddingY = compactMode ? { xs: 1.25, sm: 1.75 } : { xs: 2, sm: 3 };
+  const headerStickySx = {};
+  const compactHeaderHeightPx = 72;
+  const filtersStickyTop = compactMode ? 0 : 'auto';
+  const tabsStickyTop = 'auto';
+  const filtersMaxHeight = compactMode ? '100vh' : 'none';
+  const filtersOverflow = compactMode ? 'auto' : 'visible';
+
   return (
     <Box
       sx={{
@@ -334,86 +426,164 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) 
             color: 'primary.contrastText',
             borderRadius: 0,
             borderBottom: `4px solid ${theme.palette.primary.dark}`,
+            ...headerStickySx,
           }}
         >
           <Container maxWidth="xl">
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                py: { xs: 2, sm: 3 },
-              }}
-            >
-              {/* Back Button */}
-              <MuiTooltip title="Back to Clock" placement="bottom">
-                <IconButton
-                  onClick={handleBackClick}
-                  sx={{
-                    color: 'primary.contrastText',
-                    '&:hover': {
-                      bgcolor: alpha('#fff', 0.1),
-                    },
-                  }}
-                >
-                  <ArrowBackIcon />
-                </IconButton>
-              </MuiTooltip>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.1, py: headerPaddingY }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: { xs: 'flex-start', sm: 'center' },
+                  gap: 1.5,
+                  flexWrap: 'wrap',
+                }}
+              >
+                {/* Back Button */}
+                {!hideBackButton && (
+                  <MuiTooltip title="Back to Clock" placement="bottom">
+                    <IconButton
+                      onClick={handleBackClick}
+                      sx={{
+                        color: 'primary.contrastText',
+                        '&:hover': {
+                          bgcolor: alpha('#fff', 0.1),
+                        },
+                      }}
+                    >
+                      <ArrowBackIcon />
+                    </IconButton>
+                  </MuiTooltip>
+                )}
 
-              {/* Title */}
-              <Box sx={{ flex: 1 }}>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontWeight: 700,
-                    fontSize: { xs: '1.5rem', sm: '2rem' },
-                    mb: 0.5,
-                  }}
-                >
-                  Economic Events
-                </Typography>
-                {lastUpdated && (
+                {/* Title + Meta */}
+                <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography
-                    variant="caption"
+                    variant="h4"
                     sx={{
-                      opacity: 0.9,
-                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      fontWeight: 800,
+                      fontSize: compactMode ? { xs: '1.35rem', sm: '1.6rem' } : { xs: '1.6rem', sm: '2rem' },
+                      letterSpacing: 0.2,
                     }}
                   >
-                    Last updated: {lastUpdated.toLocaleString()}
+                    Economic Events
                   </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', mt: 0.5 }}>
+                    {!loading && displayEventCount > 0 && (
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ fontWeight: 700, fontSize: { xs: '1rem', sm: '1.05rem' } }}
+                      >
+                        {displayEventCount.toLocaleString()} Events
+                      </Typography>
+                    )}
+                    {lastUpdated && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          opacity: 0.9,
+                          fontSize: compactMode ? { xs: '0.75rem', sm: '0.82rem' } : { xs: '0.78rem', sm: '0.85rem' },
+                        }}
+                      >
+                        Updated: {lastUpdated.toLocaleString()}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+
+                {/* Actions */}
+                {!embedded && user && (
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gap: 1,
+                      gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, auto)' },
+                      justifyContent: { xs: 'stretch', sm: 'flex-end' },
+                      width: { xs: '100%', sm: 'auto' },
+                    }}
+                  >
+                    <Button
+                      variant="contained"
+                      color="warning"
+                      size="medium"
+                      startIcon={
+                        <SyncIcon
+                          sx={{
+                            animation: syncing ? 'spin 1s linear infinite' : 'none',
+                            '@keyframes spin': {
+                              '0%': { transform: 'rotate(0deg)' },
+                              '100%': { transform: 'rotate(360deg)' },
+                            },
+                          }}
+                        />
+                      }
+                      disabled={syncing}
+                      onClick={() => setShowInitialSyncConfirm(true)}
+                      sx={{
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        fontSize: compactMode ? { xs: '0.85rem', sm: '0.9rem' } : { xs: '0.9rem', sm: '0.95rem' },
+                        py: compactMode ? { xs: 0.85, sm: 0.85 } : { xs: 1, sm: 0.9 },
+                        px: compactMode ? { xs: 2.1, sm: 2.6 } : { xs: 2.5, sm: 3 },
+                        width: '100%',
+                        boxShadow: theme.shadows[4],
+                      }}
+                    >
+                      Initial Sync
+                    </Button>
+
+                    <Button
+                      variant="outlined"
+                      color="inherit"
+                      size="medium"
+                      startIcon={
+                        <SyncIcon
+                          sx={{
+                            animation: syncing ? 'spin 1s linear infinite' : 'none',
+                            '@keyframes spin': {
+                              '0%': { transform: 'rotate(0deg)' },
+                              '100%': { transform: 'rotate(360deg)' },
+                            },
+                          }}
+                        />
+                      }
+                      disabled={syncing}
+                      onClick={() => setShowSyncModal(true)}
+                      sx={{
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        fontSize: compactMode ? { xs: '0.85rem', sm: '0.9rem' } : { xs: '0.9rem', sm: '0.95rem' },
+                        py: compactMode ? { xs: 0.85, sm: 0.85 } : { xs: 1, sm: 0.9 },
+                        px: compactMode ? { xs: 2.1, sm: 2.6 } : { xs: 2.5, sm: 3 },
+                        width: '100%',
+                        borderWidth: 2,
+                        color: 'primary.contrastText',
+                        borderColor: 'primary.contrastText',
+                        '&:hover': {
+                          borderColor: 'primary.contrastText',
+                          bgcolor: alpha('#ffffff', 0.12),
+                        },
+                      }}
+                    >
+                      Sync Calendar
+                    </Button>
+                  </Box>
                 )}
               </Box>
 
-              {/* Event Count Badge */}
-              {!loading && events.length > 0 && (
-                <Box
+              {!embedded && user && syncSuccess && (
+                <Alert
+                  severity={syncSuccess.startsWith('Error') ? 'error' : 'success'}
                   sx={{
-                    display: { xs: 'none', sm: 'flex' },
-                    flexDirection: 'column',
-                    alignItems: 'flex-end',
-                    gap: 0.5,
+                    bgcolor: alpha('#fff', 0.1),
+                    color: 'primary.contrastText',
+                    borderColor: alpha('#fff', 0.2),
+                    '.MuiAlert-icon': { color: 'inherit' },
                   }}
                 >
-                  <Typography
-                    variant="h5"
-                    sx={{
-                      fontWeight: 700,
-                      fontSize: { xs: '1.25rem', sm: '1.5rem' },
-                    }}
-                  >
-                    {events.length.toLocaleString()}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      opacity: 0.9,
-                      fontSize: '0.75rem',
-                    }}
-                  >
-                    Events
-                  </Typography>
-                </Box>
+                  <AlertTitle>{syncSuccess.startsWith('Error') ? 'Sync Error' : 'Sync Complete'}</AlertTitle>
+                  {syncSuccess}
+                </Alert>
               )}
             </Box>
           </Container>
@@ -425,25 +595,36 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) 
         component={embedded ? 'div' : Container}
         {...(!embedded && { maxWidth: 'xl' })}
         sx={{ 
-          mt: embedded ? 0 : 3, 
-          px: embedded ? { xs: 1.5, sm: 2 } : 0,
+          mt: embedded ? 0 : (compactMode ? 1.5 : 3), 
+          px: embedded ? { xs: 1.5, sm: 2 } : (compactMode ? { xs: 1, sm: 1.5 } : 0),
           pb: embedded ? 2 : 0,
           flex: embedded ? 1 : 'initial',
           overflow: embedded ? 'auto' : 'visible',
           display: embedded ? 'flex' : 'block',
           flexDirection: embedded ? 'column' : 'initial',
+          position: 'relative',
         }}
       >
         {/* Filters */}
         <Paper
           elevation={0}
           sx={{
-            mb: embedded ? 2 : 3,
+            mb: embedded ? 2 : (compactMode ? 1.5 : 3),
             border: '1px solid',
             borderColor: 'divider',
-            borderRadius: 2,
-            overflow: 'hidden',
+            borderRadius: compactMode ? 0 : 2,
             flexShrink: 0,
+            position: compactMode ? 'sticky' : 'static',
+            top: filtersStickyTop,
+            zIndex: compactMode ? 1180 : 'auto',
+            bgcolor: 'background.paper',
+            maxHeight: filtersMaxHeight,
+            overflow: filtersOverflow,
+            boxShadow: compactMode ? theme.shadows[3] : 'none',
+            width: compactMode ? '100vw' : 'auto',
+            maxWidth: compactMode ? '100vw' : 'none',
+            ml: compactMode ? 'calc(50% - 50vw)' : 0,
+            mr: compactMode ? 'calc(50% - 50vw)' : 0,
           }}
         >
           <EventsFilters2
@@ -453,50 +634,57 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) 
             loading={loading}
             timezone={selectedTimezone}
             newsSource={newsSource}
+            actionOffset={embedded ? (user ? 56 : 12) : 0}
           />
         </Paper>
 
         {/* Tabs */}
-        <Paper
-          elevation={0}
-          sx={{
-            mb: embedded ? 2 : 3,
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 2,
-            overflow: 'hidden',
-            flexShrink: 0,
-          }}
-        >
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            variant={isMobile ? 'fullWidth' : 'standard'}
+        {!embedded && (
+          <Paper
+            elevation={0}
             sx={{
-              borderBottom: 1,
+              mb: compactMode ? 1.5 : 3,
+              border: '1px solid',
               borderColor: 'divider',
-              '& .MuiTab-root': {
-                minHeight: { xs: 56, sm: 48 },
-                fontSize: { xs: '0.875rem', sm: '0.9375rem' },
-                fontWeight: 600,
-                textTransform: 'none',
-              },
+              borderRadius: 2,
+              overflow: 'hidden',
+              flexShrink: 0,
+              position: 'static',
+              top: tabsStickyTop,
+              zIndex: 'auto',
+              bgcolor: 'background.paper',
             }}
           >
-            <Tab
-              value={TAB_VALUES.TIMELINE}
-              label="Timeline"
-              icon={<TimelineIcon />}
-              iconPosition="start"
-            />
-            <Tab
-              value={TAB_VALUES.TABLE}
-              label="Table"
-              icon={<TableChartIcon />}
-              iconPosition="start"
-            />
-          </Tabs>
-        </Paper>
+            <Tabs
+              value={activeTab}
+              onChange={handleTabChange}
+              variant={isMobile ? 'fullWidth' : 'standard'}
+              sx={{
+                borderBottom: 1,
+                borderColor: 'divider',
+                '& .MuiTab-root': {
+                  minHeight: { xs: 56, sm: 48 },
+                  fontSize: { xs: '0.875rem', sm: '0.9375rem' },
+                  fontWeight: 600,
+                  textTransform: 'none',
+                },
+              }}
+            >
+              <Tab
+                value={TAB_VALUES.TIMELINE}
+                label="Timeline"
+                icon={<TimelineIcon />}
+                iconPosition="start"
+              />
+              <Tab
+                value={TAB_VALUES.TABLE}
+                label="Table"
+                icon={<TableChartIcon />}
+                iconPosition="start"
+              />
+            </Tabs>
+          </Paper>
+        )}
 
         {/* Content */}
         <Box 
@@ -508,7 +696,7 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) 
             minHeight: embedded ? 0 : 'auto',
           }}
         >
-          {activeTab === TAB_VALUES.TIMELINE && (
+          {currentTab === TAB_VALUES.TIMELINE && (
             <Paper
               elevation={0}
               sx={{
@@ -525,12 +713,13 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) 
                 events={events}
                 loading={loading}
                 timezone={selectedTimezone}
-                onVisibleCountChange={() => {}}
+                onVisibleCountChange={handleVisibleCountChange}
+                autoScrollToNextKey={autoScrollToNextKey}
               />
             </Paper>
           )}
           
-          {activeTab === TAB_VALUES.TABLE && (
+          {!embedded && currentTab === TAB_VALUES.TABLE && (
             <Box
               sx={{
                 flex: embedded ? 1 : 'initial',
@@ -550,6 +739,62 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate }, ref) 
           )}
         </Box>
       </Box>
+
+      {/* Sync Modals - non-embedded only */}
+      {!embedded && user && (
+        <>
+          <SyncCalendarModal
+            isOpen={showSyncModal}
+            onClose={() => setShowSyncModal(false)}
+            defaultSources={[newsSource]}
+            onSync={handleMultiSourceSync}
+          />
+
+          <ConfirmModal
+            open={showInitialSyncConfirm}
+            onClose={() => setShowInitialSyncConfirm(false)}
+            onConfirm={handleInitialSync}
+            title="Initial Historical Sync - ALL Sources"
+            message={
+              <>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  This will fetch <strong>2 years of historical data</strong> (up to today) from <strong>all 3 news sources</strong>: MQL5, Forex Factory, and FXStreet.
+                </Typography>
+                <Typography variant="body2" color="warning.main" sx={{ fontWeight: 700, mb: 2 }}>
+                  ⚠️ HIGH API COST: This will use approximately <strong>9 API credits</strong> (3 credits × 3 sources)
+                </Typography>
+                <Box sx={{ bgcolor: 'info.light', p: 2, borderRadius: 1, mb: 2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                    📊 What Gets Synced:
+                  </Typography>
+                  <Typography variant="caption" component="div" sx={{ mb: 0.5 }}>
+                    • <strong>MQL5:</strong> ~8,500 historical events with categories
+                  </Typography>
+                  <Typography variant="caption" component="div" sx={{ mb: 0.5 }}>
+                    • <strong>Forex Factory:</strong> ~13,500 historical events (best coverage)
+                  </Typography>
+                  <Typography variant="caption" component="div" sx={{ mb: 1 }}>
+                    • <strong>FXStreet:</strong> Recent events only
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
+                    🔮 For Future Events:
+                  </Typography>
+                  <Typography variant="caption" component="div" sx={{ mb: 1, fontStyle: 'italic' }}>
+                    After initial sync, use <strong>"Sync Calendar"</strong> button to get upcoming scheduled events (next 30 days).
+                  </Typography>
+                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  <strong>Note:</strong> For regular updates and future events, use the "Sync Calendar" button.
+                </Typography>
+              </>
+            }
+            confirmText="Sync All Sources"
+            cancelText="Cancel"
+            requirePassword={true}
+            password="9876543210"
+          />
+        </>
+      )}
     </Box>
   );
 });

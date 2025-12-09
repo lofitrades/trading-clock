@@ -96,8 +96,6 @@ export const AuthProvider = ({ children }) => {
       // Create the document in Firestore
       await setDoc(userDocRef, defaultProfile);
       
-      console.log('✅ User profile created:', user.uid);
-      
       return {
         uid: user.uid,
         email: user.email,
@@ -126,7 +124,6 @@ export const AuthProvider = ({ children }) => {
         },
         { merge: true }
       );
-      console.log('✅ Last login updated for user:', userId);
     } catch (error) {
       console.error('❌ Error updating last login:', error);
       // Don't throw - this is non-critical
@@ -150,7 +147,6 @@ export const AuthProvider = ({ children }) => {
           
           if (!userDocSnapshot.exists()) {
             // Profile doesn't exist - create it for new user
-            console.log('📝 New user detected, creating profile...');
             try {
               const newProfile = await createUserProfile(currentUser);
               setUserProfile(newProfile);
@@ -201,7 +197,6 @@ export const AuthProvider = ({ children }) => {
                 });
               } else {
                 // Document was deleted - recreate it
-                console.log('⚠️ User profile missing, recreating...');
                 createUserProfile(currentUser).then(newProfile => {
                   setUserProfile(newProfile);
                 });

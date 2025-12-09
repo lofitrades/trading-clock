@@ -50,12 +50,8 @@ import * as crypto from "crypto";
  * v1.0.0 - 2024-XX-XX - Initial implementation
  */
 export function parseJBlankedDate(dateStr: string): Date {
-  // 🔍 LOGGING: Track timezone conversion for debugging
-  console.log(`\n🕐 [parseJBlankedDate] Processing: "${dateStr}"`);
-  
   // Parse: "2025.12.01 21:45:00" -> "2025-12-01T21:45:00"
   const isoFormat = dateStr.replace(/\./g, "-").replace(" ", "T");
-  console.log(`   📝 ISO Format: "${isoFormat}"`);
   
   // Parse as naive datetime (no timezone)
   const parts = isoFormat.split(/[-T:]/);
@@ -65,8 +61,6 @@ export function parseJBlankedDate(dateStr: string): Date {
   const hour = parseInt(parts[3]);
   const minute = parseInt(parts[4]);
   const second = parseInt(parts[5]);
-  
-  console.log(`   📅 Parsed components: ${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')} ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:${String(second).padStart(2,'0')}`);
   
   // ENTERPRISE BEST PRACTICE: Store times in UTC for proper timezone conversion
   // 
@@ -87,22 +81,11 @@ export function parseJBlankedDate(dateStr: string): Date {
   const apiDate = new Date(apiTime);
   const utcDate = new Date(utcTimestamp);
   
-  console.log(`   🌍 API Time (GMT+2):   ${apiDate.toISOString()} (${apiDate.getTime()})`);
-  console.log(`   🔄 Subtract 2 hours:   -${JBLANKED_OFFSET_HOURS * 60 * 60 * 1000}ms`);
-  console.log(`   ✅ UTC Result:         ${utcDate.toISOString()} (${utcDate.getTime()})`);
-  
-  // Convert to EST for verification logging
-  const estHours = utcDate.getUTCHours() - 5;
-  const estMinutes = utcDate.getUTCMinutes();
-  console.log(`   🇺🇸 EST Display (UTC-5): ${String(estHours).padStart(2,'0')}:${String(estMinutes).padStart(2,'0')}`);
-  
   // Validate the parsed date
   if (isNaN(utcDate.getTime())) {
     console.error(`   ❌ INVALID DATE: "${dateStr}"`);
     throw new Error(`Invalid date format: ${dateStr}`);
   }
-  
-  console.log(`   ✨ Returning UTC timestamp: ${utcDate.getTime()}\n`);
   return utcDate;
 }
 

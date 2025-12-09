@@ -179,8 +179,6 @@ export default function EconomicEvents({ open, onClose, timezone }) {
    * Updates SettingsContext (persisted) and refetches events
    */
   const handleNewsSourceChange = (newSource) => {
-    console.log(`📡 [handleNewsSourceChange] News source changed from ${newsSource} to ${newSource}`);
-    console.log('📦 [handleNewsSourceChange] Cache will switch to source-specific data');
     updateNewsSource(newSource);
     // Events will auto-refetch via useEffect watching newsSource
   };
@@ -201,9 +199,6 @@ export default function EconomicEvents({ open, onClose, timezone }) {
 
     setLoading(true);
     setError(null);
-
-    console.log(`📊 [fetchEvents] Fetching events for source: ${newsSource}`);
-    console.log(`📅 [fetchEvents] Date range: ${activeFilters.startDate?.toISOString()} to ${activeFilters.endDate?.toISOString()}`);
 
     // Fetch events from Firestore with filters (including news source)
     const result = await getEventsByDateRange(
@@ -240,17 +235,9 @@ export default function EconomicEvents({ open, onClose, timezone }) {
     setSyncSuccess(null);
     setError(null);
 
-    console.log('🔄 Triggering manual sync from UI...');
-    console.log('Environment:', {
-      isDev: import.meta.env.DEV,
-      mode: import.meta.env.MODE,
-    });
-
     const result = await triggerManualSync({ dryRun: false });
 
     if (result.success) {
-      console.log('✅ Sync successful:', result.data);
-      
       // Check if data was actually synced
       if (result.data && result.data.recordsUpserted > 0) {
         setSyncSuccess(`Synced ${result.data.recordsUpserted.toLocaleString()} events successfully!`);
@@ -279,16 +266,12 @@ export default function EconomicEvents({ open, onClose, timezone }) {
    * @param {string[]} selectedSources - Array of source identifiers
    */
   const handleMultiSourceSync = async (selectedSources) => {
-    console.log('🔄 Triggering multi-source sync:', selectedSources);
-    
     const result = await triggerManualSync({ 
       sources: selectedSources,
       dryRun: false 
     });
 
     if (result.success) {
-      console.log('✅ Multi-source sync successful:', result.data);
-      
       // Show success message
       const totalRecords = result.data.totalRecordsUpserted || 0;
       
@@ -328,8 +311,6 @@ export default function EconomicEvents({ open, onClose, timezone }) {
     setSyncSuccess(null);
     setError(null);
 
-    console.log('🏛️ Triggering initial historical sync for ALL sources...');
-
     // Call the new syncHistoricalEvents Cloud Function
     try {
       const response = await fetch(
@@ -350,8 +331,6 @@ export default function EconomicEvents({ open, onClose, timezone }) {
       const result = await response.json();
 
       if (result.ok) {
-        console.log('✅ Initial sync successful:', result);
-        
         const totalRecords = result.totalRecordsUpserted || 0;
         const sourcesCount = result.totalSources || 0;
         
@@ -402,11 +381,6 @@ export default function EconomicEvents({ open, onClose, timezone }) {
         endDate,
       };
       
-      console.log('📅 Initial load: wide date range for infinite pagination (from cache):', {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-      });
-      
       setFilters(newFilters);
       fetchEvents(newFilters);
     }
@@ -419,8 +393,6 @@ export default function EconomicEvents({ open, onClose, timezone }) {
    */
   useEffect(() => {
     if (events.length > 0) {
-      console.log(`📡 [useEffect-newsSource] Source changed to: ${newsSource}`);
-      console.log(`📦 [useEffect-newsSource] Loading events from ${newsSource} cache...`);
       fetchEvents();
     }
   }, [newsSource]);
@@ -458,16 +430,11 @@ export default function EconomicEvents({ open, onClose, timezone }) {
     setSyncSuccess(null);
 
     try {
-      console.log(`🔄 [handleRefresh] Clearing cache and fetching fresh data for source: ${newsSource}`);
-      
       // Step 1: Invalidate cache to force fresh Firestore read (for current source)
       await refreshEventsCache(newsSource);
       
       // Step 2: Fetch events with current filters (bypasses cache)
       await fetchEvents();
-      
-      console.log(`✅ [handleRefresh] Cache cleared and events refreshed for source: ${newsSource}`);
-      
       // Show success feedback briefly
       setSyncSuccess(`Events refreshed from ${newsSource}.`);
       setTimeout(() => {

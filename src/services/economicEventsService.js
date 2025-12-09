@@ -63,9 +63,6 @@ export const triggerManualSync = async (options = {}) => {
 
     const url = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
 
-    console.log('🔄 Triggering recent sync (7d back + 30d forward):', url);
-    console.log('Options:', options);
-
     // Prepare request body for multi-source sync
     const requestBody = options.sources ? { sources: options.sources } : {};
 
@@ -83,13 +80,11 @@ export const triggerManualSync = async (options = {}) => {
     }
 
     const result = await response.json();
-    console.log('✅ Manual sync result:', result);
 
     // Import cache invalidation dynamically to avoid circular dependency
     if (!options.dryRun) {
       const { invalidateCache } = await import('./eventsCache');
       invalidateCache();
-      console.log('🗑️ Cache invalidated after manual sync');
     }
 
     return {
@@ -125,13 +120,6 @@ export const getTodayEventsFromFirestore = async (timezone = 'UTC', source = DEF
     const startTimestamp = Timestamp.fromDate(startOfDay);
     const endTimestamp = Timestamp.fromDate(endOfDay);
 
-    console.log('📊 Fetching today\'s events from Firestore:', {
-      source,
-      timezone,
-      startOfDay: startOfDay.toISOString(),
-      endOfDay: endOfDay.toISOString(),
-    });
-
     // Query the correct source subcollection: /economicEvents/{source}/events/{eventDocId}
     const eventsRef = getEconomicEventsCollectionRef(source);
     const q = query(
@@ -149,8 +137,6 @@ export const getTodayEventsFromFirestore = async (timezone = 'UTC', source = DEF
       // Convert Firestore Timestamp to JavaScript Date
       date: doc.data().date?.toDate(),
     }));
-
-    console.log(`✅ Found ${events.length} events for today`);
 
     return {
       success: true,
@@ -222,8 +208,6 @@ export const getEventsByDateRange = async (startDate, endDate, filters = {}) => 
     // Get the source from filters or use default
     const source = filters.source || DEFAULT_NEWS_SOURCE;
     
-    console.log(`📊 Fetching events from source: ${source} (using cache)`);
-    
     // Import cache service dynamically to avoid circular dependency
     const { getFilteredEvents } = await import('./eventsCache');
     
@@ -260,8 +244,6 @@ export const getEventsByDateRange = async (startDate, endDate, filters = {}) => 
     // This allows filtering by enriched impact values from descriptions collection
     events = await enrichEventsWithDescriptions(events);
 
-    console.log(`📊 Before filters: ${events.length} events`);
-
     // Apply impact filter (support both lowercase and PascalCase)
     if (filters.impacts && filters.impacts.length > 0) {
       const beforeCount = events.length;
@@ -270,7 +252,6 @@ export const getEventsByDateRange = async (startDate, endDate, filters = {}) => 
         const matchesFilter = filters.impacts.includes(strength);
         return matchesFilter;
       });
-      console.log(`🔍 Impact filter: ${beforeCount} → ${events.length} events (filtered by: ${filters.impacts.join(', ')})`);
     }
 
     // Apply event type/category filter (support both lowercase and PascalCase)
@@ -283,34 +264,18 @@ export const getEventsByDateRange = async (startDate, endDate, filters = {}) => 
         if (!category || category === null || category === 'null') return false;
         return filters.eventTypes.includes(category);
       });
-      console.log(`🔍 Event Type filter: ${beforeCount} → ${events.length} events (filtered by: ${filters.eventTypes.join(', ')})`);
     }
 
     // Apply currency filter (support both lowercase and PascalCase)
     if (filters.currencies && filters.currencies.length > 0) {
       const beforeCount = events.length;
-      console.log(`🔍 [Currency Filter] Checking ${beforeCount} events against currencies:`, filters.currencies);
-      console.log(`🔍 [Currency Filter] Sample event before filter:`, {
-        currency: events[0]?.currency,
-        Currency: events[0]?.Currency,
-        name: events[0]?.name || events[0]?.Name,
-      });
       
       events = events.filter(event => {
         const currency = event.currency || event.Currency;
         const matches = filters.currencies.includes(currency);
-        
-        // Debug first few events
-        if (beforeCount - events.length < 3) {
-          console.log(`  ${matches ? '✅' : '❌'} Event: ${event.name || event.Name}, Currency: ${currency}, Match: ${matches}`);
-        }
-        
         return matches;
       });
-      console.log(`✅ Currency filter: ${beforeCount} → ${events.length} events (filtered by: ${filters.currencies.join(', ')})`);
     }
-
-    console.log(`✅ After all filters: ${events.length} events returned`);
 
     return {
       success: true,
@@ -641,9 +606,7 @@ export const getEventsCacheStats = async () => {
  * @returns {Promise<void>}
  */
 export const refreshEventsCache = async (source = 'forex-factory') => {
-  console.log(`🔄 [refreshEventsCache] Refreshing cache for source: ${source}`);
   const { invalidateCache, getAllEvents } = await import('./eventsCache');
   invalidateCache(source);
   await getAllEvents(true, source);
-  console.log(`✅ [refreshEventsCache] Cache refreshed for source: ${source}`);
 };

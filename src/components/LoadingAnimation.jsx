@@ -66,6 +66,9 @@ const LoadingAnimation = ({ clockSize = 375, isLoading = true }) => {
     const size = clockSize;
     const dpr = window.devicePixelRatio || 1;
     
+     // Reset any prior transforms before sizing/scaling to avoid double-scaling artifacts
+     ctx.setTransform(1, 0, 0, 1, 0, 0);
+
     canvas.width = size * dpr;
     canvas.height = size * dpr;
     canvas.style.width = `${size}px`;
@@ -174,6 +177,7 @@ const LoadingAnimation = ({ clockSize = 375, isLoading = true }) => {
       style={{
         opacity: opacity,
         transition: 'opacity 500ms ease-in-out',
+        willChange: 'opacity, transform',
       }}
     />
   );

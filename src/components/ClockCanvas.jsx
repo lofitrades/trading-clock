@@ -147,6 +147,10 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     const dpr = window.devicePixelRatio || 1;
+
+    // Reset transform each time before applying DPR scaling to avoid compounded scaling artifacts
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
     canvas.width = Math.round(size * dpr);
     canvas.height = Math.round(size * dpr);
     canvas.style.width = `${size}px`;
@@ -181,7 +185,7 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     };
     animationId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationId);
-  }, [size, sessions, time, hoveredSession, handColor, clockStyle]);
+  }, [size, sessions, hoveredSession, handColor, clockStyle, showSessionNamesInCanvas, activeSession, backgroundBasedOnSession]);
 
   const detectHoveredSession = (canvas, mouseX, mouseY) => {
     const rect = canvas.getBoundingClientRect();

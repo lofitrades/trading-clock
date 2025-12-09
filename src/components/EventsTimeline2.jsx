@@ -1517,6 +1517,7 @@ export default function EventsTimeline2({
   events = [], 
   loading = false,
   onVisibleCountChange = null,
+  autoScrollToNextKey = null,
   timezone = Intl.DateTimeFormat().resolvedOptions().timeZone, // Default to user's local timezone
 }) {
   const theme = useTheme();
@@ -1713,6 +1714,20 @@ export default function EventsTimeline2({
       onVisibleCountChange(visibleEvents.length);
     }
   }, [visibleEvents.length, onVisibleCountChange]);
+
+  /**
+   * Auto-scroll to next event when requested (used by drawer open)
+   */
+  useEffect(() => {
+    if (!autoScrollToNextKey) return;
+    if (eventStates.nextIds.size === 0) return;
+
+    const firstNextId = Array.from(eventStates.nextIds)[0];
+    const el = document.querySelector(`[data-event-id="${firstNextId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [autoScrollToNextKey, eventStates.nextIds, visibleEvents]);
   
   // ========== CALLBACKS ==========
   

@@ -6,13 +6,15 @@
  * Supports role-based and subscription-based access control.
  * 
  * Changelog:
+ * v1.1.0 - 2025-12-09 - Swapped CircularProgress for branded donut loader in guarded states
  * v1.0.0 - 2025-11-30 - Initial implementation with RBAC and subscription support
  */
 
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { Box, CircularProgress, Typography, Alert } from '@mui/material';
+import { Box, Typography, Alert } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
+import RouteLoading from './RouteLoading';
 
 /**
  * PrivateRoute Component
@@ -39,23 +41,7 @@ export default function PrivateRoute({
 
   // Show loading spinner while checking authentication
   if (loading || profileLoading) {
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '100vh',
-          gap: 2,
-        }}
-      >
-        <CircularProgress size={60} />
-        <Typography variant="body1" color="text.secondary">
-          Verifying access...
-        </Typography>
-      </Box>
-    );
+    return <RouteLoading message="Verifying access..." />;
   }
 
   // User not authenticated - redirect to home with return URL

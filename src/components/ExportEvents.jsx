@@ -61,15 +61,11 @@ export default function ExportEvents() {
     setResult(null);
 
     try {
-      console.log('📊 Starting export of economic events from all sources...');
-
       const sourceResults = [];
       let totalEvents = 0;
 
       // Export each source separately
       for (const source of NEWS_SOURCES) {
-        console.log(`📥 Exporting ${source}...`);
-
         // Query subcollection: /economicEvents/{source}/events
         const eventsRef = collection(db, EVENTS_PARENT_COLLECTION, source, 'events');
         const snapshot = await getDocs(eventsRef);
@@ -104,8 +100,6 @@ export default function ExportEvents() {
             } : data.updatedAt,
           };
         });
-
-        console.log(`✅ Exported ${events.length} events from ${source}`);
         totalEvents += events.length;
 
         // Save to data folder using File System Access API

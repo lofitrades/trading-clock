@@ -163,25 +163,6 @@ export function parseDate(date) {
  * formatTime(new Date(), 'Asia/Tokyo') // "23:45"
  */
 export function formatTime(date, timezone = DEFAULT_TIMEZONE, options = {}) {
-  // 🔍 LOGGING: Track frontend timezone conversion for debugging
-  const isDebugEvent = typeof date === 'object' && date?._seconds === 1764600300; // "Final Manufacturing PMI" expected timestamp
-  const isOldData = typeof date === 'object' && date?._seconds === 1764582300; // Old wrong timestamp
-  
-  if (isDebugEvent || isOldData) {
-    console.log(`\n🎨 [formatTime] Processing ${isOldData ? '❌ OLD DATA' : '✅ NEW DATA'}:`);
-    console.log(`   📥 Input type: ${typeof date}`);
-    if (typeof date === 'object' && date?._seconds) {
-      console.log(`   📥 Firestore Timestamp: ${date._seconds}.${date._nanoseconds || 0}`);
-      console.log(`   📅 JS Date: ${new Date(date._seconds * 1000).toISOString()}`);
-    } else if (typeof date === 'number') {
-      console.log(`   📥 Unix timestamp: ${date}`);
-      console.log(`   📅 JS Date: ${new Date(date * 1000).toISOString()}`);
-    } else {
-      console.log(`   📥 Raw input: ${date}`);
-    }
-    console.log(`   🌍 Target timezone: ${timezone}`);
-  }
-  
   // Handle time-only strings (HH:MM or HH:MM:SS) - return as-is
   if (typeof date === 'string' && /^\d{2}:\d{2}(:\d{2})?$/.test(date)) {
     return date.slice(0, 5); // Return HH:MM
@@ -194,11 +175,6 @@ export function formatTime(date, timezone = DEFAULT_TIMEZONE, options = {}) {
     return '--:--';
   }
 
-  if (isDebugEvent || isOldData) {
-    console.log(`   📍 Parsed Date Object: ${dateObj.toISOString()}`);
-    console.log(`   📍 UTC timestamp: ${dateObj.getTime()}`);
-  }
-
   try {
     const formatOptions = {
       ...TIME_FORMAT_OPTIONS.SHORT_24H,
@@ -207,18 +183,6 @@ export function formatTime(date, timezone = DEFAULT_TIMEZONE, options = {}) {
     };
 
     const formatted = dateObj.toLocaleTimeString('en-US', formatOptions);
-    
-    if (isDebugEvent || isOldData) {
-      console.log(`   🎯 toLocaleTimeString options: ${JSON.stringify(formatOptions)}`);
-      console.log(`   ✅ Final formatted time: "${formatted}"`);
-      console.log(`   🔢 Expected for ${timezone}:`);
-      if (isDebugEvent) {
-        console.log(`      - UTC: 14:45, EST: 09:45, GMT: 14:45, JST: 23:45`);
-      } else {
-        console.log(`      - ❌ WRONG DATA: UTC: 09:45, EST: 04:45 (5 hours off!)`);
-      }
-      console.log(`   ✨ Returning: "${formatted}"\n`);
-    }
 
     return formatted;
   } catch (error) {

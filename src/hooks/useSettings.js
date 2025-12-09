@@ -289,8 +289,5 @@ export function useSettings() {
     resetSettings,
   };
   
-  // Debug: Verify function exists
-  console.log('useSettings returning toggleShowSessionNamesInCanvas:', typeof returnValue.toggleShowSessionNamesInCanvas);
-  
   return returnValue;
 }

@@ -124,13 +124,6 @@ export default function EventsFilters({
     const newValues = currentValues.includes(value)
       ? currentValues.filter(v => v !== value)
       : [...currentValues, value];
-    
-    console.log(`🔄 [EventsFilters] Toggle ${field}:`, {
-      value,
-      before: currentValues,
-      after: newValues,
-    });
-    
     handleFilterChange(field, newValues);
   };
 
@@ -138,13 +131,6 @@ export default function EventsFilters({
    * Apply filters
    */
   const handleApply = () => {
-    console.log('🎯 [EventsFilters] Applying filters:', {
-      startDate: localFilters.startDate?.toISOString(),
-      endDate: localFilters.endDate?.toISOString(),
-      impacts: localFilters.impacts,
-      eventTypes: localFilters.eventTypes,
-      currencies: localFilters.currencies,
-    });
     onFiltersChange(localFilters);
     if (onApply) onApply(localFilters); // Pass filters to parent
     setExpanded(false);
@@ -171,12 +157,6 @@ export default function EventsFilters({
       eventTypes: [],
       currencies: [],
     };
-    
-    console.log('🔄 Reset filters to This Week:', {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    });
-    
     setLocalFilters(resetFilters);
     onFiltersChange(resetFilters);
     if (onApply) onApply(resetFilters); // Pass reset filters to parent
@@ -339,15 +319,6 @@ export default function EventsFilters({
       default:
         return;
     }
-
-    console.log(`📅 Date preset "${preset}" applied:`, {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      local: {
-        start: startDate.toLocaleString(),
-        end: endDate.toLocaleString(),
-      }
-    });
 
     setLocalFilters({
       ...localFilters,

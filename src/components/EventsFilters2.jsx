@@ -14,6 +14,8 @@
  * - Smooth animations and transitions
  * 
  * Changelog:
+ * v2.4.3 - 2025-12-09 - Tightened header controls: reduced Show Filters row height to align with active row for consistent toolbar sizing
+ * v2.4.2 - 2025-12-08 - Tie filter content padding to actionOffset for tighter alignment with sticky footer actions in embedded drawer
  * v2.4.1 - 2025-12-08 - Fixed date calculations: always use fresh Date() dynamically, added timezone-aware logging, fixed 'This Week' calculation for accurate current week detection
  * v2.4.0 - 2025-12-08 - Fixed active filters display: now shows only applied filters (parent state) not unapplied local state, added localActivePreset for UI feedback during editing
  * v2.3.4 - 2025-11-30 - Simplified impact labels: removed "Impact" suffix (High, Medium, Low instead of High Impact, etc.)
@@ -211,11 +213,6 @@ const getDateInTimezone = (timezone) => {
   // IMPORTANT: Always create fresh Date() to get current date/time
   const now = new Date();
   
-  console.log(`📅 [EventsFilters2] Getting date in timezone ${timezone}:`, {
-    utcDate: now.toISOString(),
-    localDate: now.toLocaleString('en-US', { timeZone: timezone }),
-  });
-  
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     year: 'numeric',
@@ -232,14 +229,6 @@ const getDateInTimezone = (timezone) => {
   // Get day of week (0 = Sunday)
   const dayOfWeek = now.toLocaleDateString('en-US', { timeZone: timezone, weekday: 'short' });
   const dayOfWeekMap = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
-  
-  console.log(`📅 [EventsFilters2] Parsed date components:`, {
-    year,
-    month: month + 1, // Show 1-indexed for readability
-    day,
-    dayOfWeek,
-    dayName: Object.keys(dayOfWeekMap).find(k => dayOfWeekMap[k] === dayOfWeekMap[dayOfWeek]),
-  });
   
   return {
     year,
@@ -274,9 +263,6 @@ const calculateDateRange = (preset, timezone) => {
   // Get current date in the selected timezone
   const { year, month, day, dayOfWeek } = getDateInTimezone(timezone);
   
-  console.log(`📅 [calculateDateRange] Calculating '${preset}' range for timezone ${timezone}`);
-  console.log(`📅 [calculateDateRange] Current date in TZ: ${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')} (${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayOfWeek]})`);
-  
   let startDate, endDate;
 
   switch (preset) {
@@ -296,8 +282,6 @@ const calculateDateRange = (preset, timezone) => {
       const endDay = day + (6 - dayOfWeek); // Saturday of this week
       startDate = createUTCDate(year, month, startDay, false);
       endDate = createUTCDate(year, month, endDay, true);
-      console.log(`📅 [calculateDateRange] This Week: startDay=${startDay}, endDay=${endDay}, dayOfWeek=${dayOfWeek}`);
-      console.log(`📅 [calculateDateRange] Result: ${startDate.toISOString()} to ${endDate.toISOString()}`);
       break;
     }
 
@@ -714,6 +698,7 @@ export default function EventsFilters2({
   loading = false,
   timezone = Intl.DateTimeFormat().resolvedOptions().timeZone,
   newsSource = 'mql5', // Default to MQL5 if not provided
+  actionOffset = 0,
 }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -766,7 +751,6 @@ export default function EventsFilters2({
       // Recalculate if a preset is active
       const currentPreset = detectActivePreset(localFilters.startDate, localFilters.endDate, timezone);
       if (currentPreset) {
-        console.log(`🔄 [EventsFilters2] Recalculating '${currentPreset}' preset at midnight`);
         const range = calculateDateRange(currentPreset, timezone);
         if (range) {
           const newFilters = {
@@ -817,7 +801,6 @@ export default function EventsFilters2({
 
         if (categoriesResult.status === 'fulfilled' && categoriesResult.value.success) {
           setCategories(categoriesResult.value.data);
-          console.log(`📋 [EventsFilters2] Loaded ${categoriesResult.value.data.length} categories from ${newsSource}`);
         } else {
           // Empty array on error - no categories shown if fetch fails
           console.warn(`⚠️ [EventsFilters2] Failed to fetch categories from ${newsSource}`);
@@ -828,7 +811,6 @@ export default function EventsFilters2({
           // Use only Firestore currencies (dynamic based on actual events)
           const firestoreCurrencies = currenciesResult.value.data || [];
           setCurrencies(firestoreCurrencies);
-          console.log(`💱 [EventsFilters2] Loaded ${firestoreCurrencies.length} currencies from ${newsSource}`);
         } else {
           // Empty array on error - no currencies shown if fetch fails
           console.warn(`⚠️ [EventsFilters2] Failed to fetch currencies from ${newsSource}`);
@@ -980,14 +962,6 @@ export default function EventsFilters2({
       const newValues = currentValues.includes(value)
         ? currentValues.filter(v => v !== value)
         : [...currentValues, value];
-      
-      console.log(`🔧 [EventsFilters2] Toggle ${field}:`, {
-        value,
-        action: currentValues.includes(value) ? 'REMOVE' : 'ADD',
-        before: currentValues,
-        after: newValues,
-      });
-      
       return { ...prev, [field]: newValues };
     });
   }, []);
@@ -1007,8 +981,6 @@ export default function EventsFilters2({
       const currentValues = newFilters[field] || [];
       newFilters[field] = currentValues.filter(v => v !== value);
     }
-    
-    console.log(`🗑️ [EventsFilters2] Remove filter ${field}:`, value, '- auto-applying');
     
     // Update local state
     setLocalFilters(newFilters);
@@ -1031,9 +1003,6 @@ export default function EventsFilters2({
         startDate: range.startDate,
         endDate: range.endDate,
       };
-      
-      console.log(`📅 [EventsFilters2] Quick Select '${presetKey}' selected - click Apply to confirm`);
-      
       // Update local state only - user must click Apply
       setLocalFilters(newFilters);
     }
@@ -1043,16 +1012,6 @@ export default function EventsFilters2({
    * Apply filters and close panel
    */
   const handleApply = useCallback(() => {
-    console.log(`🎯 [EventsFilters2] Applying filters:`, {
-      dateRange: {
-        start: localFilters.startDate?.toISOString(),
-        end: localFilters.endDate?.toISOString(),
-      },
-      impacts: localFilters.impacts,
-      eventTypes: localFilters.eventTypes,
-      currencies: localFilters.currencies,
-    });
-
     // Persist to context (localStorage + Firestore)
     updateEventFilters(localFilters);
     
@@ -1086,8 +1045,6 @@ export default function EventsFilters2({
       currencies: localFilters.currencies,
     };
 
-    console.log('🔄 [EventsFilters2] Reset date range only (preserving other filters) - auto-applying');
-    
     // Update local state
     setLocalFilters(resetFilters);
     
@@ -1118,8 +1075,6 @@ export default function EventsFilters2({
       currencies: [],
     };
 
-    console.log('🔄 [EventsFilters2] Reset to initial mount state (4 weeks around today)');
-    
     // Update local state
     setLocalFilters(resetFilters);
     
@@ -1174,51 +1129,49 @@ export default function EventsFilters2({
             textTransform: 'none',
             fontWeight: 700,
             fontSize: { xs: '0.875rem', sm: '0.9375rem' },
-            minHeight: { xs: 44, sm: 36 }, // Accessible touch target on mobile
+            minHeight: { xs: 40, sm: 32 }, // Align with active row while keeping touch target reasonable
             color: 'text.primary',
             '&:hover': {
               bgcolor: 'action.hover',
             },
           }}
         >
-          Filters
+          {expanded ? 'Hide Filters' : 'Show Filters'}
         </Button>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {hasChanges && !expanded && (
-            <Fade in>
-              <Chip
-                icon={<CheckCircleIcon />}
-                label="Changes"
-                size="small"
-                color="warning"
-                sx={{ fontSize: '0.7rem', height: 24 }}
-              />
-            </Fade>
-          )}
-          
-          {activeFilterCount > 0 && (
-            <Fade in>
-              <Button
-                onClick={handleReset}
-                startIcon={<RestartAltIcon />}
-                size="small"
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: { xs: '0.75rem', sm: '0.8125rem' },
-                  minHeight: { xs: 36, sm: 32 },
-                  color: 'error.main',
-                  '&:hover': {
-                    bgcolor: alpha(theme.palette.error.main, 0.08),
-                  },
-                }}
-              >
-                Clear All
-              </Button>
-            </Fade>
-          )}
-        </Box>
+        {hasChanges && (
+          <Fade in>
+            <Chip
+              icon={<CheckCircleIcon />}
+              label="Changes"
+              size="small"
+              color="warning"
+              sx={{ fontSize: '0.7rem', height: 24 }}
+            />
+          </Fade>
+        )}
+        
+        {activeFilterCount > 0 && (
+          <Fade in>
+            <Button
+              onClick={handleReset}
+              startIcon={<RestartAltIcon />}
+              size="small"
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                minHeight: { xs: 36, sm: 32 },
+                color: 'error.main',
+                '&:hover': {
+                  bgcolor: alpha(theme.palette.error.main, 0.08),
+                },
+              }}
+            >
+              Clear All
+            </Button>
+          </Fade>
+        )}
       </Box>
 
       {/* ========== FILTER PANEL ========== */}
@@ -1243,7 +1196,10 @@ export default function EventsFilters2({
               overflowX: 'hidden',
               scrollBehavior: 'smooth',
               p: { xs: 1.5, sm: 2.5 },
-              pb: { xs: '100px', sm: '90px' }, // Space for sticky buttons: xs=48px button+24px padding+1px border+27px extra, sm=40px button+32px padding+1px border+17px extra
+              pb: {
+                xs: `calc(${actionOffset}px + 64px)`,
+                sm: `calc(${actionOffset}px + 56px)`,
+              }, // Space for sticky buttons + footer offset
               '&::-webkit-scrollbar': {
                 width: 8,
               },
@@ -1571,13 +1527,13 @@ export default function EventsFilters2({
           <Box
             sx={{
               position: 'sticky',
-              bottom: 0,
+              bottom: `calc(${actionOffset}px + env(safe-area-inset-bottom, 0px))`,
               bgcolor: 'background.paper',
               borderTop: 1,
               borderColor: 'divider',
               p: { xs: 1.5, sm: 2 },
               boxShadow: theme.shadows[4],
-              zIndex: 1,
+              zIndex: 3,
             }}
           >
             <Stack 

@@ -6,18 +6,21 @@
  * 
  * Architecture:
  * - Header: Title + close/refresh buttons
- * - Sync Controls: Initial Sync + Sync Calendar buttons (authenticated users only)
  * - EventsPage: Complete page with filters, tabs (Table/Timeline), and events
  * - Footer: Event count, last updated timestamp, news source selector
  * 
  * Key Features:
  * - Embeds full EventsPage component (not separate Filters/Timeline)
  * - Source-aware caching with proper invalidation
- * - Multi-source sync support (mql5, forex-factory, fxstreet)
  * - Guest preview with mock data
  * - Mobile-responsive drawer layout
  * 
  * Changelog:
+ * v1.2.0 - 2025-12-09 - Added expand/collapse control to show full /events experience (tabs + header) within drawer at full width
+ * v1.2.1 - 2025-12-09 - Hide back-to-clock control inside drawer
+ * v1.2.2 - 2025-12-09 - Auto-scroll to next event when opening drawer
+ * v1.2.3 - 2025-12-09 - Compact sticky header/tabs/filters layout in expanded mode for better vertical space
+ * v1.1.0 - 2025-12-09 - Removed sync controls from drawer; sync actions now live on /events page header
  * v1.0.0 - 2025-12-08 - Initial implementation - refactored from EconomicEvents.jsx to embed EventsPage
  */
 
@@ -36,17 +39,14 @@ import {
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CloseIcon from '@mui/icons-material/Close';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import SyncIcon from '@mui/icons-material/Sync';
-import {
-  triggerManualSync,
-  refreshEventsCache,
-} from '../services/economicEventsService';
-import ConfirmModal from './ConfirmModal';
-import SyncCalendarModal from './SyncCalendarModal';
+import OpenInFullIcon from '@mui/icons-material/OpenInFull';
+import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
+import { refreshEventsCache } from '../services/economicEventsService';
 import NewsSourceSelector from './NewsSourceSelector';
 import EventsPage from './EventsPage';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useEffect } from 'react';
 
 // Mock data for guest users preview
 const MOCK_EVENTS = [
@@ -93,12 +93,10 @@ export default function EconomicEvents2({ open, onClose, timezone }) {
   const { newsSource, updateNewsSource } = useSettings();
   const { user } = useAuth();
   
-  const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(null);
-  const [showSyncConfirm, setShowSyncConfirm] = useState(false);
-  const [showSyncModal, setShowSyncModal] = useState(false);
-  const [showInitialSyncConfirm, setShowInitialSyncConfirm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [autoScrollToken, setAutoScrollToken] = useState(0);
   const [eventsCount, setEventsCount] = useState(0);
   const [eventsLastUpdated, setEventsLastUpdated] = useState(null);
   
@@ -110,155 +108,8 @@ export default function EconomicEvents2({ open, onClose, timezone }) {
    * Updates SettingsContext (persisted) and triggers EventsPage refresh
    */
   const handleNewsSourceChange = (newSource) => {
-    console.log(`📡 [EconomicEvents2] News source changed from ${newsSource} to ${newSource}`);
-    console.log('📦 [EconomicEvents2] Cache will switch to source-specific data');
     updateNewsSource(newSource);
     // EventsPage will auto-refresh via useEffect watching newsSource
-  };
-
-  /**
-   * Trigger manual sync from Cloud Function (legacy)
-   */
-  const handleManualSync = async () => {
-    setShowSyncConfirm(false);
-    setSyncing(true);
-    setSyncSuccess(null);
-
-    console.log('🔄 [EconomicEvents2] Triggering manual sync...');
-
-    const result = await triggerManualSync({ dryRun: false });
-
-    if (result.success) {
-      console.log('✅ [EconomicEvents2] Sync successful:', result.data);
-      
-      if (result.data && result.data.recordsUpserted > 0) {
-        setSyncSuccess(`Synced ${result.data.recordsUpserted.toLocaleString()} events successfully!`);
-      } else {
-        setSyncSuccess('Calendar synced successfully!');
-      }
-      
-      // Trigger EventsPage refresh after sync
-      if (eventsPageRef.current?.handleRefresh) {
-        setTimeout(() => {
-          eventsPageRef.current.handleRefresh();
-        }, 2000);
-      }
-
-      // Clear success message after 5 seconds
-      setTimeout(() => {
-        setSyncSuccess(null);
-      }, 5000);
-    } else {
-      console.error('❌ [EconomicEvents2] Sync failed:', result.error);
-      setSyncSuccess(`Error: ${result.error || 'Sync failed'}`);
-      setTimeout(() => {
-        setSyncSuccess(null);
-      }, 5000);
-    }
-
-    setSyncing(false);
-  };
-
-  /**
-   * Handle multi-source sync from SyncCalendarModal
-   */
-  const handleMultiSourceSync = async (selectedSources) => {
-    console.log('🔄 [EconomicEvents2] Triggering multi-source sync:', selectedSources);
-    
-    const result = await triggerManualSync({ 
-      sources: selectedSources,
-      dryRun: false 
-    });
-
-    if (result.success) {
-      console.log('✅ [EconomicEvents2] Multi-source sync successful:', result.data);
-      
-      const totalRecords = result.data.totalRecordsUpserted || 0;
-      const needsSourceSwitch = selectedSources.length === 1 && selectedSources[0] !== newsSource;
-      
-      setSyncSuccess(
-        needsSourceSwitch
-          ? `Synced ${totalRecords.toLocaleString()} events from ${selectedSources[0]}! Go to Settings to switch your preferred news source.`
-          : `Synced ${totalRecords.toLocaleString()} events from ${selectedSources.length} source${selectedSources.length > 1 ? 's' : ''}!`
-      );
-      
-      // Trigger EventsPage refresh after sync
-      if (eventsPageRef.current?.handleRefresh) {
-        setTimeout(() => {
-          eventsPageRef.current.handleRefresh();
-        }, 2000);
-      }
-
-      setTimeout(() => {
-        setSyncSuccess(null);
-      }, 5000);
-    }
-
-    return result;
-  };
-
-  /**
-   * Handle initial historical sync (2 years back to today)
-   */
-  const handleInitialSync = async () => {
-    setShowInitialSyncConfirm(false);
-    setSyncing(true);
-    setSyncSuccess(null);
-
-    console.log('🏛️ [EconomicEvents2] Triggering initial historical sync for ALL sources...');
-
-    try {
-      const response = await fetch(
-        'https://us-central1-time-2-trade-app.cloudfunctions.net/syncHistoricalEvents',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            sources: ['mql5', 'forex-factory', 'fxstreet'],
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (result.ok) {
-        console.log('✅ [EconomicEvents2] Initial sync successful:', result);
-        
-        const totalRecords = result.totalRecordsUpserted || 0;
-        const sourcesCount = result.totalSources || 0;
-        
-        setSyncSuccess(
-          `Initial sync complete! Loaded ${totalRecords.toLocaleString()} historical events from ${sourcesCount} sources (2 years back to today).`
-        );
-        
-        // Trigger EventsPage refresh after sync
-        if (eventsPageRef.current?.handleRefresh) {
-          setTimeout(() => {
-            eventsPageRef.current.handleRefresh();
-          }, 2000);
-        }
-
-        setTimeout(() => {
-          setSyncSuccess(null);
-        }, 10000);
-      } else {
-        console.error('❌ [EconomicEvents2] Initial sync error:', result.error);
-        setSyncSuccess(`Error: ${result.error || 'Initial sync failed'}`);
-        setTimeout(() => {
-          setSyncSuccess(null);
-        }, 5000);
-      }
-    } catch (error) {
-      console.error('❌ [EconomicEvents2] Initial sync error:', error);
-      setSyncSuccess('Failed to connect to sync service. Please try again.');
-      setTimeout(() => {
-        setSyncSuccess(null);
-      }, 5000);
-    }
-
-    setSyncing(false);
   };
 
   /**
@@ -268,8 +119,6 @@ export default function EconomicEvents2({ open, onClose, timezone }) {
     setRefreshing(true);
 
     try {
-      console.log(`🔄 [EconomicEvents2] Clearing cache and refreshing for source: ${newsSource}`);
-      
       // Invalidate cache for current source
       await refreshEventsCache(newsSource);
       
@@ -277,9 +126,6 @@ export default function EconomicEvents2({ open, onClose, timezone }) {
       if (eventsPageRef.current?.handleRefresh) {
         eventsPageRef.current.handleRefresh();
       }
-      
-      console.log(`✅ [EconomicEvents2] Cache cleared and events refreshed for source: ${newsSource}`);
-      
       setSyncSuccess(`Events refreshed from ${newsSource}.`);
       setTimeout(() => {
         setSyncSuccess(null);
@@ -295,6 +141,13 @@ export default function EconomicEvents2({ open, onClose, timezone }) {
     }
   };
 
+  // Trigger auto-scroll to next event whenever the drawer opens
+  useEffect(() => {
+    if (open && user) {
+      setAutoScrollToken((prev) => prev + 1);
+    }
+  }, [open, user]);
+
   return (
     <Paper
       elevation={3}
@@ -302,48 +155,128 @@ export default function EconomicEvents2({ open, onClose, timezone }) {
         position: 'fixed',
         right: 0,
         top: 0,
+        left: expanded ? 0 : 'auto',
         height: '100vh',
-        width: { xs: '100%', sm: 400, md: 480, lg: 520 },
+        width: expanded ? '100%' : { xs: '100%', sm: 400, md: 480, lg: 520 },
         display: open ? 'flex' : 'none',
         flexDirection: 'column',
         zIndex: 1200,
         overflow: 'hidden',
       }}
     >
-      {/* Header */}
-      <Box
-        sx={{
-          p: { xs: 1.5, sm: 2 },
-          borderBottom: 1,
-          borderColor: 'divider',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          bgcolor: 'primary.main',
-          color: 'white',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AccessTimeIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
-          <Typography 
-            variant="h6" 
-            component="h2" 
-            sx={{ 
-              fontWeight: 600,
-              fontSize: { xs: '1rem', sm: '1.25rem' }
-            }}
-          >
-            Economic Events
-          </Typography>
+      {/* Header (hidden in expanded mode to avoid double headers) */}
+      {!expanded && (
+        <Box
+          sx={{
+            p: { xs: 1.25, sm: 1.75 },
+            borderBottom: 1,
+            borderColor: 'divider',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            bgcolor: 'primary.main',
+            color: 'white',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <AccessTimeIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
+            <Typography 
+              variant="h6" 
+              component="h2" 
+              sx={{ 
+                fontWeight: 600,
+                fontSize: { xs: '1rem', sm: '1.25rem' }
+              }}
+            >
+              Economic Events
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            {user && (
+              <Tooltip title={expanded ? 'Collapse drawer' : 'Expand to full width'}>
+                <span>
+                  <IconButton
+                    onClick={() => setExpanded(prev => !prev)}
+                    sx={{ color: 'white' }}
+                    size="small"
+                  >
+                    {expanded ? <CloseFullscreenIcon /> : <OpenInFullIcon />}
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+            {/* Refresh Button - Only for authenticated users */}
+            {user && (
+              <Tooltip title="Refresh events">
+                <span>
+                  <IconButton
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    sx={{ color: 'white' }}
+                    size="small"
+                  >
+                    <RefreshIcon 
+                      sx={{
+                        animation: refreshing ? 'spin 1s linear infinite' : 'none',
+                        '@keyframes spin': {
+                          '0%': { transform: 'rotate(0deg)' },
+                          '100%': { transform: 'rotate(360deg)' },
+                        },
+                      }}
+                    />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+            <Tooltip title="Close">
+              <IconButton
+                onClick={onClose}
+                sx={{ color: 'white' }}
+                size="small"
+              >
+                <CloseIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          {/* Refresh Button - Only for authenticated users */}
+      )}
+
+      {/* Floating controls when expanded to keep close/collapse available */}
+      {expanded && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: { xs: 8, sm: 23 },
+            display: 'flex',
+            gap: 0.75,
+            zIndex: 1300,
+            bgcolor: alpha('#000', 0.4),
+            borderRadius: 1.5,
+            p: 0.5,
+            backdropFilter: 'blur(6px)',
+            pointerEvents: 'auto',
+          }}
+        >
+          {user && (
+            <Tooltip title="Collapse drawer">
+              <span>
+                <IconButton
+                  onClick={() => setExpanded(false)}
+                  sx={{ color: 'white' }}
+                  size="small"
+                >
+                  <CloseFullscreenIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
           {user && (
             <Tooltip title="Refresh events">
               <span>
                 <IconButton
                   onClick={handleRefresh}
-                  disabled={syncing || refreshing}
+                  disabled={refreshing}
                   sx={{ color: 'white' }}
                   size="small"
                 >
@@ -368,81 +301,6 @@ export default function EconomicEvents2({ open, onClose, timezone }) {
             >
               <CloseIcon />
             </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-
-      {/* Sync Button Bar - Only for authenticated users */}
-      {user && (
-        <Box
-          sx={{
-            px: { xs: 1.5, sm: 2 },
-            py: 1,
-            borderBottom: 1,
-            borderColor: 'divider',
-            bgcolor: 'background.default',
-            display: 'flex',
-            gap: 1,
-          }}
-        >
-          <Tooltip title="Initial bulk sync: 2 years back to today (high API cost)">
-            <span style={{ flex: 1 }}>
-              <Button
-                onClick={() => setShowInitialSyncConfirm(true)}
-                disabled={syncing || refreshing}
-                variant="contained"
-                color="warning"
-                startIcon={
-                  <SyncIcon
-                    sx={{
-                      animation: syncing ? 'spin 1s linear infinite' : 'none',
-                      '@keyframes spin': {
-                        '0%': { transform: 'rotate(0deg)' },
-                        '100%': { transform: 'rotate(360deg)' },
-                      },
-                    }}
-                  />
-                }
-                sx={{
-                  width: '100%',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                  py: 1,
-                }}
-              >
-                Initial Sync
-              </Button>
-            </span>
-          </Tooltip>
-          <Tooltip title="Sync calendar data from multiple news sources">
-            <span style={{ flex: 1 }}>
-              <Button
-                onClick={() => setShowSyncModal(true)}
-                disabled={syncing || refreshing}
-                variant="outlined"
-                startIcon={
-                  <SyncIcon
-                    sx={{
-                      animation: syncing ? 'spin 1s linear infinite' : 'none',
-                      '@keyframes spin': {
-                        '0%': { transform: 'rotate(0deg)' },
-                        '100%': { transform: 'rotate(360deg)' },
-                      },
-                    }}
-                  />
-                }
-                sx={{
-                  width: '100%',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                  py: 1,
-                }}
-              >
-                {syncing ? 'Syncing...' : 'Sync Calendar'}
-              </Button>
-            </span>
           </Tooltip>
         </Box>
       )}
@@ -509,7 +367,7 @@ export default function EconomicEvents2({ open, onClose, timezone }) {
           </Box>
         )}
 
-        {/* Authenticated User - Full EventsPage */}
+        {/* Authenticated User - EventsPage (embedded vs full) */}
         {user && (
           <Box
             sx={{
@@ -517,11 +375,15 @@ export default function EconomicEvents2({ open, onClose, timezone }) {
               overflow: 'auto',
               display: 'flex',
               flexDirection: 'column',
+              bgcolor: expanded ? 'background.default' : 'inherit',
             }}
           >
             <EventsPage 
               ref={eventsPageRef}
-              embedded={true}
+              embedded={!expanded}
+              hideBackButton
+              autoScrollToNextKey={autoScrollToken}
+              compactMode={expanded}
               onEventsUpdate={(count, timestamp) => {
                 setEventsCount(count);
                 setEventsLastUpdated(timestamp);
@@ -532,7 +394,7 @@ export default function EconomicEvents2({ open, onClose, timezone }) {
       </Box>
 
       {/* Footer - Event Stats & News Source Selector - Only for authenticated users */}
-      {user && (
+      {user && !expanded && (
         <Box
           sx={{
             px: { xs: 1.5, sm: 2 },
@@ -592,83 +454,6 @@ export default function EconomicEvents2({ open, onClose, timezone }) {
         </Box>
       )}
 
-      {/* Multi-Source Sync Calendar Modal */}
-      <SyncCalendarModal
-        isOpen={showSyncModal}
-        onClose={() => setShowSyncModal(false)}
-        defaultSources={[newsSource]}
-        onSync={handleMultiSourceSync}
-      />
-
-      {/* Initial Sync Confirmation Dialog */}
-      <ConfirmModal
-        open={showInitialSyncConfirm}
-        onClose={() => setShowInitialSyncConfirm(false)}
-        onConfirm={handleInitialSync}
-        title="Initial Historical Sync - ALL Sources"
-        message={
-          <>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              This will fetch <strong>2 years of historical data</strong> (up to today) from <strong>all 3 news sources</strong>: MQL5, Forex Factory, and FXStreet.
-            </Typography>
-            <Typography variant="body2" color="warning.main" sx={{ fontWeight: 700, mb: 2 }}>
-              ⚠️ HIGH API COST: This will use approximately <strong>9 API credits</strong> (3 credits × 3 sources)
-            </Typography>
-            <Box sx={{ bgcolor: 'info.light', p: 2, borderRadius: 1, mb: 2 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                📊 What Gets Synced:
-              </Typography>
-              <Typography variant="caption" component="div" sx={{ mb: 0.5 }}>
-                • <strong>MQL5:</strong> ~8,500 historical events with categories
-              </Typography>
-              <Typography variant="caption" component="div" sx={{ mb: 0.5 }}>
-                • <strong>Forex Factory:</strong> ~13,500 historical events (best coverage)
-              </Typography>
-              <Typography variant="caption" component="div" sx={{ mb: 1 }}>
-                • <strong>FXStreet:</strong> Recent events only
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
-                🔮 For Future Events:
-              </Typography>
-              <Typography variant="caption" component="div" sx={{ mb: 1, fontStyle: 'italic' }}>
-                After initial sync, use <strong>"Sync Calendar"</strong> button to get upcoming scheduled events (next 30 days).
-              </Typography>
-            </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-              <strong>Note:</strong> For regular updates and future events, use the "Sync Calendar" button.
-            </Typography>
-          </>
-        }
-        confirmText="Sync All Sources"
-        cancelText="Cancel"
-        requirePassword={true}
-        password="9876543210"
-      />
-
-      {/* Legacy Sync Confirmation Dialog */}
-      <ConfirmModal
-        open={showSyncConfirm}
-        onClose={() => setShowSyncConfirm(false)}
-        onConfirm={handleManualSync}
-        title="Sync Calendar Data?"
-        message={
-          <>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              This will fetch 3 years of economic calendar data (previous year, current year, next year) from the JBlanked News API.
-            </Typography>
-            <Typography variant="body2" color="warning.main" sx={{ fontWeight: 600 }}>
-              ⚠️ This action will use 1 API credit
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-              Tip: The calendar syncs automatically at 5:00 AM EST daily. Manual sync is only needed if you want the latest data immediately.
-            </Typography>
-          </>
-        }
-        confirmText="Sync Now"
-        cancelText="Cancel"
-        requirePassword={true}
-        password="9876543210"
-      />
     </Paper>
   );
 }

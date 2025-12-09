@@ -1,4 +1,14 @@
-/* src/components/SettingsSidebar.jsx */
+/**
+ * src/components/SettingsSidebar.jsx
+ * 
+ * Purpose: Settings drawer for clock, sessions, and account controls with fullscreen toggle.
+ * Hosts general/session settings, auth actions, and pro prompts in a responsive MUI drawer.
+ * 
+ * Changelog:
+ * v1.1.0 - 2025-12-09 - Added fullscreen toggle in header with tooltip
+ * v1.0.0 - 2025-09-15 - Initial implementation
+ */
+
 import React, { useState, useRef } from 'react';
 import {
   Drawer,
@@ -26,6 +36,8 @@ import {
   Slider,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import FullscreenRoundedIcon from '@mui/icons-material/FullscreenRounded';
+import FullscreenExitRoundedIcon from '@mui/icons-material/FullscreenExitRounded';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
@@ -40,6 +52,7 @@ import AccountModal from './AccountModal';
 import UnlockModal from './UnlockModal';
 import ConfirmModal from './ConfirmModal';
 import SwitchComponent from './Switch';
+import useFullscreen from '../hooks/useFullscreen';
 
 // Tab Panel Component
 function TabPanel({ children, value, index, ...other }) {
@@ -118,6 +131,8 @@ export default function SettingsSidebar({ open, onClose }) {
   const [userMenuAnchor, setUserMenuAnchor] = useState(null);
   const [toggleError, setToggleError] = useState('');
   const [aboutExpanded, setAboutExpanded] = useState(false);
+
+  const { isFullscreen, canFullscreen, toggleFullscreen } = useFullscreen();
 
   // Get all settings from parent component via props
   // We'll need to pass these as props or use context
@@ -268,16 +283,38 @@ export default function SettingsSidebar({ open, onClose }) {
           <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
             Settings
           </Typography>
-          <IconButton 
-            onClick={onClose} 
-            size="small"
-            sx={{ 
-              ml: 2,
-              '&:hover': { bgcolor: 'action.hover' },
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+            <Tooltip title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} arrow>
+              <span>
+                <IconButton
+                  onClick={toggleFullscreen}
+                  size="small"
+                  disabled={!canFullscreen}
+                  sx={{
+                    '&:hover': { bgcolor: 'action.hover' },
+                  }}
+                  aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                  aria-pressed={isFullscreen}
+                >
+                  {isFullscreen ? (
+                    <FullscreenExitRoundedIcon fontSize="small" />
+                  ) : (
+                    <FullscreenRoundedIcon fontSize="small" />
+                  )}
+                </IconButton>
+              </span>
+            </Tooltip>
+            <IconButton 
+              onClick={onClose} 
+              size="small"
+              sx={{ 
+                ml: 0.5,
+                '&:hover': { bgcolor: 'action.hover' },
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
         </Box>
 
         {/* User Section */}

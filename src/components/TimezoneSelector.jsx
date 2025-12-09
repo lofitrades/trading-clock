@@ -168,7 +168,7 @@ export default function TimezoneSelector({ textColor, onRequestSignUp, eventsOpe
             sx={{
               position: 'fixed',
               bottom: 10,
-              right: 10,
+              right: 'max(12px, env(safe-area-inset-right, 0px))',
               color: textColor,
               zIndex: 1000,
               '&:hover': {

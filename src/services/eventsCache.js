@@ -41,6 +41,16 @@ const CACHE_KEY = 't2t_economic_events_cache';
 const CACHE_METADATA_KEY = 't2t_events_cache_metadata';
 const CACHE_VERSION = '1.0.0';
 const CACHE_EXPIRY_HOURS = 24; // Fallback expiry if sync tracking fails
+const cacheWarningsShown = new Set(); // Prevent repeated warnings per session
+
+const logCacheWarning = (message, source) => {
+  // Only surface cache warnings when explicitly enabled
+  if (import.meta.env?.VITE_DEBUG_CACHE !== 'true') return;
+  const key = `${source || 'unknown'}:${message}`;
+  if (cacheWarningsShown.has(key)) return;
+  cacheWarningsShown.add(key);
+  console.warn(message);
+};
 
 // ============================================================================
 // CACHE STRUCTURE
@@ -94,7 +104,7 @@ function getCacheMetadata(source = 'forex-factory') {
     
     // Version check
     if (parsed.version !== CACHE_VERSION) {
-      console.log('📦 Cache version mismatch, invalidating...');
+      console.warn('📦 Cache version mismatch, invalidating...');
       invalidateCache(source);
       return null;
     }
@@ -163,11 +173,9 @@ function setCachedEvents(events, source = 'forex-factory') {
  */
 export function invalidateCache(source = null) {
   if (source) {
-    console.log(`🗑️ Invalidating events cache for source: ${source}`);
     localStorage.removeItem(`${CACHE_KEY}_${source}`);
     localStorage.removeItem(`${CACHE_METADATA_KEY}_${source}`);
   } else {
-    console.log('🗑️ Invalidating all events caches');
     // Clear all source-specific caches
     const sources = ['forex-factory', 'mql5', 'fxstreet'];
     sources.forEach(src => {
@@ -195,7 +203,7 @@ async function isCacheValid(source = 'forex-factory') {
   const maxAge = CACHE_EXPIRY_HOURS * 60 * 60 * 1000;
   
   if (cacheAge > maxAge) {
-    console.log('⏰ Cache expired (age-based)');
+    console.warn('⏰ Cache expired (age-based)');
     return false;
   }
   
@@ -214,7 +222,7 @@ async function isCacheValid(source = 'forex-factory') {
   // Get cached events to check their date range
   const cachedEvents = getCachedEvents(source);
   if (!cachedEvents || cachedEvents.length === 0) {
-    console.log('⚠️ Cache invalid: no cached events found');
+    logCacheWarning('⚠️ Cache invalid: no cached events found', source);
     return false;
   }
   
@@ -227,19 +235,12 @@ async function isCacheValid(source = 'forex-factory') {
   const expectedStart = expectedStartDate.getTime();
   const expectedEnd = expectedEndDate.getTime();
   
-  console.log('📅 [isCacheValid] Checking date range coverage:', {
-    expectedStart: new Date(expectedStart).toISOString(),
-    expectedEnd: new Date(expectedEnd).toISOString(),
-    cachedStart: new Date(cachedStartDate).toISOString(),
-    cachedEnd: new Date(cachedEndDate).toISOString(),
-  });
-  
   // Cache must start within 3 days of expected start and end within 3 days of expected end
   const startDiff = Math.abs(cachedStartDate - expectedStart) / (1000 * 60 * 60 * 24);
   const endDiff = Math.abs(cachedEndDate - expectedEnd) / (1000 * 60 * 60 * 24);
   
   if (startDiff > 3 || endDiff > 3) {
-    console.log(`⚠️ Cache date range outdated: startDiff=${startDiff.toFixed(1)}d, endDiff=${endDiff.toFixed(1)}d`);
+    logCacheWarning(`⚠️ Cache date range outdated: startDiff=${startDiff.toFixed(1)}d, endDiff=${endDiff.toFixed(1)}d`, source);
     return false;
   }
   
@@ -253,7 +254,6 @@ async function isCacheValid(source = 'forex-factory') {
     }
     
     if (syncStatus > metadata.lastSyncAt) {
-      console.log('🔄 API sync occurred after cache, invalidating');
       return false;
     }
     
@@ -288,7 +288,7 @@ async function getLastSyncTimestamp() {
   } catch (error) {
     // Gracefully handle permission errors (unauthenticated users)
     if (error.code === 'permission-denied') {
-      console.log('⚠️ Cannot read sync status (not authenticated), using cache age fallback');
+      console.warn('⚠️ Cannot read sync status (not authenticated), using cache age fallback');
       return null;
     }
     console.error('❌ Error fetching sync status:', error);
@@ -320,7 +320,6 @@ export function subscribeSyncStatus(onSyncUpdate) {
       
       // Check if this is a new sync (not initial load)
       if (lastKnownSync !== null && syncTimestamp > lastKnownSync) {
-        console.log('🔔 New API sync detected, invalidating cache');
         invalidateCache();
         onSyncUpdate();
       }
@@ -348,13 +347,10 @@ export function subscribeSyncStatus(onSyncUpdate) {
  * @returns {Promise<CachedEvent[]>}
  */
 async function fetchAndCacheAllEvents(source = 'forex-factory') {
-  console.log(`📡 Fetching recent events from source: ${source} (14d back + 8d forward)...`);
-  
   try {
     // Calculate date range: 14 days back, 8 days forward
     // IMPORTANT: Use fresh Date() to ensure we get current date, not cached reference
     const now = new Date(); // Fresh date on every call
-    console.log(`📅 [eventsCache] Current date/time: ${now.toISOString()} (${now.toLocaleString()})`);
     
     const startDate = new Date(now.getTime()); // Clone to avoid mutation
     startDate.setDate(startDate.getDate() - 14);
@@ -364,8 +360,6 @@ async function fetchAndCacheAllEvents(source = 'forex-factory') {
     endDate.setDate(endDate.getDate() + 8);
     endDate.setHours(23, 59, 59, 999);
     
-    console.log(`📅 [eventsCache] Fetching range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
-    console.log(`📅 [eventsCache] Date range in local time: ${startDate.toLocaleString()} to ${endDate.toLocaleString()}`);
     
     const startTimestamp = Timestamp.fromDate(startDate);
     const endTimestamp = Timestamp.fromDate(endDate);
@@ -429,8 +423,6 @@ async function fetchAndCacheAllEvents(source = 'forex-factory') {
     const metadataKey = `${CACHE_METADATA_KEY}_${source}`;
     localStorage.setItem(metadataKey, JSON.stringify(metadata));
     
-    console.log(`✅ Cached ${events.length} events from ${source} (14d back + 8d forward)`);
-    
     return events;
   } catch (error) {
     console.error(`❌ Error fetching events from ${source}:`, error);
@@ -445,19 +437,15 @@ async function fetchAndCacheAllEvents(source = 'forex-factory') {
  * @returns {Promise<CachedEvent[]>}
  */
 export async function getAllEvents(forceRefresh = false, source = 'forex-factory') {
-  console.log(`📊 [getAllEvents] Called for source: ${source} (forceRefresh: ${forceRefresh})`);
-  
   // Check cache validity
   if (!forceRefresh && await isCacheValid(source)) {
     const cached = getCachedEvents(source);
     if (cached) {
-      console.log(`✅ [getAllEvents] Using cached events from ${source} (${cached.length} events)`);
       return cached;
     }
   }
   
   // Fetch and cache
-  console.log(`🔄 [getAllEvents] Cache invalid or forceRefresh, fetching from Firestore for ${source}`);
   return await fetchAndCacheAllEvents(source);
 }
 
@@ -486,8 +474,6 @@ export async function getFilteredEvents(filters = {}) {
   // This is CORRECT behavior - do not invalidate cache on filter changes
   const allEvents = await getAllEvents(false, source);
   
-  console.log(`🔍 [eventsCache] Filtering ${allEvents.length} cached events from ${source}...`);
-  
   const {
     startDate,
     endDate,
@@ -495,13 +481,6 @@ export async function getFilteredEvents(filters = {}) {
     categories = [],
     impacts = [],
   } = filters;
-  
-  console.log(`🔍 [eventsCache] Date range:`, {
-    startDate: startDate ? new Date(startDate).toISOString() : 'none',
-    endDate: endDate ? new Date(endDate).toISOString() : 'none',
-    startMs: startDate ? startDate.getTime() : null,
-    endMs: endDate ? endDate.getTime() : null,
-  });
   
   const filtered = allEvents.filter((event) => {
     // Date range filter
@@ -526,10 +505,6 @@ export async function getFilteredEvents(filters = {}) {
     
     return true;
   });
-  
-  console.log(`✅ [eventsCache] Filtered to ${filtered.length} events`);
-  console.log(`📊 [eventsCache] Sample filtered event:`, filtered[0]);
-  
   return filtered;
 }
 

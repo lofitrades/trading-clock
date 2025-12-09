@@ -457,17 +457,6 @@ export default function EventsTable({ events, loading, error, timezone, onRefres
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Debug logging
-  useEffect(() => {
-    console.log('📊 [EventsTable] Received props:', {
-      eventsCount: events?.length || 0,
-      loading,
-      error,
-      timezone,
-      sampleEvent: events?.[0]
-    });
-  }, [events, loading, error]);
-
   // ========== STATE ==========
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);

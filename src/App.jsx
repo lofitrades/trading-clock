@@ -6,15 +6,22 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
+ * v2.5.0 - 2025-12-09 - Added mobile fullscreen toggle and viewport-aware sizing
+ * v2.4.1 - 2025-12-09 - Compact loader sizing and remove unused ready flag
+ * v2.4.0 - 2025-12-09 - Delay clock render until layout calculated with donut skeleton placeholder
+ * v2.3.0 - 2025-12-09 - Align fixed action icons to viewport edge and refine loading animation stability
+ * v2.2.0 - 2025-12-09 - Smoothed loading ↔ canvas transitions with extended fades and motion
+ * v2.1.0 - 2025-12-03 - Keep loading screen until layout calculation completes
  * v2.0.0 - 2025-11-30 - Removed hash-based routing, now uses React Router
  * v1.0.0 - 2025-09-15 - Initial implementation
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { IconButton } from '@mui/material';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Box, IconButton } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useSettings } from './contexts/SettingsContext';
 import { useClock } from './hooks/useClock';
+import useFullscreen from './hooks/useFullscreen';
 import ClockCanvas from './components/ClockCanvas';
 import DigitalClock from './components/DigitalClock';
 import SessionLabel from './components/SessionLabel';
@@ -22,6 +29,7 @@ import TimezoneSelector from './components/TimezoneSelector';
 import SettingsSidebar from './components/SettingsSidebar';
 import EconomicEvents2 from './components/EconomicEvents2';
 import LoadingScreen from './components/LoadingScreen';
+import LoadingAnimation from './components/LoadingAnimation';
 import { isColorDark } from './utils/clockUtils';
 import './index.css';  // Import global CSS styles
 import './App.css';    // Import App-specific CSS
@@ -38,7 +46,6 @@ export default function App() {
     updateCanvasSize,
     updateClockSize,
     updateSessions,
-    // setSelectedTimezone removed - TimezoneSelector now uses updateSelectedTimezone from SettingsContext
     backgroundColor,
     updateBackgroundColor,
     backgroundBasedOnSession,
@@ -62,6 +69,9 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [eventsOpen, setEventsOpen] = useState(false);
   const [calculatedClockSize, setCalculatedClockSize] = useState(clockSize);
+  const [hasCalculatedClockSize, setHasCalculatedClockSize] = useState(false);
+  const appContainerRef = useRef(null);
+  const { isFullscreen } = useFullscreen(appContainerRef);
 
   // Calculate the actual clock size based on viewport height and percentage
   useEffect(() => {
@@ -77,10 +87,8 @@ export default function App() {
       const baseSize = 375;
       
       // Element height ratios relative to canvas size (based on 375px reference)
-      // Digital clock: ~50px total height (font + margins) / 375px = 0.133
-      const digitalClockRatio = showDigitalClock ? 0.133 : 0;
-      // Session label: ~80px total height (text + padding + margins) / 375px = 0.213
-      const sessionLabelRatio = showSessionLabel ? 0.213 : 0;
+      const digitalClockRatio = showDigitalClock ? 0.133 : 0; // ~50px / 375px
+      const sessionLabelRatio = showSessionLabel ? 0.213 : 0; // ~80px / 375px
       
       // Total ratio: canvas + digital clock + session label
       const totalRatio = 1 + digitalClockRatio + sessionLabelRatio;
@@ -89,7 +97,6 @@ export default function App() {
       const availableHeight = viewportHeight - settingsButtonHeight - timezoneSelectorHeight - 10; // 10px tiny buffer
       
       // Calculate canvas size based on the percentage and ratio
-      // At 100%, we want to use all available height
       let calculatedSize = Math.floor((availableHeight / totalRatio) * (canvasSize / 100));
       
       // Ensure minimum size of 150px
@@ -111,6 +118,7 @@ export default function App() {
       }
       
       setCalculatedClockSize(calculatedSize);
+      setHasCalculatedClockSize(true);
     };
 
     calculateSize();
@@ -133,6 +141,11 @@ export default function App() {
     document.body.style.backgroundColor = effectiveBackground;
   }, [effectiveBackground]);
 
+  useEffect(() => {
+    // Recompute layout when entering/exiting fullscreen to keep sizing accurate.
+    window.dispatchEvent(new Event('resize'));
+  }, [isFullscreen]);
+
   // Timezone selector is always rendered at the bottom of the clock elements.
   // v1.1.0: TimezoneSelector now uses SettingsContext directly (removed selectedTimezone/setSelectedTimezone props)
   const memoizedTimezoneSelector = useMemo(() => (
@@ -143,57 +156,77 @@ export default function App() {
     />
   ), [effectiveTextColor, eventsOpen]);
 
+  const renderSkeleton = !hasCalculatedClockSize;
+
   return (
     <>
-      <LoadingScreen isLoading={isLoading} clockSize={clockSize} />
+      <LoadingScreen isLoading={isLoading} clockSize={calculatedClockSize} />
       
       <div
         className="app-container"
+        ref={appContainerRef}
         style={{
           maxWidth: calculatedClockSize + 200,
-          minHeight: '100vh',
+          backgroundColor: effectiveBackground,
           opacity: isLoading ? 0 : 1,
-          transition: 'opacity 0.3s ease-in-out',
+          pointerEvents: isLoading ? 'none' : 'auto',
+          transition: 'opacity 0.6s ease',
         }}
       >
-        <IconButton
-          className="settings-button"
-          onClick={() => setSettingsOpen(true)}
+        <Box
           sx={{
             position: 'fixed',
-            top: 10,
-            right: 10,
-            color: effectiveTextColor,
-            zIndex: 1000,
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 1200,
           }}
-          aria-label="Open settings"
         >
-          <SettingsIcon sx={{ fontSize: 28 }} />
-        </IconButton>
+          <IconButton
+            className="settings-button"
+            onClick={() => setSettingsOpen(true)}
+            sx={{
+              position: 'absolute',
+              top: 10,
+              right: 'max(12px, env(safe-area-inset-right, 0px))',
+              color: effectiveTextColor,
+              pointerEvents: 'auto',
+              backgroundColor: 'transparent',
+            }}
+            aria-label="Open settings"
+          >
+            <SettingsIcon sx={{ fontSize: 28 }} />
+          </IconButton>
+        </Box>
 
         <div className="clock-elements-container">
           {showHandClock && (
-            <div className="hand-clock">
-              <ClockCanvas 
-                size={calculatedClockSize} 
-                time={currentTime} 
-                sessions={sessions}
-                handColor={effectiveTextColor}
-                clockStyle={clockStyle}
-                showSessionNamesInCanvas={showSessionNamesInCanvas}
-                activeSession={activeSession}
-                backgroundBasedOnSession={backgroundBasedOnSession}
-              />
+            <div className="hand-clock" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+              {renderSkeleton ? (
+                <div style={{ width: calculatedClockSize, height: calculatedClockSize, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <LoadingAnimation clockSize={Math.min(calculatedClockSize, 72)} isLoading />
+                </div>
+              ) : (
+                <ClockCanvas 
+                  size={calculatedClockSize} 
+                  time={currentTime} 
+                  sessions={sessions}
+                  handColor={effectiveTextColor}
+                  clockStyle={clockStyle}
+                  showSessionNamesInCanvas={showSessionNamesInCanvas}
+                  activeSession={activeSession}
+                  backgroundBasedOnSession={backgroundBasedOnSession}
+                />
+              )}
             </div>
           )}
-          {showDigitalClock && (
+          {showDigitalClock && !renderSkeleton && (
             <DigitalClock 
               time={currentTime} 
               clockSize={calculatedClockSize} 
               textColor={effectiveTextColor}
             />
           )}
-          {showSessionLabel && (
+          {showSessionLabel && !renderSkeleton && (
             <SessionLabel
               activeSession={activeSession}
               showTimeToEnd={showTimeToEnd}
