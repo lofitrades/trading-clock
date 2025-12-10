@@ -12,6 +12,7 @@
  * - Premium Routes: Require specific subscription plans
  * 
  * Changelog:
+ * v1.1.1 - 2025-12-09 - Removed redundant Suspense loader to avoid double-loading animation (App handles unified loader).
  * v1.1.0 - 2025-12-09 - Replaced CircularProgress fallback with branded donut loader
  * v1.0.0 - 2025-11-30 - Initial implementation with RBAC and subscription support
  */
@@ -35,9 +36,7 @@ const EventsPage = lazy(() => import('../components/EventsPage'));
  * Loading Component
  * Displayed while lazy-loaded components are loading
  */
-const LoadingFallback = () => (
-  <RouteLoading message="Timing..." />
-);
+const LoadingFallback = () => null;
 
 /**
  * Not Found Component

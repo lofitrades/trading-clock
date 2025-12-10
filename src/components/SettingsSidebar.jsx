@@ -5,6 +5,9 @@
  * Hosts general/session settings, auth actions, and pro prompts in a responsive MUI drawer.
  * 
  * Changelog:
+ * v1.2.2 - 2025-12-09 - Added indentation and divider for Show Events toggle to separate it from parent row
+ * v1.2.1 - 2025-12-09 - Nested Show Events toggle directly under Hand Clock for clearer hierarchy
+ * v1.2.0 - 2025-12-09 - Added Show Events on Clock toggle gated to Hand Clock visibility
  * v1.1.0 - 2025-12-09 - Added fullscreen toggle in header with tooltip
  * v1.0.0 - 2025-09-15 - Initial implementation
  */
@@ -162,6 +165,8 @@ export default function SettingsSidebar({ open, onClose }) {
     toggleShowTimeToStart,
     showSessionNamesInCanvas,
     toggleShowSessionNamesInCanvas,
+    showEventsOnCanvas,
+    toggleShowEventsOnCanvas,
     newsSource,
     updateNewsSource,
   } = useSettings();
@@ -473,6 +478,28 @@ export default function SettingsSidebar({ open, onClose }) {
                   onChange={() => handleToggle(toggleShowHandClock)}
                 />
               </SettingRow>
+
+              {showHandClock && (
+                <Box
+                  sx={{
+                    mt: -1,
+                    mb: 2.5,
+                    pl: 2,
+                    borderLeft: 2,
+                    borderColor: 'divider',
+                  }}
+                >
+                  <SettingRow
+                    label="Show Events on Clock"
+                    description="Display economic event markers on the analog clock face"
+                  >
+                    <SwitchComponent
+                      checked={showEventsOnCanvas}
+                      onChange={toggleShowEventsOnCanvas}
+                    />
+                  </SettingRow>
+                </Box>
+              )}
 
               <SettingRow
                 label="Digital Clock"

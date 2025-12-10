@@ -1,4 +1,15 @@
-/* src/contexts/SettingsContext.jsx */
+/**
+ * src/contexts/SettingsContext.jsx
+ * 
+ * Purpose: Centralized settings provider with localStorage + Firestore persistence for clock, session, and economic event preferences.
+ * Supplies clock visibility, styling, timezone, news source, and economic events overlay controls to the app.
+ * 
+ * Changelog:
+ * v1.2.0 - 2025-12-09 - Added showEventsOnCanvas toggle with persistence to control clock event markers visibility.
+ * v1.1.0 - 2025-12-01 - Added newsSource preference and eventFilters persistence for economic events features.
+ * v1.0.0 - 2025-09-15 - Initial implementation of settings context with Firestore sync.
+ */
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { db } from '../firebase';
@@ -44,6 +55,7 @@ export function SettingsProvider({ children }) {
   const [showTimeToEnd, setShowTimeToEnd] = useState(true);
   const [showTimeToStart, setShowTimeToStart] = useState(true);
   const [showSessionNamesInCanvas, setShowSessionNamesInCanvas] = useState(false);
+  const [showEventsOnCanvas, setShowEventsOnCanvas] = useState(true);
   
   // News source preference (for economic events calendar)
   const [newsSource, setNewsSource] = useState(DEFAULT_NEWS_SOURCE);
@@ -74,6 +86,7 @@ export function SettingsProvider({ children }) {
       const savedShowTimeToEnd = localStorage.getItem('showTimeToEnd');
       const savedShowTimeToStart = localStorage.getItem('showTimeToStart');
       const savedShowSessionNamesInCanvas = localStorage.getItem('showSessionNamesInCanvas');
+      const savedShowEventsOnCanvas = localStorage.getItem('showEventsOnCanvas');
       const savedNewsSource = localStorage.getItem('newsSource');
       const savedEventFilters = localStorage.getItem('eventFilters');
 
@@ -91,6 +104,7 @@ export function SettingsProvider({ children }) {
       if (savedShowTimeToEnd !== null) setShowTimeToEnd(savedShowTimeToEnd === 'true');
       if (savedShowTimeToStart !== null) setShowTimeToStart(savedShowTimeToStart === 'true');
       if (savedShowSessionNamesInCanvas !== null) setShowSessionNamesInCanvas(savedShowSessionNamesInCanvas === 'true');
+      if (savedShowEventsOnCanvas !== null) setShowEventsOnCanvas(savedShowEventsOnCanvas === 'true');
       if (savedNewsSource) setNewsSource(savedNewsSource);
       
       // Load event filters with date deserialization
@@ -140,6 +154,7 @@ export function SettingsProvider({ children }) {
             if (data.settings.showTimeToEnd !== undefined) setShowTimeToEnd(data.settings.showTimeToEnd);
             if (data.settings.showTimeToStart !== undefined) setShowTimeToStart(data.settings.showTimeToStart);
             if (data.settings.showSessionNamesInCanvas !== undefined) setShowSessionNamesInCanvas(data.settings.showSessionNamesInCanvas);
+            if (data.settings.showEventsOnCanvas !== undefined) setShowEventsOnCanvas(data.settings.showEventsOnCanvas);
             
             // Load news source preference
             if (data.settings.newsSource) setNewsSource(data.settings.newsSource);
@@ -172,6 +187,7 @@ export function SettingsProvider({ children }) {
               showTimeToEnd,
               showTimeToStart,
               showSessionNamesInCanvas,
+              showEventsOnCanvas,
               newsSource, // Default news source preference
             }
           });
@@ -316,6 +332,15 @@ export function SettingsProvider({ children }) {
     });
   };
 
+  const toggleShowEventsOnCanvas = () => {
+    setShowEventsOnCanvas(prev => {
+      const newValue = !prev;
+      localStorage.setItem('showEventsOnCanvas', newValue);
+      if (user) saveSettingsToFirestore({ showEventsOnCanvas: newValue });
+      return newValue;
+    });
+  };
+
   /**
    * Update event filters with persistence
    */
@@ -376,6 +401,7 @@ export function SettingsProvider({ children }) {
     setShowTimeToEnd(true);
     setShowTimeToStart(true);
     setShowSessionNamesInCanvas(false);
+    setShowEventsOnCanvas(true);
     setNewsSource(DEFAULT_NEWS_SOURCE);
     
     // Also reset in Firestore if user is logged in
@@ -394,6 +420,7 @@ export function SettingsProvider({ children }) {
         showTimeToEnd: true,
         showTimeToStart: true,
         showSessionNamesInCanvas: false,
+        showEventsOnCanvas: true,
         newsSource: DEFAULT_NEWS_SOURCE,
       };
       await saveSettingsToFirestore(defaultSettings);
@@ -429,6 +456,8 @@ export function SettingsProvider({ children }) {
     toggleShowTimeToStart,
     showSessionNamesInCanvas,
     toggleShowSessionNamesInCanvas,
+    showEventsOnCanvas,
+    toggleShowEventsOnCanvas,
     resetSettings,
     eventFilters,
     updateEventFilters,

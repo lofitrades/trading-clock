@@ -1,0 +1,68 @@
+/**
+ * src/App.css
+ * 
+ * Purpose: Core app layout styles, including clock wrapper and overlay elements.
+ * Adds styling for clock events overlay markers without impacting canvas sizing.
+ * 
+ * Changelog:
+ * v1.2.0 - 2025-12-09 - Added flag badge styling for clock event markers.
+ * v1.1.0 - 2025-12-09 - Added styles for clock events overlay markers and wrapper.
+ * v1.0.0 - 2025-09-15 - Initial implementation
+ */
+
+.hand-clock-wrapper {
+	position: relative;
+}
+
+.clock-events-overlay {
+	pointer-events: none;
+}
+
+.clock-event-marker {
+	position: absolute;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+	font-weight: 800;
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
+	backdrop-filter: saturate(120%);
+	overflow: visible;
+}
+
+.clock-hands-overlay {
+	pointer-events: none;
+}
+
+.clock-event-marker:hover {
+	transform: translate(-50%, -50%) scale(1.08);
+	box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+}
+
+@keyframes nowPulse {
+	0% { border-width: 2px; box-shadow: 0 4px 12px rgba(2, 136, 209, 0.15); }
+	50% { border-width: 4px; box-shadow: 0 8px 20px rgba(2, 136, 209, 0.32); }
+	100% { border-width: 2px; box-shadow: 0 4px 12px rgba(2, 136, 209, 0.15); }
+}
+
+.clock-event-flag {
+	position: absolute;
+	right: -4px;
+	bottom: -4px;
+	width: 14px;
+	height: 10px;
+	border-radius: 2px;
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.32);
+	overflow: hidden;
+	background: #fff;
+}
+
+.clock-event-flag .fi {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border-radius: 2px;
+}

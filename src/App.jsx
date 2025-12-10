@@ -6,6 +6,10 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
+ * v2.6.3 - 2025-12-09 - Added setting-controlled toggle for clock event markers and aligned loader gating.
+ * v2.6.2 - 2025-12-09 - Keep loading animation visible until clock event markers finish rendering.
+ * v2.6.1 - 2025-12-09 - Event markers now open the economic events drawer and auto-scroll to the selected event; improved accessibility and state styling
+ * v2.6.0 - 2025-12-09 - Added ClockEventsOverlay to display today's filtered economic events on the analog clock
  * v2.5.0 - 2025-12-09 - Added mobile fullscreen toggle and viewport-aware sizing
  * v2.4.1 - 2025-12-09 - Compact loader sizing and remove unused ready flag
  * v2.4.0 - 2025-12-09 - Delay clock render until layout calculated with donut skeleton placeholder
@@ -23,13 +27,14 @@ import { useSettings } from './contexts/SettingsContext';
 import { useClock } from './hooks/useClock';
 import useFullscreen from './hooks/useFullscreen';
 import ClockCanvas from './components/ClockCanvas';
+import ClockEventsOverlay from './components/ClockEventsOverlay';
+import ClockHandsOverlay from './components/ClockHandsOverlay';
 import DigitalClock from './components/DigitalClock';
 import SessionLabel from './components/SessionLabel';
 import TimezoneSelector from './components/TimezoneSelector';
 import SettingsSidebar from './components/SettingsSidebar';
 import EconomicEvents2 from './components/EconomicEvents2';
 import LoadingScreen from './components/LoadingScreen';
-import LoadingAnimation from './components/LoadingAnimation';
 import { isColorDark } from './utils/clockUtils';
 import './index.css';  // Import global CSS styles
 import './App.css';    // Import App-specific CSS
@@ -61,6 +66,9 @@ export default function App() {
     toggleShowTimeToEnd,
     toggleShowTimeToStart,
     showSessionNamesInCanvas,
+    showEventsOnCanvas,
+    eventFilters,
+    newsSource,
   } = useSettings();
 
   const { currentTime, activeSession, timeToEnd, nextSession, timeToStart } =
@@ -72,6 +80,16 @@ export default function App() {
   const [hasCalculatedClockSize, setHasCalculatedClockSize] = useState(false);
   const appContainerRef = useRef(null);
   const { isFullscreen } = useFullscreen(appContainerRef);
+  const [autoScrollRequest, setAutoScrollRequest] = useState(null);
+  const handAnglesRef = useRef({ hour: 0, minute: 0, second: 0 });
+  const [overlayLoading, setOverlayLoading] = useState(showHandClock && showEventsOnCanvas);
+
+  const openEventsFor = (evt) => {
+    setEventsOpen(true);
+    if (evt?.id) {
+      setAutoScrollRequest({ eventId: evt.id, ts: Date.now() });
+    }
+  };
 
   // Calculate the actual clock size based on viewport height and percentage
   useEffect(() => {
@@ -157,10 +175,20 @@ export default function App() {
   ), [effectiveTextColor, eventsOpen]);
 
   const renderSkeleton = !hasCalculatedClockSize;
+  const showLoadingScreen = isLoading || overlayLoading;
+
+  useEffect(() => {
+    setOverlayLoading(showHandClock && showEventsOnCanvas);
+  }, [showHandClock, showEventsOnCanvas]);
+
+  const closeEvents = () => {
+    setEventsOpen(false);
+    setAutoScrollRequest(null);
+  };
 
   return (
     <>
-      <LoadingScreen isLoading={isLoading} clockSize={calculatedClockSize} />
+      <LoadingScreen isLoading={showLoadingScreen} clockSize={calculatedClockSize} />
       
       <div
         className="app-container"
@@ -168,8 +196,8 @@ export default function App() {
         style={{
           maxWidth: calculatedClockSize + 200,
           backgroundColor: effectiveBackground,
-          opacity: isLoading ? 0 : 1,
-          pointerEvents: isLoading ? 'none' : 'auto',
+          opacity: showLoadingScreen ? 0 : 1,
+          pointerEvents: showLoadingScreen ? 'none' : 'auto',
           transition: 'opacity 0.6s ease',
         }}
       >
@@ -202,20 +230,38 @@ export default function App() {
           {showHandClock && (
             <div className="hand-clock" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
               {renderSkeleton ? (
-                <div style={{ width: calculatedClockSize, height: calculatedClockSize, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <LoadingAnimation clockSize={Math.min(calculatedClockSize, 72)} isLoading />
-                </div>
+                <div style={{ width: calculatedClockSize, height: calculatedClockSize }} />
               ) : (
-                <ClockCanvas 
-                  size={calculatedClockSize} 
-                  time={currentTime} 
-                  sessions={sessions}
-                  handColor={effectiveTextColor}
-                  clockStyle={clockStyle}
-                  showSessionNamesInCanvas={showSessionNamesInCanvas}
-                  activeSession={activeSession}
-                  backgroundBasedOnSession={backgroundBasedOnSession}
-                />
+                <div className="hand-clock-wrapper" style={{ position: 'relative', width: calculatedClockSize, height: calculatedClockSize }}>
+                  <ClockCanvas 
+                    size={calculatedClockSize} 
+                    time={currentTime} 
+                    sessions={sessions}
+                    handColor={effectiveTextColor}
+                    clockStyle={clockStyle}
+                    showSessionNamesInCanvas={showSessionNamesInCanvas}
+                    activeSession={activeSession}
+                    backgroundBasedOnSession={backgroundBasedOnSession}
+                    renderHandsInCanvas={false}
+                    handAnglesRef={handAnglesRef}
+                  />
+                  <ClockHandsOverlay
+                    size={calculatedClockSize}
+                    handAnglesRef={handAnglesRef}
+                    handColor={effectiveTextColor}
+                    time={currentTime}
+                  />
+                  {showEventsOnCanvas ? (
+                    <ClockEventsOverlay 
+                      size={calculatedClockSize}
+                      timezone={selectedTimezone}
+                      eventFilters={eventFilters}
+                      newsSource={newsSource}
+                      onEventClick={openEventsFor}
+                      onLoadingStateChange={showHandClock ? setOverlayLoading : undefined}
+                    />
+                  ) : null}
+                </div>
               )}
             </div>
           )}
@@ -250,8 +296,9 @@ export default function App() {
         {/* Economic Events Panel - Keep mounted for smooth navigation */}
         <EconomicEvents2 
           open={eventsOpen}
-          onClose={() => setEventsOpen(false)} 
+          onClose={closeEvents} 
           timezone={selectedTimezone}
+          autoScrollRequest={autoScrollRequest}
         />
       </div>
     </>

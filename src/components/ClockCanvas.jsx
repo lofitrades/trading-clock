@@ -10,7 +10,7 @@ import {
   lightenColor
 } from '../utils/clockUtils';
 
-export default function ClockCanvas({ size, time, sessions, handColor, clockStyle = 'normal', showSessionNamesInCanvas = true, activeSession = null, backgroundBasedOnSession = false }) {
+export default function ClockCanvas({ size, time, sessions, handColor, clockStyle = 'normal', showSessionNamesInCanvas = true, activeSession = null, backgroundBasedOnSession = false, renderHandsInCanvas = true, handAnglesRef = null }) {
   const canvasRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const [hoveredSession, setHoveredSession] = useState(null);
@@ -22,12 +22,13 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
   const previousHoveredSession = useRef(null);
   const tooltipAnimation = useRef(null);
   
-  // Clock hand animation states
-  const handAngles = useRef({
+  // Clock hand animation states (shared with overlay when provided)
+  const internalHandAngles = useRef({
     hour: 0,
     minute: 0,
     second: 0
   });
+  const handAngles = handAnglesRef || internalHandAngles;
 
   // Initialize animation states for each session
   useEffect(() => {
@@ -175,7 +176,8 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
         handAngles.current,
         showSessionNamesInCanvas,
         activeSession,
-        backgroundBasedOnSession
+        backgroundBasedOnSession,
+        renderHandsInCanvas
       );
       
       // Pass handColor as the text color for the clock numbers and clockStyle

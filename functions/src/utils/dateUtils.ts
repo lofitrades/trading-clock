@@ -1,5 +1,13 @@
 /**
- * Utility functions for economic events sync
+ * functions/src/utils/dateUtils.ts
+ *
+ * Purpose: Utility helpers for economic event sync: date parsing, ranges, and IDs.
+ * Ensures backend stores UTC-normalized timestamps for consistent timezone handling.
+ *
+ * Changelog:
+ * v1.7.1 - 2025-12-09 - Removed unused apiDate variable and added file header for lint compliance.
+ * v1.7.0 - 2025-12-01 - Verified GMT+2 to UTC conversion for JBlanked Forex Factory data.
+ * v1.0.0 - 2024-XX-XX - Initial implementation.
  */
 
 import {Timestamp} from "firebase-admin/firestore";
@@ -77,8 +85,7 @@ export function parseJBlankedDate(dateStr: string): Date {
   const JBLANKED_OFFSET_HOURS = 2; // GMT+2 offset (verified with actual API data Dec 1, 2025)
   const apiTime = Date.UTC(year, month, day, hour, minute, second);
   const utcTimestamp = apiTime - (JBLANKED_OFFSET_HOURS * 60 * 60 * 1000);
-  
-  const apiDate = new Date(apiTime);
+
   const utcDate = new Date(utcTimestamp);
   
   // Validate the parsed date

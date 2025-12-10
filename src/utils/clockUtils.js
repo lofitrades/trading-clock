@@ -57,7 +57,7 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
     }
   };
   
-  export const drawDynamicElements = (ctx, size, sessions, time, hoveredSession, handColor, clockStyle = 'normal', animationStates = {}, handAngles = null, showSessionNamesInCanvas = true, activeSession = null, backgroundBasedOnSession = false) => {
+  export const drawDynamicElements = (ctx, size, sessions, time, hoveredSession, handColor, clockStyle = 'normal', animationStates = {}, handAngles = null, showSessionNamesInCanvas = true, activeSession = null, backgroundBasedOnSession = false, drawHands = true) => {
     const centerX = size / 2,
           centerY = size / 2;
     const radius = Math.min(size, size) / 2 - 5;
@@ -317,53 +317,55 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
         ctx.restore();
       });
     }
-    // Draw clock hands using handColor prop
-    const hours = time.getHours();
-    const drawHand = (angle, length, width, color) => {
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.lineTo(
-        centerX + Math.cos(angle - Math.PI / 2) * length,
-        centerY + Math.sin(angle - Math.PI / 2) * length
-      );
-      ctx.strokeStyle = color;
-      ctx.lineWidth = width;
-      ctx.lineCap = "round";
-      ctx.stroke();
-    };
-    
-    // Use animated angles if available, otherwise calculate instantly
-    if (handAngles) {
-      // Convert animated degrees to radians
-      const hourAngle = handAngles.hour * Math.PI / 180;
-      const minuteAngle = handAngles.minute * Math.PI / 180;
-      const secondAngle = handAngles.second * Math.PI / 180;
+    if (drawHands) {
+      // Draw clock hands using handColor prop
+      const hours = time.getHours();
+      const drawHand = (angle, length, width, color) => {
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(
+          centerX + Math.cos(angle - Math.PI / 2) * length,
+          centerY + Math.sin(angle - Math.PI / 2) * length
+        );
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.lineCap = "round";
+        ctx.stroke();
+      };
       
-      const hourLength = hours >= 12 ? radius * 0.74 : radius * 0.5;
-      drawHand(hourAngle, hourLength, 6, handColor);
-      drawHand(minuteAngle, radius * 0.9, 3, handColor);
-      drawHand(secondAngle, radius * 1, 1, handColor);
-    } else {
-      // Fallback to instant positioning (for backward compatibility)
-      const minutes = time.getMinutes();
-      const seconds = time.getSeconds();
-      const hourAngle = ((hours % 12) * 30 + minutes * 0.5) * Math.PI / 180;
-      const hourLength = hours >= 12 ? radius * 0.74 : radius * 0.5;
-      drawHand(hourAngle, hourLength, 6, handColor);
-      const minuteAngle = (minutes * 6) * Math.PI / 180;
-      drawHand(minuteAngle, radius * 0.9, 3, handColor);
-      const secondAngle = (seconds * 6) * Math.PI / 180;
-      drawHand(secondAngle, radius * 1, 1, handColor);
+      // Use animated angles if available, otherwise calculate instantly
+      if (handAngles) {
+        // Convert animated degrees to radians
+        const hourAngle = handAngles.hour * Math.PI / 180;
+        const minuteAngle = handAngles.minute * Math.PI / 180;
+        const secondAngle = handAngles.second * Math.PI / 180;
+        
+        const hourLength = hours >= 12 ? radius * 0.74 : radius * 0.5;
+        drawHand(hourAngle, hourLength, 6, handColor);
+        drawHand(minuteAngle, radius * 0.9, 3, handColor);
+        drawHand(secondAngle, radius * 1, 1, handColor);
+      } else {
+        // Fallback to instant positioning (for backward compatibility)
+        const minutes = time.getMinutes();
+        const seconds = time.getSeconds();
+        const hourAngle = ((hours % 12) * 30 + minutes * 0.5) * Math.PI / 180;
+        const hourLength = hours >= 12 ? radius * 0.74 : radius * 0.5;
+        drawHand(hourAngle, hourLength, 6, handColor);
+        const minuteAngle = (minutes * 6) * Math.PI / 180;
+        drawHand(minuteAngle, radius * 0.9, 3, handColor);
+        const secondAngle = (seconds * 6) * Math.PI / 180;
+        drawHand(secondAngle, radius * 1, 1, handColor);
+      }
+      
+      // Draw center pin/cap that holds the hands
+      // Pin diameter = hour hand width (6px) → radius = 3px
+      const pinRadius = 3;
+      
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, pinRadius, 0, Math.PI * 2);
+      ctx.fillStyle = handColor;
+      ctx.fill();
     }
-    
-    // Draw center pin/cap that holds the hands
-    // Pin diameter = hour hand width (6px) → radius = 3px
-    const pinRadius = 3;
-    
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, pinRadius, 0, Math.PI * 2);
-    ctx.fillStyle = handColor;
-    ctx.fill();
   };
   
   

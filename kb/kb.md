@@ -1934,6 +1934,25 @@ whyDidYouRender(React, {
 
 ## 📝 Change Log
 
+### Version 2.3.1 - December 2025
+**Clock Events Visibility Toggle**
+
+#### 🔄 Changes
+- Added `showEventsOnCanvas` setting to control whether economic event markers render on the analog clock; toggle appears only when Hand Clock is enabled.
+- Loading screen no longer waits on clock event markers when the overlay is disabled, preventing unnecessary loader delays.
+
+### Version 2.3.0 - December 2025
+**Clock-Integrated Economic Events Overlay**
+
+#### ✨ New Features
+- **Hand Clock Event Markers:** Today's filtered economic events now render directly on the analog clock (AM inner ring, PM outer ring) with impact-based icons.
+- **Impact-Aware Tooltips:** Hover markers to see grouped events at the same timestamp, showing names, currency/category, impact level, and timezone-correct time.
+
+#### 🔄 Changes
+- Added `ClockEventsOverlay` component with timezone-aware grouping and highest-impact selection per timeslot.
+- Wrapped hand clock in a relative container to host overlay without modifying the canvas implementation.
+- Styled overlay markers and tooltips for enterprise UX consistency.
+
 ### Version 2.2.0 - December 2025
 **Multi-Source Economic Calendar Architecture**
 

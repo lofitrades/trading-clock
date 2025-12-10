@@ -89,7 +89,7 @@ const MOCK_EVENTS = [
  * EconomicEvents2 Component
  * Refactored drawer embedding full EventsPage component
  */
-export default function EconomicEvents2({ open, onClose, timezone }) {
+export default function EconomicEvents2({ open, onClose, timezone, autoScrollRequest = null }) {
   const { newsSource, updateNewsSource } = useSettings();
   const { user } = useAuth();
   
@@ -157,7 +157,7 @@ export default function EconomicEvents2({ open, onClose, timezone }) {
         top: 0,
         left: expanded ? 0 : 'auto',
         height: '100vh',
-        width: expanded ? '100%' : { xs: '100%', sm: 400, md: 480, lg: 520 },
+        width: expanded ? '100%' : { xs: '100%', sm: '100%', md: 480, lg: 520 },
         display: open ? 'flex' : 'none',
         flexDirection: 'column',
         zIndex: 1200,
@@ -382,7 +382,7 @@ export default function EconomicEvents2({ open, onClose, timezone }) {
               ref={eventsPageRef}
               embedded={!expanded}
               hideBackButton
-              autoScrollToNextKey={autoScrollToken}
+              autoScrollToNextKey={autoScrollRequest || autoScrollToken}
               compactMode={expanded}
               onEventsUpdate={(count, timestamp) => {
                 setEventsCount(count);

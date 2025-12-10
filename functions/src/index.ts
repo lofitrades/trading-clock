@@ -44,10 +44,10 @@ setGlobalOptions({
 });
 
 /**
- * Scheduled Cloud Function - Runs daily at 5:00 AM US/Eastern
+ * Scheduled Cloud Function - Runs daily at 12:01 AM US/Eastern
  * Syncs 3-year window of economic events from JBlanked API to Firestore
  *
- * Schedule: Every day at 5:00 AM Eastern Time
+ * Schedule: Every day at 12:01 AM Eastern Time
  * Cost: ~1 API credit per day = ~365 credits per year
  *
  * To deploy:
@@ -55,7 +55,7 @@ setGlobalOptions({
  */
 export const syncEconomicEventsCalendarScheduled = onSchedule(
   {
-    schedule: "0 5 * * *", // Cron: 5:00 AM
+    schedule: "1 0 * * *", // Cron: 12:01 AM
     timeZone: "America/New_York", // US/Eastern
     timeoutSeconds: 540, // 9 minutes (max for gen 1 is 540s)
     memory: "512MiB",
@@ -398,12 +398,12 @@ export const syncHistoricalEvents = onRequest(
 );
 
 /**
- * Scheduled Cloud Function - Recent Events Update (Daily at 5 AM ET)
+ * Scheduled Cloud Function - Recent Events Update (Daily at 12:01 AM ET)
  * Updates recent events with comprehensive lookback and realistic forward window
  * 
  * Purpose: Maintain accurate near-term data with actual values
  * Date Range: 30 days back, 14 days forward (44 days total, includes today)
- * Schedule: Daily at 5:00 AM Eastern Time
+ * Schedule: Daily at 12:01 AM Eastern Time
  * Use Case: Daily maintenance, update actuals, keep forward data fresh
  * Cost: Low API usage (~44 days of data)
  * 
@@ -416,7 +416,7 @@ export const syncHistoricalEvents = onRequest(
  */
 export const syncRecentEventsScheduled = onSchedule(
   {
-    schedule: "0 5 * * *", // Cron: 5:00 AM daily
+    schedule: "1 0 * * *", // Cron: 12:01 AM daily
     timeZone: "America/New_York", // US/Eastern
     timeoutSeconds: 300, // 5 minutes (smaller dataset)
     memory: "512MiB",

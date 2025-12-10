@@ -1,37 +1,37 @@
 /**
  * src/components/routes/RouteLoading.jsx
  * 
- * Purpose: Shared full-screen loading experience using the branded donut animation.
+ * Purpose: Shared full-screen loading experience using the unified small loader.
  * Provides consistent enterprise-grade UX for route guards and suspense fallbacks.
  * 
  * Changelog:
+ * v1.1.0 - 2025-12-09 - Switched to unified LoadingScreen (small loader) to avoid double animations.
  * v1.0.0 - 2025-12-09 - Initial implementation for route guards and lazy loading
  */
 
 import React from 'react';
-import { Box, Fade, Typography } from '@mui/material';
-import LoadingAnimation from '../LoadingAnimation';
+import LoadingScreen from '../LoadingScreen';
+import { Box, Typography } from '@mui/material';
 
 const RouteLoading = ({ message = 'Loading...' }) => (
-  <Fade in timeout={200}>
+  <Box sx={{ position: 'relative', minHeight: '100vh' }}>
+    <LoadingScreen isLoading clockSize={240} />
     <Box
       sx={{
+        position: 'absolute',
+        inset: 0,
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         justifyContent: 'center',
-        minHeight: '100vh',
-        gap: 3,
-        bgcolor: '#F9F9F9',
-        px: 3,
+        pb: 4,
+        pointerEvents: 'none',
       }}
     >
-      <LoadingAnimation clockSize={240} isLoading />
       <Typography variant="body1" color="text.secondary">
         {message}
       </Typography>
     </Box>
-  </Fade>
+  </Box>
 );
 
 export default RouteLoading;
