@@ -5,6 +5,7 @@
  * Client-side types matching backend functions/src/types/economicEvents.ts
  * 
  * Changelog:
+ * v1.1.0 - 2025-12-11 - Added user-preferred source options for canonical events.
  * v1.0.0 - 2025-11-30 - Initial implementation with multi-source support
  */
 
@@ -42,6 +43,29 @@ export const NEWS_SOURCE_OPTIONS = [
     value: 'fxstreet',
     label: 'FXStreet',
     description: '⚠️ Limited data - Only 10-20 future events available. Not recommended for primary use.'
+  },
+];
+
+export const USER_PREFERRED_SOURCE_OPTIONS = [
+  {
+    value: 'auto',
+    label: 'Auto (best available)',
+    description: 'Prioritize JBlanked actuals, fall back to NFS forecasts.'
+  },
+  {
+    value: 'jblanked-ff',
+    label: 'Forex Factory (JBlanked)',
+    description: 'Use JBlanked Forex Factory actuals when available.'
+  },
+  {
+    value: 'jblanked-mt',
+    label: 'MT / MQL5 (JBlanked)',
+    description: 'Prefer MetaTrader/MQL5 actuals from JBlanked.'
+  },
+  {
+    value: 'jblanked-fxstreet',
+    label: 'FXStreet (JBlanked)',
+    description: 'Prefer FXStreet actuals from JBlanked when enabled.'
   },
 ];
 

@@ -1934,6 +1934,18 @@ whyDidYouRender(React, {
 
 ## 📝 Change Log
 
+### Version 2.4.0 - December 2025
+**Event Notes Sync**
+
+#### ✨ New Features
+- Added per-event notes stored in `/users/{uid}/eventNotes/{eventId}/notes`, synced in real time across timeline, table, and clock overlays.
+- Introduced EventNotesDialog with add/remove actions, mobile-first full-screen mode, and timezone-aware timestamps.
+- Clock markers now display a notes badge when any note exists for the underlying event.
+
+#### 🔄 Changes
+- Timeline and table action rows include note controls with loading states and auth-aware handling.
+- Economic events drawer wires notes hook for unified add/remove and streaming subscriptions.
+
 ### Version 2.3.1 - December 2025
 **Clock Events Visibility Toggle**
 

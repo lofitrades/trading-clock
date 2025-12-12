@@ -32,7 +32,16 @@ import ForgotPasswordModal from './ForgotPasswordModal';
 
 function ActivationModal({ onClose }) {
   return (
-    <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={true}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{
+        backdrop: { sx: { zIndex: 1500 } },
+        paper: { sx: { zIndex: 1501 } },
+      }}
+    >
       <DialogContent>
         <Typography>
           Please follow the steps we sent via email to activate your account.
@@ -140,6 +149,10 @@ export default function AuthModal({ onClose }) {
         onClose={onClose} 
         maxWidth="sm" 
         fullWidth
+        slotProps={{
+          backdrop: { sx: { zIndex: 1500 } },
+          paper: { sx: { zIndex: 1501 } },
+        }}
         PaperProps={{
           sx: {
             borderRadius: 2,

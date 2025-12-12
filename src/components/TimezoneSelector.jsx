@@ -5,6 +5,14 @@
  * Key responsibility: Persist user timezone selection to Firestore via SettingsContext while gating guest edits.
  * 
  * Changelog:
+ * v1.3.7 - 2025-12-11 - Enter in search forwards to Autocomplete to select highlighted option
+ * v1.3.6 - 2025-12-11 - Forward arrow keys for keyboard navigation through results
+ * v1.3.5 - 2025-12-11 - Allow Enter key to select highlighted option from search
+ * v1.3.4 - 2025-12-11 - Replace spacebar with underscore in search input
+ * v1.3.3 - 2025-12-11 - Normalized timezone labels with spaces for readability
+ * v1.3.2 - 2025-12-11 - Strengthened auto-focus/select for search on open
+ * v1.3.1 - 2025-12-11 - Raised popper z-index to sit above settings drawer
+ * v1.3.0 - 2025-12-11 - Converted to settings-panel card and removed floating button; fully responsive mobile-first layout
  * v1.2.3 - 2025-12-09 - Auto-focus and select popper search field on open
  * v1.2.2 - 2025-12-09 - Fix popper search filtering and keep dropdown open during search focus
  * v1.2.1 - 2025-12-09 - Keep dropdown open while focusing search; prevent selecting collapsed label; auto-focus search input
@@ -14,40 +22,73 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { IconButton, Tooltip, Autocomplete, TextField, Box, Popper, CircularProgress } from '@mui/material';
-import EventNoteIcon from '@mui/icons-material/EventNote';
+import { Autocomplete, TextField, Box, Popper, CircularProgress, Paper, Typography } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import UnlockModal from './UnlockModal';
 
 // Popper with embedded search field; forwards ref so parent can inspect clicks to keep open
-const SearchablePopper = React.forwardRef(({ searchQuery, onSearchChange, searchInputRef, children, ...props }, ref) => (
-  <Popper
-    {...props}
-    ref={ref}
-    placement="top"
-    modifiers={[{ name: 'offset', options: { offset: [0, -6] } }]}
-  >
-    <Box sx={{ boxShadow: 3, borderRadius: 1.5, bgcolor: 'background.paper', width: 360, maxWidth: '90vw' }}>
-      <Box sx={{ p: 1.5, borderBottom: 1, borderColor: 'divider' }}>
-        <TextField
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          size="small"
-          fullWidth
-          placeholder="Search timezones"
-          autoFocus
-          inputRef={searchInputRef}
-          inputProps={{ 'aria-label': 'Search timezones' }}
-        />
+const SearchablePopper = React.forwardRef(
+  ({ searchQuery, onSearchChange, searchInputRef, mainInputRef, children, placement = 'bottom-start', ...props }, ref) => (
+    <Popper
+      {...props}
+      ref={ref}
+      placement={placement}
+      modifiers={[
+        { name: 'offset', options: { offset: [0, 6] } },
+        { name: 'flip', enabled: true },
+        { name: 'preventOverflow', options: { padding: 8 } },
+      ]}
+    >
+      <Box sx={{ boxShadow: 3, borderRadius: 1.5, bgcolor: 'background.paper', width: 360, maxWidth: '90vw' }}>
+        <Box sx={{ p: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+          <TextField
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === ' ') {
+                e.preventDefault();
+                onSearchChange((prev) => `${prev}_`);
+                return;
+              }
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (mainInputRef?.current) {
+                  const event = new KeyboardEvent('keydown', {
+                    key: 'Enter',
+                    code: 'Enter',
+                    keyCode: 13,
+                    which: 13,
+                    bubbles: true,
+                  });
+                  mainInputRef.current.dispatchEvent(event);
+                }
+                return;
+              }
+              if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (mainInputRef?.current) {
+                  const event = new KeyboardEvent('keydown', { key: e.key, code: e.key, bubbles: true });
+                  mainInputRef.current.dispatchEvent(event);
+                }
+              }
+            }}
+            size="small"
+            fullWidth
+            placeholder="Search timezones"
+            autoFocus
+            inputRef={searchInputRef}
+            inputProps={{ 'aria-label': 'Search timezones' }}
+          />
+        </Box>
+        {children}
       </Box>
-      {children}
-    </Box>
-  </Popper>
-));
+    </Popper>
+  )
+);
 SearchablePopper.displayName = 'SearchablePopper';
 
-export default function TimezoneSelector({ textColor, onRequestSignUp, eventsOpen, onToggleEvents }) {
+export default function TimezoneSelector({ textColor = 'inherit', onRequestSignUp }) {
   const { user } = useAuth();
   const { selectedTimezone, updateSelectedTimezone } = useSettings();
   const [showUnlock, setShowUnlock] = useState(false);
@@ -58,6 +99,7 @@ export default function TimezoneSelector({ textColor, onRequestSignUp, eventsOpe
   const popperRef = useRef(null);
   const anchorRef = useRef(null);
   const searchInputRef = useRef(null);
+  const mainInputRef = useRef(null);
 
   // Load timezones asynchronously so the autocomplete is non-blocking.
   useEffect(() => {
@@ -77,6 +119,7 @@ export default function TimezoneSelector({ textColor, onRequestSignUp, eventsOpe
         };
 
         const list = supported.map((tz) => {
+          const readableTz = tz.replace(/_/g, ' ');
           let offset = '';
           try {
             const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'shortOffset' });
@@ -91,7 +134,7 @@ export default function TimezoneSelector({ textColor, onRequestSignUp, eventsOpe
             timezone: tz,
             offset,
             sortKey: parseOffset(offset),
-            label: `(UTC${offset || ''}) ${tz}`,
+            label: `(UTC${offset || ''}) ${readableTz}`,
           };
         });
 
@@ -168,7 +211,7 @@ export default function TimezoneSelector({ textColor, onRequestSignUp, eventsOpe
 
   useEffect(() => {
     if (!open) return undefined;
-    const id = requestAnimationFrame(() => {
+    const rafId = requestAnimationFrame(() => {
       if (searchInputRef.current) {
         searchInputRef.current.focus();
         if (searchInputRef.current.select) {
@@ -176,134 +219,132 @@ export default function TimezoneSelector({ textColor, onRequestSignUp, eventsOpe
         }
       }
     });
-    return () => cancelAnimationFrame(id);
+    const timeoutId = setTimeout(() => {
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+        if (searchInputRef.current.select) {
+          searchInputRef.current.select();
+        }
+      }
+    }, 60);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(timeoutId);
+    };
   }, [open]);
 
   return (
     <>
-      <Box
-        ref={anchorRef}
+      <Paper
+        elevation={0}
         sx={{
-          position: 'fixed',
-          bottom: 10,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 100,
-          width: '100%',
-          maxWidth: 340,
-          px: 2,
+          border: 1,
+          borderColor: 'divider',
+          borderRadius: 3,
+          overflow: 'hidden',
         }}
       >
-        <Autocomplete
-          value={selectedTimezoneObj}
-          onChange={handleChange}
-          open={open}
-          onOpen={handleOpen}
-          onClose={handleClose}
-          openOnFocus
-          options={timezones}
-          filterOptions={filterOptions}
-          getOptionLabel={(option) => (typeof option === 'string' ? option : option.label)}
-          isOptionEqualToValue={(option, value) => {
-            if (!option || !value) return false;
-            return option.timezone === (value.timezone || value);
-          }}
-          size="small"
-          disableClearable
-          clearOnBlur={false}
-          freeSolo={false}
-          loading={loading}
-          popupIcon={null}
-          slots={{ popper: SearchablePopper }}
-          slotProps={{
-            popper: {
-              searchQuery,
-              onSearchChange: setSearchQuery,
-              searchInputRef,
-              ref: popperRef,
-            },
-            listbox: {
-              sx: {
-                maxHeight: 280,
-                overflow: 'auto',
-                py: 0.5,
-                '& .MuiAutocomplete-option': {
-                  paddingY: 0.75,
-                  paddingX: 1.5,
+        <Box sx={{ px: 1.75, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            Timezone
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Switch sessions to your local time instantly.
+          </Typography>
+        </Box>
+        <Box sx={{ p: { xs: 1.25, sm: 1.5 } }} ref={anchorRef}>
+          <Autocomplete
+            value={selectedTimezoneObj}
+            onChange={handleChange}
+            open={open}
+            onOpen={handleOpen}
+            onClose={handleClose}
+            openOnFocus
+            options={timezones}
+            filterOptions={filterOptions}
+            getOptionLabel={(option) => (typeof option === 'string' ? option : option.label)}
+            isOptionEqualToValue={(option, value) => {
+              if (!option || !value) return false;
+              return option.timezone === (value.timezone || value);
+            }}
+            size="small"
+            disableClearable
+            clearOnBlur={false}
+            freeSolo={false}
+            loading={loading}
+            popupIcon={null}
+            slots={{ popper: SearchablePopper }}
+            slotProps={{
+              popper: {
+                searchQuery,
+                onSearchChange: setSearchQuery,
+                searchInputRef,
+                mainInputRef,
+                ref: popperRef,
+                placement: 'bottom-start',
+                sx: { zIndex: 1500 },
+              },
+              listbox: {
+                sx: {
+                  maxHeight: 280,
+                  overflow: 'auto',
+                  py: 0.5,
+                  '& .MuiAutocomplete-option': {
+                    paddingY: 0.75,
+                    paddingX: 1.25,
+                  },
                 },
               },
-            },
-            paper: {
-              elevation: 0,
-              square: true,
-              sx: { boxShadow: 'none', borderRadius: 0 },
-            },
-          }}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              backgroundColor: 'transparent',
-              border: 'none',
-              '& fieldset': { border: 'none' },
-              '&:hover fieldset': { border: 'none' },
-            },
-            '& .MuiInputBase-input': {
-              textAlign: 'center',
-              fontSize: '0.8rem',
-              color: textColor,
-              padding: '6px 10px',
-              cursor: 'pointer',
-              userSelect: 'none',
-              caretColor: 'transparent',
-              '&::selection': {
-                backgroundColor: 'transparent',
-              },
-            },
-          }}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              placeholder={loading ? 'Loading timezones...' : 'Select timezone'}
-              InputProps={{
-                ...params.InputProps,
-                readOnly: true,
-                endAdornment: (
-                  <>
-                    {loading ? <CircularProgress color="inherit" size={16} sx={{ mr: 1 }} /> : null}
-                    {params.InputProps.endAdornment}
-                  </>
-                ),
-              }}
-              inputProps={{
-                ...params.inputProps,
-                readOnly: true,
-                'aria-label': 'Select timezone',
-                onSelect: (e) => e.preventDefault(),
-              }}
-            />
-          )}
-        />
-      </Box>
-      {onToggleEvents && (
-        <Tooltip title="Economic Events" placement="left">
-          <IconButton
-            onClick={onToggleEvents}
-            sx={{
-              position: 'fixed',
-              bottom: 10,
-              right: 'max(12px, env(safe-area-inset-right, 0px))',
-              color: textColor,
-              zIndex: 1000,
-              '&:hover': {
-                backgroundColor: 'transparent',
-                opacity: 0.7,
+              paper: {
+                elevation: 0,
+                square: true,
+                sx: { boxShadow: 'none', borderRadius: 0 },
               },
             }}
-            aria-label="Toggle economic events"
-          >
-            <EventNoteIcon sx={{ fontSize: 28 }} />
-          </IconButton>
-        </Tooltip>
-      )}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: 'background.paper',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                '& fieldset': { border: 'none' },
+                '&:hover fieldset': { border: 'none' },
+              },
+              '& .MuiInputBase-input': {
+                fontSize: '0.9rem',
+                color: textColor,
+                padding: '10px 12px',
+                cursor: 'pointer',
+                userSelect: 'none',
+              },
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                placeholder={loading ? 'Loading timezones...' : 'Select timezone'}
+                InputProps={{
+                  ...params.InputProps,
+                  readOnly: true,
+                  endAdornment: (
+                    <>
+                      {loading ? <CircularProgress color="inherit" size={16} sx={{ mr: 1 }} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+                inputRef={mainInputRef}
+                inputProps={{
+                  ...params.inputProps,
+                  readOnly: true,
+                  'aria-label': 'Select timezone',
+                  onSelect: (e) => e.preventDefault(),
+                }}
+              />
+            )}
+          />
+        </Box>
+      </Paper>
+
       {showUnlock && (
         <UnlockModal
           onClose={() => setShowUnlock(false)}

@@ -17,6 +17,7 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v1.8.0 - 2025-12-11 - Feature: Added NOW/NEXT event status chips (NOW = within 9min window with pulse animation, NEXT = upcoming within 24h); added all canonical fields display (status, winnerSource, sourceKey, sources, qualityScore, outcome, quality)
  * v1.6.2 - 2025-12-01 - Developer UX: Moved event ID to modal footer (left side), added click-to-copy functionality with visual feedback (green checkmark, "Copied!" message for 2s)
  * v1.6.1 - 2025-12-01 - Developer UX: Added event UID display in modal header (truncated with tooltip showing full ID) for debugging and tracking
  * v1.6.1 - 2025-12-01 - Refactored: Removed duplicate formatTime/formatDate functions, now using centralized src/utils/dateUtils for DRY principle and consistency across components
@@ -633,11 +634,23 @@ export default function EventModal({ open, onClose, event, timezone = 'America/N
   // Use refreshed event data if available, otherwise use original event
   const currentEvent = refreshedEvent || event;
 
-  // Check if event is in the future
+  // Check if event is in the future/now/next
   const eventDate = new Date(currentEvent.date);
   const now = new Date();
-  const isFutureEvent = eventDate.getTime() > now.getTime();
-  const isPast = !isFutureEvent;
+  const nowMs = now.getTime();
+  const eventMs = eventDate.getTime();
+  const diff = eventMs - nowMs;
+  
+  // NOW_WINDOW_MS = 9 minutes (match clock overlay NOW window)
+  const NOW_WINDOW_MS = 9 * 60 * 1000;
+  const isNow = diff >= 0 && diff < NOW_WINDOW_MS;
+  
+  // isNext would need to be passed from parent component that has all events context
+  // For now, we'll mark as upcoming if within 24 hours
+  const isNext = !isNow && diff >= 0 && diff < 24 * 60 * 60 * 1000;
+  
+  const isFutureEvent = eventMs > nowMs;
+  const isPast = !isFutureEvent && !isNow;
 
   // Determine actual value display
   let actualValue;
@@ -768,7 +781,7 @@ export default function EventModal({ open, onClose, event, timezone = 'America/N
                       gap: 1.5,
                     }}
                   >
-                    <ImpactBadge impact={currentEvent.strength} />
+                    <ImpactBadge impact={currentEvent.strength || currentEvent.impact} />
                     
                     {currentEvent.currency && <CurrencyFlag currency={currentEvent.currency} />}
                     
@@ -820,7 +833,170 @@ export default function EventModal({ open, onClose, event, timezone = 'America/N
                       </MuiTooltip>
                     )}
                     
-                    {isPast && (
+                    {/* Status Badge */}
+                    {currentEvent.status && (
+                      <MuiTooltip 
+                        title={`Status: ${currentEvent.status} - Current state of the economic event`}
+                        arrow 
+                        placement="top"
+                        enterTouchDelay={100}
+                        leaveTouchDelay={3000}
+                        disableFocusListener={false}
+                        disableTouchListener={false}
+                        disableHoverListener={false}
+                        disableInteractive={false}
+                        PopperProps={{
+                          sx: {
+                            '& .MuiTooltip-tooltip': {
+                              bgcolor: 'background.paper',
+                              color: 'text.primary',
+                              boxShadow: 3,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              fontSize: '0.8125rem',
+                              lineHeight: 1.5,
+                            },
+                            '& .MuiTooltip-arrow': {
+                              color: 'background.paper',
+                              '&::before': {
+                                border: '1px solid',
+                                borderColor: 'divider',
+                              },
+                            },
+                          },
+                        }}
+                      >
+                        <Chip
+                          label={currentEvent.status.charAt(0).toUpperCase() + currentEvent.status.slice(1)}
+                          size="small"
+                          sx={{
+                            height: 24,
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            bgcolor: 
+                              currentEvent.status === 'released' ? alpha(theme.palette.success.main, 0.12) :
+                              currentEvent.status === 'revised' ? alpha(theme.palette.warning.main, 0.12) :
+                              currentEvent.status === 'cancelled' ? alpha(theme.palette.error.main, 0.12) :
+                              'action.hover',
+                            color: 
+                              currentEvent.status === 'released' ? 'success.dark' :
+                              currentEvent.status === 'revised' ? 'warning.dark' :
+                              currentEvent.status === 'cancelled' ? 'error.dark' :
+                              'text.secondary',
+                            cursor: 'help',
+                          }}
+                        />
+                      </MuiTooltip>
+                    )}
+                    
+                    {isNow && !currentEvent.status && (
+                      <MuiTooltip 
+                        title="This event is happening NOW - within the 9-minute active window"
+                        arrow 
+                        placement="top"
+                        enterTouchDelay={100}
+                        leaveTouchDelay={3000}
+                        disableFocusListener={false}
+                        disableTouchListener={false}
+                        disableHoverListener={false}
+                        disableInteractive={false}
+                        PopperProps={{
+                          sx: {
+                            '& .MuiTooltip-tooltip': {
+                              bgcolor: 'background.paper',
+                              color: 'text.primary',
+                              boxShadow: 3,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              fontSize: '0.8125rem',
+                              lineHeight: 1.5,
+                            },
+                            '& .MuiTooltip-arrow': {
+                              color: 'background.paper',
+                              '&::before': {
+                                border: '1px solid',
+                                borderColor: 'divider',
+                              },
+                            },
+                          },
+                        }}
+                      >
+                        <Chip
+                          label="NOW"
+                          size="small"
+                          sx={{
+                            height: 24,
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            bgcolor: alpha(theme.palette.info.main, 0.15),
+                            color: 'info.dark',
+                            border: '1px solid',
+                            borderColor: 'info.dark',
+                            cursor: 'help',
+                            animation: 'pulse 2s ease-in-out infinite',
+                            '@keyframes pulse': {
+                              '0%, 100%': {
+                                opacity: 1,
+                              },
+                              '50%': {
+                                opacity: 0.7,
+                              },
+                            },
+                          }}
+                        />
+                      </MuiTooltip>
+                    )}
+                    
+                    {isNext && !currentEvent.status && !isNow && (
+                      <MuiTooltip 
+                        title="This is an upcoming event within the next 24 hours"
+                        arrow 
+                        placement="top"
+                        enterTouchDelay={100}
+                        leaveTouchDelay={3000}
+                        disableFocusListener={false}
+                        disableTouchListener={false}
+                        disableHoverListener={false}
+                        disableInteractive={false}
+                        PopperProps={{
+                          sx: {
+                            '& .MuiTooltip-tooltip': {
+                              bgcolor: 'background.paper',
+                              color: 'text.primary',
+                              boxShadow: 3,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              fontSize: '0.8125rem',
+                              lineHeight: 1.5,
+                            },
+                            '& .MuiTooltip-arrow': {
+                              color: 'background.paper',
+                              '&::before': {
+                                border: '1px solid',
+                                borderColor: 'divider',
+                              },
+                            },
+                          },
+                        }}
+                      >
+                        <Chip
+                          label="NEXT"
+                          size="small"
+                          sx={{
+                            height: 24,
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                            color: 'primary.main',
+                            border: '1px solid',
+                            borderColor: alpha(theme.palette.primary.main, 0.3),
+                            cursor: 'help',
+                          }}
+                        />
+                      </MuiTooltip>
+                    )}
+                    
+                    {isPast && !currentEvent.status && (
                       <MuiTooltip 
                         title="This event has already occurred - data reflects actual results"
                         arrow 
@@ -867,6 +1043,148 @@ export default function EventModal({ open, onClose, event, timezone = 'America/N
                       </MuiTooltip>
                     )}
                   </Box>
+                  
+                  {/* Data Source Information */}
+                  {(currentEvent.winnerSource || currentEvent.sourceKey || currentEvent.sources) && (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        gap: 1.5,
+                      }}
+                    >
+                      {(currentEvent.winnerSource || currentEvent.sourceKey) && (
+                        <MuiTooltip 
+                          title="Primary data source for this event's values"
+                          arrow 
+                          placement="top"
+                          enterTouchDelay={100}
+                          leaveTouchDelay={3000}
+                          PopperProps={{
+                            sx: {
+                              '& .MuiTooltip-tooltip': {
+                                bgcolor: 'background.paper',
+                                color: 'text.primary',
+                                boxShadow: 3,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                fontSize: '0.8125rem',
+                                lineHeight: 1.5,
+                              },
+                              '& .MuiTooltip-arrow': {
+                                color: 'background.paper',
+                                '&::before': {
+                                  border: '1px solid',
+                                  borderColor: 'divider',
+                                },
+                              },
+                            },
+                          }}
+                        >
+                          <Chip
+                            label={`Source: ${(currentEvent.winnerSource || currentEvent.sourceKey).toUpperCase()}`}
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              height: 24,
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              borderColor: 'primary.main',
+                              color: 'primary.main',
+                              cursor: 'help',
+                            }}
+                          />
+                        </MuiTooltip>
+                      )}
+                      
+                      {currentEvent.sources && Object.keys(currentEvent.sources).length > 1 && (
+                        <MuiTooltip 
+                          title={`Available from ${Object.keys(currentEvent.sources).length} sources: ${Object.keys(currentEvent.sources).join(', ')}`}
+                          arrow 
+                          placement="top"
+                          enterTouchDelay={100}
+                          leaveTouchDelay={3000}
+                          PopperProps={{
+                            sx: {
+                              '& .MuiTooltip-tooltip': {
+                                bgcolor: 'background.paper',
+                                color: 'text.primary',
+                                boxShadow: 3,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                fontSize: '0.8125rem',
+                                lineHeight: 1.5,
+                              },
+                              '& .MuiTooltip-arrow': {
+                                color: 'background.paper',
+                                '&::before': {
+                                  border: '1px solid',
+                                  borderColor: 'divider',
+                                },
+                              },
+                            },
+                          }}
+                        >
+                          <Chip
+                            label={`${Object.keys(currentEvent.sources).length} Sources`}
+                            size="small"
+                            sx={{
+                              height: 24,
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              bgcolor: alpha(theme.palette.info.main, 0.12),
+                              color: 'info.dark',
+                              cursor: 'help',
+                            }}
+                          />
+                        </MuiTooltip>
+                      )}
+                      
+                      {currentEvent.qualityScore && (
+                        <MuiTooltip 
+                          title={`Data quality score: ${currentEvent.qualityScore}/100 - Higher scores indicate more reliable data`}
+                          arrow 
+                          placement="top"
+                          enterTouchDelay={100}
+                          leaveTouchDelay={3000}
+                          PopperProps={{
+                            sx: {
+                              '& .MuiTooltip-tooltip': {
+                                bgcolor: 'background.paper',
+                                color: 'text.primary',
+                                boxShadow: 3,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                fontSize: '0.8125rem',
+                                lineHeight: 1.5,
+                              },
+                              '& .MuiTooltip-arrow': {
+                                color: 'background.paper',
+                                '&::before': {
+                                  border: '1px solid',
+                                  borderColor: 'divider',
+                                },
+                              },
+                            },
+                          }}
+                        >
+                          <Chip
+                            label={`Quality: ${currentEvent.qualityScore}`}
+                            size="small"
+                            sx={{
+                              height: 24,
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              bgcolor: alpha(theme.palette.success.main, 0.12),
+                              color: 'success.dark',
+                              cursor: 'help',
+                            }}
+                          />
+                        </MuiTooltip>
+                      )}
+                    </Box>
+                  )}
                 </Stack>
               </CardContent>
             </Card>
@@ -1292,7 +1610,7 @@ export default function EventModal({ open, onClose, event, timezone = 'America/N
             )}
 
             {/* Outcome Section */}
-            {description?.outcome && (
+            {(description?.outcome || currentEvent.outcome || currentEvent.quality) && (
               <Card
                 elevation={0}
                 sx={{
@@ -1302,51 +1620,96 @@ export default function EventModal({ open, onClose, event, timezone = 'America/N
                 }}
               >
                 <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                    }}
-                  >
-                    {getOutcomeIcon(description.outcome)}
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
+                  <Stack spacing={2}>
+                    {(description?.outcome || currentEvent.outcome) && (
+                      <Box
                         sx={{
-                          fontSize: '0.7rem',
-                          fontWeight: 600,
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 0.5,
-                          textTransform: 'uppercase',
-                          letterSpacing: 0.5,
+                          gap: 1.5,
                         }}
                       >
-                        Outcome
-                        <EnhancedTooltip title="Market sentiment and directional bias based on the event result">
-                          <HelpOutlineIcon 
-                            sx={{ 
-                              fontSize: 12, 
-                              color: 'text.secondary',
-                              opacity: 0.6,
-                              cursor: 'help',
-                            }} 
-                          />
-                        </EnhancedTooltip>
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontSize: { xs: '0.875rem', sm: '0.9375rem' },
-                          fontWeight: 600,
-                        }}
-                      >
-                        {description.outcome}
-                      </Typography>
-                    </Box>
-                  </Box>
+                        {getOutcomeIcon(description?.outcome || currentEvent.outcome)}
+                        <Box sx={{ flex: 1 }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.5,
+                              textTransform: 'uppercase',
+                              letterSpacing: 0.5,
+                            }}
+                          >
+                            Outcome
+                            <EnhancedTooltip title="Market sentiment and directional bias based on the event result">
+                              <HelpOutlineIcon 
+                                sx={{ 
+                                  fontSize: 12, 
+                                  color: 'text.secondary',
+                                  opacity: 0.6,
+                                  cursor: 'help',
+                                }} 
+                              />
+                            </EnhancedTooltip>
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontSize: { xs: '0.875rem', sm: '0.9375rem' },
+                              fontWeight: 600,
+                            }}
+                          >
+                            {description?.outcome || currentEvent.outcome}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
+                    
+                    {currentEvent.quality && (
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            mb: 0.5,
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          Data Quality
+                          <EnhancedTooltip title="Assessment of data reliability and accuracy">
+                            <HelpOutlineIcon 
+                              sx={{ 
+                                fontSize: 12, 
+                                color: 'text.secondary',
+                                opacity: 0.6,
+                                cursor: 'help',
+                              }} 
+                            />
+                          </EnhancedTooltip>
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontSize: { xs: '0.875rem', sm: '0.9375rem' },
+                            fontWeight: 600,
+                            color: 'text.primary',
+                          }}
+                        >
+                          {currentEvent.quality}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Stack>
                 </CardContent>
               </Card>
             )}

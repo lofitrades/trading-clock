@@ -7,6 +7,19 @@
  * for past events in the selected timezone.
  *
  * Changelog:
+ * v3.7.5 - 2025-12-12 - NOW badge gains smooth scale animation for parity with NEXT/clock overlay.
+ * v3.7.4 - 2025-12-12 - NEXT badge gets smooth scale animation matching clock overlay NEXT markers.
+ * v3.7.3 - 2025-12-12 - Raised NEXT badge positioning slightly for better alignment.
+ * v3.7.2 - 2025-12-11 - NEXT badge shows countdown only (no text label) while retaining primary styling.
+ * v3.7.1 - 2025-12-11 - NEXT badge uses primary color and displays countdown; removed countdown chip inside cards.
+ * v3.7.0 - 2025-12-12 - Added event notes control with loading state and shared badge handling.
+ * v3.6.0 - 2025-12-12 - Added favorites heart control with pending/loading states and alias-aware matching.
+ * v3.5.2 - 2025-12-12 - UX: Hide event info icon when no description entry exists (economicEventDescriptions) to reduce empty modal opens.
+ * v3.5.1 - 2025-12-11 - ENHANCEMENT: Added floating 'Scroll to Next' button with dynamic up/down arrow based on next event position relative to viewport. Auto-hides when near next event.
+ * v3.5.0 - 2025-12-11 - ENHANCEMENT: Replaced single-day pagination with expanding/accumulative pagination. Previous/next buttons now expand the timeline instead of replacing content, with enterprise-grade scroll position preservation when loading previous days.
+ * v3.4.4 - 2025-12-11 - ENHANCEMENT: Added contextEvents prop for NEXT/NOW detection from unfiltered today+future events; NEXT is now always accurate regardless of date filter selection.
+ * v3.4.3 - 2025-12-11 - Fixed NEXT countdown rendering by moving countdown into the card badge and keeping the time chip clean.
+ * v3.4.2 - 2025-12-11 - Added countdown label to NEXT chip for parity with table and improved user glanceability.
  * v3.4.1 - 2025-12-09 - Auto-scrolls to bottom when today is finished and no tomorrow data is available; ensures timeline container is scroll-targetable.
  * v3.4.0 - 2025-12-09 - Removed pagination for today's events (always fully visible) and limited pagination to past/future days with token-gated auto-scroll.
  * v3.3.5 - 2025-12-09 - When clicking clock/timeline links, auto-adjust pagination so the targeted event is rendered before scrolling.
@@ -51,6 +64,10 @@ import {
   Skeleton,
   Alert,
   IconButton,
+  CircularProgress,
+  Fab,
+  Menu,
+  MenuItem,
 } from '@mui/material';
 import MuiTooltip from '@mui/material/Tooltip';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -60,18 +77,19 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import EventIcon from '@mui/icons-material/Event';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import { getEventDescription } from '../services/economicEventsService';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlined';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import NoteAltOutlinedIcon from '@mui/icons-material/NoteAltOutlined';
+import NoteAltIcon from '@mui/icons-material/NoteAlt';
+import { hasEventDescriptionEntry } from '../services/economicEventsService';
 import EventModal from './EventModal';
 import { formatTime } from '../utils/dateUtils';
 
 // ============================================================================
 // CONSTANTS & CONFIGURATION
 // ============================================================================
-
-/**
- * Pagination configuration
- */
-const PAGE_SIZE = 20;
 
 /**
  * "NOW" state window duration (milliseconds)
@@ -119,6 +137,32 @@ const IMPACT_CONFIG = {
   weak: { icon: '!', color: 'info.main', label: 'Low Impact' },
   'non-economic': { icon: '~', color: 'grey.500', label: 'Non-Economic' },
   unknown: { icon: '?', color: 'grey.500', label: 'Unknown' },
+};
+
+const SPEECH_TITLE_REGEX = /(speaks|remarks|address|testifies|statement|press conference|hearing|meeting|vote)/i;
+
+const hasMetricValue = (value) => {
+  if (value === 0 || value === '0') return true;
+  if (value === null || value === undefined) return false;
+  const trimmed = typeof value === 'string' ? value.trim() : value;
+  if (trimmed === '' || trimmed === '-') return false;
+  return true;
+};
+
+const isSpeechLikeEvent = (event) => {
+  const category = `${event.category || event.Category || event.type || event.Type || event.eventType || event.EventType || ''}`.toLowerCase();
+  const name = `${event.name || event.Name || ''}`;
+  const categorySpeech = /speech|statement|address|testimony|press conference|hearing|meeting|vote/.test(category);
+  const titleSpeech = SPEECH_TITLE_REGEX.test(name);
+  const noMetrics = !hasMetricValue(event.actual) && !hasMetricValue(event.forecast) && !hasMetricValue(event.previous);
+  return (categorySpeech || titleSpeech) && noMetrics;
+};
+
+const getSpeechSummary = (event) => {
+  const name = event.name || event.Name || 'Scheduled remarks';
+  const desc = event.description || event.Description || event.summary || event.Summary;
+  if (desc) return desc;
+  return `Scheduled remarks: ${name}`;
 };
 
 // ============================================================================
@@ -441,11 +485,10 @@ TodayEmptyState.displayName = 'TodayEmptyState';
  * Supports NOW, NEXT, and PAST states
  * Memoized for performance
  */
-const TimeChip = memo(({ time, isPast, isNext, isNow, timezone }) => {
+const TimeChip = memo(({ time, isPast, isNext, isNow, timezone, countdownLabel = null }) => {
   const theme = useTheme();
-  
-  // Determine colors and shadows based on state priority: NOW > NEXT > PAST
-  const getStateStyles = () => {
+
+  const stateStyles = (() => {
     if (isNow) {
       return {
         bgcolor: alpha(theme.palette.info.main, 0.1),
@@ -456,38 +499,37 @@ const TimeChip = memo(({ time, isPast, isNext, isNow, timezone }) => {
     }
     if (isNext) {
       return {
-        bgcolor: 'background.paper',
-        color: 'text.primary',
+        bgcolor: alpha(theme.palette.primary.main, 0.08),
+        color: 'primary.main',
         borderColor: 'primary.main',
-        boxShadow: 2,
+        boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
       };
     }
     if (isPast) {
       return {
-        bgcolor: '#bdbdbd',
-        color: '#424242',
+        bgcolor: '#f5f5f5',
+        color: '#757575',
         borderColor: '#9e9e9e',
-        boxShadow: 'none',
       };
     }
-    // Future (not NEXT)
     return {
       bgcolor: 'background.paper',
       color: 'text.primary',
       borderColor: 'divider',
-      boxShadow: 'none',
     };
-  };
-  
-  const stateStyles = getStateStyles();
-  
+  })();
+
   return (
     <Chip
       icon={<AccessTimeIcon sx={{ fontSize: { xs: 12, sm: 14 } }} />}
-      label={formatTime(time, timezone)}
+      label={
+        <Typography component="span" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>
+          {formatTime(time, timezone)}
+        </Typography>
+      }
       size="small"
       sx={{
-        height: { xs: 24, sm: 28 },
+        height: { xs: 30, sm: 32 },
         fontSize: { xs: '0.7rem', sm: '0.8rem' },
         fontWeight: 600,
         border: '2px solid',
@@ -498,8 +540,11 @@ const TimeChip = memo(({ time, isPast, isNext, isNow, timezone }) => {
           transform: 'translateY(-1px)',
         },
         '& .MuiChip-label': {
-          px: { xs: 1, sm: 1.5 },
-          fontFamily: 'monospace',
+          px: { xs: 1, sm: 1.25 },
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: 0.2,
         },
         '& .MuiChip-icon': {
           color: 'inherit',
@@ -507,17 +552,14 @@ const TimeChip = memo(({ time, isPast, isNext, isNow, timezone }) => {
       }}
     />
   );
-}, (prevProps, nextProps) => {
-  // CRITICAL: Re-render when timezone changes (fixes timezone selector not updating times)
-  // Custom comparison prevents unnecessary re-renders but ensures timezone changes update immediately
-  return (
-    prevProps.time === nextProps.time &&
-    prevProps.isPast === nextProps.isPast &&
-    prevProps.isNext === nextProps.isNext &&
-    prevProps.isNow === nextProps.isNow &&
-    prevProps.timezone === nextProps.timezone  // Force re-render when timezone changes
-  );
-});
+}, (prevProps, nextProps) => (
+  prevProps.time === nextProps.time &&
+  prevProps.isPast === nextProps.isPast &&
+  prevProps.isNext === nextProps.isNext &&
+  prevProps.isNow === nextProps.isNow &&
+  prevProps.timezone === nextProps.timezone &&
+  prevProps.countdownLabel === nextProps.countdownLabel
+));
 
 TimeChip.displayName = 'TimeChip';
 
@@ -923,14 +965,69 @@ const EventCard = memo(({
   isNext,
   isNow,
   isHighlighted = false,
+  hasDescription = true,
   onInfoClick,
+  isFavoriteEvent,
+  onToggleFavorite,
+  isFavoritePending,
+  favoritesLoading,
+  hasEventNotes,
+  onOpenNotes,
+  isEventNotesLoading,
   timezone,
   nowMs,
+  countdownLabel = null,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const impactConfig = getImpactConfig(event.strength || event.Strength);
+  const hasAnyMetrics = hasMetricValue(event.actual) || hasMetricValue(event.forecast) || hasMetricValue(event.previous);
+  const isSpeechNoMetrics = isSpeechLikeEvent(event);
+  const speechSummary = isSpeechNoMetrics ? getSpeechSummary(event) : null;
+  const showInfoButton = hasDescription !== false;
+  const isFavorite = isFavoriteEvent ? isFavoriteEvent(event) : false;
+  const favoritePending = isFavoritePending ? isFavoritePending(event) : false;
+  const favoriteDisabled = Boolean(favoritesLoading) || favoritePending;
+  const favoriteTooltip = favoritesLoading
+    ? 'Loading favorites...'
+    : isFavorite
+      ? 'Remove from favorites'
+      : 'Save to favorites';
+
+  const hasNotes = hasEventNotes ? hasEventNotes(event) : false;
+  const notesLoading = isEventNotesLoading ? isEventNotesLoading(event) : false;
+  const notesTooltip = notesLoading ? 'Loading notes...' : hasNotes ? 'View notes' : 'Add note';
+
+  const [favoriteMenuAnchor, setFavoriteMenuAnchor] = useState(null);
+
+  const handleFavoriteRemove = () => {
+    if (onToggleFavorite) {
+      onToggleFavorite(event);
+    }
+    setFavoriteMenuAnchor(null);
+  };
+
+  const handleFavoriteMenuClose = () => setFavoriteMenuAnchor(null);
+
+  const handleFavoriteClick = (e) => {
+    e.stopPropagation();
+    if (favoriteDisabled) return;
+    if (isFavorite) {
+      setFavoriteMenuAnchor(e.currentTarget);
+      return;
+    }
+    if (onToggleFavorite) {
+      onToggleFavorite(event);
+    }
+  };
+
+  const handleNotesClick = (e) => {
+    e.stopPropagation();
+    if (onOpenNotes) {
+      onOpenNotes(event);
+    }
+  };
   
   // Determine border and shadow based on state priority: NOW > NEXT > PAST
   const getStateStyles = () => {
@@ -1010,25 +1107,105 @@ const EventCard = memo(({
             >
               {event.name || event.Name || 'Unnamed Event'}
             </Typography>
-            
-            {/* Info Button */}
-            <MuiTooltip title="View Details" arrow placement="top">
-              <IconButton
-                size="small"
-                onClick={() => onInfoClick(event)}
-                sx={{
-                  flexShrink: 0,
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    bgcolor: 'primary.main',
-                    color: 'primary.contrastText',
-                    transform: 'scale(1.1)',
-                  },
-                }}
-              >
-                <InfoOutlinedIcon fontSize="small" />
-              </IconButton>
-            </MuiTooltip>
+            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flexShrink: 0 }}>
+              <MuiTooltip title={notesTooltip} arrow placement="top">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={handleNotesClick}
+                    disabled={notesLoading}
+                    sx={{
+                      flexShrink: 0,
+                      color: hasNotes ? 'primary.main' : 'text.secondary',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        bgcolor: hasNotes ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.info.main, 0.1),
+                        color: 'primary.main',
+                        transform: 'scale(1.05)',
+                      },
+                      '&.Mui-disabled': {
+                        color: 'text.disabled',
+                      },
+                    }}
+                  >
+                    {notesLoading ? (
+                      <CircularProgress size={16} thickness={5} />
+                    ) : hasNotes ? (
+                      <NoteAltIcon fontSize="small" />
+                    ) : (
+                      <NoteAltOutlinedIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </span>
+              </MuiTooltip>
+
+              <MuiTooltip title={favoriteTooltip} arrow placement="top">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={handleFavoriteClick}
+                    disabled={favoriteDisabled}
+                    sx={{
+                      flexShrink: 0,
+                      color: isFavorite ? 'error.main' : 'text.secondary',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        bgcolor: isFavorite ? alpha(theme.palette.error.main, 0.1) : alpha(theme.palette.primary.main, 0.1),
+                        color: isFavorite ? 'error.main' : 'primary.main',
+                        transform: 'scale(1.05)',
+                      },
+                      '&.Mui-disabled': {
+                        color: 'text.disabled',
+                      },
+                    }}
+                  >
+                    {favoritePending ? (
+                      <CircularProgress size={16} thickness={5} />
+                    ) : isFavorite ? (
+                      <FavoriteIcon fontSize="small" />
+                    ) : (
+                      <FavoriteBorderOutlinedIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </span>
+                <Menu
+                  anchorEl={favoriteMenuAnchor}
+                  open={Boolean(favoriteMenuAnchor)}
+                  onClose={handleFavoriteMenuClose}
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                  slotProps={{ paper: { sx: { minWidth: 180 } } }}
+                >
+                  <MenuItem onClick={handleFavoriteRemove} sx={{ fontWeight: 700, color: 'error.main' }}>
+                    Remove favorite
+                  </MenuItem>
+                  <MenuItem onClick={handleFavoriteMenuClose}>Cancel</MenuItem>
+                </Menu>
+              </MuiTooltip>
+
+              {showInfoButton && (
+                <MuiTooltip title="View Details" arrow placement="top">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onInfoClick(event);
+                    }}
+                    sx={{
+                      flexShrink: 0,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        bgcolor: 'primary.main',
+                        color: 'primary.contrastText',
+                        transform: 'scale(1.1)',
+                      },
+                    }}
+                  >
+                    <InfoOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </MuiTooltip>
+              )}
+            </Stack>
           </Box>
           
           {/* Metadata Row */}
@@ -1062,8 +1239,8 @@ const EventCard = memo(({
             )}
           </Box>
           
-          {/* Event Data Values - Always Visible */}
-          {(event.actual !== '-' || event.forecast !== '-' || event.previous !== '-') && (() => {
+          {/* Event Data Values or Speech Summary */}
+          {hasAnyMetrics && (() => {
             // Check if event is in the future (has not occurred yet)
             const eventLocal = toTimezoneDate(event.date, timezone);
             const baselineNow = typeof nowMs === 'number' ? nowMs : Date.now();
@@ -1076,13 +1253,11 @@ const EventCard = memo(({
               actualValue = '—';
             } else {
               // For past events, show actual value or '—' if missing/invalid (including '0')
-              const hasValidActual = event.actual && 
-                                    event.actual !== '-' && 
-                                    event.actual !== '' && 
-                                    event.actual !== '0' && 
-                                    event.actual !== 0;
+              const hasValidActual = hasMetricValue(event.actual);
               actualValue = hasValidActual ? event.actual : '—';
             }
+            const forecastValue = hasMetricValue(event.forecast) ? event.forecast : '—';
+            const previousValue = hasMetricValue(event.previous) ? event.previous : '—';
             
             return (
               <Box
@@ -1147,10 +1322,10 @@ const EventCard = memo(({
                   sx={{
                     fontWeight: 600,
                     fontSize: { xs: '0.85rem', sm: '0.95rem' },
-                    color: isPast ? '#616161' : (event.forecast !== '-' ? 'text.secondary' : 'text.disabled'),
+                    color: isPast ? '#616161' : (forecastValue !== '—' ? 'text.secondary' : 'text.disabled'),
                   }}
                 >
-                  {event.forecast === '-' ? '—' : event.forecast}
+                  {forecastValue}
                 </Typography>
               </Box>
               
@@ -1174,15 +1349,23 @@ const EventCard = memo(({
                   sx={{
                     fontWeight: 600,
                     fontSize: { xs: '0.85rem', sm: '0.95rem' },
-                    color: isPast ? '#616161' : (event.previous !== '-' ? 'text.secondary' : 'text.disabled'),
+                    color: isPast ? '#616161' : (previousValue !== '—' ? 'text.secondary' : 'text.disabled'),
                   }}
                 >
-                  {event.previous === '-' ? '—' : event.previous}
+                  {previousValue}
                 </Typography>
               </Box>
             </Box>
             );
           })()}
+
+          {!hasAnyMetrics && isSpeechNoMetrics && speechSummary && (
+            <Box sx={{ p: { xs: 1, sm: 1.25 }, bgcolor: alpha(theme.palette.primary.main, 0.04), borderRadius: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+                {speechSummary}
+              </Typography>
+            </Box>
+          )}
         </Stack>
       </CardContent>
     </Card>
@@ -1216,14 +1399,10 @@ const EventCard = memo(({
             transform: 'scale(1) translate(-50%, -50%)',
             transformOrigin: '0% 0%',
             boxShadow: 2,
-            animation: 'pulse 2s ease-in-out infinite',
-            '@keyframes pulse': {
-              '0%, 100%': {
-                opacity: 1,
-              },
-              '50%': {
-                opacity: 0.7,
-              },
+            animation: 'nowBadgeScale 1.25s ease-in-out infinite',
+            '@keyframes nowBadgeScale': {
+              '0%, 100%': { transform: 'scale(1) translate(-50%, -50%)', opacity: 1 },
+              '50%': { transform: 'scale(1.08) translate(-50%, -50%)', opacity: 0.86 },
             },
           },
         }}
@@ -1241,7 +1420,16 @@ const EventCard = memo(({
   if (isNext) {
     return (
       <Badge
-        badgeContent="NEXT"
+        badgeContent={
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.35, color: 'primary.contrastText' }}>
+            <AccessTimeIcon sx={{ fontSize: { xs: 14, sm: 15 } }} />
+            {countdownLabel ? (
+              <Typography component="span" sx={{ fontWeight: 800, fontSize: { xs: '0.65rem', sm: '0.7rem' }, lineHeight: 1 }}>
+                {countdownLabel}
+              </Typography>
+            ) : null}
+          </Box>
+        }
         color="primary"
         anchorOrigin={{
           vertical: 'top',
@@ -1256,15 +1444,21 @@ const EventCard = memo(({
           '& .MuiBadge-badge': {
             fontSize: { xs: '0.6rem', sm: '0.65rem' },
             fontWeight: 700,
-            height: { xs: 18, sm: 20 },
-            minWidth: { xs: 36, sm: 40 },
-            padding: { xs: '0 4px', sm: '0 6px' },
-            borderRadius: '12px',
-            left: { xs: 4, sm: 6 },
-            top: { xs: 4, sm: 6 },
+            height: { xs: 20, sm: 22 },
+            minWidth: { xs: 48, sm: 52 },
+            padding: { xs: '0 6px', sm: '0 8px' },
+            borderRadius: '14px',
+            left: { xs: 6, sm: 8 },
+            top: { xs: 0, sm: 0 },
             transform: 'scale(1) translate(-50%, -50%)',
             transformOrigin: '0% 0%',
             boxShadow: 2,
+            bgcolor: 'primary.main',
+            animation: 'nextBadgeScale 1.25s ease-in-out infinite',
+            '@keyframes nextBadgeScale': {
+              '0%, 100%': { transform: 'scale(1) translate(-50%, -50%)' },
+              '50%': { transform: 'scale(1.08) translate(-50%, -50%)' },
+            },
           },
         }}
         componentsProps={{
@@ -1519,10 +1713,18 @@ const buildEventKey = (event, index) => {
  */
 export default function EventsTimeline2({ 
   events = [], 
+  contextEvents = null, // Today + future events for NEXT detection (unfiltered)
   loading = false,
   onVisibleCountChange = null,
   autoScrollToNextKey = null,
   timezone = Intl.DateTimeFormat().resolvedOptions().timeZone, // Default to user's local timezone
+  isFavoriteEvent = () => false,
+  onToggleFavorite = null,
+  isFavoritePending = () => false,
+  favoritesLoading = false,
+  hasEventNotes = () => false,
+  onOpenNotes = null,
+  isEventNotesLoading = () => false,
 }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -1531,13 +1733,17 @@ export default function EventsTimeline2({
   // ========== STATE ==========
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [beforePages, setBeforePages] = useState(1); // pagination for past days
-  const [afterPages, setAfterPages] = useState(1);   // pagination for future days
+  const [visibleDayRange, setVisibleDayRange] = useState({ start: 0, end: 0 }); // Accumulative range
   const [highlightIds, setHighlightIds] = useState([]);
   const highlightTimeoutRef = useRef(null);
   const lastHighlightTokenRef = useRef(null);
   const lastPaginationTokenRef = useRef(null);
   const lastScrollTokenRef = useRef(null);
+  const [countdownNow, setCountdownNow] = useState(() => Date.now());
+  const timelineContainerRef = useRef(null);
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const [showScrollToNext, setShowScrollToNext] = useState(false);
+  const [descriptionAvailability, setDescriptionAvailability] = useState({});
   
   // Track current time for "next" event calculation (updates every 60 seconds)
   // Enterprise pattern: Microsoft Teams/Outlook approach for calendar event tracking
@@ -1579,6 +1785,35 @@ export default function EventsTimeline2({
     });
   }, [events]);
 
+  /**
+   * Context events for NEXT detection (today + future, unfiltered)
+   * Falls back to sortedEvents if no contextEvents provided
+   */
+  const contextSortedEvents = useMemo(() => {
+    const source = contextEvents || events;
+    return [...source].sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateA - dateB;
+    });
+  }, [contextEvents, events]);
+
+  const dayGroups = useMemo(() => {
+    const groupsMap = new Map();
+    sortedEvents.forEach((evt) => {
+      const day = normalizeDate(new Date(evt.date), timezone);
+      if (!day) return;
+      const serial = getDaySerial(day);
+      if (serial === null) return;
+      if (!groupsMap.has(serial)) {
+        groupsMap.set(serial, { serial, date: day, events: [] });
+      }
+      groupsMap.get(serial).events.push(evt);
+    });
+
+    return Array.from(groupsMap.values()).sort((a, b) => a.serial - b.serial);
+  }, [sortedEvents, timezone]);
+
   const targetToken = useMemo(() => {
     if (!autoScrollToNextKey) return null;
     if (typeof autoScrollToNextKey === 'object') {
@@ -1602,66 +1837,48 @@ export default function EventsTimeline2({
   /**
    * Partition events into past, today, future (timezone-aware)
    */
-  const { beforeEvents, todayEvents, afterEvents } = useMemo(() => {
-    const todayStart = normalizeDate(new Date(), timezone);
-    if (!todayStart) {
-      return { beforeEvents: [], todayEvents: [], afterEvents: sortedEvents };
-    }
-
-    const todayEnd = new Date(todayStart);
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const before = [];
-    const todayList = [];
-    const after = [];
-
-    sortedEvents.forEach((evt) => {
-      const eventDate = new Date(evt.date);
-      if (eventDate < todayStart) {
-        before.push(evt);
-      } else if (eventDate > todayEnd) {
-        after.push(evt);
-      } else {
-        todayList.push(evt);
-      }
-    });
-
-    return { beforeEvents: before, todayEvents: todayList, afterEvents: after };
-  }, [sortedEvents, timezone]);
+  const todaySerial = useMemo(() => {
+    const today = normalizeDate(new Date(), timezone);
+    return today ? getDaySerial(today) : null;
+  }, [timezone]);
 
   /**
    * Index of the next event happening today (timezone-aware)
    */
   const nextTodayIndex = useMemo(() => {
-    if (!todayEvents.length || !nowInTimezone) return -1;
+    const todayGroup = dayGroups.find((g) => g.serial === todaySerial);
+    if (!todayGroup || !nowInTimezone) return -1;
 
-    const todaySerial = getDaySerial(nowInTimezone);
-    if (todaySerial === null) return -1;
-
-    for (let i = 0; i < todayEvents.length; i += 1) {
-      const eventLocal = toTimezoneDate(todayEvents[i].date, timezone);
+    for (let i = 0; i < todayGroup.events.length; i += 1) {
+      const eventLocal = toTimezoneDate(todayGroup.events[i].date, timezone);
       if (!eventLocal) continue;
       if (getDaySerial(eventLocal) !== todaySerial) continue;
       if (eventLocal.getTime() >= nowMs) return i;
     }
 
     return -1;
-  }, [todayEvents, timezone, nowInTimezone, nowMs]);
+  }, [dayGroups, timezone, nowInTimezone, nowMs, todaySerial]);
 
   /**
-   * Visible events: all of today (no pagination) + paginated slices of past/future
+   * Visible events: accumulative pagination (all days from start to end index)
+   * Enterprise pattern: Infinite scroll / load more without replacing content
    */
   const visibleEvents = useMemo(() => {
-    const beforeVisible = beforeEvents.slice(Math.max(0, beforeEvents.length - beforePages * PAGE_SIZE));
-    const afterVisible = afterEvents.slice(0, afterPages * PAGE_SIZE);
-    return [...beforeVisible, ...todayEvents, ...afterVisible];
-  }, [beforeEvents, todayEvents, afterEvents, beforePages, afterPages]);
+    if (!dayGroups.length) return [];
+    const start = Math.max(0, Math.min(visibleDayRange.start, dayGroups.length - 1));
+    const end = Math.max(0, Math.min(visibleDayRange.end, dayGroups.length - 1));
+    
+    const accumulated = [];
+    for (let i = start; i <= end; i++) {
+      if (dayGroups[i]?.events) {
+        accumulated.push(...dayGroups[i].events);
+      }
+    }
+    return accumulated;
+  }, [visibleDayRange, dayGroups]);
 
-  /**
-   * Pagination flags (only past/future)
-   */
-  const hasPrevious = beforePages * PAGE_SIZE < beforeEvents.length;
-  const hasMore = afterPages * PAGE_SIZE < afterEvents.length;
+  const hasPreviousDay = visibleDayRange.start > 0;
+  const hasNextDay = visibleDayRange.end < dayGroups.length - 1;
   
   /**
    * Today's date normalized (timezone-aware)
@@ -1669,22 +1886,6 @@ export default function EventsTimeline2({
   const today = useMemo(() => {
     return normalizeDate(new Date(), timezone);
   }, [timezone]);
-
-  const tomorrowSerial = useMemo(() => {
-    if (!today) return null;
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return getDaySerial(tomorrow);
-  }, [today]);
-
-  const hasTomorrowEvents = useMemo(() => {
-    if (tomorrowSerial === null) return false;
-    return sortedEvents.some((event) => {
-      const eventLocal = toTimezoneDate(event.date, timezone);
-      if (!eventLocal) return false;
-      return getDaySerial(eventLocal) === tomorrowSerial;
-    });
-  }, [sortedEvents, timezone, tomorrowSerial]);
   
   /**
    * Check if today has events
@@ -1697,9 +1898,10 @@ export default function EventsTimeline2({
   }, [visibleEvents, today, timezone]);
 
   const isTodayComplete = useMemo(() => {
-    if (!todayEvents.length) return false;
+    const todayGroup = dayGroups.find((g) => g.serial === todaySerial);
+    if (!todayGroup) return false;
     return nextTodayIndex === -1;
-  }, [todayEvents.length, nextTodayIndex]);
+  }, [dayGroups, todaySerial, nextTodayIndex]);
   
   /**
    * Find today divider index (chronologically)
@@ -1712,18 +1914,19 @@ export default function EventsTimeline2({
   }, [visibleEvents, today, timezone]);
   
   /**
-   * Check if today is within filtered date range
+   * Check if today is within visible range
    */
   const isTodayInRange = useMemo(() => {
     if (visibleEvents.length === 0) return false;
+    const daySerial = getDaySerial(today);
+    if (daySerial === null) return false;
     
-    const firstEventDate = normalizeDate(new Date(visibleEvents[0].date), timezone);
-    const lastEventDate = normalizeDate(new Date(visibleEvents[visibleEvents.length - 1].date), timezone);
-    
-    return firstEventDate && lastEventDate &&
-           today.getTime() >= firstEventDate.getTime() && 
-           today.getTime() <= lastEventDate.getTime();
-  }, [visibleEvents, today, timezone]);
+    // Check if today's serial is in any visible day group
+    for (let i = visibleDayRange.start; i <= visibleDayRange.end; i++) {
+      if (dayGroups[i]?.serial === daySerial) return true;
+    }
+    return false;
+  }, [visibleEvents, today, dayGroups, visibleDayRange]);
   
   /**
    * Should show today empty divider
@@ -1737,17 +1940,22 @@ export default function EventsTimeline2({
    * 
    * State Priority: NOW > NEXT > FUTURE > PAST
    * 
-  * NOW: Within 9 minutes AFTER event time (matches clock overlay window)
-  * NEXT: First upcoming event(s) - supports multiple simultaneous events
-  * FUTURE: Events beyond NEXT
-  * PAST: Before now in selected timezone (excludes future-day events)
+   * NOW: Within 9 minutes AFTER event time (matches clock overlay window)
+   * NEXT: First upcoming event(s) - supports multiple simultaneous events
+   * FUTURE: Events beyond NEXT
+   * PAST: Before now in selected timezone (excludes future-day events)
+   * 
+   * CRITICAL: Uses contextSortedEvents (today + future, unfiltered) for accurate NEXT detection
+   * regardless of user's selected date filter. Display events may be "Past Week" but NEXT
+   * will still show the actual next upcoming event.
    */
   const eventStates = useMemo(() => {
     const nowIds = new Set();
     const nextIds = new Set();
     let nextEventTime = null;
     
-    visibleEvents.forEach((event, index) => {
+    // Use context events for NEXT/NOW detection (today + future, unfiltered)
+    contextSortedEvents.forEach((event, index) => {
       const eventLocal = toTimezoneDate(event.date, timezone);
       const eventTime = eventLocal ? eventLocal.getTime() : null;
       const eventKey = buildEventKey(event, index);
@@ -1775,18 +1983,25 @@ export default function EventsTimeline2({
       }
     });
     
-    return { nowIds, nextIds };
-  }, [visibleEvents, timezone, nowMs]);
-  
-  /**
-   * Legacy nextEventIndex for backwards compatibility
-   * Returns index of first NEXT event (or -1 if none)
-   */
+    return { nowIds, nextIds, nextEventTime };
+  }, [contextSortedEvents, timezone, nowMs]);
   const nextEventIndex = useMemo(() => {
     if (eventStates.nextIds.size === 0) return -1;
     const firstNextId = Array.from(eventStates.nextIds)[0];
     return visibleEvents.findIndex((e, idx) => buildEventKey(e, idx) === firstNextId);
   }, [eventStates, visibleEvents]);
+
+  const nextCountdownLabel = useMemo(() => {
+    if (!eventStates.nextEventTime) return null;
+    const diff = Math.max(0, eventStates.nextEventTime - countdownNow);
+    const totalSeconds = Math.floor(diff / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const mm = String(minutes).padStart(2, '0');
+    const ss = String(seconds).padStart(2, '0');
+    return `${hours}:${mm}:${ss}`;
+  }, [countdownNow, eventStates.nextEventTime]);
   
   // ========== EFFECTS ==========
   
@@ -1806,67 +2021,108 @@ export default function EventsTimeline2({
   }, []);
 
   useEffect(() => {
+    if (!eventStates.nextEventTime) return undefined;
+    const id = setInterval(() => setCountdownNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [eventStates.nextEventTime]);
+
+  useEffect(() => {
     return () => {
       clearHighlightTimeout();
     };
   }, [clearHighlightTimeout]);
 
-  // Reset scroll/pagination tokens whenever a new auto-scroll request arrives
+  /**
+   * Track scroll position for floating 'Scroll to Next' button
+   * Enterprise pattern: Show/hide based on scroll proximity to next event
+   * CRITICAL: Only show if next event is actually in the current visible filtered/paginated view
+   */
+  useEffect(() => {
+    const container = timelineContainerRef.current;
+    if (!container) return undefined;
+
+    const handleScroll = () => {
+      setScrollPosition(container.scrollTop);
+      
+      // Show button if there's a next event and user is not already near it
+      if (eventStates.nextIds.size > 0) {
+        const firstNextId = Array.from(eventStates.nextIds)[0];
+        
+        // CRITICAL: Check if next event is in the visible events array
+        const isNextInVisibleEvents = visibleEvents.some(evt => evt.id === firstNextId);
+        
+        if (!isNextInVisibleEvents) {
+          setShowScrollToNext(false);
+          return;
+        }
+        
+        const nextElement = document.querySelector(`[data-event-id="${firstNextId}"]`);
+        
+        if (nextElement) {
+          const containerRect = container.getBoundingClientRect();
+          const elementRect = nextElement.getBoundingClientRect();
+          const elementTop = elementRect.top - containerRect.top + container.scrollTop;
+          const viewportCenter = container.scrollTop + containerRect.height / 2;
+          const distanceFromCenter = Math.abs(elementTop - viewportCenter);
+          
+          // Show button if next event is more than 300px away from viewport center
+          setShowScrollToNext(distanceFromCenter > 300);
+        } else {
+          setShowScrollToNext(false);
+        }
+      } else {
+        setShowScrollToNext(false);
+      }
+    };
+
+    handleScroll(); // Initial check
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [eventStates.nextIds, visibleEvents]);
+
+  // Reset scroll-to-next button when events change
   useEffect(() => {
     lastScrollTokenRef.current = null;
     lastPaginationTokenRef.current = null;
   }, [autoScrollToNextKey]);
 
   /**
-   * Ensure a specifically requested event (via autoScrollToNextKey) is in the visible slice.
-   * This prevents pagination from hiding the target before scroll/highlight runs.
+   * Ensure a specifically requested event (via autoScrollToNextKey) is in the visible range.
+   * Expands range if needed to include the target day.
    */
   useEffect(() => {
     if (!targetToken || targetIndex === -1) return;
     if (lastPaginationTokenRef.current === targetToken) return;
 
-    // Determine if target sits in past or future slices
-    const pastCount = beforeEvents.length;
-    const todayCount = todayEvents.length;
-    const isPast = targetIndex < pastCount;
-    const isToday = targetIndex >= pastCount && targetIndex < pastCount + todayCount;
-    const isFuture = targetIndex >= pastCount + todayCount;
-
-    if (isToday) {
-      lastPaginationTokenRef.current = targetToken;
-      return; // today always visible
+    const targetEvent = sortedEvents[targetIndex];
+    if (!targetEvent) return;
+    const targetDay = getDaySerial(normalizeDate(new Date(targetEvent.date), timezone));
+    const targetDayIndex = dayGroups.findIndex((g) => g.serial === targetDay);
+    
+    if (targetDayIndex !== -1) {
+      // Expand range to include target if not already visible
+      setVisibleDayRange((prev) => ({
+        start: Math.min(prev.start, targetDayIndex),
+        end: Math.max(prev.end, targetDayIndex),
+      }));
     }
-
-    if (isPast) {
-      const requiredPages = Math.ceil((pastCount - targetIndex) / PAGE_SIZE);
-      if (requiredPages > beforePages) {
-        setBeforePages(requiredPages);
-      } else {
-        lastPaginationTokenRef.current = targetToken;
-      }
-      return;
-    }
-
-    if (isFuture) {
-      const futureIndex = targetIndex - pastCount - todayCount;
-      const requiredPages = Math.ceil((futureIndex + 1) / PAGE_SIZE);
-      if (requiredPages > afterPages) {
-        setAfterPages(requiredPages);
-      } else {
-        lastPaginationTokenRef.current = targetToken;
-      }
-    }
-  }, [targetToken, targetIndex, beforeEvents.length, todayEvents.length, beforePages, afterPages]);
+    lastPaginationTokenRef.current = targetToken;
+  }, [targetToken, targetIndex, sortedEvents, timezone, dayGroups]);
   
   /**
-   * Reset pagination when events change, starting from today's position
+   * Reset pagination when events change, centering on today
+   * Enterprise pattern: Start with reasonable default view
    */
   useEffect(() => {
-    setBeforePages(1);
-    setAfterPages(1);
+    const todayIndex = dayGroups.findIndex((g) => g.serial === todaySerial);
+    if (todayIndex !== -1) {
+      setVisibleDayRange({ start: todayIndex, end: todayIndex });
+    } else {
+      setVisibleDayRange({ start: 0, end: 0 });
+    }
     lastPaginationTokenRef.current = null;
     lastScrollTokenRef.current = null;
-  }, [sortedEvents]);
+  }, [dayGroups, todaySerial]);
 
   /**
    * Report visible event count to parent component
@@ -1877,28 +2133,69 @@ export default function EventsTimeline2({
     }
   }, [visibleEvents.length, onVisibleCountChange]);
 
+  // Prefetch description availability to hide info icons when no description exists
+  useEffect(() => {
+    let isCancelled = false;
+
+    const hydrateDescriptionAvailability = async () => {
+      if (visibleEvents.length === 0) {
+        if (!isCancelled) {
+          setDescriptionAvailability({});
+        }
+        return;
+      }
+
+      try {
+        const availability = {};
+
+        await Promise.all(visibleEvents.map(async (event, index) => {
+          const eventName = event.Name || event.name;
+          const category = event.category || event.Category;
+          const uniqueKey = buildEventKey(event, index);
+
+          if (!eventName && !category) {
+            availability[uniqueKey] = false;
+            return;
+          }
+
+          const hasDescription = await hasEventDescriptionEntry(eventName, category);
+          availability[uniqueKey] = hasDescription;
+        }));
+
+        if (!isCancelled) {
+          setDescriptionAvailability(availability);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setDescriptionAvailability({});
+        }
+      }
+    };
+
+    hydrateDescriptionAvailability();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [visibleEvents]);
+
   /**
    * Auto-scroll to next event when requested (used by drawer open)
    */
   useEffect(() => {
     if (!targetToken || !targetIdFromToken) return;
 
-    const pastCount = beforeEvents.length;
-    const todayCount = todayEvents.length;
-    const isPast = targetIndex < pastCount;
-    const isToday = targetIndex >= pastCount && targetIndex < pastCount + todayCount;
-    const isFuture = targetIndex >= pastCount + todayCount;
-
-    // Only run when pagination already contains the target (or it's today which is always present)
-    const inRange = isToday ||
-      (isPast && (pastCount - targetIndex) <= beforePages * PAGE_SIZE) ||
-      (isFuture && (targetIndex - pastCount - todayCount) < afterPages * PAGE_SIZE);
-    if (!inRange) return;
+    const targetEvent = sortedEvents[targetIndex];
+    if (!targetEvent) return;
+    const targetDay = getDaySerial(normalizeDate(new Date(targetEvent.date), timezone));
+    const targetDayIndex = dayGroups.findIndex((g) => g.serial === targetDay);
+    // Wait until target day is in visible range
+    if (targetDayIndex !== -1 && (targetDayIndex < visibleDayRange.start || targetDayIndex > visibleDayRange.end)) return;
 
     if (lastScrollTokenRef.current === targetToken) return;
 
-    const targetEvent = sortedEvents.find((evt) => evt.id === targetIdFromToken);
-    const targetTime = targetEvent ? new Date(targetEvent.date).getTime() : null;
+    const targetEventData = sortedEvents.find((evt) => evt.id === targetIdFromToken);
+    const targetTime = targetEventData ? new Date(targetEventData.date).getTime() : null;
     const simultaneousIds = targetTime
       ? sortedEvents
           .filter((evt) => evt.id && new Date(evt.date).getTime() === targetTime)
@@ -1917,7 +2214,7 @@ export default function EventsTimeline2({
     };
 
     requestAnimationFrame(scrollToTarget);
-  }, [targetToken, targetIdFromToken, targetIndex, beforeEvents.length, todayEvents.length, beforePages, afterPages, sortedEvents, triggerHighlight]);
+  }, [targetToken, targetIdFromToken, targetIndex, sortedEvents, triggerHighlight, visibleDayRange, dayGroups, timezone]);
 
   /**
    * Fallback: auto-scroll to next event when no explicit target is provided (once per mount/open).
@@ -1927,7 +2224,7 @@ export default function EventsTimeline2({
     if (targetToken) return; // explicit target handled above
     if (lastScrollTokenRef.current === 'next-default') return;
 
-    const shouldScrollBottom = eventStates.nextIds.size === 0 || (isTodayComplete && !hasTomorrowEvents);
+    const shouldScrollBottom = eventStates.nextIds.size === 0 || isTodayComplete;
 
     if (!shouldScrollBottom && eventStates.nextIds.size > 0) {
       const firstNextId = Array.from(eventStates.nextIds)[0];
@@ -1945,7 +2242,7 @@ export default function EventsTimeline2({
       container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
       lastScrollTokenRef.current = 'next-default';
     }
-  }, [eventStates.nextIds, targetToken, loading, autoScrollToNextKey, isTodayComplete, hasTomorrowEvents]);
+  }, [eventStates.nextIds, targetToken, loading, autoScrollToNextKey, isTodayComplete]);
   
   // ========== CALLBACKS ==========
   
@@ -1969,21 +2266,54 @@ export default function EventsTimeline2({
   }, []);
   
   /**
-   * Load previous events (scroll up)
-   * Preserves scroll position - enterprise UX best practice
+   * Load previous day (expand above)
+   * Enterprise UX: Preserves scroll position by measuring and adjusting after DOM update
    */
   const handleLoadPrevious = useCallback(() => {
-    // Expand past events by one page; anchor retention less critical since today is always visible
-    setBeforePages((prev) => prev + 1);
-  }, []);
+    if (visibleDayRange.start <= 0) return;
+    
+    const container = timelineContainerRef.current;
+    if (!container) {
+      setVisibleDayRange((prev) => ({ ...prev, start: Math.max(prev.start - 1, 0) }));
+      return;
+    }
+    
+    // Measure current scroll position and height before adding content
+    const scrollBefore = container.scrollTop;
+    const heightBefore = container.scrollHeight;
+    
+    setVisibleDayRange((prev) => ({ ...prev, start: Math.max(prev.start - 1, 0) }));
+    
+    // After React renders new content, adjust scroll to maintain visual position
+    requestAnimationFrame(() => {
+      const heightAfter = container.scrollHeight;
+      const heightDiff = heightAfter - heightBefore;
+      container.scrollTop = scrollBefore + heightDiff;
+    });
+  }, [visibleDayRange.start]);
   
   /**
-   * Load more events (scroll down)
-   * Natural scroll flow
+   * Load next day (expand below)
+   * Enterprise UX: Natural scroll flow - new content appears below, no position adjustment needed
    */
   const handleLoadMore = useCallback(() => {
-    setAfterPages((prev) => prev + 1);
-  }, []);
+    setVisibleDayRange((prev) => ({ ...prev, end: Math.min(prev.end + 1, dayGroups.length - 1) }));
+  }, [dayGroups.length]);
+
+  /**
+   * Scroll to next event
+   * Enterprise UX: Smooth scroll with center alignment for optimal viewing
+   */
+  const handleScrollToNext = useCallback(() => {
+    if (eventStates.nextIds.size === 0) return;
+    
+    const firstNextId = Array.from(eventStates.nextIds)[0];
+    const nextElement = document.querySelector(`[data-event-id="${firstNextId}"]`);
+    
+    if (nextElement) {
+      nextElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [eventStates.nextIds]);
   
   // ========== RENDER ==========
   
@@ -1999,9 +2329,9 @@ export default function EventsTimeline2({
   
   return (
     <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <Box data-timeline-container="true" sx={{ flex: 1, overflow: 'auto', px: { xs: 1, sm: 2 }, py: 2 }}>
-        {/* Show Previous Button - Only for past days */}
-        {hasPrevious && (
+      <Box ref={timelineContainerRef} data-timeline-container="true" sx={{ flex: 1, overflow: 'auto', px: { xs: 1, sm: 2 }, py: 2 }}>
+        {/* Show Previous Day */}
+        {hasPreviousDay && (
           <PaginationButton 
             direction="previous" 
             onClick={handleLoadPrevious}
@@ -2028,7 +2358,9 @@ export default function EventsTimeline2({
           const isPast = getTimeStatus(event.date, timezone, nowInTimezone) === 'past';
           const isNow = eventStates.nowIds.has(uniqueKey);
           const isNext = eventStates.nextIds.has(uniqueKey);
+          const countdownLabel = isNext ? nextCountdownLabel : null;
           const isHighlighted = event.id ? highlightIds.includes(event.id) : false;
+          const hasDescription = descriptionAvailability[uniqueKey];
           
           // Check if this is a new day
           const currentDate = new Date(event.date);
@@ -2074,6 +2406,7 @@ export default function EventsTimeline2({
                       isNow={isNow}
                       isNext={isNext}
                       timezone={timezone}
+                      countdownLabel={countdownLabel}
                     />
                   </Box>
                   
@@ -2099,9 +2432,18 @@ export default function EventsTimeline2({
                     isNow={isNow}
                     isNext={isNext}
                     isHighlighted={isHighlighted}
+                    hasDescription={hasDescription !== false}
                     onInfoClick={handleInfoClick}
+                    isFavoriteEvent={isFavoriteEvent}
+                    onToggleFavorite={onToggleFavorite}
+                    isFavoritePending={isFavoritePending}
+                    favoritesLoading={favoritesLoading}
+                    hasEventNotes={hasEventNotes}
+                    onOpenNotes={onOpenNotes}
+                    isEventNotesLoading={isEventNotesLoading}
                     timezone={timezone}
                     nowMs={nowMs}
+                    countdownLabel={countdownLabel}
                   />
                 </TimelineContent>
               </TimelineItem>
@@ -2116,13 +2458,63 @@ export default function EventsTimeline2({
       )}
       
       {/* Load More Button - Only for future days */}
-      {hasMore && (
+      {hasNextDay && (
         <PaginationButton 
           direction="more" 
           onClick={handleLoadMore}
         />
       )}
       </Box>
+
+      {/* Floating Scroll to Next Button */}
+      {showScrollToNext && eventStates.nextIds.size > 0 && (() => {
+        const container = timelineContainerRef.current;
+        const firstNextId = Array.from(eventStates.nextIds)[0];
+        const nextElement = container && document.querySelector(`[data-event-id="${firstNextId}"]`);
+        
+        let isNextAbove = false;
+        if (container && nextElement) {
+          const containerRect = container.getBoundingClientRect();
+          const elementRect = nextElement.getBoundingClientRect();
+          const elementTop = elementRect.top - containerRect.top + container.scrollTop;
+          const viewportCenter = container.scrollTop + containerRect.height / 2;
+          isNextAbove = elementTop < viewportCenter;
+        }
+
+        return (
+          <Zoom in timeout={300}>
+            <Fab
+              color="primary"
+              size="medium"
+              onClick={handleScrollToNext}
+              sx={{
+                position: 'absolute',
+                bottom: { xs: 16, sm: 24 },
+                right: { xs: 16, sm: 24 },
+                zIndex: 1000,
+                boxShadow: 4,
+                '&:hover': {
+                  boxShadow: 8,
+                  transform: 'scale(1.05)',
+                },
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <MuiTooltip 
+                title={`Scroll to Next Event ${isNextAbove ? '(Above)' : '(Below)'}`} 
+                arrow 
+                placement="left"
+              >
+                {isNextAbove ? (
+                  <KeyboardArrowUpIcon sx={{ fontSize: 28 }} />
+                ) : (
+                  <KeyboardArrowDownIcon sx={{ fontSize: 28 }} />
+                )}
+              </MuiTooltip>
+            </Fab>
+          </Zoom>
+        );
+      })()}
 
       {/* Event Details Modal */}
       <EventModal

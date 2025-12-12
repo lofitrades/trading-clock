@@ -5,6 +5,12 @@
  * Renders impact-based icons on AM (inner) and PM (outer) rings using current filters and news source.
  *
  * Changelog:
+ * v1.6.2 - 2025-12-12 - Touch-first tooltip flow: first tap shows tooltip; second tap opens drawer and auto-scrolls.
+ * v1.6.1 - 2025-12-11 - Tooltip rows combine time, flag/currency, and countdown; removed impact label row.
+ * v1.6.0 - 2025-12-11 - Tooltips show time-to-event countdown for each listed event.
+ * v1.5.1 - 2025-12-13 - NEXT markers keep impact border and use smooth scale animation when no NOW event.
+ * v1.5.0 - 2025-12-12 - Added notes badge on markers and synced note detection with new notes hook.
+ * v1.4.0 - 2025-12-12 - Honor favorites-only filter for clock event markers.
  * v1.3.5 - 2025-12-09 - Expose loading state so the clock loader stays visible until markers render.
  * v1.3.4 - 2025-12-09 - Past-today markers use solid gray tones (no transparency) for clearer state.
  * v1.3.3 - 2025-12-09 - Disabled text selection, added pointer cursor, and grayed-out markers for past-today events.
@@ -18,12 +24,16 @@
  * v1.0.0 - 2025-12-09 - Initial implementation of timezone-aware event markers with grouped tooltips.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Tooltip, Typography, Stack, alpha } from '@mui/material';
 import { getEventsByDateRange } from '../services/economicEventsService';
 import { sortEventsByTime } from '../utils/newsApi';
 import { formatTime } from '../utils/dateUtils';
 import { getCurrencyFlag } from './EventsTimeline2';
+import { useFavorites } from '../hooks/useFavorites';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import { useEventNotes } from '../hooks/useEventNotes';
+import NoteAltIcon from '@mui/icons-material/NoteAlt';
 
 const IMPACT_ORDER = [
   { test: (v) => v.includes('strong') || v.includes('high'), icon: '!!!', color: '#d32f2f', priority: 4, label: 'High' },
@@ -45,6 +55,29 @@ const getTodayRangeInTimezone = (timezone) => {
   const end = new Date(start);
   end.setHours(23, 59, 59, 999);
   return { start, end };
+};
+
+const formatTimeToEvent = (dateLike, timezone, nowDate) => {
+  if (!dateLike || !timezone || !nowDate) return '';
+  const eventDate = new Date(dateLike);
+  if (Number.isNaN(eventDate.getTime())) return '';
+  const eventLocal = new Date(eventDate.toLocaleString('en-US', { timeZone: timezone }));
+  const diff = eventLocal.getTime() - nowDate.getTime();
+  const abs = Math.abs(diff);
+  const dayMs = 24 * 60 * 60 * 1000;
+  const hourMs = 60 * 60 * 1000;
+  const minuteMs = 60 * 1000;
+  const days = Math.floor(abs / dayMs);
+  const hours = Math.floor((abs % dayMs) / hourMs);
+  const minutes = Math.floor((abs % hourMs) / minuteMs);
+
+  const parts = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0 || days > 0) parts.push(`${hours}h`);
+  parts.push(`${minutes}m`);
+
+  if (abs < 45 * 1000) return 'Starting now';
+  return diff >= 0 ? `In ${parts.join(' ')}` : `${parts.join(' ')} ago`;
 };
 
 const useTimeParts = (timezone) => {
@@ -72,6 +105,53 @@ const useTimeParts = (timezone) => {
 export default function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventClick, onLoadingStateChange }) {
   const [events, setEvents] = useState([]);
   const [nowTick, setNowTick] = useState(Date.now());
+  const [activeMarkerKey, setActiveMarkerKey] = useState(null);
+  const tooltipTimerRef = useRef(null);
+  const { isFavorite } = useFavorites();
+  const { hasNotes } = useEventNotes();
+
+  const isTouchDevice = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+  }, []);
+
+  const clearTooltipTimer = useCallback(() => {
+    if (tooltipTimerRef.current) {
+      clearTimeout(tooltipTimerRef.current);
+      tooltipTimerRef.current = null;
+    }
+  }, []);
+
+  const closeTooltip = useCallback(() => {
+    clearTooltipTimer();
+    setActiveMarkerKey(null);
+  }, [clearTooltipTimer]);
+
+  const showTooltipFor = useCallback((key) => {
+    clearTooltipTimer();
+    setActiveMarkerKey(key);
+    tooltipTimerRef.current = window.setTimeout(() => {
+      setActiveMarkerKey((current) => (current === key ? null : current));
+      tooltipTimerRef.current = null;
+    }, 3500);
+  }, [clearTooltipTimer]);
+
+  const handleMarkerSelect = useCallback((marker, markerKey) => {
+    if (!marker) return;
+    const key = markerKey || `${marker.hour}-${marker.minute}`;
+    if (!isTouchDevice) {
+      onEventClick?.(marker.events?.[0]);
+      return;
+    }
+
+    if (activeMarkerKey !== key) {
+      showTooltipFor(key);
+      return;
+    }
+
+    onEventClick?.(marker.events?.[0]);
+    closeTooltip();
+  }, [activeMarkerKey, closeTooltip, isTouchDevice, onEventClick, showTooltipFor]);
 
   const getTimeParts = useTimeParts(timezone);
 
@@ -120,9 +200,18 @@ export default function ClockEventsOverlay({ size, timezone, eventFilters, newsS
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => () => clearTooltipTimer(), [clearTooltipTimer]);
+
+  const filteredEvents = useMemo(() => {
+    if (eventFilters?.favoritesOnly) {
+      return events.filter((evt) => isFavorite(evt));
+    }
+    return events;
+  }, [eventFilters?.favoritesOnly, events, isFavorite]);
+
   const earliestFuture = useMemo(() => {
     let min = null;
-    events.forEach((evt) => {
+    filteredEvents.forEach((evt) => {
       const raw = evt.date || evt.dateTime || evt.Date;
       if (!raw) return;
       const eventLocal = new Date(new Date(raw).toLocaleString('en-US', { timeZone: timezone }));
@@ -135,12 +224,12 @@ export default function ClockEventsOverlay({ size, timezone, eventFilters, newsS
       }
     });
     return min;
-  }, [events, nowInTz, timezone]);
+  }, [filteredEvents, nowInTz, timezone]);
 
   const markers = useMemo(() => {
     const grouped = new Map();
 
-    events.forEach((evt) => {
+    filteredEvents.forEach((evt) => {
       const date = evt.date || evt.dateTime || evt.Date;
       const parts = getTimeParts(date);
       if (!parts) return;
@@ -157,6 +246,9 @@ export default function ClockEventsOverlay({ size, timezone, eventFilters, newsS
         const bestMeta = getImpactMeta(best.impact || best.strength || best.Strength);
         return currentMeta.priority > bestMeta.priority ? current : best;
       }, list[0]);
+
+      const isFavoriteMarker = list.some((evt) => isFavorite(evt));
+      const hasNoteMarker = list.some((evt) => hasNotes(evt));
 
       const [hourStr, minuteStr] = key.split('-');
       const hour = Number(hourStr);
@@ -184,9 +276,9 @@ export default function ClockEventsOverlay({ size, timezone, eventFilters, newsS
         !isFutureDay &&
         eventTimeMs < nowMs;
 
-      return { hour, minute, events: list, meta, isNow, isNext, currency, countryCode, isTodayPast };
+      return { hour, minute, events: list, meta, isNow, isNext, currency, countryCode, isTodayPast, isFavoriteMarker, hasNoteMarker };
     });
-  }, [events, getTimeParts, earliestFuture, nowInTz]);
+  }, [filteredEvents, getTimeParts, earliestFuture, nowInTz, hasNotes, isFavorite]);
 
   if (!size || size <= 0) return null;
 
@@ -211,8 +303,10 @@ export default function ClockEventsOverlay({ size, timezone, eventFilters, newsS
     >
       {markers.map((marker) => {
         const isAm = marker.hour < 12;
+        const markerKey = `${marker.hour}-${marker.minute}`;
         const { x, y } = getPosition(marker.hour, marker.minute, isAm);
         const markerStyle = {
+          position: 'absolute',
           left: x,
           top: y,
           transform: 'translate(-50%, -50%)',
@@ -223,12 +317,12 @@ export default function ClockEventsOverlay({ size, timezone, eventFilters, newsS
               ? '#bdbdbd'
               : marker.meta.color,
           color: marker.isTodayPast ? '#424242' : '#fff',
-          border: `2px solid ${marker.isNext ? '#2e7d32' : marker.isTodayPast ? '#9e9e9e' : alpha('#000', 0.14)}`,
+          border: `2px solid ${marker.isTodayPast ? '#9e9e9e' : alpha('#000', 0.14)}`,
           boxShadow: marker.isTodayPast ? 'none' : '0 4px 12px rgba(0,0,0,0.2)',
           animation: marker.isNow
             ? 'nowScale 1.25s ease-in-out infinite'
             : marker.isNext
-              ? 'nextBorderPulse 1.3s ease-in-out infinite'
+              ? 'nextScale 1.25s ease-in-out infinite'
               : 'none',
           cursor: 'pointer',
           userSelect: 'none',
@@ -236,9 +330,9 @@ export default function ClockEventsOverlay({ size, timezone, eventFilters, newsS
             '0%, 100%': { transform: 'translate(-50%, -50%) scale(1)' },
             '50%': { transform: 'translate(-50%, -50%) scale(1.16)' },
           },
-          '@keyframes nextBorderPulse': {
-            '0%, 100%': { boxShadow: '0 4px 12px rgba(0,0,0,0.2)', borderColor: '#2e7d32' },
-            '50%': { boxShadow: '0 6px 16px rgba(0,0,0,0.28)', borderColor: alpha('#2e7d32', 0.85) },
+          '@keyframes nextScale': {
+            '0%, 100%': { transform: 'translate(-50%, -50%) scale(1)' },
+            '50%': { transform: 'translate(-50%, -50%) scale(1.08)' },
           },
         };
 
@@ -249,6 +343,7 @@ export default function ClockEventsOverlay({ size, timezone, eventFilters, newsS
               const impactMeta = getImpactMeta(evt.impact || evt.strength || evt.Strength);
               const currency = evt.currency || evt.Currency;
               const countryCode = currency ? getCurrencyFlag(currency) : null;
+              const timeToEvent = formatTimeToEvent(evt.date || evt.dateTime || evt.Date, timezone, nowInTz);
               return (
                 <Box key={`${evt.id}-${evt.name || evt.Name}`} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
                   <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
@@ -258,7 +353,7 @@ export default function ClockEventsOverlay({ size, timezone, eventFilters, newsS
                     <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
                       {evt.name || evt.Name}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
                       <span>{timeLabel}</span>
                       {currency && (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -272,10 +367,8 @@ export default function ClockEventsOverlay({ size, timezone, eventFilters, newsS
                           <span>{currency}</span>
                         </span>
                       )}
+                      {timeToEvent ? <span>· {timeToEvent}</span> : null}
                       {evt.category || evt.Category ? <span>· {evt.category || evt.Category}</span> : null}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      Impact: {impactMeta.label}
                     </Typography>
                   </Box>
                 </Box>
@@ -284,15 +377,30 @@ export default function ClockEventsOverlay({ size, timezone, eventFilters, newsS
           </Stack>
         );
 
+        const touchTooltipProps = isTouchDevice
+          ? {
+              open: activeMarkerKey === markerKey,
+              disableHoverListener: true,
+              disableFocusListener: true,
+              disableTouchListener: true,
+              onClose: closeTooltip,
+              enterTouchDelay: 0,
+              leaveTouchDelay: 0,
+            }
+          : {};
+
         return (
           <Tooltip 
-            key={`${marker.hour}-${marker.minute}`} 
+            key={markerKey} 
             title={tooltipContent} 
             placement="top" 
             arrow 
             enterDelay={100}
+            disableInteractive={false}
+            {...touchTooltipProps}
             componentsProps={{
               tooltip: {
+                onClick: isTouchDevice ? () => handleMarkerSelect(marker, markerKey) : undefined,
                 sx: {
                   bgcolor: '#111',
                   color: '#fff',
@@ -301,6 +409,7 @@ export default function ClockEventsOverlay({ size, timezone, eventFilters, newsS
                   maxWidth: 320,
                   p: 1.25,
                   '& .MuiTypography-root': { color: '#fff' },
+                  cursor: isTouchDevice ? 'pointer' : 'default',
                 },
               },
               arrow: {
@@ -312,8 +421,48 @@ export default function ClockEventsOverlay({ size, timezone, eventFilters, newsS
               className="clock-event-marker"
               sx={markerStyle}
               style={{ pointerEvents: 'auto' }}
-              onClick={() => onEventClick && onEventClick(marker.events[0])}
+              onClick={() => handleMarkerSelect(marker, markerKey)}
             >
+                {marker.hasNoteMarker && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: -6,
+                      left: -6,
+                      width: 18,
+                      height: 18,
+                      borderRadius: '50%',
+                      bgcolor: 'primary.main',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <NoteAltIcon sx={{ fontSize: 12, color: '#fff' }} />
+                  </Box>
+                )}
+              {marker.isFavoriteMarker && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: -6,
+                    right: -6,
+                    width: 18,
+                    height: 18,
+                    borderRadius: '50%',
+                    bgcolor: 'error.main',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <FavoriteIcon sx={{ fontSize: 12, color: '#fff' }} />
+                </Box>
+              )}
               <Typography component="span" variant="caption" sx={{ fontWeight: 800, fontSize: '0.75rem' }}>
                 {marker.meta.icon}
               </Typography>

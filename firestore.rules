@@ -17,6 +17,21 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow write: if isOwner(userId);
+
+      // Favorites subcollection - allow owners to manage their own favorites
+      match /favorites/{favoriteId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Event Notes subcollection - owners can manage notes and metadata
+      match /eventNotes/{eventId} {
+        allow read, write: if isOwner(userId);
+
+        // Notes nested subcollection
+        match /notes/{noteId} {
+          allow read, write: if isOwner(userId);
+        }
+      }
     }
 
     // Economic Events Calendar - public read access for all events
@@ -34,11 +49,30 @@ service cloud.firestore {
       allow write: if false; // Only Cloud Functions can write
     }
 
+    // Canonical Economic Events - provider-agnostic documents (v3.0.0+)
+    // Structure: /economicEvents/events/events/{eventId}
+    match /economicEvents/events/events/{eventId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Economic Event Descriptions - public read access
-    // Only Cloud Functions can write
+    // Only Cloud Functions or privileged admins can write
     match /economicEventDescriptions/{docId} {
       allow read: if true; // Public read access
-      allow write: if false; // Only Cloud Functions can write
+      allow write: if
+        // Service accounts (Cloud Functions) always allowed
+        request.auth.token.firebase.sign_in_provider == 'firebase' && request.auth.token.admin == true
+        ||
+        // Allow privileged human users with custom claims (role or superadmin flag)
+        request.auth != null && (
+          request.auth.token.role == 'superadmin' ||
+          request.auth.token.superadmin == true
+        )
+        ||
+        // TEMPORARY: Allow any authenticated user (for manual uploads)
+        // TODO: Remove this after setting up proper admin accounts
+        isAuthenticated();
     }
 
     // System Jobs - public read access (used for cache validation)

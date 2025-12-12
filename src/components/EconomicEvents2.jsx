@@ -19,7 +19,10 @@
  * v1.2.0 - 2025-12-09 - Added expand/collapse control to show full /events experience (tabs + header) within drawer at full width
  * v1.2.1 - 2025-12-09 - Hide back-to-clock control inside drawer
  * v1.2.2 - 2025-12-09 - Auto-scroll to next event when opening drawer
- * v1.2.3 - 2025-12-09 - Compact sticky header/tabs/filters layout in expanded mode for better vertical space
+* v1.2.6 - 2025-12-11 - Tightened embedded EventsPage wrapper (no gap, stretch, no padding) to remove unused space beneath filters on drawer/mobile.
+* v1.2.5 - 2025-12-11 - Sync Week is icon-only with confirmation prompt to avoid accidental runs.
+* v1.2.4 - 2025-12-11 - Added drawer "Sync Week" action to trigger NFS weekly refresh.
+* v1.2.3 - 2025-12-09 - Compact sticky header/tabs/filters layout in expanded mode for better vertical space
  * v1.1.0 - 2025-12-09 - Removed sync controls from drawer; sync actions now live on /events page header
  * v1.0.0 - 2025-12-08 - Initial implementation - refactored from EconomicEvents.jsx to embed EventsPage
  */
@@ -41,6 +44,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
+import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek';
 import { refreshEventsCache } from '../services/economicEventsService';
 import NewsSourceSelector from './NewsSourceSelector';
 import EventsPage from './EventsPage';
@@ -95,6 +99,7 @@ export default function EconomicEvents2({ open, onClose, timezone, autoScrollReq
   
   const [syncSuccess, setSyncSuccess] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [syncingWeek, setSyncingWeek] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [autoScrollToken, setAutoScrollToken] = useState(0);
   const [eventsCount, setEventsCount] = useState(0);
@@ -110,6 +115,37 @@ export default function EconomicEvents2({ open, onClose, timezone, autoScrollReq
   const handleNewsSourceChange = (newSource) => {
     updateNewsSource(newSource);
     // EventsPage will auto-refresh via useEffect watching newsSource
+  };
+
+  /**
+   * Trigger NFS weekly sync
+   */
+  const handleSyncWeek = async () => {
+    if (syncingWeek) return;
+    const confirmed = window.confirm('Sync this week from NFS now? This may take a few seconds.');
+    if (!confirmed) return;
+    setSyncingWeek(true);
+    setSyncSuccess(null);
+
+    try {
+      const { triggerNfsWeekSync } = await import('../services/economicEventsService');
+      const result = await triggerNfsWeekSync();
+
+      if (result.success) {
+        setSyncSuccess('Synced NFS weekly schedule.');
+        if (eventsPageRef.current?.handleRefresh) {
+          eventsPageRef.current.handleRefresh();
+        }
+      } else {
+        setSyncSuccess(result.error || 'Failed to sync NFS week.');
+      }
+    } catch (error) {
+      console.error('❌ [EconomicEvents2] Error syncing NFS week:', error);
+      setSyncSuccess('Failed to sync NFS week.');
+    } finally {
+      setTimeout(() => setSyncSuccess(null), 4000);
+      setSyncingWeek(false);
+    }
   };
 
   /**
@@ -205,6 +241,28 @@ export default function EconomicEvents2({ open, onClose, timezone, autoScrollReq
                 </span>
               </Tooltip>
             )}
+            {user && (
+              <Tooltip title="Sync week (NFS)">
+                <span>
+                  <IconButton
+                    onClick={handleSyncWeek}
+                    disabled={syncingWeek}
+                    sx={{ color: 'white' }}
+                    size="small"
+                  >
+                    <CalendarViewWeekIcon
+                      sx={{
+                        animation: syncingWeek ? 'spin 1s linear infinite' : 'none',
+                        '@keyframes spin': {
+                          '0%': { transform: 'rotate(0deg)' },
+                          '100%': { transform: 'rotate(360deg)' },
+                        },
+                      }}
+                    />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
             {/* Refresh Button - Only for authenticated users */}
             {user && (
               <Tooltip title="Refresh events">
@@ -283,6 +341,28 @@ export default function EconomicEvents2({ open, onClose, timezone, autoScrollReq
                   <RefreshIcon 
                     sx={{
                       animation: refreshing ? 'spin 1s linear infinite' : 'none',
+                      '@keyframes spin': {
+                        '0%': { transform: 'rotate(0deg)' },
+                        '100%': { transform: 'rotate(360deg)' },
+                      },
+                    }}
+                  />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
+          {user && (
+            <Tooltip title="Sync week (NFS)">
+              <span>
+                <IconButton
+                  onClick={handleSyncWeek}
+                  disabled={syncingWeek}
+                  sx={{ color: 'white' }}
+                  size="small"
+                >
+                  <CalendarViewWeekIcon
+                    sx={{
+                      animation: syncingWeek ? 'spin 1s linear infinite' : 'none',
                       '@keyframes spin': {
                         '0%': { transform: 'rotate(0deg)' },
                         '100%': { transform: 'rotate(360deg)' },
@@ -372,9 +452,14 @@ export default function EconomicEvents2({ open, onClose, timezone, autoScrollReq
           <Box
             sx={{
               flex: 1,
-              overflow: 'auto',
+              overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
+              alignItems: 'stretch',
+              justifyContent: 'flex-start',
+              gap: 0,
+              p: 0,
+              minHeight: 0,
               bgcolor: expanded ? 'background.default' : 'inherit',
             }}
           >

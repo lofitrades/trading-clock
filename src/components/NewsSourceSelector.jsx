@@ -13,6 +13,7 @@
  * - Accessibility-first (ARIA labels, keyboard navigation)
  * 
  * Changelog:
+ * v3.0.0 - 2025-12-11 - Updated for canonical architecture (NFS + JBlanked); accurate copy with financial disclaimer
  * v2.0.0 - 2025-12-01 - Redesigned with modal selector showing all sources with details (subscription plan UX pattern)
  * v1.0.0 - 2025-12-01 - Initial implementation with enterprise best practices
  */
@@ -148,25 +149,23 @@ export default function NewsSourceSelector({
             {NEWS_SOURCE_OPTIONS.map((source) => {
               const isSelected = source.value === value;
               
-              // Actual data ranges from analyze-exports.cjs (Dec 1, 2025)
+              // Canonical architecture: NFS API (breadth) + JBlanked API (actuals depth)
+              // Dynamic data - statistics are illustrative and subject to change
               const sourceData = {
                 'forex-factory': {
-                  forwardDays: 1,
-                  historicalDays: 1065,
-                  historicalYears: 2.9,
-                  totalEvents: 13600,
+                  coverage: 'Comprehensive',
+                  strength: 'Broad historical coverage',
+                  availability: 'Primary source via JBlanked',
                 },
                 'mql5': {
-                  forwardDays: 8,
-                  historicalDays: 699,
-                  historicalYears: 1.9,
-                  totalEvents: 8531,
+                  coverage: 'Extensive',
+                  strength: 'MetaTrader official data',
+                  availability: 'Primary source via JBlanked',
                 },
                 'fxstreet': {
-                  forwardDays: 1,
-                  historicalDays: 0,
-                  historicalYears: 0,
-                  totalEvents: 48,
+                  coverage: 'Limited',
+                  strength: 'Real-time updates',
+                  availability: 'Supplementary source',
                 },
               };
               
@@ -254,29 +253,29 @@ export default function NewsSourceSelector({
                           }}
                         />
                         <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
-                          <strong>{data.totalEvents.toLocaleString()}</strong> total events
+                          {data.coverage} coverage
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <CheckCircleIcon
                           sx={{
                             fontSize: 16,
-                            color: data.historicalYears >= 1.5 ? 'success.main' : 'warning.main',
+                            color: source.value === 'fxstreet' ? 'warning.main' : 'success.main',
                           }}
                         />
                         <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
-                          <strong>~{data.historicalYears} years</strong> historical
+                          {data.strength}
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CheckCircleIcon
+                        <InfoOutlinedIcon
                           sx={{
                             fontSize: 16,
-                            color: data.forwardDays >= 7 ? 'success.main' : 'warning.main',
+                            color: 'text.secondary',
                           }}
                         />
                         <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
-                          <strong>{data.forwardDays} {data.forwardDays === 1 ? 'day' : 'days'}</strong> forward
+                          {data.availability}
                         </Typography>
                       </Box>
                     </Box>
@@ -305,7 +304,7 @@ export default function NewsSourceSelector({
             })}
           </Box>
 
-          {/* Info Footer */}
+          {/* Info Footer - Data Architecture & Disclaimer */}
           <Box
             sx={{
               mt: 3,
@@ -334,7 +333,7 @@ export default function NewsSourceSelector({
                     fontSize: '0.875rem',
                   }}
                 >
-                  Data Coverage Information
+                  How Data is Sourced
                 </Typography>
                 <Typography
                   variant="caption"
@@ -345,16 +344,49 @@ export default function NewsSourceSelector({
                     display: 'block',
                   }}
                 >
-                  <strong>Forex Factory</strong> offers the most comprehensive dataset with nearly 3 years of historical data (13,600+ events).
-                  <br />
-                  <strong>MQL5</strong> provides ~2 years of history (8,500+ events) with the best forward coverage (8 days ahead).
-                  <br />
-                  <strong>FXStreet</strong> is currently limited to recent events only (48 events).
+                  This application aggregates economic calendar data from multiple trusted providers to give you comprehensive event coverage. 
+                  The system automatically selects the highest quality data when the same event is available from multiple sources.
                   <br /><br />
-                  <em>Data ranges based on actual sync as of December 1, 2025</em>
+                  <strong>Your selection determines which provider is prioritized.</strong> If your preferred source is unavailable for an event, 
+                  the system will automatically use the next best available source.
                 </Typography>
               </Box>
             </Box>
+          </Box>
+
+          {/* Disclaimer */}
+          <Box
+            sx={{
+              mt: 2,
+              p: 2,
+              bgcolor: alpha('#ff9800', 0.08),
+              borderRadius: 1.5,
+              border: '1px solid',
+              borderColor: alpha('#ff9800', 0.2),
+            }}
+          >
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{
+                fontSize: '0.7rem',
+                lineHeight: 1.6,
+                display: 'block',
+                fontStyle: 'italic',
+              }}
+            >
+              <strong>Important Disclaimer:</strong> This economic calendar is provided for informational and educational purposes only. 
+              Data accuracy, completeness, and timeliness are not guaranteed. Event times, forecasts, and actual values may contain errors, 
+              omissions, or delays. <strong>Do not use this information as the sole basis for trading or financial decisions.</strong>
+              <br /><br />
+              We are not responsible for any trading losses, investment decisions, or financial outcomes resulting from the use of this data. 
+              Always verify critical information with official sources and consult qualified financial professionals before making investment decisions. 
+              Past performance and forecasts do not guarantee future results.
+              <br /><br />
+              By using this application, you acknowledge that all data is sourced from third-party providers (NFS API, JBlanked API, Forex Factory, 
+              MQL5/MetaTrader, FXStreet) and any inaccuracies or discrepancies are the responsibility of those original sources. 
+              We provide this data "as is" without warranties of any kind.
+            </Typography>
           </Box>
         </DialogContent>
       </Dialog>

@@ -5,6 +5,11 @@
  * Supports multi-source economic calendar data (mql5, forex-factory, fxstreet)
  * 
  * Changelog:
+ * v2.5.0 - 2025-12-12 - Added cached description index and helper for description availability checks (reduces per-event Firestore reads).
+ * v2.4.1 - 2025-12-11 - Normalized impact values for consistent filtering across canonical and legacy data paths.
+ * v2.4.0 - 2025-12-11 - Canonical-aware filters (currencies/categories), title-casing event names, cache alignment for canonical path.
+ * v2.3.0 - 2025-12-11 - Added manual NFS week sync helper for drawer action.
+ * v2.2.0 - 2025-12-11 - Added canonical economic events fetch with user-preferred source fallback.
  * v2.1.0 - 2025-12-08 - BUGFIX: Fixed refreshEventsCache to accept source parameter and properly invalidate source-specific cache
  * v2.0.0 - 2025-12-01 - Multi-source support with cache integration
  * v1.0.0 - 2025-11-30 - Initial implementation
@@ -26,52 +31,127 @@ import {
 import { db } from '../firebase';
 import { getEconomicEventsCollectionRef } from './firestoreHelpers';
 import { DEFAULT_NEWS_SOURCE } from '../types/economicEvents';
+import { fetchCanonicalEconomicEvents } from './canonicalEconomicEventsService';
+
+// Title-case helper for event names (keeps short all-caps acronyms intact)
+function formatEventName(name = '') {
+  if (!name) return '';
+  return name
+    .split(/\s+/)
+    .map((word) => {
+      if (word.length <= 3 && word === word.toUpperCase()) return word; // Keep acronyms
+      const lower = word.toLowerCase();
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(' ');
+}
+
+// Normalize impact values to a consistent set used by filters and UI
+function normalizeImpactValue(impact) {
+  if (!impact) return 'Data Not Loaded';
+
+  const value = String(impact).toLowerCase();
+
+  if (value.includes('strong') || value.includes('high') || value.includes('!!!')) {
+    return 'Strong Data';
+  }
+  if (value.includes('moderate') || value.includes('medium') || value.includes('!!')) {
+    return 'Moderate Data';
+  }
+  if (value.includes('weak') || value.includes('low') || value.includes('!')) {
+    return 'Weak Data';
+  }
+  if (value.includes('non-eco') || value.includes('non-economic') || value.includes('none')) {
+    return 'Non-Economic';
+  }
+
+  return 'Data Not Loaded';
+}
 
 // Firestore collection names (legacy - kept for descriptions)
 const DESCRIPTIONS_COLLECTION = 'economicEventDescriptions';
-const STATUS_COLLECTION = 'systemJobs';
+const DESCRIPTIONS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+let descriptionsIndexCache = null;
+let descriptionsCacheTimestamp = 0;
+
+const buildDescriptionsIndex = (descriptions = []) => {
+  const byName = new Map();
+  const byAlias = new Map();
+  const byCategory = new Map();
+
+  descriptions.forEach((desc) => {
+    const nameKey = desc.name?.toLowerCase();
+    if (nameKey) {
+      byName.set(nameKey, desc);
+    }
+
+    if (Array.isArray(desc.aliases)) {
+      desc.aliases.forEach((alias) => {
+        const aliasKey = alias?.toLowerCase();
+        if (aliasKey) {
+          byAlias.set(aliasKey, desc);
+        }
+      });
+    }
+
+    const categoryKey = desc.category?.toLowerCase();
+    if (categoryKey && !byCategory.has(categoryKey)) {
+      byCategory.set(categoryKey, desc);
+    }
+  });
+
+  return { byName, byAlias, byCategory };
+};
+
+const loadDescriptionsIndex = async () => {
+  const now = Date.now();
+  if (!descriptionsIndexCache || now - descriptionsCacheTimestamp > DESCRIPTIONS_CACHE_TTL_MS) {
+    const descriptionsRef = collection(db, DESCRIPTIONS_COLLECTION);
+    const snapshot = await getDocs(descriptionsRef);
+
+    const descriptions = snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
+    }));
+
+    descriptionsIndexCache = buildDescriptionsIndex(descriptions);
+    descriptionsCacheTimestamp = now;
+  }
+
+  return descriptionsIndexCache;
+};
+
+const findDescriptionMatch = (index, eventName, category) => {
+  if (!index) return null;
+
+  const nameKey = eventName?.toLowerCase();
+  if (nameKey) {
+    const nameMatch = index.byName.get(nameKey) || index.byAlias.get(nameKey);
+    if (nameMatch) return nameMatch;
+  }
+
+  const categoryKey = category?.toLowerCase();
+  if (categoryKey) {
+    return index.byCategory.get(categoryKey) || null;
+  }
+
+  return null;
+};
 
 /**
- * Trigger manual sync of economic events calendar (Recent events: 7d back + 30d forward)
- * Supports multi-source sync via sources array
- * Automatically invalidates cache after successful sync
- * 
- * This calls syncRecentEventsNow which syncs recent events (7 days back + 30 days forward)
- * For historical bulk sync, use triggerHistoricalSync() instead
- * 
- * @param {Object} options - Sync options
- * @param {string[]} options.sources - Array of sources to sync (e.g., ['mql5', 'forex-factory'])
- * @param {boolean} options.dryRun - If true, validates without writing to Firestore
- * @param {string} options.from - Optional start date (YYYY-MM-DD) - overrides recent range
- * @param {string} options.to - Optional end date (YYYY-MM-DD) - overrides recent range
- * @returns {Promise<Object>} Sync result
+ * Trigger NFS weekly sync (on-demand)
+ * Called by drawer "Sync Week" button to refresh the canonical schedule.
  */
-export const triggerManualSync = async (options = {}) => {
+export const triggerNfsWeekSync = async () => {
   try {
-    // Use syncRecentEventsNow for Sync Calendar button (7d back + 30d forward)
-    const baseUrl = 'https://us-central1-time-2-trade-app.cloudfunctions.net/syncRecentEventsNow';
-    
-    // Uncomment this to use local emulator:
-    // const baseUrl = import.meta.env.DEV
-    //   ? 'http://127.0.0.1:5001/time-2-trade-app/us-central1/syncRecentEventsNow'
-    //   : 'https://us-central1-time-2-trade-app.cloudfunctions.net/syncRecentEventsNow';
+    const baseUrl = 'https://us-central1-time-2-trade-app.cloudfunctions.net/syncWeekFromNfsNow';
 
-    const params = new URLSearchParams();
-    if (options.dryRun) params.append('dryRun', 'true');
-    if (options.from) params.append('from', options.from);
-    if (options.to) params.append('to', options.to);
-
-    const url = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
-
-    // Prepare request body for multi-source sync
-    const requestBody = options.sources ? { sources: options.sources } : {};
-
-    const response = await fetch(url, {
-      method: options.sources ? 'POST' : 'GET', // Use POST for multi-source
+    const response = await fetch(baseUrl, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      ...(options.sources && { body: JSON.stringify(requestBody) }),
     });
 
     if (!response.ok) {
@@ -81,21 +161,57 @@ export const triggerManualSync = async (options = {}) => {
 
     const result = await response.json();
 
-    // Import cache invalidation dynamically to avoid circular dependency
-    if (!options.dryRun) {
-      const { invalidateCache } = await import('./eventsCache');
-      invalidateCache();
-    }
+    const { invalidateCache } = await import('./eventsCache');
+    invalidateCache();
 
     return {
       success: true,
       data: result,
     };
   } catch (error) {
-    console.error('❌ Manual sync failed:', error);
+    console.error('❌ NFS week sync failed:', error);
     return {
       success: false,
-      error: error.message || 'Failed to trigger sync',
+      error: error.message || 'Failed to trigger NFS week sync',
+    };
+  }
+};
+
+/**
+ * Trigger JBlanked actuals sync (on-demand)
+ * Called by drawer "Sync Actuals" button to refresh today's actual values
+ * from all configured JBlanked sources (ForexFactory, MQL5/MT, FXStreet).
+ */
+export const triggerJblankedActualsSync = async () => {
+  try {
+    const baseUrl = 'https://us-central1-time-2-trade-app.cloudfunctions.net/syncTodayActualsFromJblankedNow';
+
+    const response = await fetch(baseUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+
+    const { invalidateCache } = await import('./eventsCache');
+    invalidateCache();
+
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error) {
+    console.error('❌ JBlanked actuals sync failed:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to trigger JBlanked actuals sync',
     };
   }
 };
@@ -201,55 +317,119 @@ export const getSyncStatus = async () => {
  * @param {string[]} filters.eventTypes - Array of event categories
  * @param {string[]} filters.currencies - Array of currency codes
  * @param {boolean} filters.forceRefresh - Force fetch from Firestore (bypass cache)
+ * @param {('auto'|'jblanked-ff'|'jblanked-mt'|'jblanked-fxstreet')} [filters.preferredSource] - Preferred provider for actuals
+ * @param {boolean} [filters.useCanonical] - If false, skip canonical collection and use legacy per-source data
  * @returns {Promise<Object>} Events data
  */
 export const getEventsByDateRange = async (startDate, endDate, filters = {}) => {
   try {
-    // Get the source from filters or use default
     const source = filters.source || DEFAULT_NEWS_SOURCE;
-    
-    // Import cache service dynamically to avoid circular dependency
-    const { getFilteredEvents } = await import('./eventsCache');
-    
-    // Use cache to get events (will fetch from Firestore if cache invalid)
-    const cachedEvents = await getFilteredEvents({
-      startDate,
-      endDate,
-      source,
-      // Note: Impact/category/currency filters applied client-side after enrichment
-    });
-    
-    // Map cached events to expected format
-    let events = cachedEvents.map(event => {
-      // Cached events already have timestamps as milliseconds
-      const eventDate = new Date(event.date);
-      
-      // Normalize field names: Provide both lowercase and PascalCase for compatibility
-      return {
-        id: event.id,
-        ...event, // lowercase fields from cache
-        // Add PascalCase aliases for backward compatibility with EventsTimeline2
-        Name: event.name || event.Name,
-        Currency: event.currency || event.Currency,
-        Category: event.category || event.Category,
-        Strength: event.strength || event.Strength,
-        date: eventDate,
-        // Add ISO string for easier debugging
-        dateISO: eventDate?.toISOString(),
-        dateLocal: eventDate?.toLocaleString(),
-      };
-    });
+    const preferredSource = filters.preferredSource || 'auto';
+    const useCanonical = filters.useCanonical !== false;
+
+    let events = [];
+    let usedCanonical = false;
+
+    if (useCanonical) {
+      const canonicalResult = await fetchCanonicalEconomicEvents({
+        from: startDate,
+        to: endDate,
+        currencies: filters.currencies,
+        preferredSource,
+      });
+
+      if (canonicalResult.success && canonicalResult.data.length > 0) {
+        events = canonicalResult.data.map(event => {
+          const eventDate = event.datetimeUtc ? new Date(event.datetimeUtc) : null;
+          const impact = normalizeImpactValue(event.impact);
+          const formattedName = formatEventName(event.name);
+          return {
+            id: event.id,
+            name: formattedName,
+            currency: event.currency,
+            category: null,
+            date: eventDate,
+            actual: event.actual,
+            forecast: event.forecast,
+            previous: event.previous,
+            strength: impact,
+            quality: null,
+            source: event.sourceKey || 'canonical',
+            // PascalCase aliases for backward compatibility
+            Name: formattedName,
+            Currency: event.currency,
+            Category: null,
+            Strength: impact,
+            Quality: null,
+            Forecast: event.forecast,
+            Previous: event.previous,
+            Actual: event.actual,
+            dateISO: eventDate?.toISOString(),
+            dateLocal: eventDate?.toLocaleString(),
+          };
+        });
+        usedCanonical = true;
+      }
+    }
+
+    if (!usedCanonical) {
+      const { getFilteredEvents } = await import('./eventsCache');
+      const cachedEvents = await getFilteredEvents({
+        startDate,
+        endDate,
+        source,
+        // Note: Impact/category/currency filters applied client-side after enrichment
+      });
+
+      events = cachedEvents.map(event => {
+        // Cached events already have timestamps as milliseconds
+        const eventDate = new Date(event.date);
+        const formattedName = formatEventName(event.name || event.Name);
+        const impact = normalizeImpactValue(event.strength || event.Strength || event.impact);
+        
+        // Normalize field names: Provide both lowercase and PascalCase for compatibility
+        return {
+          id: event.id,
+          ...event, // lowercase fields from cache
+          name: formattedName,
+          Name: formattedName,
+          // Add PascalCase aliases for backward compatibility with EventsTimeline2
+          Currency: event.currency || event.Currency,
+          Category: event.category || event.Category,
+          Strength: impact,
+          strength: impact,
+          impact,
+          date: eventDate,
+          // Add ISO string for easier debugging
+          dateISO: eventDate?.toISOString(),
+          dateLocal: eventDate?.toLocaleString(),
+        };
+      });
+    }
 
     // IMPORTANT: Enrich events with impact data BEFORE filtering
     // This allows filtering by enriched impact values from descriptions collection
     events = await enrichEventsWithDescriptions(events);
 
+    // Normalize impacts post-enrichment to ensure consistent filter values
+    events = events.map(event => {
+      const impact = normalizeImpactValue(event.strength || event.Strength || event.impact);
+      return {
+        ...event,
+        strength: impact,
+        Strength: impact,
+        impact,
+      };
+    });
+
+    const normalizedImpactFilters = (filters.impacts || []).map(normalizeImpactValue);
+
     // Apply impact filter (support both lowercase and PascalCase)
-    if (filters.impacts && filters.impacts.length > 0) {
+    if (normalizedImpactFilters.length > 0) {
       const beforeCount = events.length;
       events = events.filter(event => {
-        const strength = event.strength || event.Strength || 'Data Not Loaded';
-        const matchesFilter = filters.impacts.includes(strength);
+        const strength = normalizeImpactValue(event.strength || event.Strength || event.impact);
+        const matchesFilter = normalizedImpactFilters.includes(strength);
         return matchesFilter;
       });
     }
@@ -280,6 +460,7 @@ export const getEventsByDateRange = async (startDate, endDate, filters = {}) => 
     return {
       success: true,
       data: events,
+      canonical: usedCanonical,
     };
   } catch (error) {
     console.error('❌ Failed to fetch events by date range:', error);
@@ -305,29 +486,8 @@ export const getEventsByDateRange = async (startDate, endDate, filters = {}) => 
  */
 export const getEventDescription = async (eventName, category) => {
   try {
-    const descriptionsRef = collection(db, DESCRIPTIONS_COLLECTION);
-    const q = query(descriptionsRef);
-    
-    const snapshot = await getDocs(q);
-    
-    // Search for matching description
-    const descriptions = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    // Try to find by name or aliases first
-    let match = descriptions.find(desc => 
-      desc.name?.toLowerCase() === eventName?.toLowerCase() ||
-      desc.aliases?.some(alias => alias.toLowerCase() === eventName?.toLowerCase())
-    );
-
-    // Fallback to category match
-    if (!match && category) {
-      match = descriptions.find(desc => 
-        desc.category?.toLowerCase() === category?.toLowerCase()
-      );
-    }
+    const index = await loadDescriptionsIndex();
+    const match = findDescriptionMatch(index, eventName, category);
 
     return {
       success: true,
@@ -340,6 +500,25 @@ export const getEventDescription = async (eventName, category) => {
       error: error.message || 'Failed to fetch event description',
       data: null,
     };
+  }
+};
+
+/**
+ * Check if a description entry exists for the given event
+ * Reuses the cached description index for O(1) lookups
+ *
+ * @param {string} eventName - Event name to search for
+ * @param {string} category - Event category to search for
+ * @returns {Promise<boolean>} True if a description exists
+ */
+export const hasEventDescriptionEntry = async (eventName, category) => {
+  try {
+    const index = await loadDescriptionsIndex();
+    const match = findDescriptionMatch(index, eventName, category);
+    return Boolean(match);
+  } catch (error) {
+    console.error('❌ Failed to check event description availability:', error);
+    return false;
   }
 };
 
@@ -435,11 +614,34 @@ export const enrichEventsWithDescriptions = async (events) => {
  * @param {string} source - News source (defaults to user's preferred source)
  * @returns {Promise<Object>} Unique categories array
  */
-export const getEventCategories = async (source = DEFAULT_NEWS_SOURCE) => {
+export const getEventCategories = async (options = DEFAULT_NEWS_SOURCE) => {
+  const source = typeof options === 'string' ? options : (options?.source || DEFAULT_NEWS_SOURCE);
+  const useCanonical = typeof options === 'object' ? options?.useCanonical !== false : true;
   try {
-    // Try cache first
+    // Canonical path: query unified collection
+    if (useCanonical) {
+      const rootDoc = doc(collection(db, 'economicEvents'), 'events');
+      const canonicalRef = collection(rootDoc, 'events');
+      const snapshot = await getDocs(query(canonicalRef, limit(5000)));
+
+      const categories = new Set();
+      snapshot.docs.forEach((docSnap) => {
+        const data = docSnap.data();
+        const category = data.category || data.Category;
+        if (category && category !== 'null') categories.add(category);
+      });
+
+      return {
+        success: true,
+        data: Array.from(categories).sort(),
+        cached: false,
+        source: 'canonical',
+      };
+    }
+
+    // Try cache first for legacy per-source collections
     const { getCachedCategories } = await import('./eventsCache');
-    const cachedCategories = await getCachedCategories();
+    const cachedCategories = await getCachedCategories(source);
     
     if (cachedCategories && cachedCategories.length > 0) {
       return {
@@ -493,11 +695,34 @@ export const getEventCategories = async (source = DEFAULT_NEWS_SOURCE) => {
  * @param {string} source - News source (defaults to user's preferred source)
  * @returns {Promise<Object>} Unique currencies array
  */
-export const getEventCurrencies = async (source = DEFAULT_NEWS_SOURCE) => {
+export const getEventCurrencies = async (options = DEFAULT_NEWS_SOURCE) => {
+  const source = typeof options === 'string' ? options : (options?.source || DEFAULT_NEWS_SOURCE);
+  const useCanonical = typeof options === 'object' ? options?.useCanonical !== false : true;
   try {
+    // Canonical path: query unified collection
+    if (useCanonical) {
+      const rootDoc = doc(collection(db, 'economicEvents'), 'events');
+      const canonicalRef = collection(rootDoc, 'events');
+      const snapshot = await getDocs(query(canonicalRef, limit(5000)));
+
+      const currencies = new Set();
+      snapshot.docs.forEach((docSnap) => {
+        const data = docSnap.data();
+        const currency = data.currency || data.Currency;
+        if (currency) currencies.add(currency.toUpperCase());
+      });
+
+      return {
+        success: true,
+        data: Array.from(currencies).sort(),
+        cached: false,
+        source: 'canonical',
+      };
+    }
+
     // Try cache first
     const { getCachedCurrencies } = await import('./eventsCache');
-    const cachedCurrencies = await getCachedCurrencies();
+    const cachedCurrencies = await getCachedCurrencies(source);
     
     if (cachedCurrencies && cachedCurrencies.length > 0) {
       return {
@@ -518,7 +743,7 @@ export const getEventCurrencies = async (source = DEFAULT_NEWS_SOURCE) => {
       const data = doc.data();
       // Support both lowercase (Firestore) and PascalCase (legacy)
       const currency = data.currency || data.Currency;
-      if (currency) currencies.add(currency);
+      if (currency) currencies.add(currency.toUpperCase());
     });
 
     const sortedCurrencies = Array.from(currencies).sort();

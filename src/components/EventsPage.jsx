@@ -15,6 +15,10 @@
  * - Keyboard navigation and accessibility
  * 
  * Changelog:
+ * v1.3.1 - 2025-12-11 - Make filters full-width in drawer/embedded mode to remove unused background space.
+ * v1.3.2 - 2025-12-11 - Flatten gaps in embedded drawer by using flex column spacing instead of stacked margins.
+ * v1.3.0 - 2025-12-11 - Swapped to chip-based dropdown filter bar (EventsFilters3) for faster edits with mandatory date preset.
+ * v1.2.8 - 2025-12-11 - Today/refresh ranges now use timezone-correct day boundaries to avoid early cutoffs.
  * v1.2.7 - 2025-12-09 - Filters in compact mode now occupy full viewport height when expanded for maximum usability
  * v1.2.6 - 2025-12-09 - Remove unnecessary filter scrolling on large screens; keep sticky clamp only on smaller viewports
  * v1.2.5 - 2025-12-09 - Header and tabs now scroll with the page; only filters stay fixed in compact mode
@@ -51,16 +55,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import TimelineIcon from '@mui/icons-material/Timeline';
-import SyncIcon from '@mui/icons-material/Sync';
 import EventsTable from './EventsTable';
 import EventsTimeline2 from './EventsTimeline2';
-import EventsFilters2 from './EventsFilters2';
-import ConfirmModal from './ConfirmModal';
-import SyncCalendarModal from './SyncCalendarModal';
+import EventsFilters3 from './EventsFilters3.jsx';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getEventsByDateRange } from '../services/economicEventsService';
 import { sortEventsByTime } from '../utils/newsApi';
+import { getDatePartsInTimezone, getUtcDateForTimezone } from '../utils/dateUtils';
 
 // ============================================================================
 // CONSTANTS
@@ -92,6 +94,13 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
   const { eventFilters, newsSource, selectedTimezone } = useSettings();
   const { user } = useAuth();
 
+  const buildTodayRange = useCallback(() => {
+    const { year, month, day } = getDatePartsInTimezone(selectedTimezone);
+    const startDate = getUtcDateForTimezone(selectedTimezone, year, month, day);
+    const endDate = getUtcDateForTimezone(selectedTimezone, year, month, day, { endOfDay: true });
+    return { startDate, endDate };
+  }, [selectedTimezone]);
+
   // ========== STATE ==========
   const [activeTab, setActiveTab] = useState(
     searchParams.get('view') || TAB_VALUES.TIMELINE
@@ -101,10 +110,6 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [visibleCount, setVisibleCount] = useState(0);
-  const [syncing, setSyncing] = useState(false);
-  const [syncSuccess, setSyncSuccess] = useState(null);
-  const [showSyncModal, setShowSyncModal] = useState(false);
-  const [showInitialSyncConfirm, setShowInitialSyncConfirm] = useState(false);
 
   // Filter state - Initialize from SettingsContext or URL params
   const [filters, setFilters] = useState(() => {
@@ -139,28 +144,15 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
    */
   useEffect(() => {
     if (!filters.startDate || !filters.endDate) {
-      // Set default range matching cache optimization (14d back + 8d forward)
-      // IMPORTANT: Always use fresh Date() to get current date
-      const now = new Date(); // Fresh current date
-      
-      const startDate = new Date(now.getTime()); // Clone to avoid mutation
-      startDate.setDate(startDate.getDate() - 14); // 14 days back (matches cache)
-      startDate.setHours(0, 0, 0, 0);
-      
-      const endDate = new Date(now.getTime()); // Clone to avoid mutation
-      endDate.setDate(endDate.getDate() + 8); // 8 days forward (matches cache)
-      endDate.setHours(23, 59, 59, 999);
-      
+      const { startDate, endDate } = buildTodayRange();
       const newFilters = {
         ...filters,
         startDate,
         endDate,
       };
       setFilters(newFilters);
-      // Fetch with new filters immediately
       fetchEvents(newFilters);
     } else {
-      // Load data with current filters
       fetchEvents();
     }
   }, []); // Run only on mount
@@ -277,9 +269,16 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
     // Invalidate cache to force fresh data
     const { invalidateCache } = await import('../services/eventsCache');
     invalidateCache(newsSource);
-    // Refetch events
-    fetchEvents();
-  }, [newsSource, fetchEvents]);
+    // Reset to today-only view and refetch
+    const { startDate, endDate } = buildTodayRange();
+    const refreshedFilters = {
+      ...filters,
+      startDate,
+      endDate,
+    };
+    setFilters(refreshedFilters);
+    fetchEvents(refreshedFilters);
+  }, [buildTodayRange, fetchEvents, filters, newsSource]);
 
   /**
    * Track visible count from timeline (pagination-aware)
@@ -290,78 +289,6 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
       onEventsUpdate(count, lastUpdated || new Date());
     }
   }, [onEventsUpdate, lastUpdated]);
-
-  /**
-   * Multi-source sync (calendar) via modal
-   */
-  const handleMultiSourceSync = useCallback(async (selectedSources) => {
-    setSyncing(true);
-    try {
-      const { triggerManualSync } = await import('../services/economicEventsService');
-      const result = await triggerManualSync({
-        sources: selectedSources,
-        dryRun: false,
-      });
-
-      if (result.success) {
-        const totalRecords = result.data.totalRecordsUpserted || 0;
-        setSyncSuccess(
-          `Synced ${totalRecords.toLocaleString()} events from ${selectedSources.length} source${selectedSources.length > 1 ? 's' : ''}!`
-        );
-        // Refresh data after sync
-        fetchEvents();
-        setTimeout(() => setSyncSuccess(null), 5000);
-      }
-
-      return result;
-    } finally {
-      setSyncing(false);
-    }
-  }, [fetchEvents]);
-
-  /**
-   * Initial historical sync (2 years back)
-   */
-  const handleInitialSync = useCallback(async () => {
-    setShowInitialSyncConfirm(false);
-    setSyncing(true);
-    setSyncSuccess(null);
-
-    try {
-      const response = await fetch(
-        'https://us-central1-time-2-trade-app.cloudfunctions.net/syncHistoricalEvents',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            sources: ['mql5', 'forex-factory', 'fxstreet'],
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (result.ok) {
-        const totalRecords = result.totalRecordsUpserted || 0;
-        const sourcesCount = result.totalSources || 0;
-        setSyncSuccess(
-          `Initial sync complete! Loaded ${totalRecords.toLocaleString()} historical events from ${sourcesCount} sources (2 years back to today).`
-        );
-        fetchEvents();
-        setTimeout(() => setSyncSuccess(null), 10000);
-      } else {
-        setSyncSuccess(`Error: ${result.error || 'Initial sync failed'}`);
-        setTimeout(() => setSyncSuccess(null), 5000);
-      }
-    } catch (error) {
-      setSyncSuccess('Failed to connect to sync service. Please try again.');
-      setTimeout(() => setSyncSuccess(null), 5000);
-    }
-
-    setSyncing(false);
-  }, [fetchEvents]);
 
   // Expose handleRefresh to parent via ref
   useImperativeHandle(ref, () => ({
@@ -408,7 +335,7 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
     <Box
       sx={{
         minHeight: embedded ? 'auto' : '100vh',
-        height: embedded ? '100%' : 'auto',
+        height: embedded ? 'auto' : 'auto',
         bgcolor: 'background.default',
         pt: embedded ? { xs: 1.5, sm: 2 } : 0,
         pb: embedded ? 0 : 4,
@@ -491,100 +418,8 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
                   </Box>
                 </Box>
 
-                {/* Actions */}
-                {!embedded && user && (
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gap: 1,
-                      gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, auto)' },
-                      justifyContent: { xs: 'stretch', sm: 'flex-end' },
-                      width: { xs: '100%', sm: 'auto' },
-                    }}
-                  >
-                    <Button
-                      variant="contained"
-                      color="warning"
-                      size="medium"
-                      startIcon={
-                        <SyncIcon
-                          sx={{
-                            animation: syncing ? 'spin 1s linear infinite' : 'none',
-                            '@keyframes spin': {
-                              '0%': { transform: 'rotate(0deg)' },
-                              '100%': { transform: 'rotate(360deg)' },
-                            },
-                          }}
-                        />
-                      }
-                      disabled={syncing}
-                      onClick={() => setShowInitialSyncConfirm(true)}
-                      sx={{
-                        textTransform: 'none',
-                        fontWeight: 700,
-                        fontSize: compactMode ? { xs: '0.85rem', sm: '0.9rem' } : { xs: '0.9rem', sm: '0.95rem' },
-                        py: compactMode ? { xs: 0.85, sm: 0.85 } : { xs: 1, sm: 0.9 },
-                        px: compactMode ? { xs: 2.1, sm: 2.6 } : { xs: 2.5, sm: 3 },
-                        width: '100%',
-                        boxShadow: theme.shadows[4],
-                      }}
-                    >
-                      Initial Sync
-                    </Button>
-
-                    <Button
-                      variant="outlined"
-                      color="inherit"
-                      size="medium"
-                      startIcon={
-                        <SyncIcon
-                          sx={{
-                            animation: syncing ? 'spin 1s linear infinite' : 'none',
-                            '@keyframes spin': {
-                              '0%': { transform: 'rotate(0deg)' },
-                              '100%': { transform: 'rotate(360deg)' },
-                            },
-                          }}
-                        />
-                      }
-                      disabled={syncing}
-                      onClick={() => setShowSyncModal(true)}
-                      sx={{
-                        textTransform: 'none',
-                        fontWeight: 700,
-                        fontSize: compactMode ? { xs: '0.85rem', sm: '0.9rem' } : { xs: '0.9rem', sm: '0.95rem' },
-                        py: compactMode ? { xs: 0.85, sm: 0.85 } : { xs: 1, sm: 0.9 },
-                        px: compactMode ? { xs: 2.1, sm: 2.6 } : { xs: 2.5, sm: 3 },
-                        width: '100%',
-                        borderWidth: 2,
-                        color: 'primary.contrastText',
-                        borderColor: 'primary.contrastText',
-                        '&:hover': {
-                          borderColor: 'primary.contrastText',
-                          bgcolor: alpha('#ffffff', 0.12),
-                        },
-                      }}
-                    >
-                      Sync Calendar
-                    </Button>
-                  </Box>
-                )}
+                {/* Actions removed - using automatic NFS + JBlanked scheduled syncs */}
               </Box>
-
-              {!embedded && user && syncSuccess && (
-                <Alert
-                  severity={syncSuccess.startsWith('Error') ? 'error' : 'success'}
-                  sx={{
-                    bgcolor: alpha('#fff', 0.1),
-                    color: 'primary.contrastText',
-                    borderColor: alpha('#fff', 0.2),
-                    '.MuiAlert-icon': { color: 'inherit' },
-                  }}
-                >
-                  <AlertTitle>{syncSuccess.startsWith('Error') ? 'Sync Error' : 'Sync Complete'}</AlertTitle>
-                  {syncSuccess}
-                </Alert>
-              )}
             </Box>
           </Container>
         </Paper>
@@ -600,8 +435,9 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
           pb: embedded ? 2 : 0,
           flex: embedded ? 1 : 'initial',
           overflow: embedded ? 'auto' : 'visible',
-          display: embedded ? 'flex' : 'block',
-          flexDirection: embedded ? 'column' : 'initial',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: embedded ? 1.5 : (compactMode ? 1.5 : 3),
           position: 'relative',
         }}
       >
@@ -609,7 +445,6 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
         <Paper
           elevation={0}
           sx={{
-            mb: embedded ? 2 : (compactMode ? 1.5 : 3),
             border: '1px solid',
             borderColor: 'divider',
             borderRadius: compactMode ? 0 : 2,
@@ -621,13 +456,13 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
             maxHeight: filtersMaxHeight,
             overflow: filtersOverflow,
             boxShadow: compactMode ? theme.shadows[3] : 'none',
-            width: compactMode ? '100vw' : 'auto',
-            maxWidth: compactMode ? '100vw' : 'none',
+            width: embedded ? '100%' : compactMode ? '100vw' : 'auto',
+            maxWidth: embedded ? '100%' : compactMode ? '100vw' : 'none',
             ml: compactMode ? 'calc(50% - 50vw)' : 0,
             mr: compactMode ? 'calc(50% - 50vw)' : 0,
           }}
         >
-          <EventsFilters2
+          <EventsFilters3
             filters={filters}
             onFiltersChange={handleFiltersChange}
             onApply={handleFiltersApply}
@@ -643,7 +478,6 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
           <Paper
             elevation={0}
             sx={{
-              mb: compactMode ? 1.5 : 3,
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 2,
@@ -740,61 +574,7 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
         </Box>
       </Box>
 
-      {/* Sync Modals - non-embedded only */}
-      {!embedded && user && (
-        <>
-          <SyncCalendarModal
-            isOpen={showSyncModal}
-            onClose={() => setShowSyncModal(false)}
-            defaultSources={[newsSource]}
-            onSync={handleMultiSourceSync}
-          />
-
-          <ConfirmModal
-            open={showInitialSyncConfirm}
-            onClose={() => setShowInitialSyncConfirm(false)}
-            onConfirm={handleInitialSync}
-            title="Initial Historical Sync - ALL Sources"
-            message={
-              <>
-                <Typography variant="body1" sx={{ mb: 2 }}>
-                  This will fetch <strong>2 years of historical data</strong> (up to today) from <strong>all 3 news sources</strong>: MQL5, Forex Factory, and FXStreet.
-                </Typography>
-                <Typography variant="body2" color="warning.main" sx={{ fontWeight: 700, mb: 2 }}>
-                  ⚠️ HIGH API COST: This will use approximately <strong>9 API credits</strong> (3 credits × 3 sources)
-                </Typography>
-                <Box sx={{ bgcolor: 'info.light', p: 2, borderRadius: 1, mb: 2 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                    📊 What Gets Synced:
-                  </Typography>
-                  <Typography variant="caption" component="div" sx={{ mb: 0.5 }}>
-                    • <strong>MQL5:</strong> ~8,500 historical events with categories
-                  </Typography>
-                  <Typography variant="caption" component="div" sx={{ mb: 0.5 }}>
-                    • <strong>Forex Factory:</strong> ~13,500 historical events (best coverage)
-                  </Typography>
-                  <Typography variant="caption" component="div" sx={{ mb: 1 }}>
-                    • <strong>FXStreet:</strong> Recent events only
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
-                    🔮 For Future Events:
-                  </Typography>
-                  <Typography variant="caption" component="div" sx={{ mb: 1, fontStyle: 'italic' }}>
-                    After initial sync, use <strong>"Sync Calendar"</strong> button to get upcoming scheduled events (next 30 days).
-                  </Typography>
-                </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                  <strong>Note:</strong> For regular updates and future events, use the "Sync Calendar" button.
-                </Typography>
-              </>
-            }
-            confirmText="Sync All Sources"
-            cancelText="Cancel"
-            requirePassword={true}
-            password="9876543210"
-          />
-        </>
-      )}
+      {/* Sync functionality handled by automatic scheduled functions (NFS + JBlanked) */}
     </Box>
   );
 });

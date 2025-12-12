@@ -16,6 +16,7 @@
  * - Conversion: toLocaleString/toLocaleTimeString with timeZone parameter
  * 
  * Changelog:
+ * v1.2.0 - 2025-12-11 - Added timezone day-boundary helpers for accurate date ranges across all offsets.
  * v1.1.0 - 2025-12-01 - Added comprehensive logging to formatTime() for timezone debugging
  * v1.0.0 - 2025-12-01 - Initial implementation (extracted from EventModal & EventsTimeline2)
  */
@@ -363,6 +364,107 @@ export function isSameDay(date1, date2, timezone = DEFAULT_TIMEZONE) {
   });
   
   return date1Str === date2Str;
+}
+
+// ============================================================================
+// TIMEZONE BOUNDARY HELPERS
+// ============================================================================
+
+/**
+ * Compute timezone offset (ms) for a given UTC date.
+ * Uses Intl.DateTimeFormat to respect DST on the target date.
+ */
+export function getTimezoneOffsetMs(date, timezone = DEFAULT_TIMEZONE) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(date).reduce((acc, part) => {
+    acc[part.type] = part.value;
+    return acc;
+  }, {});
+
+  const asUtc = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second)
+  );
+
+  return asUtc - date.getTime();
+}
+
+/**
+ * Get Y/M/D components for a date in a specific timezone.
+ * Includes dayOfWeek for range calculations.
+ */
+export function getDatePartsInTimezone(timezone = DEFAULT_TIMEZONE, referenceDate = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    weekday: 'short',
+  });
+
+  const parts = formatter.formatToParts(referenceDate).reduce((acc, part) => {
+    acc[part.type] = part.value;
+    return acc;
+  }, {});
+
+  const dayOfWeekMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month) - 1,
+    day: Number(parts.day),
+    dayOfWeek: dayOfWeekMap[parts.weekday],
+  };
+}
+
+/**
+ * Create a UTC Date representing a wall-clock time in the target timezone.
+ */
+export function getUtcDateForTimezone(
+  timezone = DEFAULT_TIMEZONE,
+  year,
+  month,
+  day,
+  options = {}
+) {
+  const {
+    hour = 0,
+    minute = 0,
+    second = 0,
+    millisecond = 0,
+    endOfDay = false,
+  } = options;
+
+  const utcDate = endOfDay
+    ? new Date(Date.UTC(year, month, day, 23, 59, 59, 999))
+    : new Date(Date.UTC(year, month, day, hour, minute, second, millisecond));
+
+  const offset = getTimezoneOffsetMs(utcDate, timezone);
+  return new Date(utcDate.getTime() - offset);
+}
+
+/**
+ * Get start and end of day (UTC) for a timezone-aware date.
+ */
+export function getUtcDayRangeForTimezone(timezone = DEFAULT_TIMEZONE, referenceDate = new Date()) {
+  const { year, month, day } = getDatePartsInTimezone(timezone, referenceDate);
+  const startDate = getUtcDateForTimezone(timezone, year, month, day);
+  const endDate = getUtcDateForTimezone(timezone, year, month, day, { endOfDay: true });
+  return { startDate, endDate };
 }
 
 /**

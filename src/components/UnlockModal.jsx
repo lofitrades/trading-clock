@@ -11,7 +11,16 @@ import {
 
 export default function UnlockModal({ onClose, onSignUp }) {
   return (
-    <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={true}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{
+        backdrop: { sx: { zIndex: 1500 } },
+        paper: { sx: { zIndex: 1501 } },
+      }}
+    >
       <DialogTitle sx={{ textAlign: 'center' }}>
         Unlock Pro★ Features for free: $0
       </DialogTitle>

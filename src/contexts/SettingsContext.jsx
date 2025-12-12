@@ -5,6 +5,7 @@
  * Supplies clock visibility, styling, timezone, news source, and economic events overlay controls to the app.
  * 
  * Changelog:
+ * v1.2.1 - 2025-12-12 - Persist favorites-only filter for economic events.
  * v1.2.0 - 2025-12-09 - Added showEventsOnCanvas toggle with persistence to control clock event markers visibility.
  * v1.1.0 - 2025-12-01 - Added newsSource preference and eventFilters persistence for economic events features.
  * v1.0.0 - 2025-09-15 - Initial implementation of settings context with Firestore sync.
@@ -59,6 +60,7 @@ export function SettingsProvider({ children }) {
   
   // News source preference (for economic events calendar)
   const [newsSource, setNewsSource] = useState(DEFAULT_NEWS_SOURCE);
+  const [preferredSource, setPreferredSource] = useState('auto');
   
   // Event filters state
   const [eventFilters, setEventFilters] = useState({
@@ -67,6 +69,7 @@ export function SettingsProvider({ children }) {
     impacts: [],
     eventTypes: [],
     currencies: [],
+    favoritesOnly: false,
   });
 
   useEffect(() => {
@@ -88,6 +91,7 @@ export function SettingsProvider({ children }) {
       const savedShowSessionNamesInCanvas = localStorage.getItem('showSessionNamesInCanvas');
       const savedShowEventsOnCanvas = localStorage.getItem('showEventsOnCanvas');
       const savedNewsSource = localStorage.getItem('newsSource');
+      const savedPreferredSource = localStorage.getItem('preferredSource');
       const savedEventFilters = localStorage.getItem('eventFilters');
 
       if (savedClockStyle) setClockStyle(savedClockStyle);
@@ -106,6 +110,7 @@ export function SettingsProvider({ children }) {
       if (savedShowSessionNamesInCanvas !== null) setShowSessionNamesInCanvas(savedShowSessionNamesInCanvas === 'true');
       if (savedShowEventsOnCanvas !== null) setShowEventsOnCanvas(savedShowEventsOnCanvas === 'true');
       if (savedNewsSource) setNewsSource(savedNewsSource);
+      if (savedPreferredSource) setPreferredSource(savedPreferredSource);
       
       // Load event filters with date deserialization
       if (savedEventFilters) {
@@ -115,6 +120,7 @@ export function SettingsProvider({ children }) {
             ...parsed,
             startDate: parsed.startDate ? new Date(parsed.startDate) : null,
             endDate: parsed.endDate ? new Date(parsed.endDate) : null,
+            favoritesOnly: parsed.favoritesOnly ?? false,
           });
         } catch (error) {
           console.error('❌ Failed to parse saved event filters:', error);
@@ -158,6 +164,7 @@ export function SettingsProvider({ children }) {
             
             // Load news source preference
             if (data.settings.newsSource) setNewsSource(data.settings.newsSource);
+            if (data.settings.preferredSource) setPreferredSource(data.settings.preferredSource);
             
             // Load event filters with date deserialization
             if (data.settings.eventFilters) {
@@ -166,6 +173,7 @@ export function SettingsProvider({ children }) {
                 ...filters,
                 startDate: filters.startDate?.toDate ? filters.startDate.toDate() : (filters.startDate ? new Date(filters.startDate) : null),
                 endDate: filters.endDate?.toDate ? filters.endDate.toDate() : (filters.endDate ? new Date(filters.endDate) : null),
+                favoritesOnly: filters.favoritesOnly ?? false,
               });
             }
           }
@@ -189,6 +197,7 @@ export function SettingsProvider({ children }) {
               showSessionNamesInCanvas,
               showEventsOnCanvas,
               newsSource, // Default news source preference
+                preferredSource: 'auto',
             }
           });
         }
@@ -352,6 +361,7 @@ export function SettingsProvider({ children }) {
       ...newFilters,
       startDate: newFilters.startDate?.toISOString() || null,
       endDate: newFilters.endDate?.toISOString() || null,
+      favoritesOnly: Boolean(newFilters.favoritesOnly),
     };
     
     localStorage.setItem('eventFilters', JSON.stringify(serializedFilters));
@@ -380,6 +390,14 @@ export function SettingsProvider({ children }) {
     }
   };
 
+  const updatePreferredSource = (source) => {
+    setPreferredSource(source);
+    localStorage.setItem('preferredSource', source);
+    if (user) {
+      saveSettingsToFirestore({ preferredSource: source });
+    }
+  };
+
   const resetSettings = async () => {
     // Clear localStorage
     localStorage.clear();
@@ -403,6 +421,15 @@ export function SettingsProvider({ children }) {
     setShowSessionNamesInCanvas(false);
     setShowEventsOnCanvas(true);
     setNewsSource(DEFAULT_NEWS_SOURCE);
+    setPreferredSource('auto');
+    setEventFilters({
+      startDate: null,
+      endDate: null,
+      impacts: [],
+      eventTypes: [],
+      currencies: [],
+      favoritesOnly: false,
+    });
     
     // Also reset in Firestore if user is logged in
     if (user) {
@@ -422,6 +449,7 @@ export function SettingsProvider({ children }) {
         showSessionNamesInCanvas: false,
         showEventsOnCanvas: true,
         newsSource: DEFAULT_NEWS_SOURCE,
+        preferredSource: 'auto',
       };
       await saveSettingsToFirestore(defaultSettings);
     }
@@ -463,6 +491,8 @@ export function SettingsProvider({ children }) {
     updateEventFilters,
     newsSource,
     updateNewsSource,
+    preferredSource,
+    updatePreferredSource,
   };
 
   return (

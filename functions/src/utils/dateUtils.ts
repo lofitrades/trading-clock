@@ -5,6 +5,7 @@
  * Ensures backend stores UTC-normalized timestamps for consistent timezone handling.
  *
  * Changelog:
+ * v1.8.0 - 2025-12-11 - Added canonical helpers for NFS ISO timestamps and JBlanked timestamp conversion.
  * v1.7.1 - 2025-12-09 - Removed unused apiDate variable and added file header for lint compliance.
  * v1.7.0 - 2025-12-01 - Verified GMT+2 to UTC conversion for JBlanked Forex Factory data.
  * v1.0.0 - 2024-XX-XX - Initial implementation.
@@ -97,10 +98,37 @@ export function parseJBlankedDate(dateStr: string): Date {
 }
 
 /**
+ * Parse ISO date string with timezone offset (e.g., 2025-12-09T10:00:00-05:00)
+ * Used for NFS weekly feed which already includes offset information.
+ */
+export function parseNfsIsoDate(dateStr: string): Date {
+  const parsed = new Date(dateStr);
+  if (isNaN(parsed.getTime())) {
+    throw new Error(`Invalid NFS date format: ${dateStr}`);
+  }
+  return parsed;
+}
+
+/**
+ * Convert NFS ISO string to Firestore Timestamp (UTC normalized)
+ */
+export function parseNfsDateToTimestamp(dateStr: string): Timestamp {
+  return Timestamp.fromDate(parseNfsIsoDate(dateStr));
+}
+
+/**
  * Convert JavaScript Date to Firestore Timestamp
  */
 export function toFirestoreTimestamp(date: Date): Timestamp {
   return Timestamp.fromDate(date);
+}
+
+/**
+ * Convert JBlanked date string directly to Firestore Timestamp.
+ * Keeps centralized offset handling in parseJBlankedDate.
+ */
+export function parseJblankedDateToTimestamp(dateStr: string): Timestamp {
+  return Timestamp.fromDate(parseJBlankedDate(dateStr));
 }
 
 /**

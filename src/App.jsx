@@ -6,6 +6,8 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
+ * v2.6.5 - 2025-12-11 - Added quick-access economic events button to top-right
+ * v2.6.4 - 2025-12-11 - Relocated timezone selector into settings drawer and updated layout sizing math
  * v2.6.3 - 2025-12-09 - Added setting-controlled toggle for clock event markers and aligned loader gating.
  * v2.6.2 - 2025-12-09 - Keep loading animation visible until clock event markers finish rendering.
  * v2.6.1 - 2025-12-09 - Event markers now open the economic events drawer and auto-scroll to the selected event; improved accessibility and state styling
@@ -20,9 +22,9 @@
  * v1.0.0 - 2025-09-15 - Initial implementation
  */
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Box, IconButton } from '@mui/material';
-import SettingsIcon from '@mui/icons-material/Settings';
+import React, { useState, useEffect, useRef } from 'react';
+import { Box, IconButton, Tooltip } from '@mui/material';
+import EventNoteIcon from '@mui/icons-material/EventNote';
 import { useSettings } from './contexts/SettingsContext';
 import { useClock } from './hooks/useClock';
 import useFullscreen from './hooks/useFullscreen';
@@ -31,9 +33,8 @@ import ClockEventsOverlay from './components/ClockEventsOverlay';
 import ClockHandsOverlay from './components/ClockHandsOverlay';
 import DigitalClock from './components/DigitalClock';
 import SessionLabel from './components/SessionLabel';
-import TimezoneSelector from './components/TimezoneSelector';
-import SettingsSidebar from './components/SettingsSidebar';
-import EconomicEvents2 from './components/EconomicEvents2';
+import SettingsSidebar2 from './components/SettingsSidebar2';
+import EconomicEvents3 from './components/EconomicEvents3';
 import LoadingScreen from './components/LoadingScreen';
 import { isColorDark } from './utils/clockUtils';
 import './index.css';  // Import global CSS styles
@@ -99,7 +100,6 @@ export default function App() {
       
       // Account for fixed elements (minimal margins)
       const settingsButtonHeight = 48; // Top margin + button size (10px + 38px)
-      const timezoneSelectorHeight = 50; // Bottom selector + margins (10px + 40px)
       
       // Calculate scaling factor for digital clock and label based on base 375px
       const baseSize = 375;
@@ -112,7 +112,7 @@ export default function App() {
       const totalRatio = 1 + digitalClockRatio + sessionLabelRatio;
       
       // Available height for all elements (minimal buffer)
-      const availableHeight = viewportHeight - settingsButtonHeight - timezoneSelectorHeight - 10; // 10px tiny buffer
+      const availableHeight = viewportHeight - settingsButtonHeight - 10; // 10px tiny buffer
       
       // Calculate canvas size based on the percentage and ratio
       let calculatedSize = Math.floor((availableHeight / totalRatio) * (canvasSize / 100));
@@ -127,7 +127,7 @@ export default function App() {
       // Verify everything fits with actual scaled sizes
       const actualDigitalHeight = showDigitalClock ? Math.round(60 * (calculatedSize / baseSize)) : 0;
       const actualLabelHeight = showSessionLabel ? Math.round(100 * (calculatedSize / baseSize)) : 0;
-      const totalHeightNeeded = calculatedSize + actualDigitalHeight + actualLabelHeight + settingsButtonHeight + timezoneSelectorHeight + 20;
+      const totalHeightNeeded = calculatedSize + actualDigitalHeight + actualLabelHeight + settingsButtonHeight + 20;
       
       // If we exceed viewport at 100%, adjust down
       if (canvasSize === 100 && totalHeightNeeded > viewportHeight) {
@@ -164,16 +164,6 @@ export default function App() {
     window.dispatchEvent(new Event('resize'));
   }, [isFullscreen]);
 
-  // Timezone selector is always rendered at the bottom of the clock elements.
-  // v1.1.0: TimezoneSelector now uses SettingsContext directly (removed selectedTimezone/setSelectedTimezone props)
-  const memoizedTimezoneSelector = useMemo(() => (
-    <TimezoneSelector
-      textColor={effectiveTextColor}
-      eventsOpen={eventsOpen}
-      onToggleEvents={() => setEventsOpen(!eventsOpen)}
-    />
-  ), [effectiveTextColor, eventsOpen]);
-
   const renderSkeleton = !hasCalculatedClockSize;
   const showLoadingScreen = isLoading || overlayLoading;
 
@@ -201,30 +191,27 @@ export default function App() {
           transition: 'opacity 0.6s ease',
         }}
       >
-        <Box
-          sx={{
-            position: 'fixed',
-            inset: 0,
-            pointerEvents: 'none',
-            zIndex: 1200,
-          }}
-        >
+        <Tooltip title="Economic events" placement="left">
           <IconButton
-            className="settings-button"
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => setEventsOpen(true)}
             sx={{
-              position: 'absolute',
-              top: 10,
+              position: 'fixed',
+              bottom: 'max(12px, env(safe-area-inset-bottom, 0px))',
               right: 'max(12px, env(safe-area-inset-right, 0px))',
               color: effectiveTextColor,
-              pointerEvents: 'auto',
-              backgroundColor: 'transparent',
+              zIndex: 1100,
+              '&:hover': {
+                backgroundColor: 'transparent',
+                opacity: 0.8,
+              },
             }}
-            aria-label="Open settings"
+            aria-label="Open economic events"
           >
-            <SettingsIcon sx={{ fontSize: 28 }} />
+            <EventNoteIcon sx={{ fontSize: 26 }} />
           </IconButton>
-        </Box>
+        </Tooltip>
+
+        {/* Settings gear removed; access settings from events drawer header */}
 
         <div className="clock-elements-container">
           {showHandClock && (
@@ -285,20 +272,18 @@ export default function App() {
           )}
         </div>
 
-        {/* Fixed timezone selector at bottom of viewport */}
-        {memoizedTimezoneSelector}
-
-        <SettingsSidebar
+        <SettingsSidebar2
           open={settingsOpen}
           onClose={() => setSettingsOpen(false)}
         />
 
         {/* Economic Events Panel - Keep mounted for smooth navigation */}
-        <EconomicEvents2 
+        <EconomicEvents3 
           open={eventsOpen}
-          onClose={closeEvents} 
-          timezone={selectedTimezone}
+          onClose={closeEvents}
           autoScrollRequest={autoScrollRequest}
+          onOpenAuth={() => setSettingsOpen(true)}
+          onOpenSettings={() => setSettingsOpen(true)}
         />
       </div>
     </>

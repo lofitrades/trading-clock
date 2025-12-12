@@ -5,7 +5,7 @@
     "description": "Comprehensive descriptions for major USD economic events using MQL5 Economic Calendar categories",
     "source": "Curated from Federal Reserve, Bureau of Labor Statistics, and major forex market analysis",
     "currency": "USD",
-    "totalEvents": 45
+    "totalEvents": 51
   },
   "events": [
     {
@@ -870,6 +870,113 @@
       "source": "US Treasury",
       "description": "Announcement of quarterly debt issuance plans. Large auctions can impact bond yields and USD.",
       "tradingImplication": "Heavy supply may pressure yields higher. More relevant for bond markets than currency markets.",
+      "keyThresholds": null
+    },
+    {
+      "name": "Unemployment Claims",
+      "aliases": [
+        "Weekly Jobless Claims",
+        "Jobless Claims (Initial)",
+        "Unemployment Filings"
+      ],
+      "category": "Job Report",
+      "impact": "medium",
+      "frequency": "Weekly",
+      "releaseTime": "Every Thursday at 8:30 AM ET",
+      "source": "Department of Labor",
+      "description": "Measures the number of individuals filing for unemployment benefits for the first time. It is the timeliest read on labor market stress and can shift sentiment ahead of monthly payroll reports.",
+      "tradingImplication": "Lower readings signal labor-market strength and are typically USD supportive. Persistent increases raise recession and policy easing fears, which can weigh on USD and risk appetite.",
+      "keyThresholds": {
+        "strong": "< 220,000 claims",
+        "moderate": "220,000 - 260,000 claims",
+        "weak": "> 260,000 claims"
+      }
+    },
+    {
+      "name": "FOMC Economic Projections",
+      "aliases": [
+        "Summary of Economic Projections",
+        "FOMC SEP",
+        "Dot Plot"
+      ],
+      "category": "Monetary Policy Report",
+      "impact": "high",
+      "frequency": "Quarterly (March, June, September, December FOMC meetings)",
+      "releaseTime": "2:00 PM ET on projection meeting days",
+      "source": "Federal Reserve",
+      "description": "Quarterly forecasts from FOMC participants covering GDP, unemployment, inflation, and the policy rate (dot plot). Markets parse the median dots and inflation path for forward guidance.",
+      "tradingImplication": "Higher projected rates or inflation are hawkish and usually USD bullish; softer projections are dovish and can pressure USD while lifting risk assets.",
+      "keyThresholds": null
+    },
+    {
+      "name": "Employment Cost Index q/q",
+      "aliases": [
+        "Employment Cost Index",
+        "ECI",
+        "ECI q/q"
+      ],
+      "category": "Job Report",
+      "impact": "medium",
+      "frequency": "Quarterly (January, April, July, October)",
+      "releaseTime": "8:30 AM ET on the last business day of the month following each quarter",
+      "source": "Bureau of Labor Statistics",
+      "description": "Tracks changes in employer labor costs, including wages and benefits. It is a clean gauge of compensation pressures without compositional noise.",
+      "tradingImplication": "Rising ECI signals wage-driven inflation risk and can push yields and USD higher; softer prints ease pressure on the Fed and can weigh on USD.",
+      "keyThresholds": {
+        "hot": "> 1.0% q/q",
+        "steady": "0.6% - 1.0% q/q",
+        "cooling": "< 0.6% q/q"
+      }
+    },
+    {
+      "name": "ADP Weekly Employment Change",
+      "aliases": [
+        "ADP National Employment Report",
+        "ADP Employment Change"
+      ],
+      "category": "Job Report",
+      "impact": "medium",
+      "frequency": "Monthly (first Wednesday; ADP does not publish a weekly series)",
+      "releaseTime": "8:15 AM ET on the first Wednesday of the month",
+      "source": "ADP Research Institute",
+      "description": "Private payroll estimate that precedes the official Non-Farm Payrolls report. ADP does not issue weekly data; this monthly release is the only widely cited series.",
+      "tradingImplication": "Often used as an NFP guide, but correlation varies. Big beats can lift USD and yields; misses can trigger USD softness and lower rate expectations.",
+      "keyThresholds": {
+        "strong": "> 200,000 jobs",
+        "moderate": "120,000 - 200,000 jobs",
+        "weak": "< 120,000 jobs"
+      }
+    },
+    {
+      "name": "President (POTUS) Remarks",
+      "aliases": [
+        "Presidential Speech",
+        "White House Press Conference",
+        "Presidential Statement"
+      ],
+      "category": "Government Communication",
+      "impact": "high",
+      "frequency": "Ad hoc",
+      "releaseTime": "As scheduled; time varies by agenda",
+      "source": "White House",
+      "description": "Prepared remarks, press conferences, or unscripted Q&A by the sitting U.S. President covering policy, economy, trade, or geopolitics. Market impact depends on policy signals and surprise elements.",
+      "tradingImplication": "Hawkish fiscal or trade rhetoric can lift yields and USD; dovish or risk-off headlines can weaken USD and boost safe havens. Unscheduled remarks add gap risk.",
+      "keyThresholds": null
+    },
+    {
+      "name": "Jerome Powell Remarks",
+      "aliases": [
+        "Fed Chair Powell Speech",
+        "Powell Press Conference",
+        "Powell Remarks"
+      ],
+      "category": "Monetary Policy Report",
+      "impact": "high",
+      "frequency": "Ad hoc (multiple times per quarter)",
+      "releaseTime": "As scheduled; commonly between 9:00 AM and 4:00 PM ET",
+      "source": "Federal Reserve",
+      "description": "Public speeches, interviews, or press conferences by the Fed Chair on monetary policy, inflation, and economic outlook. Markets dissect tone, forward guidance, and any deviation from prior messaging.",
+      "tradingImplication": "Hawkish tone (inflation vigilance, higher-for-longer) is USD bullish and can steepen yields; dovish tone (growth concerns, policy patience) is USD bearish and supports risk assets.",
       "keyThresholds": null
     }
   ]

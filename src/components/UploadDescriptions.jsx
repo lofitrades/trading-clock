@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -20,8 +20,9 @@ import {
   Error as ErrorIcon,
   Folder as FolderIcon,
 } from '@mui/icons-material';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { collection, doc, setDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const COLLECTION_NAME = 'economicEventDescriptions';
 
@@ -38,6 +39,8 @@ function generateDocId(eventName) {
 }
 
 function UploadDescriptions() {
+  const [firebaseUser, setFirebaseUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -49,6 +52,15 @@ function UploadDescriptions() {
   const [uploadedEvents, setUploadedEvents] = useState([]);
 
   const CORRECT_PASSWORD = '9876543210';
+
+  // Check Firebase authentication state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handlePasswordSubmit = (e) => {
     e.preventDefault();
@@ -158,6 +170,51 @@ function UploadDescriptions() {
     }
   };
 
+  // Show loading state
+  if (authLoading) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          bgcolor: 'background.default',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Typography>Loading...</Typography>
+      </Box>
+    );
+  }
+
+  // Check if user is logged in to Firebase
+  if (!firebaseUser) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          bgcolor: 'background.default',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: 4,
+        }}
+      >
+        <Paper elevation={3} sx={{ maxWidth: 500, width: '100%', p: 4 }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            You must be logged in to Firebase Authentication to upload event descriptions.
+          </Alert>
+          <Typography variant="body2" color="text.secondary">
+            Please log in to your Firebase account first, then return to this page.
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Current auth state: {firebaseUser ? 'Logged in' : 'Not logged in'}
+          </Typography>
+        </Paper>
+      </Box>
+    );
+  }
+
   // Show password prompt if not authenticated
   if (!isAuthenticated) {
     return (
@@ -179,6 +236,10 @@ function UploadDescriptions() {
             p: 4,
           }}
         >
+          <Alert severity="info" sx={{ mb: 3 }}>
+            Logged in as: {firebaseUser.email}
+          </Alert>
+          
           <Typography variant="h5" gutterBottom sx={{ mb: 3, textAlign: 'center' }}>
             Protected Page
           </Typography>
