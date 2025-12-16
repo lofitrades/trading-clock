@@ -6,6 +6,8 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
+ * v2.6.7 - 2025-12-15 - Added date range label above clock when showing events from Yesterday/Tomorrow or other non-today dates.
+ * v2.6.6 - 2025-12-15 - Tag canvas-triggered event auto-scrolls so timeline can apply a longer highlight animation.
  * v2.6.5 - 2025-12-11 - Added quick-access economic events button to top-right
  * v2.6.4 - 2025-12-11 - Relocated timezone selector into settings drawer and updated layout sizing math
  * v2.6.3 - 2025-12-09 - Added setting-controlled toggle for clock event markers and aligned loader gating.
@@ -23,7 +25,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, IconButton, Tooltip } from '@mui/material';
+import { Box, IconButton, Tooltip, Typography, alpha } from '@mui/material';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import { useSettings } from './contexts/SettingsContext';
 import { useClock } from './hooks/useClock';
@@ -37,6 +39,7 @@ import SettingsSidebar2 from './components/SettingsSidebar2';
 import EconomicEvents3 from './components/EconomicEvents3';
 import LoadingScreen from './components/LoadingScreen';
 import { isColorDark } from './utils/clockUtils';
+import { getDatePartsInTimezone, getUtcDateForTimezone } from './utils/dateUtils';
 import './index.css';  // Import global CSS styles
 import './App.css';    // Import App-specific CSS
 
@@ -88,7 +91,7 @@ export default function App() {
   const openEventsFor = (evt) => {
     setEventsOpen(true);
     if (evt?.id) {
-      setAutoScrollRequest({ eventId: evt.id, ts: Date.now() });
+      setAutoScrollRequest({ eventId: evt.id, ts: Date.now(), source: 'canvas' });
     }
   };
 
@@ -196,7 +199,7 @@ export default function App() {
             onClick={() => setEventsOpen(true)}
             sx={{
               position: 'fixed',
-              bottom: 'max(12px, env(safe-area-inset-bottom, 0px))',
+              bottom: 'calc(12px + var(--t2t-safe-bottom, 0px))',
               right: 'max(12px, env(safe-area-inset-right, 0px))',
               color: effectiveTextColor,
               zIndex: 1100,
@@ -212,6 +215,94 @@ export default function App() {
         </Tooltip>
 
         {/* Settings gear removed; access settings from events drawer header */}
+
+        {/* Date Range Label - shown when canvas events are filtered to non-today dates */}
+        {showEventsOnCanvas && !renderSkeleton && eventFilters?.startDate && eventFilters?.endDate && (() => {
+          // Get timezone-aware today
+          const { year, month, day, dayOfWeek } = getDatePartsInTimezone(selectedTimezone);
+          const todayStart = getUtcDateForTimezone(selectedTimezone, year, month, day);
+          const todayEnd = getUtcDateForTimezone(selectedTimezone, year, month, day, { endOfDay: true });
+          
+          const start = new Date(eventFilters.startDate);
+          const end = new Date(eventFilters.endDate);
+          
+          // Check if it's today
+          const isToday = start.getTime() === todayStart.getTime() && 
+                         end.getTime() === todayEnd.getTime();
+          
+          // Check if it's this week (Sunday to Saturday)
+          const weekStart = getUtcDateForTimezone(selectedTimezone, year, month, day - dayOfWeek);
+          const weekEnd = getUtcDateForTimezone(selectedTimezone, year, month, day + (6 - dayOfWeek), { endOfDay: true });
+          const isThisWeek = start.getTime() === weekStart.getTime() && 
+                            end.getTime() === weekEnd.getTime();
+          
+          if (isToday) return null;
+          
+          // Format the label with actual dates (timezone-aware)
+          const dateOptions = { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric', timeZone: selectedTimezone };
+          const rangeOptions = { month: 'short', day: 'numeric', year: 'numeric', timeZone: selectedTimezone };
+          let label = '';
+          
+          // Get timezone-aware yesterday and tomorrow
+          const yesterday = getUtcDateForTimezone(selectedTimezone, year, month, day - 1);
+          const tomorrow = getUtcDateForTimezone(selectedTimezone, year, month, day + 1);
+          
+          if (isThisWeek) {
+            // This Week - show date range
+            const weekStartStr = weekStart.toLocaleDateString('en-US', rangeOptions);
+            const weekEndStr = weekEnd.toLocaleDateString('en-US', rangeOptions);
+            label = `Showing events for this week: ${weekStartStr} - ${weekEndStr}`;
+          } else if (start.getTime() === yesterday.getTime()) {
+            label = `Showing events from Yesterday: ${start.toLocaleDateString('en-US', dateOptions)}`;
+          } else if (start.getTime() === tomorrow.getTime()) {
+            label = `Showing events for Tomorrow: ${start.toLocaleDateString('en-US', dateOptions)}`;
+          } else if (start.toDateString() === end.toDateString()) {
+            // Single day
+            label = `Showing events for ${start.toLocaleDateString('en-US', dateOptions)}`;
+          } else {
+            // Date range
+            const startStr = start.toLocaleDateString('en-US', dateOptions);
+            const endStr = end.toLocaleDateString('en-US', dateOptions);
+            label = `Showing events: ${startStr} - ${endStr}`;
+          }
+          
+          return (
+            <Box
+              onClick={() => setEventsOpen(true)}
+              sx={{
+                textAlign: 'center',
+                mt: { xs: 1.5, sm: 2 },
+                mb: { xs: 0.5, sm: 0.75 },
+                px: { xs: 1.5, sm: 2 },
+                py: { xs: 0.5, sm: 0.625 },
+                bgcolor: alpha('#000', 0.04),
+                borderRadius: 1.5,
+                maxWidth: { xs: '95%', sm: calculatedClockSize },
+                mx: 'auto',
+                cursor: 'pointer',
+                userSelect: 'none',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  bgcolor: alpha('#000', 0.08),
+                  transform: 'translateY(-1px)',
+                },
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                  lineHeight: 1.4,
+                  display: 'block',
+                }}
+              >
+                {label}
+              </Typography>
+            </Box>
+          );
+        })()}
 
         <div className="clock-elements-container">
           {showHandClock && (

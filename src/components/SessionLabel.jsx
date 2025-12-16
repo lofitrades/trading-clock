@@ -1,9 +1,24 @@
 // src/components/SessionLabel2.jsx
 import React from 'react';
 import { Box, Chip, Stack, Typography, Fade } from '@mui/material';
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import { isColorDark, formatTime } from '../utils/clockUtils';
+
+// Smart time formatting: mm:ss if < 1h, hh:mm if >= 1h
+const formatTimeSmart = (seconds) => {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  
+  if (seconds < 3600) {
+    // Less than 1 hour: show mm'm':ss's'
+    return `${m.toString().padStart(2, '0')}m:${s.toString().padStart(2, '0')}s`;
+  } else {
+    // 1 hour or more: show hh'h':mm'm'
+    return `${h}h:${m.toString().padStart(2, '0')}m`;
+  }
+};
 
 export default function SessionLabel({
   activeSession,
@@ -51,21 +66,57 @@ export default function SessionLabel({
           {/* Session Status Indicator */}
           {activeSession ? (
             <>
-              {/* Active Session Chip */}
+              {/* Active Session Chip with countdown inside */}
               <Chip
-                icon={
-                  <FiberManualRecordIcon 
-                    sx={{ 
-                      fontSize: `${iconSize}px !important`,
-                      animation: 'pulse 2s ease-in-out infinite',
-                      '@keyframes pulse': {
-                        '0%, 100%': { opacity: 1 },
-                        '50%': { opacity: 0.6 },
-                      },
-                    }} 
-                  />
+                label={
+                  <Box
+                    component="span"
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 0.25,
+                      alignItems: 'center',
+                      py: 0.25,
+                    }}
+                  >
+                    <Box
+                      component="span"
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                      }}
+                    >
+                      <span style={{ fontWeight: 600 }}>{activeSession.name}</span>
+                    </Box>
+                    {showTimeToEnd && timeToEnd != null && (
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.3,
+                          fontSize: '0.75em',
+                          opacity: 0.9,
+                        }}
+                      >
+                        <CheckCircleIcon 
+                          sx={{ 
+                            fontSize: `${iconSize * 0.85}px`,
+                            animation: 'pulse 2s ease-in-out infinite',
+                            '@keyframes pulse': {
+                              '0%, 100%': { opacity: 1 },
+                              '50%': { opacity: 0.6 },
+                            },
+                          }} 
+                        />
+                        <span style={{ fontWeight: 500 }}>
+                          Ends in: {formatTimeSmart(timeToEnd)}
+                        </span>
+                      </Box>
+                    )}
+                  </Box>
                 }
-                label={activeSession.name}
                 size="small"
                 sx={{
                   backgroundColor: sessionColor,
@@ -73,114 +124,64 @@ export default function SessionLabel({
                   fontWeight: 600,
                   fontSize: titleSize,
                   height: 'auto',
-                  padding: '4px 8px',
+                  padding: '6px 10px',
                   '& .MuiChip-label': {
                     padding: '0 4px',
-                  },
-                  '& .MuiChip-icon': {
-                    marginLeft: '4px',
-                    color: textColor,
+                    width: '100%',
                   },
                   border: 'none',
                   transition: 'all 0.3s ease',
                 }}
               />
-              
-              {/* Time to End */}
-              {showTimeToEnd && timeToEnd != null && (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    color: 'text.secondary',
-                  }}
-                >
-                  <ScheduleIcon sx={{ fontSize: iconSize }} />
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontSize: detailSize,
-                      fontWeight: 500,
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                  >
-                    {formatTime(timeToEnd)}
-                  </Typography>
-                </Box>
-              )}
             </>
           ) : (
             <>
-              {/* No Active Session - Show Next Session */}
+              {/* No Active Session - Merged chip with next session info */}
               <Chip
-                label="Market Inactive"
+                label={
+                  <Box
+                    component="span"
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 0.25,
+                      alignItems: 'center',
+                      py: 0.25,
+                    }}
+                  >
+                    {showTimeToStart && nextSession && timeToStart != null && (
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.3,
+                          fontSize: '0.75em',
+                        }}
+                      >
+                        <span style={{ fontWeight: 600 }}>{nextSession.name}</span>
+                        <span style={{ fontWeight: 500, opacity: 0.9 }}>
+                          starts in: {formatTimeSmart(timeToStart)}
+                        </span>
+                      </Box>
+                    )}
+                  </Box>
+                }
                 size="small"
                 variant="outlined"
                 sx={{
                   fontSize: titleSize,
                   fontWeight: 500,
                   height: 'auto',
-                  padding: '4px 8px',
+                  padding: '6px 10px',
                   borderColor: 'divider',
                   color: 'text.secondary',
                   '& .MuiChip-label': {
                     padding: '0 4px',
+                    width: '100%',
                   },
                 }}
               />
-              
-              {/* Next Session Info */}
-              {showTimeToStart && nextSession && timeToStart != null && (
-                <>
-                  <Box
-                    sx={{
-                      width: '1px',
-                      height: '16px',
-                      backgroundColor: 'divider',
-                    }}
-                  />
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontSize: detailSize,
-                        color: 'text.secondary',
-                        fontWeight: 500,
-                      }}
-                    >
-                      Next:
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontSize: detailSize,
-                        color: 'text.primary',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {nextSession.name}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontSize: detailSize,
-                        color: 'text.secondary',
-                        fontWeight: 500,
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
-                      in {formatTime(timeToStart)}
-                    </Typography>
-                  </Box>
-                </>
-              )}
             </>
           )}
         </Stack>

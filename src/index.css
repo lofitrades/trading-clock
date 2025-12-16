@@ -6,9 +6,24 @@
  * Optimizes mobile viewport behavior for fullscreen-like experiences.
  * 
  * Changelog:
+ * v1.2.0 - 2025-12-16 - Added visualViewport-driven safe inset vars to prevent mobile browser UI overlap (Android bottom bar) and standardized safe viewport min-heights.
  * v1.1.0 - 2025-12-09 - Adopted dynamic viewport units and enabled mobile scrolling for fullscreen
  * v1.0.0 - 2025-09-15 - Initial global styles
  */
+
+:root {
+  /* Defaults are overridden at runtime in src/main.jsx when VisualViewport is available. */
+  --t2t-vv-height: 100dvh;
+  --t2t-vv-inset-bottom: 0px;
+  --t2t-vv-offset-top: 0px;
+
+  /* Unified safe insets for fixed/sticky UI.
+     - iOS uses safe-area-inset-*
+     - Android bottom browser toolbar overlap is handled via --t2t-vv-inset-bottom
+  */
+  --t2t-safe-top: max(env(safe-area-inset-top, 0px), var(--t2t-vv-offset-top, 0px));
+  --t2t-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--t2t-vv-inset-bottom, 0px));
+}
 
 body {
   margin: 0;
@@ -17,6 +32,7 @@ body {
   background-color: #F9F9F9;
   min-height: 100vh;
   min-height: 100dvh;
+  min-height: var(--t2t-vv-height, 100dvh);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;
@@ -35,9 +51,10 @@ li {
   min-height: 100vh;
   min-height: 100svh;
   min-height: 100dvh;
+  min-height: var(--t2t-vv-height, 100dvh);
   box-sizing: border-box;
   overflow: visible;
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+  padding-bottom: calc(12px + var(--t2t-safe-bottom, 0px));
 }
 
 /* Settings button is now handled by MUI IconButton */
@@ -180,7 +197,7 @@ canvas {
     grid-gap: 10px;
     align-items: center;
     justify-items: center;
-    min-height: 100vh;
+    min-height: var(--t2t-vv-height, 100dvh);
     padding-bottom: 60px;
   }
   

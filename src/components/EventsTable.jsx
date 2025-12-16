@@ -17,6 +17,12 @@
  * - Accessibility compliant
  * 
  * Changelog:
+ * v1.9.0 - 2025-12-15 - REFACTOR: Replaced hardcoded NOW/NEXT calculations with global eventTimeEngine utilities (computeNowNextState, getNowEpochMs)
+ * v1.8.3 - 2025-12-15 - ENHANCEMENT: NEXT detection now based on filtered displayed events (matching timeline behavior), not contextEvents
+ * v1.8.2 - 2025-12-15 - BUGFIX: Fixed NEXT/NOW badge detection - NOW events no longer counted as NEXT, added debug logging
+ * v1.8.1 - 2025-12-15 - ENHANCEMENT: Mobile optimizations - hide headers, narrower time/currency columns, simple green clock icon for NEXT/NOW, flag-only currency display
+ * v1.8.0 - 2025-12-15 - ENHANCEMENT: Compact UI mode - reduced padding, smaller fonts, optimized mobile view (Forex Factory style)
+ * v1.7.1 - 2025-12-16 - Floating scroll action targets NOW when present (info/blue), otherwise NEXT.
  * v1.7.0 - 2025-12-12 - NEXT handling now highlights all simultaneous next events (same timestamp) instead of a single row.
  * v1.6.0 - 2025-12-12 - Added event notes control with loading state and shared actions column.
  * v1.5.0 - 2025-12-12 - Added favorites heart action with pending/loading states and auth-aware toggles.
@@ -74,6 +80,14 @@ import {
 } from '@mui/icons-material';
 import EventModal from './EventModal';
 import { formatTime, formatDate } from '../utils/dateUtils';
+import {
+  NOW_WINDOW_MS,
+  getEventEpochMs,
+  getNowEpochMs,
+  isPastToday as isPastTodayEngine,
+  formatCountdownHMS,
+  computeNowNextState,
+} from '../utils/eventTimeEngine';
 
 // ============================================================================
 // CONSTANTS
@@ -83,25 +97,25 @@ import { formatTime, formatDate } from '../utils/dateUtils';
  * Table columns configuration
  */
 const COLUMNS = [
-  { id: 'time', label: 'Time', sortable: true, minWidth: 100, align: 'left' },
-  { id: 'currency', label: 'Currency', sortable: true, minWidth: 100, align: 'center' },
-  { id: 'impact', label: 'Impact', sortable: true, minWidth: 100, align: 'center' },
-  { id: 'name', label: 'Event Name', sortable: true, minWidth: 250, align: 'left' },
-  { id: 'actual', label: 'Actual', sortable: false, minWidth: 80, align: 'center' },
-  { id: 'forecast', label: 'Forecast', sortable: false, minWidth: 80, align: 'center' },
-  { id: 'previous', label: 'Previous', sortable: false, minWidth: 80, align: 'center' },
-  { id: 'action', label: '', sortable: false, minWidth: 90, align: 'center' },
+  { id: 'time', label: 'Time', sortable: true, minWidth: 85, mobileWidth: 60, align: 'left' },
+  { id: 'currency', label: 'Cur', sortable: true, minWidth: 70, mobileWidth: 50, align: 'center' },
+  { id: 'impact', label: 'Imp', sortable: true, minWidth: 65, align: 'center' },
+  { id: 'name', label: 'Event Name', sortable: true, minWidth: 200, align: 'left' },
+  { id: 'actual', label: 'Act', sortable: false, minWidth: 60, align: 'center' },
+  { id: 'forecast', label: 'For', sortable: false, minWidth: 60, align: 'center' },
+  { id: 'previous', label: 'Pre', sortable: false, minWidth: 60, align: 'center' },
+  { id: 'action', label: '', sortable: false, minWidth: 70, align: 'center' },
 ];
 
 /**
  * Mobile columns (reduced for smaller screens)
  */
-const MOBILE_COLUMNS = ['time', 'currency', 'name', 'impact'];
+const MOBILE_COLUMNS = ['time', 'currency', 'impact', 'name', 'action'];
 
 /**
  * Tablet columns (reduced for medium screens)
  */
-const TABLET_COLUMNS = ['time', 'currency', 'impact', 'name', 'actual', 'action'];
+const TABLET_COLUMNS = ['time', 'currency', 'impact', 'name', 'actual', 'forecast', 'action'];
 
 /**
  * Currency to country code mapping
@@ -181,25 +195,16 @@ const getCurrencyFlag = (currency) => {
 };
 
 /**
- * Convert a date/time value into the specified timezone.
+ * Determine if an event time has already passed in the target timezone.
+ * Uses eventTimeEngine for accurate timezone-aware detection.
  */
-const toTimezoneDate = (value, timezone) => {
-  if (!value) return null;
-  const dateObj = value instanceof Date ? value : new Date(value);
-  const localized = dateObj.toLocaleString('en-US', { timeZone: timezone });
-  const parsed = new Date(localized);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+const isPastEvent = (date, timezone, nowEpochMs) => {
+  const eventEpochMs = getEventEpochMs({ date });
+  if (eventEpochMs === null) return false;
+  return isPastTodayEngine({ eventEpochMs, nowEpochMs, timezone, nowWindowMs: NOW_WINDOW_MS });
 };
 
-/**
- * Determine if an event time has already passed in the target timezone.
- */
-const isPastEvent = (date, timezone) => {
-  const nowTz = toTimezoneDate(Date.now(), timezone);
-  const eventTz = toTimezoneDate(date, timezone);
-  if (!nowTz || !eventTz) return false;
-  return eventTz.getTime() < nowTz.getTime();
-};
+
 
 // ============================================================================
 // MEMOIZED SUBCOMPONENTS
@@ -223,55 +228,76 @@ SkeletonRow.displayName = 'SkeletonRow';
 /**
  * Empty State Component
  */
-const EmptyState = memo(() => (
-  <Box
-    sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      py: 8,
-      px: 3,
-    }}
-  >
-    <Typography variant="h6" color="text.secondary" gutterBottom>
-      No Events Found
-    </Typography>
-    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', maxWidth: 400 }}>
-      Try adjusting your filters or date range to see more events.
-    </Typography>
-  </Box>
-));
+const EmptyState = memo(({ searchQuery = '' }) => {
+  const hasSearch = Boolean(searchQuery && searchQuery.trim());
+  
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: 4,
+        px: 2,
+      }}
+    >
+      <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontWeight: 700, fontSize: '1rem' }}>
+        {hasSearch ? 'No events found' : 'No Events Found'}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', maxWidth: 400, mb: hasSearch ? 1 : 0 }}>
+        {hasSearch 
+          ? `No events match your search "${searchQuery}"`
+          : 'Try adjusting your filters or date range to see more events.'}
+      </Typography>
+      {hasSearch && (
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{
+            textAlign: 'center',
+            maxWidth: 400,
+            fontStyle: 'italic',
+          }}
+        >
+          Try different search terms or adjust your filters.
+        </Typography>
+      )}
+    </Box>
+  );
+});
 
 EmptyState.displayName = 'EmptyState';
 
 /**
  * Currency Flag Cell
  */
-const CurrencyCell = memo(({ currency }) => {
+const CurrencyCell = memo(({ currency, isMobile }) => {
   const countryCode = getCurrencyFlag(currency);
   
   if (!countryCode) {
     return (
-      <Typography variant="body2" fontWeight={600}>
+      <Typography variant="body2" fontWeight={600} fontSize="0.8125rem">
         {currency}
       </Typography>
     );
   }
   
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center' }}>
       <Box
         component="span"
         className={`fi fi-${countryCode}`}
         sx={{
-          fontSize: 20,
+          fontSize: 16,
           lineHeight: 1,
         }}
       />
-      <Typography variant="body2" fontWeight={600}>
-        {currency}
-      </Typography>
+      {!isMobile && (
+        <Typography variant="body2" fontWeight={600} fontSize="0.8125rem">
+          {currency}
+        </Typography>
+      )}
     </Box>
   );
 });
@@ -281,7 +307,7 @@ CurrencyCell.displayName = 'CurrencyCell';
 /**
  * Impact Cell
  */
-const ImpactCell = memo(({ strength }) => {
+const ImpactCell = memo(({ strength, isPast }) => {
   const config = getImpactConfig(strength);
   
   return (
@@ -289,11 +315,14 @@ const ImpactCell = memo(({ strength }) => {
       label={config.icon}
       size="small"
       sx={{
-        bgcolor: config.color,
+        bgcolor: isPast ? '#9e9e9e' : config.color,
         color: 'white',
         fontWeight: 700,
-        minWidth: 48,
+        minWidth: 40,
+        height: 20,
+        fontSize: '0.75rem',
         fontFamily: 'monospace',
+        '& .MuiChip-label': { px: 0.75, py: 0 },
       }}
     />
   );
@@ -350,12 +379,12 @@ DataValuesCell.displayName = 'DataValuesCell';
  */
 export default function EventsTable({
   events,
-  contextEvents = null,
   loading,
   error,
   timezone,
   onRefresh,
   autoScrollToNextKey = null,
+  searchQuery = '',
   isFavoriteEvent = () => false,
   onToggleFavorite = null,
   isFavoritePending = () => false,
@@ -433,42 +462,30 @@ export default function EventsTable({
   }, [events, orderBy, order]);
 
   /**
-   * NEXT event detection using context events (today + future, unfiltered)
-   * Falls back to sortedEvents if no contextEvents provided
-   * CRITICAL: This ensures NEXT is always based on actual upcoming events,
-   * not the user's selected date filter (e.g., "Past Week")
+   * NEXT and NOW event detection using displayed (filtered) events
+   * This matches timeline behavior - NEXT is based on what the user is currently viewing
+   * Uses global eventTimeEngine for timezone-aware detection
    */
   const nextEventMeta = useMemo(() => {
-    const eventsForNext = contextEvents || events;
-    if (!eventsForNext || eventsForNext.length === 0) return { ids: new Set(), firstId: null, time: null };
+    const eventsForNext = events; // Use filtered displayed events, not contextEvents
+    if (!eventsForNext || eventsForNext.length === 0) {
+      return { nextIds: new Set(), nextFirstId: null, nextTime: null, nowIds: new Set() };
+    }
 
-    const nowMs = Date.now();
-    let earliest = null;
-
-    eventsForNext.forEach((ev) => {
-      const candidate = new Date(ev.time || ev.date).getTime();
-      if (!Number.isFinite(candidate)) return;
-      if (candidate >= nowMs) {
-        if (earliest === null || candidate < earliest) {
-          earliest = candidate;
-        }
-      }
+    const nowEpochMs = getNowEpochMs(timezone);
+    const state = computeNowNextState({
+      events: eventsForNext,
+      nowEpochMs,
+      nowWindowMs: NOW_WINDOW_MS,
     });
 
-    if (earliest === null) return { ids: new Set(), firstId: null, time: null };
-
-    const nextIdsArray = eventsForNext
-      .filter((ev) => {
-        const t = new Date(ev.time || ev.date).getTime();
-        return Number.isFinite(t) && t === earliest;
-      })
-      .map((ev) => ev.id)
-      .filter(Boolean);
-
-    const ids = new Set(nextIdsArray);
-    const firstId = nextIdsArray[0] || null;
-    return { ids, firstId, time: earliest };
-  }, [contextEvents, events]);
+    const nowIds = new Set(state.nowEventIds);
+    const nextIds = new Set(state.nextEventIds);
+    const nextFirstId = state.nextEventIds[0] || null;
+    const nextTime = state.nextEventEpochMs;
+    
+    return { nextIds, nextFirstId, nextTime, nowIds };
+  }, [events, timezone]);
 
   // ========== AUTO SCROLL LOGIC ==========
   const targetToken = useMemo(() => {
@@ -492,10 +509,10 @@ export default function EventsTable({
   }, [sortedEvents, targetIdFromToken]);
 
   useEffect(() => {
-    if (!nextEventMeta.time) return undefined;
+    if (!nextEventMeta.nextTime && nextEventMeta.nowIds.size === 0) return undefined;
     const id = setInterval(() => setCountdownNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [nextEventMeta.time]);
+  }, [nextEventMeta.nextTime, nextEventMeta.nowIds]);
 
   /**
    * Track scroll position for floating 'Scroll to Next' button
@@ -509,40 +526,43 @@ export default function EventsTable({
     const handleScroll = () => {
       setScrollPosition(container.scrollTop);
       
-      // Show button if there's a next event and user is not already near it
-      if (nextEventMeta.firstId) {
-        // CRITICAL: Check if next event is in the current paginated rows
-        const paginatedEvents = sortedEvents.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-        const isNextInPaginatedView = paginatedEvents.some((evt) => nextEventMeta.ids.has(evt.id));
-        
-        if (!isNextInPaginatedView) {
-          setShowScrollToNext(false);
-          return;
-        }
-        
-        const nextRow = document.querySelector(`[data-event-id="${nextEventMeta.firstId}"]`);
-        
-        if (nextRow) {
-          const containerRect = container.getBoundingClientRect();
-          const rowRect = nextRow.getBoundingClientRect();
-          const rowTop = rowRect.top - containerRect.top + container.scrollTop;
-          const viewportCenter = container.scrollTop + containerRect.height / 2;
-          const distanceFromCenter = Math.abs(rowTop - viewportCenter);
-          
-          // Show button if next event is more than 200px away from viewport center
-          setShowScrollToNext(distanceFromCenter > 200);
-        } else {
-          setShowScrollToNext(false);
-        }
-      } else {
+      const hasNow = nextEventMeta.nowIds.size > 0;
+      const targetIds = hasNow ? nextEventMeta.nowIds : nextEventMeta.nextIds;
+      const firstTargetId = targetIds.size > 0 ? Array.from(targetIds)[0] : null;
+
+      if (!firstTargetId) {
         setShowScrollToNext(false);
+        return;
       }
+
+      // CRITICAL: Check if target event is in the current paginated rows
+      const paginatedEvents = sortedEvents.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+      const isTargetInPaginatedView = paginatedEvents.some((evt) => targetIds.has(evt.id));
+      if (!isTargetInPaginatedView) {
+        setShowScrollToNext(false);
+        return;
+      }
+
+      const targetRow = document.querySelector(`[data-event-id="${firstTargetId}"]`);
+      if (!targetRow) {
+        setShowScrollToNext(false);
+        return;
+      }
+
+      const containerRect = container.getBoundingClientRect();
+      const rowRect = targetRow.getBoundingClientRect();
+      const rowTop = rowRect.top - containerRect.top + container.scrollTop;
+      const viewportCenter = container.scrollTop + containerRect.height / 2;
+      const distanceFromCenter = Math.abs(rowTop - viewportCenter);
+
+      // Show button if target event is more than 200px away from viewport center
+      setShowScrollToNext(distanceFromCenter > 200);
     };
 
     handleScroll(); // Initial check
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [nextEventMeta.firstId, nextEventMeta.ids, page, rowsPerPage, sortedEvents]);
+  }, [nextEventMeta.nextFirstId, nextEventMeta.nextIds, nextEventMeta.nowIds, page, rowsPerPage, sortedEvents]);
 
   /**
    * Reset scroll token when autoScrollToNextKey changes
@@ -600,8 +620,12 @@ export default function EventsTable({
     if (targetToken) return; // explicit target handled above
     if (lastScrollTokenRef.current === 'next-default') return;
 
-    if (nextEventMeta.firstId) {
-      const nextRow = document.querySelector(`[data-event-id="${nextEventMeta.firstId}"]`);
+    const firstDefaultId = nextEventMeta.nowIds.size > 0
+      ? Array.from(nextEventMeta.nowIds)[0]
+      : nextEventMeta.nextFirstId;
+
+    if (firstDefaultId) {
+      const nextRow = document.querySelector(`[data-event-id="${firstDefaultId}"]`);
       
       if (nextRow && tableContainerRef.current) {
         const container = tableContainerRef.current;
@@ -614,19 +638,13 @@ export default function EventsTable({
         lastScrollTokenRef.current = 'next-default';
       }
     }
-  }, [nextEventMeta.firstId, targetToken, loading]);
+  }, [nextEventMeta.nextFirstId, nextEventMeta.nowIds, targetToken, loading]);
 
   const nextCountdownLabel = useMemo(() => {
-    if (!nextEventMeta.time) return null;
-    const diff = Math.max(0, nextEventMeta.time - countdownNow);
-    const totalSeconds = Math.floor(diff / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    const mm = String(minutes).padStart(2, '0');
-    const ss = String(seconds).padStart(2, '0');
-    return `${hours}:${mm}:${ss}`;
-  }, [countdownNow, nextEventMeta.time]);
+    if (!nextEventMeta.nextTime) return null;
+    const diff = Math.max(0, nextEventMeta.nextTime - countdownNow);
+    return formatCountdownHMS(diff);
+  }, [countdownNow, nextEventMeta.nextTime]);
 
   /**
    * Group events by date for table display
@@ -731,9 +749,12 @@ export default function EventsTable({
    * Enterprise UX: Smooth scroll with center alignment for optimal viewing
    */
   const handleScrollToNext = useCallback(() => {
-    if (!nextEventMeta.firstId) return;
-    
-    const nextRow = document.querySelector(`[data-event-id="${nextEventMeta.firstId}"]`);
+    const firstTargetId = nextEventMeta.nowIds.size > 0
+      ? Array.from(nextEventMeta.nowIds)[0]
+      : nextEventMeta.nextFirstId;
+    if (!firstTargetId) return;
+
+    const nextRow = document.querySelector(`[data-event-id="${firstTargetId}"]`);
     
     if (nextRow && tableContainerRef.current) {
       const container = tableContainerRef.current;
@@ -744,7 +765,7 @@ export default function EventsTable({
       
       container.scrollTo({ top: scrollTo, behavior: 'smooth' });
     }
-  }, [nextEventMeta.firstId]);
+  }, [nextEventMeta.nextFirstId, nextEventMeta.nowIds]);
 
   // ========== RENDER ==========
 
@@ -771,18 +792,21 @@ export default function EventsTable({
     <Paper sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       <TableContainer ref={tableContainerRef} sx={{ flex: 1, overflow: 'auto' }}>
         <Table stickyHeader>
-          <TableHead>
+          <TableHead sx={{ display: { xs: 'none', sm: 'table-header-group' } }}>
             <TableRow>
               {visibleColumns.map((column) => (
                 <TableCell
                   key={column.id}
                   align={column.align}
-                  style={{ minWidth: column.minWidth }}
+                  style={{ minWidth: isMobile && column.mobileWidth ? column.mobileWidth : column.minWidth }}
                   sx={{
                     bgcolor: 'background.paper',
                     fontWeight: 700,
                     borderBottom: 1,
                     borderColor: 'divider',
+                    py: 0.75,
+                    px: 1,
+                    fontSize: '0.8125rem',
                   }}
                 >
                   {column.sortable ? (
@@ -808,7 +832,7 @@ export default function EventsTable({
             ) : paginatedEvents.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={visibleColumns.length}>
-                  <EmptyState />
+                  <EmptyState searchQuery={searchQuery} />
                 </TableCell>
               </TableRow>
             ) : (
@@ -825,8 +849,9 @@ export default function EventsTable({
                           bgcolor: 'primary.main',
                           color: 'primary.contrastText',
                           fontWeight: 700,
-                          fontSize: '0.875rem',
-                          py: 1,
+                          fontSize: '0.8125rem',
+                          py: 0.5,
+                          px: 1,
                           position: 'sticky',
                           top: 0,
                           zIndex: 2,
@@ -836,7 +861,13 @@ export default function EventsTable({
                       </TableCell>
                     </TableRow>
                     
-                    {pageEvents.map((event) => (
+                    {pageEvents.map((event) => {
+                      const nowEpochMs = Date.now();
+                      const isNow = nextEventMeta.nowIds.has(event.id);
+                      const isNext = nextEventMeta.nextIds.has(event.id);
+                      const isPast = isPastEvent(event.time || event.date, timezone, nowEpochMs);
+                      
+                      return (
                       <TableRow
                         key={event.id}
                         data-event-id={event.id}
@@ -844,18 +875,31 @@ export default function EventsTable({
                         onClick={() => handleRowClick(event)}
                         sx={{
                           cursor: 'pointer',
-                          bgcolor: nextEventMeta.ids.has(event.id)
-                            ? alpha(theme.palette.primary.main, 0.06)
-                            : isPastEvent(event.time || event.date, timezone)
-                              ? '#f5f5f5'
-                              : 'transparent',
-                          color: isPastEvent(event.time || event.date, timezone) ? '#424242' : 'inherit',
-                          borderLeft: nextEventMeta.ids.has(event.id) ? `3px solid ${theme.palette.primary.main}` : 'none',
+                          bgcolor: isNow
+                            ? alpha(theme.palette.info.main, 0.08)
+                            : isNext
+                              ? alpha(theme.palette.primary.main, 0.06)
+                              : isPast
+                                ? '#f5f5f5'
+                                : 'transparent',
+                          color: isPast ? '#424242' : 'inherit',
+                          borderLeft: isNow
+                            ? `3px solid ${theme.palette.info.main}`
+                            : isNext
+                              ? `3px solid ${theme.palette.primary.main}`
+                              : 'none',
+                          '& td': {
+                            py: 0.5,
+                            px: 1,
+                            fontSize: '0.8125rem',
+                          },
                           '& td, & th, & span, & p': {
                             color: 'inherit',
                           },
                           '&:hover': {
-                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                            bgcolor: isNow
+                              ? alpha(theme.palette.info.main, 0.12)
+                              : alpha(theme.palette.primary.main, 0.1),
                           },
                         }}
                       >
@@ -875,7 +919,7 @@ export default function EventsTable({
                                 if (column.id === 'actual') {
                                   return (
                                     <TableCell key={column.id} align="left" colSpan={metricColumnsInView.length}>
-                                      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+                                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', lineHeight: 1.3 }}>
                                         {speechSummary}
                                       </Typography>
                                     </TableCell>
@@ -892,37 +936,89 @@ export default function EventsTable({
                               return (
                                 <TableCell key={column.id} align={column.align}>
                                   {column.id === 'time' && (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                      <Typography variant="body2" fontFamily="monospace" fontWeight={600}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                      {/* Mobile: Simple green clock icon for NEXT/NOW */}
+                                      {(isNow || isNext) && (
+                                        <AccessTimeIcon 
+                                          sx={{ 
+                                            fontSize: 16,
+                                            color: isNow ? '#0288d1' : 'primary.main',
+                                            display: { xs: 'block', sm: 'none' },
+                                            animation: 'pulseClockMobile 1.5s ease-in-out infinite',
+                                            '@keyframes pulseClockMobile': {
+                                              '0%, 100%': { opacity: 1 },
+                                              '50%': { opacity: 0.6 },
+                                            },
+                                          }} 
+                                        />
+                                      )}
+                                      <Typography variant="body2" fontFamily="monospace" fontWeight={600} fontSize="0.8125rem">
                                         {formatTime(event.time || event.date, timezone)}
                                       </Typography>
-                                      {nextEventMeta.ids.has(event.id) && (
+                                      {/* Desktop: Full chips with countdown labels */}
+                                      {isNow && (
                                         <Chip
                                           label={
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                              <AccessTimeIcon sx={{ fontSize: 16 }} />
-                                              <Typography component="span" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                                              <AccessTimeIcon sx={{ fontSize: 12 }} />
+                                              <Typography component="span" sx={{ fontWeight: 700, fontSize: '0.65rem' }}>
+                                                NOW
+                                              </Typography>
+                                            </Box>
+                                          }
+                                          size="small"
+                                          sx={{
+                                            display: { xs: 'none', sm: 'flex' },
+                                            height: 18,
+                                            fontWeight: 700,
+                                            bgcolor: '#0288d1',
+                                            color: '#fff',
+                                            '& .MuiChip-label': { px: 0.5 },
+                                            animation: 'nowScaleTable 1.25s ease-in-out infinite',
+                                            '@keyframes nowScaleTable': {
+                                              '0%, 100%': { transform: 'scale(1)' },
+                                              '50%': { transform: 'scale(1.05)' },
+                                            },
+                                          }}
+                                        />
+                                      )}
+                                      {isNext && (
+                                        <Chip
+                                          label={
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                                              <AccessTimeIcon sx={{ fontSize: 12 }} />
+                                              <Typography component="span" sx={{ fontWeight: 700, fontSize: '0.65rem' }}>
                                                 {nextCountdownLabel || 'Next'}
                                               </Typography>
                                             </Box>
                                           }
                                           size="small"
-                                          color="primary"
-                                          variant="outlined"
-                                          sx={{ height: 24, fontWeight: 700 }}
+                                          sx={{
+                                            display: { xs: 'none', sm: 'flex' },
+                                            height: 18,
+                                            fontWeight: 700,
+                                            bgcolor: '#018786',
+                                            color: '#fff',
+                                            '& .MuiChip-label': { px: 0.5 },
+                                            animation: 'nextScaleTable 1.25s ease-in-out infinite',
+                                            '@keyframes nextScaleTable': {
+                                              '0%, 100%': { transform: 'scale(1)' },
+                                              '50%': { transform: 'scale(1.05)' },
+                                            },
+                                          }}
                                         />
                                       )}
                                     </Box>
                                   )}
-                                  {column.id === 'currency' && <CurrencyCell currency={event.currency} />}
-                                  {column.id === 'impact' && <ImpactCell strength={event.strength} />}
+                                  {column.id === 'currency' && <CurrencyCell currency={event.currency} isMobile={isMobile} />}
+                                  {column.id === 'impact' && <ImpactCell strength={event.strength} isPast={isPast} />}
                                   {column.id === 'name' && (
-                                    <Typography variant="body2" fontWeight={500}>
+                                    <Typography variant="body2" fontWeight={500} fontSize="0.8125rem" lineHeight={1.3}>
                                       {event.Name}
                                     </Typography>
                                   )}
                                   {shouldShowInlineSpeech && speechSummary && (
-                                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25 }}>
+                                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25, fontSize: '0.7rem', lineHeight: 1.2 }}>
                                       {speechSummary}
                                     </Typography>
                                   )}
@@ -930,23 +1026,24 @@ export default function EventsTable({
                                     <Typography
                                       variant="body2"
                                       fontWeight={700}
+                                      fontSize="0.8125rem"
                                       color={!isFuture && hasMetricValue(event.actual) ? 'primary.main' : 'text.disabled'}
                                     >
                                       {isFuture ? '—' : (hasMetricValue(event.actual) ? event.actual : '—')}
                                     </Typography>
                                   )}
                                   {column.id === 'forecast' && !speechNoMetrics && (
-                                    <Typography variant="body2" fontWeight={600}>
+                                    <Typography variant="body2" fontWeight={600} fontSize="0.8125rem">
                                       {hasMetricValue(event.forecast) ? event.forecast : '—'}
                                     </Typography>
                                   )}
                                   {column.id === 'previous' && !speechNoMetrics && (
-                                    <Typography variant="body2">
+                                    <Typography variant="body2" fontSize="0.8125rem">
                                       {hasMetricValue(event.previous) ? event.previous : '—'}
                                     </Typography>
                                   )}
                                   {column.id === 'action' && (
-                                    <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
+                                    <Stack direction="row" spacing={0.25} alignItems="center" justifyContent="center">
                                       <MuiTooltip
                                         title={isEventNotesLoading(event) ? 'Loading notes...' : (hasEventNotes(event) ? 'View notes' : 'Add note')}
                                         arrow
@@ -958,6 +1055,7 @@ export default function EventsTable({
                                             onClick={(e) => handleOpenNotes(event, e)}
                                             disabled={isEventNotesLoading(event)}
                                             sx={{
+                                              p: 0.5,
                                               color: hasEventNotes(event) ? 'primary.main' : 'text.secondary',
                                               '&:hover': {
                                                 color: 'primary.main',
@@ -969,11 +1067,11 @@ export default function EventsTable({
                                             }}
                                           >
                                             {isEventNotesLoading(event) ? (
-                                              <CircularProgress size={18} thickness={5} />
+                                              <CircularProgress size={16} thickness={5} />
                                             ) : hasEventNotes(event) ? (
-                                              <NoteAltIcon fontSize="small" />
+                                              <NoteAltIcon sx={{ fontSize: 18 }} />
                                             ) : (
-                                              <NoteAltOutlinedIcon fontSize="small" />
+                                              <NoteAltOutlinedIcon sx={{ fontSize: 18 }} />
                                             )}
                                           </IconButton>
                                         </span>
@@ -990,6 +1088,7 @@ export default function EventsTable({
                                             onClick={(e) => handleFavoriteToggle(event, e)}
                                             disabled={favoritesLoading || isFavoritePending(event)}
                                             sx={{
+                                              p: 0.5,
                                               color: isFavoriteEvent(event) ? 'error.main' : 'text.secondary',
                                               '&:hover': {
                                                 color: isFavoriteEvent(event) ? 'error.dark' : 'primary.main',
@@ -1001,11 +1100,11 @@ export default function EventsTable({
                                             }}
                                           >
                                             {isFavoritePending(event) ? (
-                                              <CircularProgress size={18} thickness={5} />
+                                              <CircularProgress size={16} thickness={5} />
                                             ) : isFavoriteEvent(event) ? (
-                                              <FavoriteIcon fontSize="small" />
+                                              <FavoriteIcon sx={{ fontSize: 18 }} />
                                             ) : (
-                                              <FavoriteBorderIcon fontSize="small" />
+                                              <FavoriteBorderIcon sx={{ fontSize: 18 }} />
                                             )}
                                           </IconButton>
                                         </span>
@@ -1014,10 +1113,10 @@ export default function EventsTable({
                                   )}
                                 </TableCell>
                               );
-                            });
+                            });  
                           })()}
                       </TableRow>
-                    ))}
+                    );})}
                   </React.Fragment>
                 );
               })
@@ -1052,10 +1151,14 @@ export default function EventsTable({
         <MenuItem onClick={handleFavoriteConfirmClose}>Cancel</MenuItem>
       </Menu>
 
-      {/* Floating Scroll to Next Button */}
-      {showScrollToNext && nextEventMeta.firstId && (() => {
+      {/* Floating Scroll to Next/Now Button */}
+      {showScrollToNext && (nextEventMeta.nowIds.size > 0 || nextEventMeta.nextFirstId) && (() => {
+        const hasNow = nextEventMeta.nowIds.size > 0;
+        const firstTargetId = hasNow ? Array.from(nextEventMeta.nowIds)[0] : nextEventMeta.nextFirstId;
         const container = tableContainerRef.current;
-        const nextRow = container && document.querySelector(`[data-event-id="${nextEventMeta.firstId}"]`);
+        const nextRow = container && firstTargetId
+          ? document.querySelector(`[data-event-id="${firstTargetId}"]`)
+          : null;
         
         let isNextAbove = false;
         if (container && nextRow) {
@@ -1069,12 +1172,15 @@ export default function EventsTable({
         return (
           <Zoom in timeout={300}>
             <Fab
-              color="primary"
+              color={hasNow ? 'info' : 'primary'}
               size="medium"
               onClick={handleScrollToNext}
               sx={{
                 position: 'absolute',
-                bottom: { xs: 72, sm: 80 },
+                bottom: {
+                  xs: 'calc(72px + var(--t2t-safe-bottom, 0px))',
+                  sm: 'calc(80px + var(--t2t-safe-bottom, 0px))',
+                },
                 right: { xs: 16, sm: 24 },
                 zIndex: 1000,
                 boxShadow: 4,
@@ -1086,7 +1192,7 @@ export default function EventsTable({
               }}
             >
               <MuiTooltip 
-                title={`Scroll to Next Event ${isNextAbove ? '(Above)' : '(Below)'}`} 
+                title={`${hasNow ? 'Scroll to Now Event' : 'Scroll to Next Event'} ${isNextAbove ? '(Above)' : '(Below)'}`} 
                 arrow 
                 placement="left"
               >
@@ -1108,6 +1214,13 @@ export default function EventsTable({
           onClose={handleCloseModal}
           event={selectedEvent}
           timezone={timezone}
+          isFavoriteEvent={isFavoriteEvent}
+          onToggleFavorite={onToggleFavorite}
+          isFavoritePending={isFavoritePending}
+          favoritesLoading={favoritesLoading}
+          hasEventNotes={hasEventNotes}
+          onOpenNotes={onOpenNotes}
+          isEventNotesLoading={isEventNotesLoading}
         />
       )}
     </Paper>

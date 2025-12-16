@@ -5,6 +5,8 @@
  * Provides filters, sync, refresh, news source selection, and timeline/table views using EventsFilters3 and EventsTimeline2/EventsTable.
  * 
  * Changelog:
+ * v1.5.0 - 2025-12-15 - Added search functionality with client-side filtering (event names only), proper state management, and UX messages.
+ * v1.4.1 - 2025-12-15 - Changed default date range from 'This Week' to 'Today' for refresh, background refresh, and initial load.
  * v1.4.0 - 2025-12-12 - Added synced event notes dialog with add/remove actions, badges, and auth-aware handling.
  * v1.3.2 - 2025-12-12 - Added header close icon and smooth slide animation for opening/closing the events drawer.
  * v1.3.1 - 2025-12-12 - Added favorites-only filter toggle and applied it to displayed results.
@@ -106,6 +108,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 		impacts: eventFilters.impacts || [],
 		currencies: eventFilters.currencies || [],
 		favoritesOnly: eventFilters.favoritesOnly || false,
+		searchQuery: eventFilters.searchQuery || '',
 	}));
 	const [events, setEvents] = useState([]);
 	const [contextEvents, setContextEvents] = useState([]); // Today + future for NEXT detection
@@ -185,16 +188,38 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 	}, [filters]);
 
 	const displayedEvents = useMemo(() => {
-		if (filters.favoritesOnly) {
-			return events.filter((event) => isFavorite(event));
+		let filtered = events;
+		
+		// Apply search filter (event name, currency, and notes)
+		if (filters.searchQuery && filters.searchQuery.trim()) {
+			const query = filters.searchQuery.toLowerCase().trim();
+			filtered = filtered.filter((event) => {
+				const name = (event.name || event.Name || event.title || event.Title || '').toLowerCase();
+				if (name.includes(query)) return true;
+				
+				const currency = (event.currency || event.Currency || '').toLowerCase();
+				if (currency.includes(query)) return true;
+				
+				const description = (event.description || event.Description || event.summary || event.Summary || '').toLowerCase();
+				if (description.includes(query)) return true;
+				
+				return false;
+			});
 		}
-		return events;
-	}, [events, filters.favoritesOnly, isFavorite]);
+		
+		// Apply favorites filter
+		if (filters.favoritesOnly) {
+			filtered = filtered.filter((event) => isFavorite(event));
+		}
+		
+		return filtered;
+	}, [events, filters.favoritesOnly, filters.searchQuery, isFavorite]);
 
 	const fetchEvents = useCallback(async (incomingFilters = null) => {
 		const active = incomingFilters ? { ...incomingFilters } : { ...effectiveFilters };
 		const startDate = ensureDate(active.startDate);
 		const endDate = ensureDate(active.endDate);
+		const searchQuery = active.searchQuery || '';
 
 		if (!startDate || !endDate) {
 			setError('Please select a date range to view events.');
@@ -219,9 +244,29 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 
 			if (result.success) {
 				const sorted = sortEventsByTime(result.data);
-				const filtered = active.favoritesOnly ? sorted.filter((event) => isFavorite(event)) : sorted;
 				setEvents(sorted);
 				setLastUpdated(new Date());
+				
+				// Calculate visible count (will be computed by displayedEvents memo)
+				let filtered = sorted;
+				if (searchQuery && searchQuery.trim()) {
+					const query = searchQuery.toLowerCase().trim();
+					filtered = filtered.filter((event) => {
+						const name = (event.name || event.Name || event.title || event.Title || '').toLowerCase();
+						if (name.includes(query)) return true;
+						
+						const currency = (event.currency || event.Currency || '').toLowerCase();
+						if (currency.includes(query)) return true;
+						
+						const description = (event.description || event.Description || event.summary || event.Summary || '').toLowerCase();
+						if (description.includes(query)) return true;
+						
+						return false;
+					});
+				}
+				if (active.favoritesOnly) {
+					filtered = filtered.filter((event) => isFavorite(event));
+				}
 				setVisibleCount(filtered.length);
 			} else {
 				setEvents([]);
@@ -252,9 +297,11 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 			if (result.success) {
 				const sorted = sortEventsByTime(result.data);
 				setContextEvents(sorted);
+			} else {
+				console.warn('[EconomicEvents3] Failed to fetch context events:', result.error);
 			}
 		} catch (err) {
-			console.warn('Failed to fetch context events for NEXT detection:', err);
+			console.warn('[EconomicEvents3] Failed to fetch context events for NEXT detection:', err);
 		}
 	}, [newsSource, selectedTimezone]);
 
@@ -276,16 +323,17 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 		const merged = {
 			...current,
 			...nextFilters,
+			searchQuery: nextFilters.searchQuery !== undefined ? nextFilters.searchQuery : current.searchQuery || '',
 		};
 
-		// Only fallback to thisWeekRange if BOTH dates are completely missing
+		// Only fallback to todayRange if BOTH dates are completely missing
 		// Do NOT override user-selected date ranges when changing other filters
 		const startDate = ensureDate(merged.startDate) || ensureDate(current?.startDate);
 		const endDate = ensureDate(merged.endDate) || ensureDate(current?.endDate);
 
-		// If still no dates (initial load), use this week
-		const finalStartDate = startDate || thisWeekRange.startDate;
-		const finalEndDate = endDate || thisWeekRange.endDate;
+		// If still no dates (initial load), use today
+		const finalStartDate = startDate || todayRange.startDate;
+		const finalEndDate = endDate || todayRange.endDate;
 
 		const resolved = { ...merged, startDate: finalStartDate, endDate: finalEndDate };
 
@@ -294,7 +342,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 		updateEventFilters(resolved);
 		fetchEvents(resolved);
 		fetchContextEvents(); // Always fetch context for NEXT detection
-	}, [fetchContextEvents, fetchEvents, filters, thisWeekRange.endDate, thisWeekRange.startDate, updateEventFilters]);
+	}, [fetchContextEvents, fetchEvents, filters, todayRange.endDate, todayRange.startDate, updateEventFilters]);
 
 	const handleFiltersChange = useCallback((nextFilters) => {
 		setFilters((prev) => ({ ...prev, ...nextFilters }));
@@ -350,7 +398,15 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 		setSyncSuccess(null);
 		try {
 			await refreshEventsCache(newsSource);
-			applyFilters({ ...(filtersRef.current || filters), ...thisWeekRange });
+			// Clear all filters and reset to today
+			const resetFilters = {
+				...todayRange,
+				impacts: [],
+				currencies: [],
+				favoritesOnly: false,
+				searchQuery: '',
+			};
+			applyFilters(resetFilters);
 			setSyncSuccess(`Events refreshed from ${newsSource}.`);
 			setTimeout(() => setSyncSuccess(null), 3000);
 		} catch (err) {
@@ -358,20 +414,20 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 		} finally {
 			setRefreshing(false);
 		}
-	}, [applyFilters, filters, newsSource, thisWeekRange]);
+	}, [applyFilters, newsSource, todayRange]);
 
 	const performBackgroundRefresh = useCallback(async () => {
 		if (refreshing || backgroundRefreshRef.current) return;
 		backgroundRefreshRef.current = true;
 		try {
 			await refreshEventsCache(newsSource);
-			applyFilters({ ...(filtersRef.current || filters), ...thisWeekRange });
+			applyFilters({ ...(filtersRef.current || filters), ...todayRange });
 		} catch (err) {
 			// Silent failure for background refresh; manual refresh remains available.
 		} finally {
 			backgroundRefreshRef.current = false;
 		}
-	}, [applyFilters, filters, newsSource, thisWeekRange]);
+	}, [applyFilters, filters, newsSource, todayRange]);
 
 	useEffect(() => {
 		if (!open) return undefined;
@@ -458,7 +514,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 
 	useEffect(() => {
 		if (!filters.startDate || !filters.endDate) {
-			const seeded = { ...filters, ...thisWeekRange };
+			const seeded = { ...filters, ...todayRange };
 			setFilters(seeded);
 			updateEventFilters(seeded);
 			fetchEvents(seeded);
@@ -468,7 +524,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 			fetchContextEvents(); // Fetch context events
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [newsSource, selectedTimezone, thisWeekRange.startDate, thisWeekRange.endDate]);
+	}, [newsSource, selectedTimezone, todayRange.startDate, todayRange.endDate]);
 
 	useEffect(() => {
 		if (open && user) {
@@ -513,7 +569,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 					right: 0,
 					top: 0,
 					left: expanded ? 0 : 'auto',
-					height: '100vh',
+					height: 'var(--t2t-vv-height, 100dvh)',
 					width: expanded ? '100%' : { xs: '100%', sm: '100%', md: 520, lg: 560 },
 					display: 'flex',
 					flexDirection: 'column',
@@ -531,7 +587,9 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 			>
 			<Box
 				sx={{
-					p: { xs: 1.5, sm: 1.75 },
+					px: { xs: 1.5, sm: 1.75 },
+					pb: { xs: 1.5, sm: 1.75 },
+					pt: (theme) => `calc(${theme.spacing(1.5)} + var(--t2t-safe-top, 0px))`,
 					borderBottom: '1px solid',
 					borderColor: 'primary.dark',
 					display: 'flex',
@@ -796,7 +854,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 							{expanded ? (
 								<EventsTable
 									events={displayedEvents}
-									contextEvents={contextEvents}
+
 									loading={loading}
 									error={error}
 									timezone={selectedTimezone}
@@ -817,8 +875,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 									loading={loading}
 									timezone={selectedTimezone}
 									onVisibleCountChange={setVisibleCount}
-									autoScrollToNextKey={autoScrollRequest || autoScrollToken}
-									isFavoriteEvent={isFavorite}
+									autoScrollToNextKey={autoScrollRequest || autoScrollToken}								searchQuery={filters.searchQuery}									isFavoriteEvent={isFavorite}
 									onToggleFavorite={handleToggleFavorite}
 									isFavoritePending={isFavoritePending}
 									favoritesLoading={favoritesLoading}

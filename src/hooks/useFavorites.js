@@ -5,6 +5,7 @@
  * Provides alias-aware checks, optimistic toggles, and pending state for UI controls.
  *
  * Changelog:
+ * v1.1.0 - 2025-12-15 - Pass favoritesMap to toggleFavoriteEvent for accurate document deletion.
  * v1.0.0 - 2025-12-12 - Initial implementation with Firestore subscription and optimistic toggle support.
  */
 import { useCallback, useEffect, useState } from 'react';
@@ -110,7 +111,7 @@ export const useFavorites = () => {
     });
 
     try {
-      await toggleFavoriteEvent(user.uid, event, currentlyFavorite);
+      await toggleFavoriteEvent(user.uid, event, currentlyFavorite, favoritesMap);
       return { success: true, requiresAuth: false };
     } catch (error) {
       setFavoritesError(error?.message || 'Failed to update favorite');

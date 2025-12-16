@@ -6,6 +6,7 @@
  * to keep favorites consistent across sources and aliases.
  *
  * Changelog:
+ * v1.1.0 - 2025-12-15 - Fixed favorite removal to properly find Firestore document ID via favoritesMap lookup.
  * v1.0.0 - 2025-12-12 - Initial implementation with Firestore subcollection support and alias-aware matching.
  */
 import { collection, deleteDoc, doc, onSnapshot, setDoc, Timestamp, serverTimestamp } from 'firebase/firestore';
@@ -119,18 +120,47 @@ export const subscribeToFavorites = (userId, onChange, onError) => {
   );
 };
 
-export const toggleFavoriteEvent = async (userId, event, currentlyFavorite) => {
+export const toggleFavoriteEvent = async (userId, event, currentlyFavorite, favoritesMap = new Map()) => {
   if (!userId) throw new Error('User must be authenticated to manage favorites.');
 
   const { eventId, nameKeys, primaryNameKey } = buildEventIdentity(event);
   const docId = eventId || primaryNameKey;
   if (!docId) throw new Error('Unable to determine a stable identifier for this event.');
 
-  const favoriteRef = doc(db, 'users', userId, 'favorites', String(docId));
+  // When removing a favorite, find the actual Firestore document ID
+  // The favoritesMap keys are the actual document IDs from Firestore
+  let actualDocId = String(docId);
+  if (currentlyFavorite && favoritesMap) {
+    // Check if the calculated docId exists
+    if (favoritesMap.has(String(eventId))) {
+      actualDocId = String(eventId);
+    } else if (favoritesMap.has(primaryNameKey)) {
+      actualDocId = primaryNameKey;
+    } else {
+      // Search through all favorite docs to find a match by nameKeys
+      for (const [firestoreDocId, favoriteData] of favoritesMap.entries()) {
+        const storedNameKey = favoriteData?.nameKey;
+        const storedAliasKeys = favoriteData?.aliasKeys || [];
+        const storedKeys = [storedNameKey, ...storedAliasKeys].filter(Boolean);
+        
+        // Check if any of the current event's nameKeys match the stored keys
+        const hasMatch = nameKeys.some(key => storedKeys.some(storedKey => 
+          normalizeKey(key) === normalizeKey(storedKey)
+        ));
+        
+        if (hasMatch) {
+          actualDocId = firestoreDocId;
+          break;
+        }
+      }
+    }
+  }
+
+  const favoriteRef = doc(db, 'users', userId, 'favorites', actualDocId);
 
   if (currentlyFavorite) {
     await deleteDoc(favoriteRef);
-    return { favorited: false, docId: String(docId) };
+    return { favorited: false, docId: actualDocId };
   }
 
   const aliasKeys = nameKeys.filter((key) => key && key !== primaryNameKey);

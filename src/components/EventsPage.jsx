@@ -2,11 +2,12 @@
  * src/components/EventsPage.jsx
  * 
  * Purpose: Main events page with tabbed interface for Table and Timeline views
- * Enterprise-grade data table with advanced filtering, sorting, pagination, and export
+ * Enterprise-grade data table with advanced filtering, sorting, pagination, search, and export
  * 
  * Key Features:
  * - Tabbed interface (Table view / Timeline view)
- * - Integrated EventsFilters2 for advanced filtering
+ * - Integrated EventsFilters3 for advanced filtering with search
+ * - Client-side search filtering across event name, currency, description, and category
  * - Smart data loading (2 weeks on mount, expand based on filters)
  * - 1-year max date range validation
  * - Export functionality (CSV + JSON)
@@ -15,6 +16,7 @@
  * - Keyboard navigation and accessibility
  * 
  * Changelog:
+ * v1.4.0 - 2025-12-15 - Added client-side search filtering (searches name, currency, description, category) with UX messages for no results.
  * v1.3.1 - 2025-12-11 - Make filters full-width in drawer/embedded mode to remove unused background space.
  * v1.3.2 - 2025-12-11 - Flatten gaps in embedded drawer by using flex column spacing instead of stacked margins.
  * v1.3.0 - 2025-12-11 - Swapped to chip-based dropdown filter bar (EventsFilters3) for faster edits with mandatory date preset.
@@ -94,6 +96,34 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
   const { eventFilters, newsSource, selectedTimezone } = useSettings();
   const { user } = useAuth();
 
+  /**
+   * Apply client-side search filter to events
+   * Searches across event name, currency, and description
+   */
+  const applySearchFilter = useCallback((eventsToFilter, searchQuery) => {
+    if (!searchQuery || searchQuery.trim() === '') {
+      return eventsToFilter;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    
+    return eventsToFilter.filter((event) => {
+      // Search in event name
+      const name = (event.name || event.Name || event.title || event.Title || '').toLowerCase();
+      if (name.includes(query)) return true;
+      
+      // Search in currency
+      const currency = (event.currency || event.Currency || '').toLowerCase();
+      if (currency.includes(query)) return true;
+      
+      // Search in description/notes
+      const description = (event.description || event.Description || event.summary || event.Summary || '').toLowerCase();
+      if (description.includes(query)) return true;
+      
+      return false;
+    });
+  }, []);
+
   const buildTodayRange = useCallback(() => {
     const { year, month, day } = getDatePartsInTimezone(selectedTimezone);
     const startDate = getUtcDateForTimezone(selectedTimezone, year, month, day);
@@ -123,8 +153,17 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
       impacts: eventFilters.impacts || [],
       eventTypes: eventFilters.eventTypes || [],
       currencies: eventFilters.currencies || [],
+      searchQuery: eventFilters.searchQuery || '',
     };
   });
+
+  /**
+   * Apply client-side search filter
+   * Filters events based on search query after fetching from backend
+   */
+  const filteredEvents = useMemo(() => {
+    return applySearchFilter(events, filters.searchQuery);
+  }, [events, filters.searchQuery, applySearchFilter]);
 
   // ========== EFFECTS ==========
 
@@ -321,20 +360,20 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
   // Embedded drawer: force timeline view to reclaim vertical space
   const currentTab = embedded ? TAB_VALUES.TIMELINE : activeTab;
   const displayEventCount = currentTab === TAB_VALUES.TIMELINE
-    ? (visibleCount || events.length)
-    : events.length;
+    ? (visibleCount || filteredEvents.length)
+    : filteredEvents.length;
   const headerPaddingY = compactMode ? { xs: 1.25, sm: 1.75 } : { xs: 2, sm: 3 };
   const headerStickySx = {};
   const compactHeaderHeightPx = 72;
   const filtersStickyTop = compactMode ? 0 : 'auto';
   const tabsStickyTop = 'auto';
-  const filtersMaxHeight = compactMode ? '100vh' : 'none';
+  const filtersMaxHeight = compactMode ? 'var(--t2t-vv-height, 100dvh)' : 'none';
   const filtersOverflow = compactMode ? 'auto' : 'visible';
 
   return (
     <Box
       sx={{
-        minHeight: embedded ? 'auto' : '100vh',
+        minHeight: embedded ? 'auto' : 'var(--t2t-vv-height, 100dvh)',
         height: embedded ? 'auto' : 'auto',
         bgcolor: 'background.default',
         pt: embedded ? { xs: 1.5, sm: 2 } : 0,
@@ -530,6 +569,20 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
             minHeight: embedded ? 0 : 'auto',
           }}
         >
+          {/* Search no results message */}
+          {!loading && filters.searchQuery && filteredEvents.length === 0 && events.length > 0 && (
+            <Alert
+              severity="info"
+              sx={{
+                mb: 2,
+                borderRadius: 2,
+              }}
+            >
+              <AlertTitle>No matches found</AlertTitle>
+              No events match your search &quot;{filters.searchQuery}&quot;. Try adjusting your search terms or clearing the search to see all filtered events.
+            </Alert>
+          )}
+
           {currentTab === TAB_VALUES.TIMELINE && (
             <Paper
               elevation={0}
@@ -544,11 +597,12 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
               }}
             >
               <EventsTimeline2
-                events={events}
+                events={filteredEvents}
                 loading={loading}
                 timezone={selectedTimezone}
                 onVisibleCountChange={handleVisibleCountChange}
                 autoScrollToNextKey={autoScrollToNextKey}
+                searchQuery={filters.searchQuery}
               />
             </Paper>
           )}
@@ -563,11 +617,14 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
               }}
             >
               <EventsTable
-                events={events}
+                events={filteredEvents}
+                contextEvents={events}
                 loading={loading}
                 error={error}
                 timezone={selectedTimezone}
                 onRefresh={handleRefresh}
+                autoScrollToNextKey={autoScrollToNextKey}
+                searchQuery={filters.searchQuery}
               />
             </Box>
           )}

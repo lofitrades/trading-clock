@@ -2,15 +2,19 @@
  * src/components/EventsFilters3.jsx
  * 
  * Purpose: Chip-based dropdown filter bar for economic events with always-on date range,
- * quick preset selection, and streamlined multi-select impacts/currencies.
+ * quick preset selection, streamlined multi-select impacts/currencies, and search functionality.
  * 
  * Key Features:
  * - Single-row filter chips with dropdown popovers
- * - Timezone-aware date presets (This Week default, Today, Yesterday, Tomorrow)
+ * - Timezone-aware date presets (Today default, Yesterday, Tomorrow, This Week)
  * - Multi-select impacts and currencies with quick clear/apply
+ * - Search functionality with debounced auto-search (400ms)
+ * - Expandable search row with accordion-like UX
  * - Persistent settings via SettingsContext and parent callbacks
  * 
  * Changelog:
+ * v1.3.0 - 2025-12-15 - Added search functionality with circular search icon, expandable search row, debounced auto-search (400ms), and search within filtered events.
+ * v1.2.2 - 2025-12-15 - Changed default date range from 'This Week' to 'Today' for mount, reset, and refresh scenarios.
  * v1.2.1 - 2025-12-12 - Tighten vertical spacing when filter chips wrap onto multiple rows.
  * v1.2.0 - 2025-12-12 - Add favorites-only toggle chip aligned with impact filter.
  * v1.1.8 - 2025-12-11 - Remove global clear-all filter chip and confirmation dialog per latest UX request.
@@ -28,7 +32,7 @@
  * v1.0.0 - 2025-12-11 - Initial chip-based dropdown filter bar with mandatory date preset.
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Box,
   Chip,
@@ -40,12 +44,17 @@ import {
   Tooltip,
   CircularProgress,
   IconButton,
+  TextField,
+  InputAdornment,
+  Collapse,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
+import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
 import { getEventCurrencies } from '../services/economicEventsService';
 import { getDatePartsInTimezone, getUtcDateForTimezone } from '../utils/dateUtils';
 import { getCurrencyFlag } from './EventsTimeline2';
@@ -157,7 +166,11 @@ export default function EventsFilters3({
     impacts: [],
     currencies: [],
     favoritesOnly: false,
+    searchQuery: '',
   });
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const searchInputRef = useRef(null);
+  const searchDebounceTimerRef = useRef(null);
   const [currencies, setCurrencies] = useState([]);
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
@@ -168,7 +181,7 @@ export default function EventsFilters3({
 
   const anchorOpen = Boolean(anchorDatePos || anchorImpactPos || anchorCurrencyPos);
 
-  const defaultRange = useMemo(() => calculateDateRange('thisWeek', timezone), [timezone]);
+  const defaultRange = useMemo(() => calculateDateRange('today', timezone), [timezone]);
 
   useEffect(() => {
     setInitialized(true);
@@ -183,8 +196,9 @@ export default function EventsFilters3({
       impacts: filters?.impacts || [],
       currencies: filters?.currencies || [],
       favoritesOnly: filters?.favoritesOnly || false,
+      searchQuery: filters?.searchQuery || '',
     });
-  }, [filters?.startDate, filters?.endDate, filters?.impacts, filters?.currencies, filters?.favoritesOnly, defaultRange?.startDate, defaultRange?.endDate]);
+  }, [filters?.startDate, filters?.endDate, filters?.impacts, filters?.currencies, filters?.favoritesOnly, filters?.searchQuery, defaultRange?.startDate, defaultRange?.endDate]);
 
   useEffect(() => {
     const fetchOptions = async () => {
@@ -212,11 +226,13 @@ export default function EventsFilters3({
 
   const hasChanges = useMemo(() => {
     if (!initialized) return false;
-    const parent = filters || { impacts: [], currencies: [], favoritesOnly: false };
+    const parent = filters || { impacts: [], currencies: [], favoritesOnly: false, searchQuery: '' };
 
+    // Exclude searchQuery from hasChanges since search auto-applies
     if (!arraysEqual(localFilters.impacts, parent.impacts)) return true;
     if (!arraysEqual(localFilters.currencies, parent.currencies)) return true;
     if (Boolean(localFilters.favoritesOnly) !== Boolean(parent.favoritesOnly)) return true;
+    // searchQuery is intentionally excluded - it auto-applies via debounce
     return false;
   }, [filters, initialized, localFilters]);
 
@@ -239,26 +255,29 @@ export default function EventsFilters3({
       impacts: localFilters.impacts,
       currencies: localFilters.currencies,
       favoritesOnly: localFilters.favoritesOnly,
+      searchQuery: localFilters.searchQuery,
     });
     setAnchorDatePos(null);
     setAnchorImpactPos(null);
     setAnchorCurrencyPos(null);
-  }, [applyAndPersist, localFilters.currencies, localFilters.impacts, localFilters.endDate, localFilters.startDate]);
+  }, [applyAndPersist, localFilters.currencies, localFilters.impacts, localFilters.endDate, localFilters.startDate, localFilters.favoritesOnly, localFilters.searchQuery]);
 
   const handleReset = useCallback(() => {
-    const resetRange = calculateDateRange('thisWeek', timezone) || defaultRange;
+    const resetRange = calculateDateRange('today', timezone) || defaultRange;
     const resetFilters = {
       startDate: resetRange?.startDate || null,
       endDate: resetRange?.endDate || null,
       impacts: [],
       currencies: [],
       favoritesOnly: false,
+      searchQuery: '',
     };
     setLocalFilters(resetFilters);
     applyAndPersist(resetFilters);
     setAnchorImpactPos(null);
     setAnchorCurrencyPos(null);
     setAnchorDatePos(null);
+    setSearchExpanded(false);
   }, [applyAndPersist, defaultRange, timezone]);
 
   const setDatePreset = useCallback(
@@ -310,6 +329,69 @@ export default function EventsFilters3({
 
   const clearCurrencies = useCallback(() => {
     setLocalFilters((prev) => ({ ...prev, currencies: [] }));
+  }, []);
+
+  // ========== SEARCH HANDLERS ==========
+
+  const toggleSearchExpanded = useCallback(() => {
+    setSearchExpanded((prev) => {
+      const next = !prev;
+      if (next) {
+        // Auto-focus search input when expanded
+        setTimeout(() => {
+          if (searchInputRef.current) {
+            searchInputRef.current.focus();
+          }
+        }, 100);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSearchChange = useCallback((event) => {
+    const value = event.target.value;
+    setLocalFilters((prev) => ({ ...prev, searchQuery: value }));
+
+    // Clear existing debounce timer
+    if (searchDebounceTimerRef.current) {
+      clearTimeout(searchDebounceTimerRef.current);
+    }
+
+    // Debounced auto-apply (enterprise best practice: 400ms for search)
+    searchDebounceTimerRef.current = setTimeout(() => {
+      applyAndPersist({
+        startDate: localFilters.startDate,
+        endDate: localFilters.endDate,
+        impacts: localFilters.impacts,
+        currencies: localFilters.currencies,
+        favoritesOnly: localFilters.favoritesOnly,
+        searchQuery: value,
+      });
+    }, 400);
+  }, [applyAndPersist, localFilters.startDate, localFilters.endDate, localFilters.impacts, localFilters.currencies, localFilters.favoritesOnly]);
+
+  const handleClearSearch = useCallback(() => {
+    setLocalFilters((prev) => ({ ...prev, searchQuery: '' }));
+    applyAndPersist({
+      startDate: localFilters.startDate,
+      endDate: localFilters.endDate,
+      impacts: localFilters.impacts,
+      currencies: localFilters.currencies,
+      favoritesOnly: localFilters.favoritesOnly,
+      searchQuery: '',
+    });
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [applyAndPersist, localFilters.startDate, localFilters.endDate, localFilters.impacts, localFilters.currencies, localFilters.favoritesOnly]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (searchDebounceTimerRef.current) {
+        clearTimeout(searchDebounceTimerRef.current);
+      }
+    };
   }, []);
 
   const activePreset = useMemo(
@@ -375,8 +457,9 @@ export default function EventsFilters3({
         height: 40,
         px: 0.75,
         boxShadow: active ? 1 : 0,
+        flexShrink: 0,
         '& .MuiChip-icon': { fontSize: 18 },
-        '& .MuiChip-label': { display: 'flex', alignItems: 'center', gap: 0.5 },
+        '& .MuiChip-label': { display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' },
       }}
     />
   );
@@ -659,51 +742,148 @@ export default function EventsFilters3({
     >
       <Stack
         direction="row"
-        spacing={0}
-        rowGap={0.25}
-        columnGap={1}
-        flexWrap="wrap"
-        alignItems="center"
-        justifyContent="space-between"
+        spacing={1}
+        sx={{
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          flexWrap: 'nowrap',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          pb: 0.5,
+          '&::-webkit-scrollbar': {
+            height: 6,
+          },
+          '&::-webkit-scrollbar-track': {
+            bgcolor: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            bgcolor: 'divider',
+            borderRadius: 3,
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+          },
+          // For Firefox
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(0,0,0,0.2) transparent',
+        }}
       >
-        <Stack direction="row" spacing={0} rowGap={0.25} columnGap={1} flexWrap="wrap" alignItems="center">
-          <ChipButton
-            label={dateLabel}
-            onClick={(event) => setAnchorDatePos(getAnchorPosition(event.currentTarget))}
-            active={Boolean(activePreset)}
-          />
-          <ChipButton
-            label={currencyLabel}
-            onClick={(event) => setAnchorCurrencyPos(getAnchorPosition(event.currentTarget))}
-            active={Boolean(localFilters.currencies.length)}
-          />
-          <ChipButton
-            label={impactsLabel}
-            onClick={(event) => setAnchorImpactPos(getAnchorPosition(event.currentTarget))}
-            active={Boolean(localFilters.impacts.length)}
-          />
-          <Tooltip title={localFilters.favoritesOnly ? 'Showing favorites only' : 'Show favorites only'}>
-            <span>
-              <IconButton
-                onClick={toggleFavoritesOnly}
-                size="small"
-                color={localFilters.favoritesOnly ? 'primary' : 'default'}
-                sx={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  border: '1px solid',
-                  borderColor: localFilters.favoritesOnly ? 'primary.main' : 'divider',
-                  bgcolor: localFilters.favoritesOnly ? 'primary.lighter' : 'background.paper',
-                  boxShadow: localFilters.favoritesOnly ? 1 : 0,
-                }}
-              >
-                {localFilters.favoritesOnly ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
-              </IconButton>
-            </span>
-          </Tooltip>
-        </Stack>
+        <Tooltip title={searchExpanded ? 'Close search' : 'Search events'}>
+          <span>
+            <IconButton
+              onClick={toggleSearchExpanded}
+              size="small"
+              color={searchExpanded || localFilters.searchQuery ? 'primary' : 'default'}
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                border: '1px solid',
+                borderColor: searchExpanded || localFilters.searchQuery ? 'primary.main' : 'divider',
+                bgcolor: searchExpanded || localFilters.searchQuery ? 'primary.lighter' : 'background.paper',
+                boxShadow: searchExpanded || localFilters.searchQuery ? 1 : 0,
+                flexShrink: 0,
+              }}
+            >
+              <SearchIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title={localFilters.favoritesOnly ? 'Showing favorites only' : 'Show favorites only'}>
+          <span>
+            <IconButton
+              onClick={toggleFavoritesOnly}
+              size="small"
+              color={localFilters.favoritesOnly ? 'primary' : 'default'}
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                border: '1px solid',
+                borderColor: localFilters.favoritesOnly ? 'primary.main' : 'divider',
+                bgcolor: localFilters.favoritesOnly ? 'primary.lighter' : 'background.paper',
+                boxShadow: localFilters.favoritesOnly ? 1 : 0,
+                flexShrink: 0,
+              }}
+            >
+              {localFilters.favoritesOnly ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
+            </IconButton>
+          </span>
+        </Tooltip>
+        <ChipButton
+          label={dateLabel}
+          onClick={(event) => setAnchorDatePos(getAnchorPosition(event.currentTarget))}
+          active={Boolean(activePreset)}
+        />
+        <ChipButton
+          label={currencyLabel}
+          onClick={(event) => setAnchorCurrencyPos(getAnchorPosition(event.currentTarget))}
+          active={Boolean(localFilters.currencies.length)}
+        />
+        <ChipButton
+          label={impactsLabel}
+          onClick={(event) => setAnchorImpactPos(getAnchorPosition(event.currentTarget))}
+          active={Boolean(localFilters.impacts.length)}
+        />
       </Stack>
+
+      {/* Expandable Search Row */}
+      <Collapse in={searchExpanded} timeout="auto" unmountOnExit>
+        <Box
+          sx={{
+            pt: 1,
+            pb: 0.5,
+            px: { xs: 0.5, sm: 1 },
+            borderRadius: 2,
+            bgcolor: 'background.paper',
+            border: '1px solid',
+            borderColor: 'divider',
+            boxShadow: 1,
+          }}
+        >
+          <TextField
+            inputRef={searchInputRef}
+            fullWidth
+            size="small"
+            placeholder="Search by name, currency, or notes..."
+            value={localFilters.searchQuery}
+            onChange={handleSearchChange}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" color="action" />
+                </InputAdornment>
+              ),
+              endAdornment: localFilters.searchQuery && (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={handleClearSearch}
+                    edge="end"
+                    aria-label="clear search"
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                bgcolor: 'background.default',
+              },
+            }}
+          />
+          {localFilters.searchQuery && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: 'block', mt: 0.75, ml: 0.5 }}
+            >
+              Searching within filtered events...
+            </Typography>
+          )}
+        </Box>
+      </Collapse>
 
       {showActions && (
         <Stack

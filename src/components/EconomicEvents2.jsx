@@ -192,7 +192,7 @@ export default function EconomicEvents2({ open, onClose, timezone, autoScrollReq
         right: 0,
         top: 0,
         left: expanded ? 0 : 'auto',
-        height: '100vh',
+        height: 'var(--t2t-vv-height, 100dvh)',
         width: expanded ? '100%' : { xs: '100%', sm: '100%', md: 480, lg: 520 },
         display: open ? 'flex' : 'none',
         flexDirection: 'column',
@@ -204,7 +204,9 @@ export default function EconomicEvents2({ open, onClose, timezone, autoScrollReq
       {!expanded && (
         <Box
           sx={{
-            p: { xs: 1.25, sm: 1.75 },
+            px: { xs: 1.25, sm: 1.75 },
+            pb: { xs: 1.25, sm: 1.75 },
+            pt: (theme) => `calc(${theme.spacing(1.25)} + var(--t2t-safe-top, 0px))`,
             borderBottom: 1,
             borderColor: 'divider',
             display: 'flex',

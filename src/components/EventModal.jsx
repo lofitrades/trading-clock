@@ -17,6 +17,8 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v1.9.1 - 2025-12-15 - REFACTOR: Replaced hardcoded NOW/NEXT calculations with global timezone-aware eventTimeEngine utilities (NOW_WINDOW_MS, getEventEpochMs, getNowEpochMs, computeNowNextState)
+ * v1.9.0 - 2025-12-15 - Feature: Added countdown timer to NEXT badge with live updates; Added favorite and notes action buttons in header with full functionality, loading states, and mobile-first design
  * v1.8.0 - 2025-12-11 - Feature: Added NOW/NEXT event status chips (NOW = within 9min window with pulse animation, NEXT = upcoming within 24h); added all canonical fields display (status, winnerSource, sourceKey, sources, qualityScore, outcome, quality)
  * v1.6.2 - 2025-12-01 - Developer UX: Moved event ID to modal footer (left side), added click-to-copy functionality with visual feedback (green checkmark, "Copied!" message for 2s)
  * v1.6.1 - 2025-12-01 - Developer UX: Added event UID display in modal header (truncated with tooltip showing full ID) for debugging and tracking
@@ -56,6 +58,7 @@ import {
   useMediaQuery,
   alpha,
   Tooltip as MuiTooltip,
+  CircularProgress,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -66,10 +69,21 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import FavoriteBorderOutlined from '@mui/icons-material/FavoriteBorderOutlined';
+import Favorite from '@mui/icons-material/Favorite';
+import NoteAltOutlined from '@mui/icons-material/NoteAltOutlined';
+import NoteAlt from '@mui/icons-material/NoteAlt';
 import { getEventDescription } from '../services/economicEventsService';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { formatTime, formatDate, DATE_FORMAT_OPTIONS } from '../utils/dateUtils';
+import { 
+  formatCountdownHMS, 
+  NOW_WINDOW_MS, 
+  getEventEpochMs, 
+  getNowEpochMs,
+  computeNowNextState 
+} from '../utils/eventTimeEngine';
 
 // ============================================================================
 // CONSTANTS & CONFIGURATION
@@ -548,8 +562,27 @@ ModalSkeleton.displayName = 'ModalSkeleton';
  * @param {Function} onClose - Close handler
  * @param {Object} event - Event data object
  * @param {string} timezone - IANA timezone (e.g., 'America/New_York')
+ * @param {Function} isFavoriteEvent - Check if event is favorited
+ * @param {Function} onToggleFavorite - Toggle favorite handler
+ * @param {Function} isFavoritePending - Check if favorite is pending
+ * @param {boolean} favoritesLoading - Favorites loading state
+ * @param {Function} hasEventNotes - Check if event has notes
+ * @param {Function} onOpenNotes - Open notes dialog handler
+ * @param {Function} isEventNotesLoading - Check if notes are loading
  */
-export default function EventModal({ open, onClose, event, timezone = 'America/New_York' }) {
+export default function EventModal({ 
+  open, 
+  onClose, 
+  event, 
+  timezone = 'America/New_York',
+  isFavoriteEvent = () => false,
+  onToggleFavorite = null,
+  isFavoritePending = () => false,
+  favoritesLoading = false,
+  hasEventNotes = () => false,
+  onOpenNotes = null,
+  isEventNotesLoading = () => false,
+}) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
@@ -562,6 +595,14 @@ export default function EventModal({ open, onClose, event, timezone = 'America/N
   const [refreshedEvent, setRefreshedEvent] = useState(null);
   const [refreshSuccess, setRefreshSuccess] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [countdownNow, setCountdownNow] = useState(() => Date.now());
+
+  // Update countdown every second for NEXT badge
+  useEffect(() => {
+    if (!open || !event) return undefined;
+    const id = setInterval(() => setCountdownNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [open, event]);
 
   // Fetch description when modal opens
   useEffect(() => {
@@ -634,23 +675,29 @@ export default function EventModal({ open, onClose, event, timezone = 'America/N
   // Use refreshed event data if available, otherwise use original event
   const currentEvent = refreshedEvent || event;
 
-  // Check if event is in the future/now/next
-  const eventDate = new Date(currentEvent.date);
-  const now = new Date();
-  const nowMs = now.getTime();
-  const eventMs = eventDate.getTime();
-  const diff = eventMs - nowMs;
+  // Use global timezone-aware NOW/NEXT engine instead of hardcoded calculations
+  const nowEpochMs = getNowEpochMs(timezone);
+  const eventEpochMs = getEventEpochMs(currentEvent);
   
-  // NOW_WINDOW_MS = 9 minutes (match clock overlay NOW window)
-  const NOW_WINDOW_MS = 9 * 60 * 1000;
-  const isNow = diff >= 0 && diff < NOW_WINDOW_MS;
+  // Compute NOW/NEXT state using global engine
+  const nowNextState = computeNowNextState({ 
+    events: currentEvent ? [currentEvent] : [], 
+    nowEpochMs,
+    nowWindowMs: NOW_WINDOW_MS,
+    buildKey: (evt) => evt.id || 'current-event'
+  });
   
-  // isNext would need to be passed from parent component that has all events context
-  // For now, we'll mark as upcoming if within 24 hours
-  const isNext = !isNow && diff >= 0 && diff < 24 * 60 * 60 * 1000;
+  const eventKey = currentEvent?.id || 'current-event';
+  const isNow = nowNextState.nowEventIds.has(eventKey);
+  const isNext = nowNextState.nextEventIds.has(eventKey);
   
-  const isFutureEvent = eventMs > nowMs;
-  const isPast = !isFutureEvent && !isNow;
+  const isFutureEvent = eventEpochMs !== null && eventEpochMs > nowEpochMs;
+  const isPast = eventEpochMs !== null && !isFutureEvent && !isNow;
+
+  // Calculate countdown for NEXT badge using absolute epoch comparison
+  const nextCountdown = isNext && eventEpochMs !== null 
+    ? formatCountdownHMS(Math.max(0, eventEpochMs - countdownNow)) 
+    : null;
 
   // Determine actual value display
   let actualValue;
@@ -733,20 +780,96 @@ export default function EventModal({ open, onClose, event, timezone = 'America/N
           </Box>
         </Box>
 
-        {/* Close Button */}
-        <IconButton
-          onClick={onClose}
-          sx={{
-            color: 'primary.contrastText',
-            flexShrink: 0,
-            '&:hover': {
-              bgcolor: alpha('#fff', 0.1),
-            },
-          }}
-          size="small"
-        >
-          <CloseIcon />
-        </IconButton>
+        {/* Action Buttons */}
+        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
+          {/* Notes Button */}
+          {onOpenNotes && (
+            <MuiTooltip 
+              title={isEventNotesLoading(currentEvent) ? 'Loading notes...' : (hasEventNotes(currentEvent) ? 'View notes' : 'Add note')}
+              arrow
+              placement="bottom"
+            >
+              <span>
+                <IconButton
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenNotes(currentEvent);
+                  }}
+                  disabled={isEventNotesLoading(currentEvent)}
+                  sx={{
+                    color: 'primary.contrastText',
+                    '&:hover': {
+                      bgcolor: alpha('#fff', 0.1),
+                    },
+                    '&.Mui-disabled': {
+                      color: alpha('#fff', 0.5),
+                    },
+                  }}
+                  size="small"
+                >
+                  {isEventNotesLoading(currentEvent) ? (
+                    <CircularProgress size={18} thickness={5} sx={{ color: 'primary.contrastText' }} />
+                  ) : hasEventNotes(currentEvent) ? (
+                    <NoteAlt />
+                  ) : (
+                    <NoteAltOutlined />
+                  )}
+                </IconButton>
+              </span>
+            </MuiTooltip>
+          )}
+
+          {/* Favorite Button */}
+          {onToggleFavorite && (
+            <MuiTooltip 
+              title={favoritesLoading ? 'Loading favorites...' : (isFavoriteEvent(currentEvent) ? 'Remove from favorites' : 'Save to favorites')}
+              arrow
+              placement="bottom"
+            >
+              <span>
+                <IconButton
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleFavorite(currentEvent);
+                  }}
+                  disabled={favoritesLoading || isFavoritePending(currentEvent)}
+                  sx={{
+                    color: isFavoriteEvent(currentEvent) ? '#fff' : 'primary.contrastText',
+                    '&:hover': {
+                      bgcolor: alpha('#fff', 0.1),
+                    },
+                    '&.Mui-disabled': {
+                      color: alpha('#fff', 0.5),
+                    },
+                  }}
+                  size="small"
+                >
+                  {isFavoritePending(currentEvent) ? (
+                    <CircularProgress size={18} thickness={5} sx={{ color: 'primary.contrastText' }} />
+                  ) : isFavoriteEvent(currentEvent) ? (
+                    <Favorite />
+                  ) : (
+                    <FavoriteBorderOutlined />
+                  )}
+                </IconButton>
+              </span>
+            </MuiTooltip>
+          )}
+
+          {/* Close Button */}
+          <IconButton
+            onClick={onClose}
+            sx={{
+              color: 'primary.contrastText',
+              '&:hover': {
+                bgcolor: alpha('#fff', 0.1),
+              },
+            }}
+            size="small"
+          >
+            <CloseIcon />
+          </IconButton>
+        </Stack>
       </DialogTitle>
 
       {/* Dialog Content */}
@@ -949,7 +1072,7 @@ export default function EventModal({ open, onClose, event, timezone = 'America/N
                     
                     {isNext && !currentEvent.status && !isNow && (
                       <MuiTooltip 
-                        title="This is an upcoming event within the next 24 hours"
+                        title={`Next event in ${nextCountdown || 'calculating...'}`}
                         arrow 
                         placement="top"
                         enterTouchDelay={100}
@@ -980,17 +1103,24 @@ export default function EventModal({ open, onClose, event, timezone = 'America/N
                         }}
                       >
                         <Chip
-                          label="NEXT"
+                          label={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <AccessTimeIcon sx={{ fontSize: 14 }} />
+                              <Typography component="span" sx={{ fontWeight: 700, fontSize: '0.7rem' }}>
+                                {nextCountdown || 'Next'}
+                              </Typography>
+                            </Box>
+                          }
                           size="small"
                           sx={{
                             height: 24,
-                            fontSize: '0.7rem',
                             fontWeight: 600,
                             bgcolor: alpha(theme.palette.primary.main, 0.08),
                             color: 'primary.main',
                             border: '1px solid',
                             borderColor: alpha(theme.palette.primary.main, 0.3),
                             cursor: 'help',
+                            '& .MuiChip-label': { px: 1 },
                           }}
                         />
                       </MuiTooltip>
