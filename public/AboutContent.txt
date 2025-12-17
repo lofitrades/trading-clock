@@ -1,8 +1,58 @@
-<h2>About Trading Clock</h2>
-<p>This tool helps you track trading sessions with visual cues for active and upcoming sessions.</p>
+<h2>About Time 2 Trade</h2>
+
+<p>Time 2 Trade is a trading session clock designed specifically for futures and forex day traders who need to stay aligned with global market sessions across different timezones. Our dual-circle analog clock design makes it easy to visualize when markets are active, helping you plan your trading day with precision.</p>
+
+<h3>What Makes Time 2 Trade Different</h3>
+
+<p>Unlike traditional world clocks or generic market timers, Time 2 Trade gives you a complete picture of the trading day in one glance. The inner circle represents AM hours while the outer circle shows PM hours, creating an intuitive 24-hour view that matches how traders think about market sessions.</p>
+
+<p>Whether you're tracking the London open, New York session, or Asian market hours, our clock adapts to your timezone automatically. You'll always know exactly when each session starts, ends, and how much time remains.</p>
+
+<h3>Key Features</h3>
+
 <ul>
-  <li>Customizable clock sizes</li>
-  <li>Color-coded sessions</li>
-  <li>Real-time market session visualization</li>
+  <li><strong>Dual-Circle Session Clock:</strong> Visualize all eight major trading sessions on a single clock face with AM sessions on the inner ring and PM sessions on the outer ring</li>
+  <li><strong>Economic Events Calendar:</strong> See high-impact economic events overlaid directly on your clock, sourced from the same data that powers MetaTrader platforms</li>
+  <li><strong>Timezone Intelligence:</strong> Automatic conversion to your local timezone with support for traders in any region around the world</li>
+  <li><strong>Cloud Sync Settings:</strong> Create a free account to save your preferences and access them from any device, anywhere</li>
+  <li><strong>Customizable Sessions:</strong> Adjust session times, colors, and labels to match your personal trading strategy</li>
+  <li><strong>Session Alerts:</strong> Visual indicators show you which session is currently active and when the next one begins</li>
+  <li><strong>Digital Clock Display:</strong> Quick reference for current time in your selected timezone</li>
+  <li><strong>Responsive Design:</strong> Works seamlessly on desktop, tablet, and mobile devices</li>
 </ul>
-<p>Follow us on <a href="https://x.com/lofi_trades" target="_blank" rel="noopener noreferrer">@lofi_trades</a></p>
+
+<h3>How to Use Time 2 Trade</h3>
+
+<p><strong>Getting Started:</strong> Simply visit time2.trade and the clock immediately displays in your local timezone. No setup required. The default configuration shows popular trading sessions like London, New York, Tokyo, and Sydney.</p>
+
+<p><strong>Customizing Your Clock:</strong> Click the settings icon to adjust session times, choose different colors, rename sessions, or turn specific sessions on and off. You can configure up to eight custom sessions to match your trading plan.</p>
+
+<p><strong>Viewing Economic Events:</strong> Toggle the economic events overlay to see when major news releases are scheduled. Filter by currency pairs that matter to your trading strategy, and click any event to see detailed descriptions and historical impact.</p>
+
+<p><strong>Changing Timezones:</strong> Use the timezone selector at the bottom of the screen to view market sessions from any timezone perspective. This is especially helpful when coordinating with traders in other regions or planning travel.</p>
+
+<p><strong>Saving Your Setup:</strong> Create a free account to automatically sync your settings across all your devices. Your session configurations, color preferences, and timezone choices are stored securely in the cloud.</p>
+
+<h3>Who Uses Time 2 Trade</h3>
+
+<p>Time 2 Trade is built for active day traders who work with futures contracts, forex currency pairs, and other instruments that trade on session-based schedules. It's particularly useful for traders who follow specific market sessions like ICT killzones, London session strategies, or New York open setups.</p>
+
+<p>Many traders use Time 2 Trade alongside their charting platforms to maintain session awareness without cluttering their trading workspace. The clean, minimal design keeps your focus where it matters while providing the context you need to time your entries and exits.</p>
+
+<h3>Technology and Data Sources</h3>
+
+<p>Time 2 Trade is powered by modern web technology including React and Material Design components for a fast, responsive experience. Economic events data comes from the JBlanked News Calendar API, which aggregates information from the same MQL5 source used by MetaTrader platforms worldwide.</p>
+
+<p>Your settings are stored using Firebase cloud infrastructure with bank-level encryption and industry-standard security practices. We never sell your data or show you ads that track your behavior.</p>
+
+<h3>Free to Use, Built by Traders</h3>
+
+<p>Time 2 Trade is completely free to use with all features available to anyone who creates an account. We built this tool because we needed it ourselves, and we believe every trader should have access to professional-grade session tracking without paying monthly subscription fees.</p>
+
+<p>The project is actively maintained by Casa Digital and the team at Lofi Trades. We regularly add new features based on feedback from the trading community and keep our economic events data synchronized daily.</p>
+
+<h3>Get Started Today</h3>
+
+<p>No credit card required. No trial periods. No hidden fees. Just create a free account and start tracking your trading sessions with the clarity you need to trade with confidence.</p>
+
+<p>Follow us on <a href="https://x.com/lofi_trades" target="_blank" rel="noopener noreferrer">@lofi_trades</a> for updates, tips, and trading insights from our community.</p>
