@@ -438,32 +438,32 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 						<SwitchComponent
 							checked={showClockNumbers}
 							onChange={toggleShowClockNumbers}
-						>
-							<Box sx={{ flex: 1, minWidth: 0 }}>
-								<Typography variant="body2" sx={{ fontWeight: 600 }}>
-									Hide Clock Hands
-								</Typography>
-								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-									Hide hour, minute, and second hands from the clock
-								</Typography>
-							</Box>
-							<SwitchComponent
-								checked={hideClockHands}
-								onChange={toggleHideClockHands}
-							/>
-						</Box>
+						/>
 					</Box>
-				)}
 
-				<Box
-					sx={{
-						display: 'flex',
-						alignItems: 'center',
-						gap: 1.5,
-						px: 1.75,
-						py: 1.25,
-						bgcolor: 'background.paper',
-						borderBottom: '1px solid',
+					<Box
+						sx={{
+							display: 'flex',
+							gap: 1.5,
+							alignItems: 'center',
+							borderLeft: '1px solid',
+							borderColor: 'divider',
+							pl: 1.5,
+							minHeight: 44,
+							flexWrap: 'wrap',
+					}}
+					>
+						<Box sx={{ flex: 1, minWidth: 0 }}>
+							<Typography variant="body2" sx={{ fontWeight: 600 }}>
+								Show Clock Hands
+							</Typography>
+							<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+								Display hour, minute, and second hands on the clock
+							</Typography>
+						</Box>
+						<SwitchComponent
+							checked={showClockHands}
+							onChange={toggleShowClockHands}
 						borderColor: 'divider',
 					}}
 				>
