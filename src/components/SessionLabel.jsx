@@ -1,9 +1,18 @@
-// src/components/SessionLabel2.jsx
-import React from 'react';
-import { Box, Chip, Stack, Typography, Fade } from '@mui/material';
+/**
+ * src/components/SessionLabel.jsx
+ *
+ * Purpose: Display the active or next trading session with adaptive sizing and countdowns.
+ * Minimal chip-based label optimized for the clock overlay.
+ *
+ * Changelog:
+ * v1.1.0 - 2025-12-16 - Added PropTypes, removed unused imports/vars, and corrected header path.
+ * v1.0.0 - 2025-12-15 - Initial implementation.
+ */
+
+import PropTypes from 'prop-types';
+import { Box, Chip, Stack, Fade } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ScheduleIcon from '@mui/icons-material/Schedule';
-import { isColorDark, formatTime } from '../utils/clockUtils';
+import { isColorDark } from '../utils/clockUtils';
 
 // Smart time formatting: mm:ss if < 1h, hh:mm if >= 1h
 const formatTimeSmart = (seconds) => {
@@ -35,7 +44,6 @@ export default function SessionLabel({
   
   // Font sizes that scale smoothly
   const titleSize = `${0.875 * scaleFactor}rem`; // 14px base
-  const detailSize = `${0.75 * scaleFactor}rem`; // 12px base
   const iconSize = 12 * scaleFactor;
   
   // Session color with adaptive text
@@ -189,3 +197,19 @@ export default function SessionLabel({
     </Fade>
   );
 }
+
+SessionLabel.propTypes = {
+  activeSession: PropTypes.shape({
+    name: PropTypes.string,
+    color: PropTypes.string,
+  }),
+  showTimeToEnd: PropTypes.bool,
+  timeToEnd: PropTypes.number,
+  showTimeToStart: PropTypes.bool,
+  nextSession: PropTypes.shape({
+    name: PropTypes.string,
+    color: PropTypes.string,
+  }),
+  timeToStart: PropTypes.number,
+  clockSize: PropTypes.number.isRequired,
+};

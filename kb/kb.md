@@ -1934,6 +1934,20 @@ whyDidYouRender(React, {
 
 ## 📝 Change Log
 
+### Version 2.4.2 - December 2025
+**Timezone Label Toggle**
+
+#### ✨ New Features
+- Added `showTimezoneLabel` setting to show/hide a text-only selected timezone label between the digital clock and the active session label.
+- Added a "Show timezone label" toggle below the timezone selector in the settings drawer.
+
+### Version 2.4.1 - December 2025
+**Clock Event Tooltip UX Stability**
+
+#### 🔄 Changes
+- Stabilized clock event marker tooltip so it no longer flickers on 1-second clock updates.
+- Improved hover usability (graceful leave delay) and touch usability (no auto-hide; outside tap/Escape close).
+
 ### Version 2.4.0 - December 2025
 **Event Notes Sync**
 

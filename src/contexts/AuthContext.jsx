@@ -17,6 +17,8 @@ import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { USER_ROLES, SUBSCRIPTION_PLANS, SUBSCRIPTION_STATUS, PLAN_FEATURES } from '../types/userTypes';
+import WelcomeModal from '../components/WelcomeModal';
+import { createUserProfileSafely, updateLastLoginSafely } from '../utils/userProfileUtils';
 
 const AuthContext = createContext();
 
@@ -33,101 +35,44 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
 
   /**
-   * Create default user profile in Firestore
-   * Called when a new user is created or profile doesn't exist
+   * Create or retrieve user profile safely (prevents duplicates)
+   * Uses transaction-based utility to handle race conditions
    * 
    * @param {Object} user - Firebase auth user object
-   * @returns {Promise<Object>} Created user profile
+   * @returns {Promise<Object>} User profile
    */
   const createUserProfile = async (user) => {
     try {
-      const userDocRef = doc(db, 'users', user.uid);
+      const profile = await createUserProfileSafely(user);
       
-      // Default user profile structure
-      const defaultProfile = {
-        // Basic Info
-        email: user.email,
-        displayName: user.displayName || null,
-        photoURL: user.photoURL || null,
-        
-        // Role & Permissions
-        role: USER_ROLES.USER, // Default to 'user' role
-        
-        // Subscription
-        subscription: {
-          plan: SUBSCRIPTION_PLANS.FREE, // Default to free plan
-          status: SUBSCRIPTION_STATUS.ACTIVE,
-          features: PLAN_FEATURES[SUBSCRIPTION_PLANS.FREE], // Free tier features
-          startDate: serverTimestamp(),
-          endDate: null,
-          trialEndsAt: null,
-          customerId: null,
-          subscriptionId: null,
-        },
-        
-        // Default Settings (from existing structure)
-        // NOTE: selectedTimezone managed by SettingsContext - included here for new user profile creation only
-        settings: {
-          clockStyle: 'normal',
-          canvasSize: 100,
-          clockSize: 375,
-          selectedTimezone: 'America/New_York',  // Default timezone (SettingsContext is source of truth)
-          backgroundColor: '#F9F9F9',
-          backgroundBasedOnSession: false,
-          showHandClock: true,
-          showDigitalClock: true,
-          showSessionLabel: true,
-          showTimeToEnd: false,
-          showTimeToStart: true,
-          showSessionNamesInCanvas: false,
-          emailNotifications: true,
-          eventAlerts: false,
-        },
-        
-        // Timestamps
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        lastLoginAt: serverTimestamp(),
-      };
-
-      // Create the document in Firestore
-      await setDoc(userDocRef, defaultProfile);
+      // Check if we should show welcome modal (only for genuinely new users)
+      const shouldShowWelcome = window.localStorage.getItem('showWelcomeModal');
+      if (shouldShowWelcome === 'true') {
+        window.localStorage.removeItem('showWelcomeModal');
+        // Show welcome modal immediately after profile creation
+        // No delay needed - profile is created, user is ready
+        setShowWelcomeModal(true);
+      }
       
-      return {
-        uid: user.uid,
-        email: user.email,
-        emailVerified: user.emailVerified,
-        ...defaultProfile,
-      };
+      return profile;
     } catch (error) {
-      console.error('❌ Error creating user profile:', error);
+      console.error('[Auth] Error creating/retrieving user profile:', error.code, error.message);
       throw error;
     }
   };
 
   /**
    * Update user's last login timestamp
+   * Uses safe utility to prevent data overwrites
    * 
    * @param {string} userId - User ID
    */
   const updateLastLogin = async (userId) => {
-    try {
-      const userDocRef = doc(db, 'users', userId);
-      await setDoc(
-        userDocRef,
-        { 
-          lastLoginAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-    } catch (error) {
-      console.error('❌ Error updating last login:', error);
-      // Don't throw - this is non-critical
-    }
+    await updateLastLoginSafely(userId);
   };
 
   useEffect(() => {
@@ -300,7 +245,19 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {/* Show WelcomeModal for new users BEFORE app loads */}
+      {showWelcomeModal && (
+        <WelcomeModal 
+          onClose={() => {
+            setShowWelcomeModal(false);
+            // WelcomeModal closed - now app will render below
+          }}
+          userEmail={user?.email}
+        />
+      )}
+      
+      {/* Only render app after loading complete AND welcome modal dismissed */}
+      {!loading && !showWelcomeModal && children}
     </AuthContext.Provider>
   );
 };

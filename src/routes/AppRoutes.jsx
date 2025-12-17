@@ -28,6 +28,7 @@ import PublicRoute from '../components/routes/PublicRoute';
 
 // Lazy load components for code splitting
 const MainApp = lazy(() => import('../App'));
+const LoginPage = lazy(() => import('../components/LoginPage'));
 const UploadDescriptions = lazy(() => import('../components/UploadDescriptions'));
 const ExportEvents = lazy(() => import('../components/ExportEvents'));
 const EventsPage = lazy(() => import('../components/EventsPage'));
@@ -108,6 +109,16 @@ export default function AppRoutes() {
           element={
             <PublicRoute>
               <EventsPage />
+            </PublicRoute>
+          }
+        />
+
+        {/* Login Page - Standalone passwordless authentication */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute restricted={true} redirectTo="/">
+              <LoginPage />
             </PublicRoute>
           }
         />

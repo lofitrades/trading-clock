@@ -5,13 +5,17 @@
  * Inspired by modern app shells (Airbnb/ChatGPT) with quick toggles, sectional pills, and responsive cards that mirror existing settings logic.
  * 
  * Changelog:
+ * v1.1.4 - 2025-12-16 - Added PropTypes for helper components and main sidebar props; no behavior changes.
+ * v1.1.3 - 2025-12-16 - Moved Show timezone label toggle inside the timezone card for a single cohesive section.
+ * v1.1.2 - 2025-12-16 - Added Show timezone label toggle under the timezone selector.
  * v1.1.1 - 2025-12-11 - Added per-session clear action with confirmation in Sessions tab
  * v1.1.0 - 2025-12-11 - Added timezone selector to General tab and aligned spacing for live-preview controls
  * v1.0.1 - 2025-12-11 - Refined layout with pill toggles and sub-sections to reduce line wrapping and improve readability
  * v1.0.0 - 2025-12-11 - Added refreshed settings drawer with preserved behaviors and modernized UI layout
  */
 
-import React, { useMemo, useState } from 'react';
+import PropTypes from 'prop-types';
+import { useMemo, useState } from 'react';
 import {
 	Alert,
 	Avatar,
@@ -20,7 +24,6 @@ import {
 	Divider,
 	Drawer,
 	IconButton,
-	Menu,
 	MenuItem as MenuItemComponent,
 	Paper,
 	Slider,
@@ -34,7 +37,6 @@ import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import FullscreenRoundedIcon from '@mui/icons-material/FullscreenRounded';
 import FullscreenExitRoundedIcon from '@mui/icons-material/FullscreenExitRounded';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
@@ -42,7 +44,6 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
-import AuthModal from './AuthModal';
 import AccountModal from './AccountModal';
 import UnlockModal from './UnlockModal';
 import ConfirmModal from './ConfirmModal';
@@ -118,7 +119,7 @@ function SettingRow({ label, description, children, helperText, dense }) {
 	);
 }
 
-export default function SettingsSidebar2({ open, onClose }) {
+export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 	const { user } = useAuth();
 	const {
 		clockStyle,
@@ -134,9 +135,11 @@ export default function SettingsSidebar2({ open, onClose }) {
 		showHandClock,
 		showDigitalClock,
 		showSessionLabel,
+		showTimezoneLabel,
 		toggleShowHandClock,
 		toggleShowDigitalClock,
 		toggleShowSessionLabel,
+		toggleShowTimezoneLabel,
 		showTimeToEnd,
 		showTimeToStart,
 		toggleShowTimeToEnd,
@@ -149,7 +152,6 @@ export default function SettingsSidebar2({ open, onClose }) {
 	} = useSettings();
 
 	const [activeSection, setActiveSection] = useState('general');
-	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [showAccountModal, setShowAccountModal] = useState(false);
 	const [showUnlockModal, setShowUnlockModal] = useState(false);
 	const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
@@ -160,7 +162,6 @@ export default function SettingsSidebar2({ open, onClose }) {
 
 	const { isFullscreen, canFullscreen, toggleFullscreen } = useFullscreen();
 
-	const handleUserMenuOpen = (event) => setUserMenuAnchor(event.currentTarget);
 	const handleUserMenuClose = () => setUserMenuAnchor(null);
 
 	const handleLogout = async () => {
@@ -222,20 +223,22 @@ export default function SettingsSidebar2({ open, onClose }) {
 		if (!user) {
 			setShowUnlockModal(true);
 			return;
-		}
+	};
 		setClearSessionIndex(index);
 		setShowClearSessionConfirm(true);
 	};
 
 	const handleConfirmClearSession = () => {
-		if (clearSessionIndex == null) return;
+		if (clearSessionIndex === null) {
+			setShowClearSessionConfirm(false);
+			return;
+		}
 		const updated = [...sessions];
 		updated[clearSessionIndex] = { ...updated[clearSessionIndex], name: '', startNY: '', endNY: '', color: '' };
 		updateSessions(updated);
 		setClearSessionIndex(null);
 		setShowClearSessionConfirm(false);
 	};
-
 	const handleCancelClearSession = () => {
 		setClearSessionIndex(null);
 		setShowClearSessionConfirm(false);
@@ -357,7 +360,38 @@ export default function SettingsSidebar2({ open, onClose }) {
 	const renderGeneralSection = (
 		<>
 			<Box sx={{ mb: { xs: 2, sm: 3 } }}>
-				<TimezoneSelector onRequestSignUp={() => setShowAuthModal(true)} />
+				<TimezoneSelector onRequestSignUp={onOpenAuth}>
+					<Paper
+						elevation={0}
+						sx={{
+							borderRadius: 3,
+							border: 1,
+							borderColor: 'divider',
+							overflow: 'hidden',
+						}}
+					>
+						<Box
+							sx={{
+								display: 'flex',
+								alignItems: 'center',
+								gap: 1.5,
+								px: 1.75,
+								py: 1.25,
+								bgcolor: 'background.paper',
+							}}
+						>
+							<Box sx={{ flex: 1, minWidth: 0 }}>
+								<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+									Show timezone label
+								</Typography>
+								<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+									Display the selected timezone.
+								</Typography>
+							</Box>
+							<SwitchComponent checked={showTimezoneLabel} onChange={toggleShowTimezoneLabel} />
+						</Box>
+					</Paper>
+				</TimezoneSelector>
 			</Box>
 
 			{quickToggles}
@@ -688,7 +722,7 @@ export default function SettingsSidebar2({ open, onClose }) {
 		<>
 			<Drawer
 				anchor="right"
-				open={open && !showAuthModal && !showUnlockModal && !showAccountModal}
+				open={open && !showUnlockModal && !showAccountModal}
 				onClose={onClose}
 				variant="temporary"
 				ModalProps={{ keepMounted: true }}
@@ -774,26 +808,39 @@ export default function SettingsSidebar2({ open, onClose }) {
 										cursor: 'pointer',
 										bgcolor: 'action.hover',
 									}}
-									onClick={() => setUserMenuAnchor((prev) => !prev)}
+								onClick={() => {
+									// If collapsing (menu is open), just close it
+									if (userMenuAnchor) {
+										setUserMenuAnchor(false);
+									}
+									// If expanding and no displayName, open account modal directly
+									else if (!user.displayName) {
+										setShowAccountModal(true);
+									}
+									// Otherwise toggle the menu normally
+									else {
+										setUserMenuAnchor(true);
+									}
+								}}
 								>
 									{user.photoURL ? (
 										<Avatar
 											src={user.photoURL}
-											alt={user.displayName || 'User'}
-											sx={{ width: 40, height: 40 }}
-											imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' }}
-										/>
-									) : (
-										<Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main' }}>
-											<AccountCircleIcon />
-										</Avatar>
-									)}
-									<Box sx={{ flex: 1, minWidth: 0 }}>
-										<Typography variant="subtitle2" noWrap sx={{ fontWeight: 700 }}>
-											{user.displayName || 'User'}
-										</Typography>
-										<Typography variant="caption" color="text.secondary" noWrap>
-											{user.email}
+										alt={user.displayName || user.email || 'User'}
+										sx={{ width: 40, height: 40 }}
+										imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' }}
+									/>
+								) : (
+									<Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main' }}>
+										<AccountCircleIcon />
+									</Avatar>
+								)}
+								<Box sx={{ flex: 1, minWidth: 0 }}>
+									<Typography variant="subtitle2" noWrap sx={{ fontWeight: 700 }}>
+										{user.displayName || user.email}
+									</Typography>
+									<Typography variant="caption" color="text.secondary" noWrap>
+										{user.displayName ? user.email : 'Click to add your name'}
 										</Typography>
 									</Box>
 									<ArrowDropDownIcon fontSize="small" sx={{ transform: userMenuAnchor ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
@@ -828,7 +875,7 @@ export default function SettingsSidebar2({ open, onClose }) {
 						<Button
 							variant="contained"
 							fullWidth
-							onClick={() => setShowAuthModal(true)}
+							onClick={onOpenAuth}
 							sx={{ textTransform: 'none', py: 1 }}
 						>
 							Login / Sign Up
@@ -871,12 +918,11 @@ export default function SettingsSidebar2({ open, onClose }) {
 				)}
 			</Drawer>
 
-			{showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
 			{showAccountModal && (
 				<AccountModal
+					open={showAccountModal}
 					onClose={() => setShowAccountModal(false)}
 					user={user}
-					resetSettings={resetSettings}
 				/>
 			)}
 			{showUnlockModal && (
@@ -884,7 +930,7 @@ export default function SettingsSidebar2({ open, onClose }) {
 					onClose={() => setShowUnlockModal(false)}
 					onSignUp={() => {
 						setShowUnlockModal(false);
-						setShowAuthModal(true);
+						if (onOpenAuth) onOpenAuth();
 					}}
 				/>
 			)}
@@ -913,3 +959,24 @@ export default function SettingsSidebar2({ open, onClose }) {
 		</>
 	);
 }
+
+SectionCard.propTypes = {
+	title: PropTypes.string,
+	subtitle: PropTypes.string,
+	children: PropTypes.node,
+	dense: PropTypes.bool,
+};
+
+SettingRow.propTypes = {
+	label: PropTypes.string.isRequired,
+	description: PropTypes.string,
+	children: PropTypes.node.isRequired,
+	helperText: PropTypes.string,
+	dense: PropTypes.bool,
+};
+
+SettingsSidebar2.propTypes = {
+	open: PropTypes.bool.isRequired,
+	onClose: PropTypes.func.isRequired,
+	onOpenAuth: PropTypes.func,
+};

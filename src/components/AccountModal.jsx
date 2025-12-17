@@ -1,5 +1,26 @@
-/* src/components/AccountModal.jsx */
-import React, { useState, useEffect, useRef } from 'react';
+/**
+ * src/components/AccountModal.jsx
+ * 
+ * Purpose: Standalone account management modal with profile editing and account deletion.
+ * Mobile-first responsive design with enterprise UX patterns.
+ * 
+ * Features:
+ * - Simple initials avatar (preserves Google account photos)
+ * - Display name editing
+ * - Password reset via email
+ * - Account deletion with confirmation
+ * - Fully responsive (mobile → desktop)
+ * - Self-contained with proper error handling
+ * 
+ * Changelog:
+ * v2.1.1 - 2025-12-16 - ESLint compliance: PropTypes and storage imports
+ * v2.1.0 - 2025-12-16 - Simplified avatar: removed upload/delete, kept Google photos and initials fallback
+ * v2.0.0 - 2025-12-16 - Complete redesign: mobile-first, responsive, enterprise UX, separation of concerns
+ * v1.0.0 - 2025-09-15 - Initial implementation
+ */
+
+import PropTypes from 'prop-types';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -13,248 +34,337 @@ import {
   Avatar,
   IconButton,
   Stack,
+  Divider,
   Collapse,
+  alpha,
 } from '@mui/material';
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import CloseIcon from '@mui/icons-material/Close';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import LockResetIcon from '@mui/icons-material/LockReset';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import { ref, deleteObject } from 'firebase/storage';
 import { auth, db, storage } from '../firebase';
-import { updateProfile, deleteUser, signOut, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { updateProfile, deleteUser, sendPasswordResetEmail } from 'firebase/auth';
+import { doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import ConfirmModal from './ConfirmModal';
-import { getFriendlyErrorMessage, getSuccessMessage } from '../utils/messages';
+import { getFriendlyErrorMessage } from '../utils/messages';
 
-export default function AccountModal({ onClose, user, resetSettings }) {
-  const [displayName, setDisplayName] = useState(user.displayName || '');
-  const [photoURL, setPhotoURL] = useState(user.photoURL || '');
+export default function AccountModal({ open, onClose, user }) {
+  const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [showDelete, setShowDelete] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showDangerZone, setShowDangerZone] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
-  // We'll use a ref to open the hidden file input.
-  const fileInputRef = useRef(null);
+  const REQUIRED_DELETE_TEXT = 'Delete Account Permanently';
 
-  const handleOverlayClick = () => onClose();
-  const stopPropagation = (e) => e.stopPropagation();
-
+  // Update local state when user prop changes
   useEffect(() => {
-    setDisplayName(user.displayName || '');
-    setPhotoURL(user.photoURL || '');
+    if (user) {
+      setDisplayName(user.displayName || '');
+    }
   }, [user]);
 
+  // Reset messages when modal opens
+  useEffect(() => {
+    if (open) {
+      setMessage('');
+      setError('');
+      setDeleteConfirmText('');
+    }
+  }, [open]);
+
   const handleSave = async () => {
+    if (!user) return;
+    
     setMessage('');
     setError('');
+    setSaving(true);
+
     try {
-      await updateProfile(user, { displayName, photoURL });
+      // Update Firebase Auth profile
+      await updateProfile(user, { 
+        displayName: displayName.trim() || null
+      });
+
+      // Update Firestore user document
       await setDoc(
         doc(db, 'users', user.uid),
-        { displayName, photoURL, updatedAt: new Date() },
+        { 
+          displayName: displayName.trim() || null, 
+          updatedAt: serverTimestamp() 
+        },
         { merge: true }
       );
-      setMessage(getSuccessMessage('profile-updated'));
-      setTimeout(() => onClose(), 1000);
+
+      setMessage('Profile updated successfully!');
+      setTimeout(() => onClose(), 1500);
     } catch (err) {
-      setError(getFriendlyErrorMessage(err.code) || err.message);
+      console.error('[AccountModal] Save failed:', err);
+      setError(getFriendlyErrorMessage(err.code) || 'Failed to update profile.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!user?.email) return;
+
+    setShowPasswordConfirm(false);
+    setError('');
+    setMessage('');
+
+    try {
+      await sendPasswordResetEmail(auth, user.email);
+      setMessage(`Password reset email sent to ${user.email}. Check your inbox!`);
+    } catch (err) {
+      console.error('[AccountModal] Password reset failed:', err);
+      setError(getFriendlyErrorMessage(err.code) || 'Failed to send password reset email.');
     }
   };
 
   const handleDeleteAccount = async () => {
-    if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+    if (!user) return;
+
+    setShowDeleteConfirm(false);
+    setError('');
+    setMessage('');
+
+    try {
+      // Step 1: Delete user's profile photo from Storage (if exists)
       try {
-        await deleteUser(user);
-        onClose();
-      } catch (err) {
-        setError(getFriendlyErrorMessage(err.code) || err.message);
+        const storageRef = ref(storage, `profilePictures/${user.uid}`);
+        await deleteObject(storageRef);
+      } catch {
+        // Ignore if photo doesn't exist
       }
-    }
-  };
 
-  const handlePhotoUpload = async (e) => {
-    setError('');
-    setMessage('');
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const storageRef = ref(storage, `profilePictures/${user.uid}`);
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
-      setPhotoURL(downloadURL);
-      setMessage('Photo uploaded. Click Save to apply.');
-    } catch (err) {
-      setError(getFriendlyErrorMessage(err.code) || err.message);
-    }
-  };
+      // Step 2: Delete Firestore user document (GDPR/CCPA compliance - right to be forgotten)
+      try {
+        await deleteDoc(doc(db, 'users', user.uid));
+      } catch (firestoreErr) {
+        console.warn('[AccountModal] Firestore deletion failed:', firestoreErr);
+        // Continue with auth deletion even if Firestore fails
+      }
 
-  const handleDeletePhoto = async () => {
-    setError('');
-    setMessage('');
-    try {
-      const storageRef = ref(storage, `profilePictures/${user.uid}`);
-      await deleteObject(storageRef);
-      setPhotoURL('');
-      setMessage('Image deleted. Click Save to apply.');
+      // Step 3: Delete Firebase Auth user (must be last - user loses access after this)
+      await deleteUser(user);
+      
+      // User will be signed out automatically after deletion
+      onClose();
     } catch (err) {
-      if (err.code === 'storage/object-not-found') {
-        setPhotoURL('');
-        setMessage('Image deleted. Click Save to apply.');
+      console.error('[AccountModal] Account deletion failed:', err);
+      
+      if (err.code === 'auth/requires-recent-login') {
+        setError('For security, please sign out and sign back in before deleting your account.');
       } else {
-        setError(getFriendlyErrorMessage(err.code) || err.message);
+        setError(getFriendlyErrorMessage(err.code) || 'Failed to delete account.');
       }
     }
   };
 
-  const handleChangePassword = () => {
-    setShowConfirm(true);
+  if (!user) return null;
+
+  const hasChanges = displayName.trim() !== (user.displayName || '');
+
+  // Get initials: two names = two initials, one name = one initial
+  const getInitials = (name) => {
+    if (!name) return '';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      // Two or more names: first letter of first two names
+      return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+    }
+    // Single name: first letter only
+    return parts[0].charAt(0).toUpperCase();
   };
 
-  const confirmChangePassword = async () => {
-    setShowConfirm(false);
-    try {
-      await sendPasswordResetEmail(auth, user.email);
-      setMessage(getSuccessMessage('change-password'));
-    } catch (err) {
-      setError(getFriendlyErrorMessage(err.code));
-    }
-  };
+  const avatarInitials = getInitials(displayName || user?.email?.split('@')[0] || '');
 
   return (
     <>
       <Dialog 
-        open={true} 
+        open={open} 
         onClose={onClose} 
         maxWidth="sm" 
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: 2,
-            p: 2,
+            borderRadius: { xs: 0, sm: 3 },
+            m: { xs: 0, sm: 2 },
+            width: { xs: '100%', sm: 'calc(100% - 32px)' },
+            maxHeight: { xs: '100%', sm: 'calc(100% - 32px)' },
           }
         }}
       >
-        <DialogTitle>Account Information</DialogTitle>
+        {/* Header */}
+        <DialogTitle sx={{ 
+          borderBottom: 1, 
+          borderColor: 'divider',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          p: { xs: 2, sm: 2.5 },
+          fontWeight: 700,
+        }}>
+          Account Settings
+          <IconButton 
+            onClick={onClose} 
+            size="small"
+            sx={{ color: 'text.secondary' }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
 
-        <DialogContent>
-          <Stack spacing={3} sx={{ mt: 2 }}>
-            {/* Profile Picture */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-              <Box sx={{ position: 'relative' }}>
-                {photoURL ? (
-                  <Avatar
-                    src={photoURL}
-                    alt="Profile"
-                    sx={{ width: 100, height: 100 }}
-                    imgProps={{
-                      referrerPolicy: "no-referrer",
-                      crossOrigin: "anonymous"
-                    }}
-                  />
-                ) : (
-                  <Avatar sx={{ width: 100, height: 100, bgcolor: 'primary.main' }}>
-                    <AccountCircleIcon sx={{ fontSize: 80 }} />
-                  </Avatar>
-                )}
-                <IconButton
-                  sx={{
-                    position: 'absolute',
-                    bottom: -5,
-                    right: -5,
-                    backgroundColor: 'primary.main',
-                    color: 'white',
-                    '&:hover': { backgroundColor: 'primary.dark' },
-                  }}
-                  size="small"
-                  onClick={() => fileInputRef.current.click()}
-                >
-                  <PhotoCameraIcon fontSize="small" />
-                </IconButton>
-              </Box>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                style={{ display: 'none' }}
-              />
-
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <Button 
-                  size="small" 
-                  onClick={() => fileInputRef.current.click()}
-                  sx={{ textTransform: 'none' }}
-                >
-                  {photoURL ? 'Replace' : 'Add image'}
-                </Button>
-                {photoURL && (
-                  <Button 
-                    size="small" 
-                    color="error" 
-                    onClick={handleDeletePhoto}
-                    sx={{ textTransform: 'none' }}
-                  >
-                    Delete
-                  </Button>
-                )}
+        <DialogContent sx={{ pt: { xs: 2.5, sm: 2 }, px: { xs: 2, sm: 2 }, pb: { xs: 2, sm: 3 } }}>
+          <Stack spacing={{ xs: 2.5, sm: 2 }} sx={{ mt: { xs: 0.5, sm: 2 } }}>
+            {/* Profile Header - Avatar + Basic Info */}
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 2,
+              alignItems: 'flex-start'
+            }}>
+              <Avatar
+                src={user?.photoURL || undefined}
+                alt={displayName || user?.email}
+                sx={{ 
+                  width: { xs: 64, sm: 72 }, 
+                  height: { xs: 64, sm: 72 },
+                  bgcolor: 'primary.main',
+                  fontSize: { xs: '1.5rem', sm: '1.75rem' },
+                  fontWeight: 500,
+                  flexShrink: 0
+                }}
+                imgProps={{
+                  referrerPolicy: 'no-referrer',
+                  crossOrigin: 'anonymous'
+                }}
+              >
+                {!user?.photoURL && avatarInitials}
+              </Avatar>
+              
+              <Box sx={{ flex: 1, minWidth: 0, pt: 0.5 }}>
+                <Typography variant="h6" sx={{ 
+                  fontWeight: 600,
+                  mb: 0.5,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {displayName || 'No name set'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {user.email}
+                </Typography>
               </Box>
             </Box>
 
-            {/* Email (read-only) */}
+            <Divider />
+
+            {/* Personal Information */}
             <Box>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Email
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                Personal Information
               </Typography>
-              <Typography variant="body1">{user.email}</Typography>
+              <Stack spacing={2} sx={{ mt: 1.5 }}>
+                <TextField
+                  label="Display Name"
+                  fullWidth
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Enter your name"
+                  size="small"
+                  disabled={saving}
+                />
+              </Stack>
             </Box>
 
-            {/* Display Name */}
-            <TextField
-              label="Name"
-              fullWidth
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-            />
+            <Divider />
 
-            {/* Change Password */}
-            <Button 
-              variant="outlined" 
-              onClick={handleChangePassword}
-              sx={{ textTransform: 'none' }}
-            >
-              Change Password
-            </Button>
+            {/* Security Section */}
+            <Box>
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                Security
+              </Typography>
+              <Button 
+                variant="outlined"
+                startIcon={<LockResetIcon />}
+                onClick={() => setShowPasswordConfirm(true)}
+                fullWidth
+                sx={{ mt: 1.5, textTransform: 'none', justifyContent: 'flex-start' }}
+              >
+                Send Password Reset Email
+              </Button>
+            </Box>
 
-            {/* Error/Success Messages */}
+            {/* Messages */}
             {error && (
-              <Alert severity="error" onClose={() => setError('')}>
+              <Alert 
+                severity="error" 
+                onClose={() => setError('')}
+                sx={{ borderRadius: 2 }}
+              >
                 {error}
               </Alert>
             )}
             {message && (
-              <Alert severity="success" onClose={() => setMessage('')}>
+              <Alert 
+                severity="success" 
+                onClose={() => setMessage('')}
+                sx={{ borderRadius: 2 }}
+              >
                 {message}
               </Alert>
             )}
 
-            {/* More Account Settings (collapsible) */}
+            <Divider />
+
+            {/* Danger Zone */}
             <Box>
               <Button 
-                onClick={() => setShowDelete(!showDelete)}
-                sx={{ textTransform: 'none', color: 'text.secondary' }}
+                onClick={() => setShowDangerZone(!showDangerZone)}
+                startIcon={<WarningAmberIcon />}
+                sx={{ 
+                  textTransform: 'none', 
+                  color: 'text.secondary',
+                  justifyContent: 'flex-start',
+                }}
+                fullWidth
               >
-                {showDelete ? 'Hide' : 'More Account Settings'}
+                {showDangerZone ? 'Hide Danger Zone' : 'Show Danger Zone'}
               </Button>
-              <Collapse in={showDelete}>
-                <Box sx={{ mt: 2 }}>
+              <Collapse in={showDangerZone}>
+                <Box sx={{ 
+                  mt: 2, 
+                  p: 2, 
+                  bgcolor: alpha('#d32f2f', 0.05),
+                  border: 1,
+                  borderColor: 'error.light',
+                  borderRadius: 2,
+                }}>
+                  <Typography variant="subtitle2" fontWeight={600} color="error" gutterBottom>
+                    Delete Account
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" paragraph>
+                    Permanently delete your account and all associated data. This action cannot be undone.
+                  </Typography>
                   <Button
-                    variant="outlined"
+                    variant="contained"
                     color="error"
+                    startIcon={<DeleteOutlineIcon />}
+                    onClick={() => setShowDeleteConfirm(true)}
                     fullWidth
-                    onClick={handleDeleteAccount}
                     sx={{ textTransform: 'none' }}
                   >
-                    Delete Account
+                    Delete My Account
                   </Button>
                 </Box>
               </Collapse>
@@ -262,28 +372,161 @@ export default function AccountModal({ onClose, user, resetSettings }) {
           </Stack>
         </DialogContent>
 
-        <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={onClose} sx={{ textTransform: 'none' }}>
+        {/* Footer Actions */}
+        <DialogActions sx={{ 
+          p: { xs: 2, sm: 2.5 }, 
+          pt: 0,
+          gap: 1,
+          flexDirection: { xs: 'column-reverse', sm: 'row' },
+        }}>
+          <Button 
+            onClick={onClose} 
+            fullWidth={{ xs: true, sm: false }}
+            sx={{ textTransform: 'none' }}
+            disabled={saving}
+          >
             Cancel
           </Button>
           <Button 
             onClick={handleSave} 
             variant="contained" 
             color="primary"
-            sx={{ textTransform: 'none' }}
+            disabled={!hasChanges || saving}
+            fullWidth={{ xs: true, sm: false }}
+            sx={{ textTransform: 'none', minWidth: { sm: 120 } }}
           >
-            Save
+            {saving ? 'Saving...' : 'Save Changes'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {showConfirm && (
+      {/* Password Reset Confirmation */}
+      {showPasswordConfirm && (
         <ConfirmModal
+          open={showPasswordConfirm}
+          onClose={() => setShowPasswordConfirm(false)}
+          onConfirm={handlePasswordReset}
+          title="Reset Password"
           message={`Send a password reset email to ${user.email}?`}
-          onConfirm={confirmChangePassword}
-          onCancel={() => setShowConfirm(false)}
+          confirmText="Send Email"
+          cancelText="Cancel"
         />
+      )}
+
+      {/* Delete Account Confirmation - Manual Typing Required */}
+      {showDeleteConfirm && (
+        <Dialog
+          open={showDeleteConfirm}
+          onClose={() => {
+            setShowDeleteConfirm(false);
+            setDeleteConfirmText('');
+          }}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: { borderRadius: { xs: 0, sm: 3 } }
+          }}
+        >
+          <DialogTitle sx={{ 
+            borderBottom: 1, 
+            borderColor: 'divider',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            color: 'error.main',
+          }}>
+            <WarningAmberIcon />
+            Delete Account Permanently
+          </DialogTitle>
+          
+          <DialogContent sx={{ p: { xs: 2, sm: 3 }, pt: { xs: 3, sm: 3 } }}>
+            <Alert severity="error" sx={{ my: 2}}>
+              <Typography variant="body2" fontWeight={600} gutterBottom>
+                ⚠️ This action cannot be undone!
+              </Typography>
+              <Typography variant="body2">
+                All your data will be permanently deleted:
+              </Typography>
+              <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2 }}>
+                <li>Profile information and photos</li>
+                <li>Settings and preferences</li>
+                <li>All saved data</li>
+              </Box>
+            </Alert>
+
+            <Typography variant="body2" color="text.secondary" paragraph>
+              To confirm deletion, please type the following exactly (case-sensitive):
+            </Typography>
+            
+            <Box sx={{ 
+              p: 2, 
+              bgcolor: 'action.hover', 
+              borderRadius: 1,
+              mb: 2,
+              fontFamily: 'monospace',
+              textAlign: 'center',
+              fontWeight: 600,
+            }}>
+              {REQUIRED_DELETE_TEXT}
+            </Box>
+
+            <TextField
+              fullWidth
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              onPaste={(e) => e.preventDefault()}
+              onCopy={(e) => e.preventDefault()}
+              onCut={(e) => e.preventDefault()}
+              placeholder="Type here to confirm..."
+              autoComplete="off"
+              autoFocus
+              error={deleteConfirmText.length > 0 && deleteConfirmText !== REQUIRED_DELETE_TEXT}
+              helperText={
+                deleteConfirmText.length > 0 && deleteConfirmText !== REQUIRED_DELETE_TEXT
+                  ? 'Text must match exactly (case-sensitive)'
+                  : 'Paste is disabled - you must type manually'
+              }
+              sx={{
+                '& input': {
+                  fontFamily: 'monospace',
+                }
+              }}
+            />
+          </DialogContent>
+
+          <DialogActions sx={{ p: { xs: 2, sm: 3 }, pt: 0, gap: 1 }}>
+            <Button
+              onClick={() => {
+                setShowDeleteConfirm(false);
+                setDeleteConfirmText('');
+              }}
+              sx={{ textTransform: 'none' }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteAccount}
+              variant="contained"
+              color="error"
+              disabled={deleteConfirmText !== REQUIRED_DELETE_TEXT}
+              sx={{ textTransform: 'none' }}
+            >
+              Delete Forever
+            </Button>
+          </DialogActions>
+        </Dialog>
       )}
     </>
   );
 }
+
+AccountModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  user: PropTypes.shape({
+    uid: PropTypes.string.isRequired,
+    email: PropTypes.string.isRequired,
+    displayName: PropTypes.string,
+    photoURL: PropTypes.string,
+  }).isRequired,
+};

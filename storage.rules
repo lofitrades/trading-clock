@@ -1,0 +1,49 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules for Time 2 Trade
+// Last Updated: 2025-12-16
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the file
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Helper function to validate image file type
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    // Helper function to validate file size (max 5MB)
+    function isValidSize() {
+      return request.resource.size < 5 * 1024 * 1024; // 5MB in bytes
+    }
+
+    // Profile Pictures - users can manage their own profile photos
+    match /profilePictures/{userId} {
+      // Allow read if authenticated (anyone can see profile pictures)
+      allow read: if isAuthenticated();
+      
+      // Allow write (create/update/delete) only for the owner
+      // For delete operations, request.resource is null, so check separately
+      allow delete: if isOwner(userId);
+      
+      // For create/update operations, validate image type and size
+      allow create, update: if isOwner(userId) 
+                             && isImage() 
+                             && isValidSize();
+    }
+
+    // Deny all other paths by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

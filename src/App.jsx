@@ -6,6 +6,8 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
+ * v2.6.9 - 2025-12-16 - Added setting-controlled timezone text label between the digital clock and session label.
+ * v2.6.8 - 2025-12-16 - Performance/UX: Memoized canvas event click handler so ClockEventsOverlay doesn't re-render on 1s clock ticks (stabilizes marker tooltips).
  * v2.6.7 - 2025-12-15 - Added date range label above clock when showing events from Yesterday/Tomorrow or other non-today dates.
  * v2.6.6 - 2025-12-15 - Tag canvas-triggered event auto-scrolls so timeline can apply a longer highlight animation.
  * v2.6.5 - 2025-12-11 - Added quick-access economic events button to top-right
@@ -24,7 +26,7 @@
  * v1.0.0 - 2025-09-15 - Initial implementation
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, IconButton, Tooltip, Typography, alpha } from '@mui/material';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import { useSettings } from './contexts/SettingsContext';
@@ -38,6 +40,8 @@ import SessionLabel from './components/SessionLabel';
 import SettingsSidebar2 from './components/SettingsSidebar2';
 import EconomicEvents3 from './components/EconomicEvents3';
 import LoadingScreen from './components/LoadingScreen';
+import EmailLinkHandler from './components/EmailLinkHandler';
+import AuthModal from './components/AuthModal';
 import { isColorDark } from './utils/clockUtils';
 import { getDatePartsInTimezone, getUtcDateForTimezone } from './utils/dateUtils';
 import './index.css';  // Import global CSS styles
@@ -51,24 +55,14 @@ export default function App() {
     clockSize,
     sessions,
     selectedTimezone,
-    updateClockStyle,
-    updateCanvasSize,
-    updateClockSize,
-    updateSessions,
     backgroundColor,
-    updateBackgroundColor,
     backgroundBasedOnSession,
-    toggleBackgroundBasedOnSession,
     showHandClock,
     showDigitalClock,
     showSessionLabel,
-    toggleShowHandClock,
-    toggleShowDigitalClock,
-    toggleShowSessionLabel,
+    showTimezoneLabel,
     showTimeToEnd,
     showTimeToStart,
-    toggleShowTimeToEnd,
-    toggleShowTimeToStart,
     showSessionNamesInCanvas,
     showEventsOnCanvas,
     eventFilters,
@@ -80,6 +74,7 @@ export default function App() {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [eventsOpen, setEventsOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [calculatedClockSize, setCalculatedClockSize] = useState(clockSize);
   const [hasCalculatedClockSize, setHasCalculatedClockSize] = useState(false);
   const appContainerRef = useRef(null);
@@ -88,12 +83,18 @@ export default function App() {
   const handAnglesRef = useRef({ hour: 0, minute: 0, second: 0 });
   const [overlayLoading, setOverlayLoading] = useState(showHandClock && showEventsOnCanvas);
 
-  const openEventsFor = (evt) => {
+  const timezoneLabelText = useMemo(() => {
+    if (!selectedTimezone) return '';
+    return selectedTimezone.replace(/_/g, ' ');
+  }, [selectedTimezone]);
+
+  const openEventsFor = useCallback((evt, meta) => {
     setEventsOpen(true);
     if (evt?.id) {
-      setAutoScrollRequest({ eventId: evt.id, ts: Date.now(), source: 'canvas' });
+      const source = meta?.source || 'canvas';
+      setAutoScrollRequest({ eventId: evt.id, ts: Date.now(), source });
     }
-  };
+  }, [setAutoScrollRequest, setEventsOpen]);
 
   // Calculate the actual clock size based on viewport height and percentage
   useEffect(() => {
@@ -109,10 +110,11 @@ export default function App() {
       
       // Element height ratios relative to canvas size (based on 375px reference)
       const digitalClockRatio = showDigitalClock ? 0.133 : 0; // ~50px / 375px
+      const timezoneLabelRatio = showTimezoneLabel ? 0.07 : 0; // ~26px / 375px
       const sessionLabelRatio = showSessionLabel ? 0.213 : 0; // ~80px / 375px
       
       // Total ratio: canvas + digital clock + session label
-      const totalRatio = 1 + digitalClockRatio + sessionLabelRatio;
+      const totalRatio = 1 + digitalClockRatio + timezoneLabelRatio + sessionLabelRatio;
       
       // Available height for all elements (minimal buffer)
       const availableHeight = viewportHeight - settingsButtonHeight - 10; // 10px tiny buffer
@@ -129,8 +131,9 @@ export default function App() {
       
       // Verify everything fits with actual scaled sizes
       const actualDigitalHeight = showDigitalClock ? Math.round(60 * (calculatedSize / baseSize)) : 0;
+      const actualTimezoneLabelHeight = showTimezoneLabel ? Math.round(28 * (calculatedSize / baseSize)) : 0;
       const actualLabelHeight = showSessionLabel ? Math.round(100 * (calculatedSize / baseSize)) : 0;
-      const totalHeightNeeded = calculatedSize + actualDigitalHeight + actualLabelHeight + settingsButtonHeight + 20;
+      const totalHeightNeeded = calculatedSize + actualDigitalHeight + actualTimezoneLabelHeight + actualLabelHeight + settingsButtonHeight + 20;
       
       // If we exceed viewport at 100%, adjust down
       if (canvasSize === 100 && totalHeightNeeded > viewportHeight) {
@@ -146,7 +149,8 @@ export default function App() {
     window.addEventListener('resize', calculateSize);
     
     return () => window.removeEventListener('resize', calculateSize);
-  }, [canvasSize, showDigitalClock, showSessionLabel]);
+  }, [canvasSize, showDigitalClock, showSessionLabel, showTimezoneLabel]);
+
 
   // If background toggle is on, use the active session color.
   const effectiveBackground =
@@ -181,6 +185,9 @@ export default function App() {
 
   return (
     <>
+      {/* Global email link handler */}
+      <EmailLinkHandler />
+      
       <LoadingScreen isLoading={showLoadingScreen} clockSize={calculatedClockSize} />
       
       <div
@@ -350,6 +357,32 @@ export default function App() {
               textColor={effectiveTextColor}
             />
           )}
+          {showTimezoneLabel && !renderSkeleton && timezoneLabelText && (
+            <Box
+              sx={{
+                textAlign: 'center',
+                mt: { xs: 0, sm: 0 },
+                mb: { xs: 0.5, sm: 1.5 },
+                px: { xs: 1.5, sm: 2 },
+                maxWidth: { xs: '95%', sm: calculatedClockSize },
+                mx: 'auto',
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                  fontSize: { xs: '0.75rem', sm: '0.8rem' },
+                  lineHeight: 1.35,
+                  display: 'block',
+                  wordBreak: 'break-word',
+                }}
+              >
+                {timezoneLabelText}
+              </Typography>
+            </Box>
+          )}
           {showSessionLabel && !renderSkeleton && (
             <SessionLabel
               activeSession={activeSession}
@@ -366,6 +399,7 @@ export default function App() {
         <SettingsSidebar2
           open={settingsOpen}
           onClose={() => setSettingsOpen(false)}
+          onOpenAuth={() => setAuthModalOpen(true)}
         />
 
         {/* Economic Events Panel - Keep mounted for smooth navigation */}
@@ -373,8 +407,14 @@ export default function App() {
           open={eventsOpen}
           onClose={closeEvents}
           autoScrollRequest={autoScrollRequest}
-          onOpenAuth={() => setSettingsOpen(true)}
+          onOpenAuth={() => setAuthModalOpen(true)}
           onOpenSettings={() => setSettingsOpen(true)}
+        />
+
+        {/* Standalone Auth Modal - Enterprise pattern: auth at root level */}
+        <AuthModal 
+          open={authModalOpen}
+          onClose={() => setAuthModalOpen(false)}
         />
       </div>
     </>

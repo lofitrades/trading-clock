@@ -5,6 +5,7 @@
  * Key responsibility: Persist user timezone selection to Firestore via SettingsContext while gating guest edits.
  * 
  * Changelog:
+ * v1.3.8 - 2025-12-16 - Added optional children slot to render related timezone settings inside the same card.
  * v1.3.7 - 2025-12-11 - Enter in search forwards to Autocomplete to select highlighted option
  * v1.3.6 - 2025-12-11 - Forward arrow keys for keyboard navigation through results
  * v1.3.5 - 2025-12-11 - Allow Enter key to select highlighted option from search
@@ -88,7 +89,7 @@ const SearchablePopper = React.forwardRef(
 );
 SearchablePopper.displayName = 'SearchablePopper';
 
-export default function TimezoneSelector({ textColor = 'inherit', onRequestSignUp }) {
+export default function TimezoneSelector({ textColor = 'inherit', onRequestSignUp, children }) {
   const { user } = useAuth();
   const { selectedTimezone, updateSelectedTimezone } = useSettings();
   const [showUnlock, setShowUnlock] = useState(false);
@@ -343,6 +344,19 @@ export default function TimezoneSelector({ textColor = 'inherit', onRequestSignU
             )}
           />
         </Box>
+
+        {children ? (
+          <Box
+            sx={{
+              p: { xs: 1.25, sm: 1.5 },
+              borderTop: 1,
+              borderColor: 'divider',
+              bgcolor: 'background.paper',
+            }}
+          >
+            {children}
+          </Box>
+        ) : null}
       </Paper>
 
       {showUnlock && (

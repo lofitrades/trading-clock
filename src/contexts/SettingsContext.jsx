@@ -5,6 +5,7 @@
  * Supplies clock visibility, styling, timezone, news source, and economic events overlay controls to the app.
  * 
  * Changelog:
+ * v1.2.2 - 2025-12-16 - Added showTimezoneLabel toggle with persistence to show/hide the timezone label in the main clock view.
  * v1.2.1 - 2025-12-12 - Persist favorites-only filter for economic events.
  * v1.2.0 - 2025-12-09 - Added showEventsOnCanvas toggle with persistence to control clock event markers visibility.
  * v1.1.0 - 2025-12-01 - Added newsSource preference and eventFilters persistence for economic events features.
@@ -53,6 +54,7 @@ export function SettingsProvider({ children }) {
   const [showHandClock, setShowHandClock] = useState(true);
   const [showDigitalClock, setShowDigitalClock] = useState(true);
   const [showSessionLabel, setShowSessionLabel] = useState(true);
+  const [showTimezoneLabel, setShowTimezoneLabel] = useState(true);
   const [showTimeToEnd, setShowTimeToEnd] = useState(true);
   const [showTimeToStart, setShowTimeToStart] = useState(true);
   const [showSessionNamesInCanvas, setShowSessionNamesInCanvas] = useState(false);
@@ -86,6 +88,7 @@ export function SettingsProvider({ children }) {
       const savedShowHandClock = localStorage.getItem('showHandClock');
       const savedShowDigitalClock = localStorage.getItem('showDigitalClock');
       const savedShowSessionLabel = localStorage.getItem('showSessionLabel');
+      const savedShowTimezoneLabel = localStorage.getItem('showTimezoneLabel');
       const savedShowTimeToEnd = localStorage.getItem('showTimeToEnd');
       const savedShowTimeToStart = localStorage.getItem('showTimeToStart');
       const savedShowSessionNamesInCanvas = localStorage.getItem('showSessionNamesInCanvas');
@@ -105,6 +108,7 @@ export function SettingsProvider({ children }) {
       if (savedShowHandClock !== null) setShowHandClock(savedShowHandClock === 'true');
       if (savedShowDigitalClock !== null) setShowDigitalClock(savedShowDigitalClock === 'true');
       if (savedShowSessionLabel !== null) setShowSessionLabel(savedShowSessionLabel === 'true');
+      if (savedShowTimezoneLabel !== null) setShowTimezoneLabel(savedShowTimezoneLabel === 'true');
       if (savedShowTimeToEnd !== null) setShowTimeToEnd(savedShowTimeToEnd === 'true');
       if (savedShowTimeToStart !== null) setShowTimeToStart(savedShowTimeToStart === 'true');
       if (savedShowSessionNamesInCanvas !== null) setShowSessionNamesInCanvas(savedShowSessionNamesInCanvas === 'true');
@@ -157,6 +161,7 @@ export function SettingsProvider({ children }) {
             if (data.settings.showHandClock !== undefined) setShowHandClock(data.settings.showHandClock);
             if (data.settings.showDigitalClock !== undefined) setShowDigitalClock(data.settings.showDigitalClock);
             if (data.settings.showSessionLabel !== undefined) setShowSessionLabel(data.settings.showSessionLabel);
+            if (data.settings.showTimezoneLabel !== undefined) setShowTimezoneLabel(data.settings.showTimezoneLabel);
             if (data.settings.showTimeToEnd !== undefined) setShowTimeToEnd(data.settings.showTimeToEnd);
             if (data.settings.showTimeToStart !== undefined) setShowTimeToStart(data.settings.showTimeToStart);
             if (data.settings.showSessionNamesInCanvas !== undefined) setShowSessionNamesInCanvas(data.settings.showSessionNamesInCanvas);
@@ -192,6 +197,7 @@ export function SettingsProvider({ children }) {
               showHandClock,
               showDigitalClock,
               showSessionLabel,
+              showTimezoneLabel,
               showTimeToEnd,
               showTimeToStart,
               showSessionNamesInCanvas,
@@ -314,6 +320,15 @@ export function SettingsProvider({ children }) {
     return true;
   };
 
+  const toggleShowTimezoneLabel = () => {
+    setShowTimezoneLabel(prev => {
+      const newValue = !prev;
+      localStorage.setItem('showTimezoneLabel', newValue);
+      if (user) saveSettingsToFirestore({ showTimezoneLabel: newValue });
+      return newValue;
+    });
+  };
+
   const toggleShowTimeToEnd = () => {
     setShowTimeToEnd(prev => {
       const newValue = !prev;
@@ -416,6 +431,7 @@ export function SettingsProvider({ children }) {
     setShowHandClock(true);
     setShowDigitalClock(true);
     setShowSessionLabel(true);
+    setShowTimezoneLabel(true);
     setShowTimeToEnd(true);
     setShowTimeToStart(true);
     setShowSessionNamesInCanvas(false);
@@ -444,6 +460,7 @@ export function SettingsProvider({ children }) {
         showHandClock: true,
         showDigitalClock: true,
         showSessionLabel: true,
+        showTimezoneLabel: true,
         showTimeToEnd: true,
         showTimeToStart: true,
         showSessionNamesInCanvas: false,
@@ -475,9 +492,11 @@ export function SettingsProvider({ children }) {
     showHandClock,
     showDigitalClock,
     showSessionLabel,
+    showTimezoneLabel,
     toggleShowHandClock,
     toggleShowDigitalClock,
     toggleShowSessionLabel,
+    toggleShowTimezoneLabel,
     showTimeToEnd,
     showTimeToStart,
     toggleShowTimeToEnd,

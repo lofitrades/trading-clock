@@ -7,6 +7,7 @@
  * timezone-aware display formatting.
  *
  * Changelog:
+ * v1.0.1 - 2025-12-16 - Marked timezone param as intentionally unused to satisfy lint.
  * v1.0.0 - 2025-12-15 - Initial implementation: centralized NOW/NEXT detection with absolute epoch comparisons.
  */
 
@@ -78,6 +79,8 @@ export function getEventEpochMs(event) {
  * @returns {number} - Current epoch milliseconds
  */
 export function getNowEpochMs(_timezone) {
+  // Keep signature for API compatibility; explicitly mark unused for lint
+  void _timezone;
   return Date.now();
 }
 

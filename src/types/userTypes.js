@@ -184,7 +184,8 @@ export const DEFAULT_USER_PROFILE = {
   settings: {
     emailNotifications: true,
     eventAlerts: false,
-    timezone: 'America/New_York',
+    selectedTimezone: 'America/New_York',
+    showTimezoneLabel: true,
   },
   createdAt: null,
   updatedAt: null,
@@ -231,6 +232,7 @@ export const DEFAULT_USER_PROFILE = {
  *     showHandClock: boolean,
  *     showDigitalClock: boolean,
  *     showSessionLabel: boolean,
+ *     showTimezoneLabel: boolean,
  *     showTimeToEnd: boolean,
  *     showTimeToStart: boolean,
  *     showSessionNamesInCanvas: boolean,

@@ -1851,6 +1851,12 @@ export default function EventsTimeline2({
   }, [clearHighlightTimeout]);
 
   const isCanvasAutoScroll = useMemo(() => {
+    if (typeof autoScrollToNextKey !== 'object' || !autoScrollToNextKey) return false;
+    const source = String(autoScrollToNextKey?.source || '');
+    return source.startsWith('canvas');
+  }, [autoScrollToNextKey]);
+
+  const shouldHighlightSimultaneous = useMemo(() => {
     return typeof autoScrollToNextKey === 'object' && autoScrollToNextKey?.source === 'canvas';
   }, [autoScrollToNextKey]);
   
@@ -2261,7 +2267,7 @@ export default function EventsTimeline2({
 
     const targetEventData = sortedEvents.find((evt) => evt.id === targetIdFromToken);
     const targetTime = targetEventData ? new Date(targetEventData.date).getTime() : null;
-    const simultaneousIds = targetTime
+    const simultaneousIds = (shouldHighlightSimultaneous && targetTime)
       ? sortedEvents
           .filter((evt) => evt.id && new Date(evt.date).getTime() === targetTime)
           .map((evt) => evt.id)
@@ -2279,7 +2285,7 @@ export default function EventsTimeline2({
     };
 
     requestAnimationFrame(scrollToTarget);
-  }, [targetToken, targetIdFromToken, targetIndex, sortedEvents, triggerHighlight, visibleDayRange, dayGroups, timezone, isCanvasAutoScroll]);
+  }, [targetToken, targetIdFromToken, targetIndex, sortedEvents, triggerHighlight, visibleDayRange, dayGroups, timezone, isCanvasAutoScroll, shouldHighlightSimultaneous]);
 
   /**
    * Fallback: auto-scroll to next event when no explicit target is provided (once per mount/open).
