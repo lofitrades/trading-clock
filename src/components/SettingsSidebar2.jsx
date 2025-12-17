@@ -5,6 +5,7 @@
  * Inspired by modern app shells (Airbnb/ChatGPT) with quick toggles, sectional pills, and responsive cards that mirror existing settings logic.
  * 
  * Changelog:
+ * v1.2.7 - 2025-12-17 - Replaced hardcoded About content with dynamic loading from AboutContent.txt for SEO-rich enterprise copywriting.
  * v1.2.6 - 2025-12-16 - Hide settings drawer when reset confirmation is open so the modal always sits on top.
  * v1.2.5 - 2025-12-16 - Moved Show timezone label toggle into Visibility between Digital Clock and Session Label.
  * v1.2.4 - 2025-12-16 - Removed trailing double border in Visibility by aligning child dividers with outer card.
@@ -22,7 +23,7 @@
  */
 
 import PropTypes from 'prop-types';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
 	Alert,
 	Avatar,
@@ -160,8 +161,16 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 	const [clearSessionIndex, setClearSessionIndex] = useState(null);
 	const [userMenuAnchor, setUserMenuAnchor] = useState(null);
 	const [toggleError, setToggleError] = useState('');
+	const [aboutContent, setAboutContent] = useState('');
 
 	const { isFullscreen, canFullscreen, toggleFullscreen } = useFullscreen();
+
+	useEffect(() => {
+		fetch('/AboutContent.txt')
+			.then((response) => response.text())
+			.then((text) => setAboutContent(text))
+			.catch((error) => console.error('Failed to load About content:', error));
+	}, []);
 
 	const handleUserMenuClose = () => setUserMenuAnchor(null);
 
@@ -698,40 +707,49 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 	);
 
 	const renderAboutSection = (
-		<SectionCard title="About" subtitle="Learn more about Time 2 Trade.">
-			<Typography variant="body1" sx={{ mb: 1.5 }}>
-				<strong>Time 2 Trade</strong> is a live, timezone-aware session clock built for futures and forex day traders. The dual-ring analog canvas shows AM/PM trading sessions at a glance while your settings sync across devices.
-			</Typography>
-			<Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
-				Stay aligned with high-impact economic events, track active sessions in your local time, and keep at least one visible clock element on-screen for constant market awareness. All Pro★ features are included for free—no paywalls.
-			</Typography>
-
-			<Divider sx={{ my: 2 }} />
-
-			<Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 700 }}>
-				Developer
-			</Typography>
-			<Typography variant="body2" sx={{ mb: 2 }}>
-				Developed by: <strong>
-					<a
-						href="https://x.com/lofi_trades"
-						target="_blank"
-						rel="noopener noreferrer"
-						style={{ color: 'inherit', textDecoration: 'none' }}
-					>
-						@lofi_trades
-					</a>
-				</strong>
-			</Typography>
-
-			<Divider sx={{ my: 2 }} />
-
-			<Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 700 }}>
-				Version
-			</Typography>
-			<Typography variant="body2" color="text.secondary">
-				1.0.0-beta
-			</Typography>
+		<SectionCard>
+			<Box
+				dangerouslySetInnerHTML={{ __html: aboutContent }}
+				sx={{
+					'& h2': {
+						fontSize: { xs: '1.5rem', sm: '1.75rem' },
+						fontWeight: 700,
+						mb: 2,
+						mt: 0,
+					},
+					'& h3': {
+						fontSize: { xs: '1.1rem', sm: '1.25rem' },
+						fontWeight: 700,
+						mb: 1.5,
+						mt: 3,
+					},
+					'& p': {
+						fontSize: { xs: '0.95rem', sm: '1rem' },
+						lineHeight: 1.7,
+						mb: 2,
+						color: 'text.primary',
+					},
+					'& ul': {
+						pl: 3,
+						mb: 2,
+					},
+					'& li': {
+						fontSize: { xs: '0.95rem', sm: '1rem' },
+						lineHeight: 1.7,
+						mb: 1,
+					},
+					'& strong': {
+						fontWeight: 700,
+					},
+					'& a': {
+						color: 'primary.main',
+						textDecoration: 'none',
+						'&:hover': {
+							textDecoration: 'underline',
+						},
+					},
+				}}
+			/>
 		</SectionCard>
 	);
 
