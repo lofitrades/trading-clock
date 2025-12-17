@@ -67,6 +67,8 @@ export default function App() {
     showTimeToStart,
     showSessionNamesInCanvas,
     showEventsOnCanvas,
+    hideClockNumbers,
+    hideClockHands,
     eventFilters,
     newsSource,
   } = useSettings();
@@ -338,6 +340,8 @@ export default function App() {
                     handColor={effectiveTextColor}
                     clockStyle={clockStyle}
                     showSessionNamesInCanvas={showSessionNamesInCanvas}
+                    hideClockNumbers={hideClockNumbers}
+                    hideClockHands={hideClockHands}
                     activeSession={activeSession}
                     backgroundBasedOnSession={backgroundBasedOnSession}
                     renderHandsInCanvas={false}
