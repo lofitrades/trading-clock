@@ -1,22 +1,13 @@
 /**
- * Firebase Cloud Functions for Time 2 Trade - Economic Events Calendar
+ * functions/src/index.ts
  *
- * This module contains Cloud Functions for syncing economic events data
- * to the canonical collection (/economicEvents/events/events).
+ * Purpose: Cloud Functions entrypoint for Time 2 Trade economic events sync,
+ * orchestrating scheduled breadth (NFS weekly) and depth (JBlanked actuals)
+ * updates into the canonical economic events collection.
  *
- * Current Functions:
- * - syncWeekFromNfsScheduled: Hourly sync from NFS for weekly schedule (breadth)
- * - syncWeekFromNfsNow: Manual NFS weekly sync trigger
- * - syncTodayActualsFromJblanked: Daily sync from JBlanked for actual values (depth)
- * - syncTodayActualsFromJblankedNow: Manual JBlanked actuals sync trigger
- *
- * Architecture:
- * - NFS provides weekly schedule breadth (refreshed hourly)
- * - JBlanked provides actual values depth (daily after major releases)
- * - Both write to unified canonical collection
- *
- * @see https://nfs.faireconomy.media/
- * @see https://www.jblanked.com/news/api/docs/calendar/
+ * Changelog:
+ * v1.1.0 - 2025-12-16 - Updated JBlanked actuals schedule to 11:59 AM ET daily.
+ * v1.0.0 - 2025-12-11 - Initial functions entry with NFS + JBlanked sync flows.
  */
 
 // Load environment variables from .env file (local development only)
@@ -93,11 +84,11 @@ export const syncWeekFromNfsNow = onRequest(
 
 /**
  * Scheduled Cloud Function - JBlanked actuals patcher (depth)
- * Runs daily after major US releases to capture actual values.
+ * Runs daily at 11:59 AM America/New_York to capture actual values.
  */
 export const syncTodayActualsFromJblanked = onSchedule(
   {
-    schedule: "0 22 * * *",
+    schedule: "59 11 * * *",
     timeZone: "America/New_York",
     timeoutSeconds: 300,
     memory: "256MiB",

@@ -1,4 +1,14 @@
-// src/utils/clockUtils.js
+/**
+ * src/utils/clockUtils.js
+ *
+ * Purpose: Clock drawing utilities for the Time 2 Trade canvas (static elements, numbers, sessions, and hands).
+ * Key responsibility and main functionality: Compute stroke widths and render static/dynamic clock layers with session arcs and labels.
+ *
+ * Changelog:
+ * v1.1.0 - 2025-12-16 - Added file header and removed unused showSessionNamesInCanvas parameter from drawClockNumbers.
+ * v1.0.0 - 2025-09-15 - Initial implementation.
+ */
+
 export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
     // Base line width for Normal at 50% (375px reference size)
     // Scale proportionally based on current size
@@ -32,7 +42,7 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
   };
   
   export const drawClockNumbers = (ctx, centerX, centerY, radius, textColor, clockStyle = 'normal', showSessionNamesInCanvas = false) => {
-    ctx.font = `${radius * 0.085}px Roboto`; // change this to make it more aesthetic
+    ctx.font = `${radius * 0.085}px Poppins`; // change this to make it more aesthetic
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = textColor; // Apply dynamic text color
@@ -46,7 +56,7 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
     } else if (clockStyle === 'aesthetic') {
       numberRadius = 0.18; 
     } else {
-      numberRadius = 0.29;
+      numberRadius = showSessionNamesInCanvas ? 0.24 : 0.29;
     }
   
     for (let num = 1; num <= 12; num++) {
@@ -258,7 +268,7 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
               
               // Font size based on donut width
               const fontSize = Math.max(9, Math.min(currentWidth * 0.45, 13));
-              ctx.font = `${fontSize}px Roboto`;
+              ctx.font = `${fontSize}px Poppins`;
               
               // Use donut color for text
               ctx.fillStyle = kz.color;

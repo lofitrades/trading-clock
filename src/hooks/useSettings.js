@@ -1,4 +1,13 @@
-/* src/hooks/useSettings.js */
+/**
+ * src/hooks/useSettings.js
+ * 
+ * Purpose: Legacy settings hook with localStorage and Firestore persistence for clock/session preferences.
+ * Primarily kept for backward compatibility with older components; mirrors SettingsContext behavior.
+ * 
+ * Changelog:
+ * v1.1.0 - 2025-12-16 - Locked clock style to normal and canvas size to 100%; removed mutation for these settings.
+ * v1.0.0 - 2025-09-15 - Initial implementation
+ */
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
@@ -20,8 +29,8 @@ export function useSettings() {
   
   // Settings hook with full localStorage and Firestore persistence
 
-  const [clockStyle, setClockStyle] = useState('normal'); // 'normal' or 'aesthetic'
-  const [canvasSize, setCanvasSize] = useState(75); // 25, 50, 75, or 100 (percentage)
+  const clockStyle = 'normal';
+  const canvasSize = 100;
   const [clockSize, setClockSize] = useState(375); // Legacy - kept for backward compatibility
   const [sessions, setSessions] = useState([...defaultSessions]);
   const [selectedTimezone, setSelectedTimezone] = useState('America/New_York');
@@ -38,8 +47,6 @@ export function useSettings() {
     // Remove reliance on localStorage for default settings.
     // When the user logs out, localStorage is cleared.
     // Here we load settings from localStorage only if available.
-    const savedClockStyle = localStorage.getItem('clockStyle');
-    const savedCanvasSize = localStorage.getItem('canvasSize');
     const savedSize = localStorage.getItem('clockSize');
     const savedSessions = localStorage.getItem('sessions');
     const savedTimezone = localStorage.getItem('selectedTimezone');
@@ -52,8 +59,6 @@ export function useSettings() {
     const savedShowTimeToStart = localStorage.getItem('showTimeToStart');
     const savedShowSessionNamesInCanvas = localStorage.getItem('showSessionNamesInCanvas');
 
-    if (savedClockStyle) setClockStyle(savedClockStyle);
-    if (savedCanvasSize) setCanvasSize(parseInt(savedCanvasSize));
     if (savedSize) setClockSize(parseInt(savedSize));
     if (savedSessions) setSessions(JSON.parse(savedSessions));
     if (savedTimezone) setSelectedTimezone(savedTimezone);
@@ -76,8 +81,6 @@ export function useSettings() {
       if (snap.exists()) {
         const data = snap.data();
         if (data.settings) {
-          if (data.settings.clockStyle) setClockStyle(data.settings.clockStyle);
-          if (data.settings.canvasSize !== undefined) setCanvasSize(data.settings.canvasSize);
           if (data.settings.clockSize) setClockSize(data.settings.clockSize);
           if (data.settings.sessions) setSessions(data.settings.sessions);
           if (data.settings.selectedTimezone) setSelectedTimezone(data.settings.selectedTimezone);
@@ -121,18 +124,6 @@ export function useSettings() {
     const userRef = doc(db, 'users', user.uid);
     await setDoc(userRef, { settings: { ...newSettings } }, { merge: true });
   }
-
-  const updateClockStyle = (style) => {
-    setClockStyle(style);
-    localStorage.setItem('clockStyle', style);
-    if (user) saveSettingsToFirestore({ clockStyle: style });
-  };
-
-  const updateCanvasSize = (size) => {
-    setCanvasSize(size);
-    localStorage.setItem('canvasSize', size);
-    if (user) saveSettingsToFirestore({ canvasSize: size });
-  };
 
   const updateClockSize = (size) => {
     setClockSize(size);
@@ -244,8 +235,6 @@ export function useSettings() {
     // Create deep copy of default sessions to ensure colors are fully reset
     const resetSessions = defaultSessions.map(session => ({ ...session }));
     
-    setClockStyle('normal');
-    setCanvasSize(75);
     setClockSize(375);
     setSessions(resetSessions);
     setSelectedTimezone('America/New_York');
@@ -265,8 +254,6 @@ export function useSettings() {
     clockSize,
     sessions,
     selectedTimezone,
-    updateClockStyle,
-    updateCanvasSize,
     updateClockSize,
     updateSessions,
     setSelectedTimezone,

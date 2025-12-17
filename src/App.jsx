@@ -6,6 +6,8 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
+ * v2.6.11 - 2025-12-16 - Apply background-aware contrast color to timezone and session labels.
+ * v2.6.10 - 2025-12-16 - Hide settings drawer whenever auth modal is shown to avoid overlapping overlays.
  * v2.6.9 - 2025-12-16 - Added setting-controlled timezone text label between the digital clock and session label.
  * v2.6.8 - 2025-12-16 - Performance/UX: Memoized canvas event click handler so ClockEventsOverlay doesn't re-render on 1s clock ticks (stabilizes marker tooltips).
  * v2.6.7 - 2025-12-15 - Added date range label above clock when showing events from Yesterday/Tomorrow or other non-today dates.
@@ -96,6 +98,11 @@ export default function App() {
     }
   }, [setAutoScrollRequest, setEventsOpen]);
 
+  const handleOpenAuth = useCallback(() => {
+    setSettingsOpen(false);
+    setAuthModalOpen(true);
+  }, []);
+
   // Calculate the actual clock size based on viewport height and percentage
   useEffect(() => {
     const calculateSize = () => {
@@ -177,6 +184,12 @@ export default function App() {
   useEffect(() => {
     setOverlayLoading(showHandClock && showEventsOnCanvas);
   }, [showHandClock, showEventsOnCanvas]);
+
+  useEffect(() => {
+    if (authModalOpen) {
+      setSettingsOpen(false);
+    }
+  }, [authModalOpen]);
 
   const closeEvents = () => {
     setEventsOpen(false);
@@ -372,7 +385,7 @@ export default function App() {
                 variant="caption"
                 sx={{
                   fontWeight: 600,
-                  color: 'text.secondary',
+                  color: effectiveTextColor,
                   fontSize: { xs: '0.75rem', sm: '0.8rem' },
                   lineHeight: 1.35,
                   display: 'block',
@@ -392,14 +405,15 @@ export default function App() {
               nextSession={nextSession}
               timeToStart={timeToStart}
               clockSize={calculatedClockSize}
+              contrastTextColor={effectiveTextColor}
             />
           )}
         </div>
 
         <SettingsSidebar2
-          open={settingsOpen}
+          open={settingsOpen && !authModalOpen}
           onClose={() => setSettingsOpen(false)}
-          onOpenAuth={() => setAuthModalOpen(true)}
+          onOpenAuth={handleOpenAuth}
         />
 
         {/* Economic Events Panel - Keep mounted for smooth navigation */}
@@ -407,7 +421,7 @@ export default function App() {
           open={eventsOpen}
           onClose={closeEvents}
           autoScrollRequest={autoScrollRequest}
-          onOpenAuth={() => setAuthModalOpen(true)}
+          onOpenAuth={handleOpenAuth}
           onOpenSettings={() => setSettingsOpen(true)}
         />
 

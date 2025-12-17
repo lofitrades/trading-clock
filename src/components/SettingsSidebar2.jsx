@@ -5,6 +5,13 @@
  * Inspired by modern app shells (Airbnb/ChatGPT) with quick toggles, sectional pills, and responsive cards that mirror existing settings logic.
  * 
  * Changelog:
+ * v1.2.6 - 2025-12-16 - Hide settings drawer when reset confirmation is open so the modal always sits on top.
+ * v1.2.5 - 2025-12-16 - Moved Show timezone label toggle into Visibility between Digital Clock and Session Label.
+ * v1.2.4 - 2025-12-16 - Removed trailing double border in Visibility by aligning child dividers with outer card.
+ * v1.2.3 - 2025-12-16 - Moved dividers to sit below child rows for nested settings groups in Visibility.
+ * v1.2.2 - 2025-12-16 - Moved "Session names on canvas" under Hand Clock with consistent child-row UI and removed the Labels & timing card from Sessions.
+ * v1.2.1 - 2025-12-16 - Nested "Show events on clock" under Hand Clock and removed the standalone Economic calendar card.
+ * v1.2.0 - 2025-12-16 - Removed Clock Style and Canvas Size controls; appearance is now fixed to normal at 100%.
  * v1.1.4 - 2025-12-16 - Added PropTypes for helper components and main sidebar props; no behavior changes.
  * v1.1.3 - 2025-12-16 - Moved Show timezone label toggle inside the timezone card for a single cohesive section.
  * v1.1.2 - 2025-12-16 - Added Show timezone label toggle under the timezone selector.
@@ -24,9 +31,7 @@ import {
 	Divider,
 	Drawer,
 	IconButton,
-	MenuItem as MenuItemComponent,
 	Paper,
-	Slider,
 	TextField,
 	Tooltip,
 	Typography,
@@ -122,11 +127,7 @@ function SettingRow({ label, description, children, helperText, dense }) {
 export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 	const { user } = useAuth();
 	const {
-		clockStyle,
-		canvasSize,
 		sessions,
-		updateClockStyle,
-		updateCanvasSize,
 		updateSessions,
 		backgroundColor,
 		updateBackgroundColor,
@@ -308,46 +309,232 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 					overflow: 'hidden',
 				}}
 			>
-				{[{
-					label: 'Hand Clock',
-					helper: 'Analog with sessions',
-					checked: showHandClock,
-					onChange: () => handleToggle(toggleShowHandClock),
-				}, {
-					label: 'Digital Clock',
-					helper: 'Readable digits',
-					checked: showDigitalClock,
-					onChange: () => handleToggle(toggleShowDigitalClock),
-				}, {
-					label: 'Active Label',
-					helper: 'Current session tag',
-					checked: showSessionLabel,
-					onChange: () => handleToggle(toggleShowSessionLabel),
-				}].map((item, idx) => (
+				<Box
+					sx={{
+						display: 'flex',
+						alignItems: 'center',
+						gap: 1.5,
+						px: 1.75,
+						py: 1.25,
+						bgcolor: 'background.paper',
+						borderColor: 'divider',
+					}}
+				>
+					<Box sx={{ flex: 1, minWidth: 0 }}>
+						<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+							Analog Hand Clock
+						</Typography>
+						<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+							Analog with sessions
+						</Typography>
+					</Box>
+					<SwitchComponent checked={showHandClock} onChange={() => handleToggle(toggleShowHandClock)} />
+				</Box>
+
+				{showHandClock && (
+					<Divider sx={{ width: '93%', mx: 'auto', borderColor: 'divider' }} />
+				)}
+
+				{showHandClock && (
 					<Box
-						key={item.label}
 						sx={{
 							display: 'flex',
-							alignItems: 'center',
-							gap: 1.5,
+							flexDirection: 'column',
+							gap: 1,
 							px: 1.75,
 							py: 1.25,
 							bgcolor: 'background.paper',
-							borderBottom: idx === 2 ? 'none' : '1px solid',
+							borderColor: 'divider',
+							borderBottom: '1px solid',
+							borderBottomColor: 'divider',
+						}}
+					>
+						<Box
+							sx={{
+								display: 'flex',
+								gap: 1.5,
+								alignItems: 'center',
+								borderLeft: '1px solid',
+								borderColor: 'divider',
+								pl: 1.5,
+								minHeight: 44,
+								flexWrap: 'wrap',
+						}}
+						>
+							<Box sx={{ flex: 1, minWidth: 0 }}>
+								<Typography variant="body2" sx={{ fontWeight: 600 }}>
+									Events on canvas
+								</Typography>
+								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+									Display economic event markers on the analog face
+								</Typography>
+							</Box>
+							<SwitchComponent
+								checked={showEventsOnCanvas}
+								onChange={toggleShowEventsOnCanvas}
+							/>
+						</Box>
+
+						<Box
+							sx={{
+								display: 'flex',
+								gap: 1.5,
+								alignItems: 'center',
+								borderLeft: '1px solid',
+								borderColor: 'divider',
+								pl: 1.5,
+								minHeight: 44,
+								flexWrap: 'wrap',
+						}}
+						>
+							<Box sx={{ flex: 1, minWidth: 0 }}>
+								<Typography variant="body2" sx={{ fontWeight: 600 }}>
+									Session names
+								</Typography>
+								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+									Display session names curved along the session donuts
+								</Typography>
+							</Box>
+							<SwitchComponent
+								checked={showSessionNamesInCanvas}
+								onChange={handleToggleShowSessionNamesInCanvas}
+							/>
+						</Box>
+					</Box>
+				)}
+
+				<Box
+					sx={{
+						display: 'flex',
+						alignItems: 'center',
+						gap: 1.5,
+						px: 1.75,
+						py: 1.25,
+						bgcolor: 'background.paper',
+						borderBottom: '1px solid',
+						borderColor: 'divider',
+					}}
+				>
+					<Box sx={{ flex: 1, minWidth: 0 }}>
+						<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+							Digital Clock
+						</Typography>
+						<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+							Readable digits
+						</Typography>
+					</Box>
+					<SwitchComponent checked={showDigitalClock} onChange={() => handleToggle(toggleShowDigitalClock)} />
+				</Box>
+
+				<Box
+					sx={{
+						display: 'flex',
+						alignItems: 'center',
+						gap: 1.5,
+						px: 1.75,
+						py: 1.25,
+						bgcolor: 'background.paper',
+						borderColor: 'divider',
+					}}
+				>
+					<Box sx={{ flex: 1, minWidth: 0 }}>
+						<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+							Timezone
+						</Typography>
+						<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+							Display the selected timezone.
+						</Typography>
+					</Box>
+					<SwitchComponent checked={showTimezoneLabel} onChange={toggleShowTimezoneLabel} />
+				</Box>
+
+				<Divider sx={{ width: '100%', mx: 'auto', borderColor: 'divider' }} />
+
+				<Box
+					sx={{
+						display: 'flex',
+						alignItems: 'center',
+						gap: 1.5,
+						px: 1.75,
+						py: 1.25,
+						bgcolor: 'background.paper',
+						borderColor: 'divider',
+					}}
+				>
+					<Box sx={{ flex: 1, minWidth: 0 }}>
+						<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+							Session Label
+						</Typography>
+						<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+							Current session tag
+						</Typography>
+					</Box>
+					<SwitchComponent checked={showSessionLabel} onChange={() => handleToggle(toggleShowSessionLabel)} />
+				</Box>
+
+				{showSessionLabel && (
+					<Divider sx={{ width: '93%', mx: 'auto', borderColor: 'divider' }} />
+				)}
+
+				{showSessionLabel && (
+					<Box
+						sx={{
+							display: 'flex',
+							flexDirection: 'column',
+							gap: 1,
+							px: 1.75,
+							py: 1.25,
+							bgcolor: 'background.paper',
 							borderColor: 'divider',
 						}}
 					>
-						<Box sx={{ flex: 1, minWidth: 0 }}>
-							<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
-								{item.label}
-							</Typography>
-							<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-								{item.helper}
-							</Typography>
+						<Box
+							sx={{
+								display: 'flex',
+								gap: 1.5,
+								alignItems: 'center',
+								borderLeft: '1px solid',
+								borderColor: 'divider',
+								pl: 1.5,
+								minHeight: 44,
+								flexWrap: 'wrap',
+							}}
+						>
+							<Box sx={{ flex: 1, minWidth: 0 }}>
+								<Typography variant="body2" sx={{ fontWeight: 600 }}>
+									Countdown to Start
+								</Typography>
+								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+									Display time until next session begins
+								</Typography>
+							</Box>
+							<SwitchComponent checked={showTimeToStart} onChange={handleToggleShowTimeToStart} />
 						</Box>
-						<SwitchComponent checked={item.checked} onChange={item.onChange} />
+
+						<Box
+							sx={{
+								display: 'flex',
+								gap: 1.5,
+								alignItems: 'center',
+								borderLeft: '1px solid',
+								borderColor: 'divider',
+								pl: 1.5,
+								minHeight: 44,
+								flexWrap: 'wrap',
+							}}
+						>
+							<Box sx={{ flex: 1, minWidth: 0 }}>
+								<Typography variant="body2" sx={{ fontWeight: 600 }}>
+									Countdown to End
+								</Typography>
+								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+									Display remaining time until active session ends
+								</Typography>
+							</Box>
+							<SwitchComponent checked={showTimeToEnd} onChange={handleToggleShowTimeToEnd} />
+						</Box>
 					</Box>
-				))}
+				)}
 			</Paper>
 			{toggleError && (
 				<Alert severity="error" sx={{ mt: 1.25 }}>
@@ -360,89 +547,12 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 	const renderGeneralSection = (
 		<>
 			<Box sx={{ mb: { xs: 2, sm: 3 } }}>
-				<TimezoneSelector onRequestSignUp={onOpenAuth}>
-					<Paper
-						elevation={0}
-						sx={{
-							borderRadius: 3,
-							border: 1,
-							borderColor: 'divider',
-							overflow: 'hidden',
-						}}
-					>
-						<Box
-							sx={{
-								display: 'flex',
-								alignItems: 'center',
-								gap: 1.5,
-								px: 1.75,
-								py: 1.25,
-								bgcolor: 'background.paper',
-							}}
-						>
-							<Box sx={{ flex: 1, minWidth: 0 }}>
-								<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
-									Show timezone label
-								</Typography>
-								<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-									Display the selected timezone.
-								</Typography>
-							</Box>
-							<SwitchComponent checked={showTimezoneLabel} onChange={toggleShowTimezoneLabel} />
-						</Box>
-					</Paper>
-				</TimezoneSelector>
+				<TimezoneSelector onRequestSignUp={onOpenAuth} />
 			</Box>
 
 			{quickToggles}
 
 			<SectionCard>
-				<Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.4, color: 'text.secondary', display: 'block', mb: 1 }}>
-					Appearance
-				</Typography>
-				<Paper
-					elevation={0}
-					sx={{
-						border: 1,
-						borderColor: 'divider',
-						borderRadius: 3,
-						overflow: 'hidden',
-						mb: 2,
-					}}
-				>
-					<Box sx={{ px: 1.75, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-						<SettingRow label="Clock Style" description="Choose the visual style of your clock">
-							<TextField
-								select
-								value={clockStyle}
-								onChange={(event) => updateClockStyle(event.target.value)}
-								size="small"
-								sx={{ minWidth: 160 }}
-							>
-								<MenuItemComponent value="normal">Normal</MenuItemComponent>
-								<MenuItemComponent value="aesthetic">Aesthetic</MenuItemComponent>
-								<MenuItemComponent value="minimalistic">Minimalistic</MenuItemComponent>
-							</TextField>
-						</SettingRow>
-					</Box>
-					<Box sx={{ px: 1.75, py: 1.5 }}>
-						<Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
-							Canvas Size
-						</Typography>
-						<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-							Drag to resize and watch the canvas update live.
-						</Typography>
-						<Slider
-							value={canvasSize}
-							onChange={(event, value) => updateCanvasSize(value)}
-							min={25}
-							max={100}
-							valueLabelDisplay="auto"
-							valueLabelFormat={(value) => `${value}%`}
-						/>
-					</Box>
-				</Paper>
-
 				<Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.4, color: 'text.secondary', display: 'block', mb: 1 }}>
 					Background
 				</Typography>
@@ -469,41 +579,12 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 					</Box>
 					<Box sx={{ px: 1.75, py: 1.25 }}>
 						<SettingRow
-							label="Session-based background"
+							label="Session-based Background"
 							description="Automatically shift background color to match the active session"
 						>
 							<SwitchComponent
 								checked={backgroundBasedOnSession}
 								onChange={toggleBackgroundBasedOnSession}
-							/>
-						</SettingRow>
-					</Box>
-				</Paper>
-
-				<Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.4, color: 'text.secondary', display: 'block', mb: 1 }}>
-					Economic calendar
-				</Typography>
-				<Paper
-					elevation={0}
-					sx={{
-						border: 1,
-						borderColor: 'divider',
-						borderRadius: 3,
-						overflow: 'hidden',
-						mb: 2,
-					}}
-				>
-					<Box sx={{ px: 1.75, py: 1.25 }}>
-						<SettingRow
-							label="Show events on clock"
-							description="Display economic event markers on the analog face"
-							helperText={!showHandClock ? 'Enable the hand clock to see events plotted on the analog face.' : ''}
-							dense
-						>
-							<SwitchComponent
-								checked={showEventsOnCanvas && showHandClock}
-								onChange={toggleShowEventsOnCanvas}
-								disabled={!showHandClock}
 							/>
 						</SettingRow>
 					</Box>
@@ -612,64 +693,6 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 					))}
 				</Paper>
 
-				<Divider sx={{ my: 2 }} />
-
-				<Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.4, color: 'text.secondary', display: 'block', mb: 1 }}>
-					Labels & timing
-				</Typography>
-				<Paper
-					elevation={0}
-					sx={{
-						border: 1,
-						borderColor: 'divider',
-						borderRadius: 3,
-						overflow: 'hidden',
-						mb: 2,
-					}}
-				>
-					{[{
-						label: 'Show Time to End',
-						description: 'Display remaining time until active session ends',
-						control: <SwitchComponent checked={showTimeToEnd} onChange={handleToggleShowTimeToEnd} />,
-					}, {
-						label: 'Show Time to Start',
-						description: 'Display time until next session begins',
-						control: <SwitchComponent checked={showTimeToStart} onChange={handleToggleShowTimeToStart} />,
-					}, {
-						label: 'Session names on canvas',
-						description: 'Display session names curved along the session donuts',
-						control: (
-							<SwitchComponent
-								checked={showSessionNamesInCanvas}
-								onChange={handleToggleShowSessionNamesInCanvas}
-							/>
-						),
-					}].map((row, idx) => (
-						<Box
-							key={row.label}
-							sx={{
-								px: 1.75,
-								py: 1.25,
-								borderBottom: idx === 2 ? 'none' : '1px solid',
-								borderColor: 'divider',
-								display: 'flex',
-								gap: 1.5,
-								alignItems: 'flex-start',
-							}}
-						>
-							<Box sx={{ flex: 1, minWidth: 0 }}>
-								<Typography variant="body1" sx={{ fontWeight: 600, fontSize: { xs: '0.95rem', sm: '1rem' } }}>
-									{row.label}
-								</Typography>
-								<Typography variant="body2" color="text.secondary" sx={{ mt: 0.25, lineHeight: 1.6 }}>
-									{row.description}
-								</Typography>
-							</Box>
-							<Box sx={{ flexShrink: 0 }}>{row.control}</Box>
-						</Box>
-					))}
-				</Paper>
-
 			</SectionCard>
 		</>
 	);
@@ -722,7 +745,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 		<>
 			<Drawer
 				anchor="right"
-				open={open && !showUnlockModal && !showAccountModal}
+				open={open && !showUnlockModal && !showAccountModal && !showResetConfirmModal}
 				onClose={onClose}
 				variant="temporary"
 				ModalProps={{ keepMounted: true }}
@@ -940,7 +963,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 					onClose={() => setShowResetConfirmModal(false)}
 					onConfirm={handleResetSettings}
 					title="Reset to Default Settings?"
-					message="This will reset all settings including clock style, sessions, colors, and preferences to their default values. This action cannot be undone."
+					message="This will reset all settings including sessions, colors, and preferences to their default values. This action cannot be undone."
 					confirmText="Reset Settings"
 					cancelText="Cancel"
 				/>

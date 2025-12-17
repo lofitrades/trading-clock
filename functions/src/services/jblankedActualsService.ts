@@ -5,6 +5,7 @@
  * into the canonical economic events collection, enriching schedule data with outcomes.
  *
  * Changelog:
+ * v1.1.0 - 2025-12-16 - Prevent JBlanked from creating new events; only merge into existing NFS documents.
  * v1.0.0 - 2025-12-11 - Added multi-provider JBlanked actuals sync with configurable enablement.
  */
 
@@ -13,7 +14,6 @@ import * as logger from "firebase-functions/logger";
 import {config as functionsConfig} from "firebase-functions";
 import {
   CanonicalEconomicEvent,
-  computeEventId,
   findExistingCanonicalEvent,
   getCanonicalEventsCollection,
   mergeProviderEvent,
@@ -123,6 +123,8 @@ export async function syncTodayActualsFromJblankedProvider(
   const collection = getCanonicalEventsCollection();
   const mergedMap = new Map<string, CanonicalEconomicEvent>();
   let processed = 0;
+  let mergedIntoExisting = 0;
+  let skippedMissingBase = 0;
 
   for (const raw of payload) {
     processed += 1;
@@ -144,11 +146,19 @@ export async function syncTodayActualsFromJblankedProvider(
         datetimeUtc,
       });
 
-      const eventId = existingMatch?.eventId ??
-        computeEventId({currency, normalizedName, datetimeUtc});
+      if (!existingMatch) {
+        skippedMissingBase += 1;
+        logger.debug("ℹ️ Skipping JBlanked event without existing NFS base", {
+          provider,
+          normalizedName,
+          currency,
+          datetimeUtc: datetimeUtc.toDate().toISOString(),
+        });
+        continue;
+      }
 
-      const existingDoc = existingMatch?.event ??
-        (await collection.doc(eventId).get()).data() as CanonicalEconomicEvent | undefined;
+      const eventId = existingMatch.eventId;
+      const existingDoc = existingMatch.event;
 
       const merged = mergeProviderEvent(existingDoc, {
         provider,
@@ -171,6 +181,7 @@ export async function syncTodayActualsFromJblankedProvider(
       });
 
       mergedMap.set(eventId, merged);
+      mergedIntoExisting += 1;
     } catch (error) {
       logger.error("❌ Error processing JBlanked event", {provider, error, raw});
     }
@@ -191,6 +202,8 @@ export async function syncTodayActualsFromJblankedProvider(
     provider,
     processed,
     written: entries.length,
+    mergedIntoExisting,
+    skippedMissingBase,
   });
 }
 

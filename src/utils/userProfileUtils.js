@@ -5,6 +5,7 @@
  * Prevents duplicate user documents and handles race conditions.
  * 
  * Changelog:
+ * v1.1.0 - 2025-12-16 - Backfilled missing role/subscription defaults when profiles already exist.
  * v1.0.1 - 2025-12-16 - Added showTimezoneLabel default setting for new user profiles.
  * v1.0.0 - 2025-12-16 - Initial implementation with duplicate prevention
  */
@@ -32,19 +33,40 @@ export async function createUserProfileSafely(user) {
     const result = await runTransaction(db, async (transaction) => {
       const userDoc = await transaction.get(userDocRef);
 
-      // If document already exists, return existing profile
+      // If document already exists, ensure required defaults are present
       if (userDoc.exists()) {
         console.log('[UserProfile] Document already exists for uid:', user.uid);
-        
-        // Update last login timestamp
+
+        const existingData = userDoc.data();
+
+        // Backfill role and subscription if missing (safety net for legacy docs)
+        const backfill = {};
+        if (!existingData.role) {
+          backfill.role = USER_ROLES.USER;
+        }
+        if (!existingData.subscription) {
+          backfill.subscription = {
+            plan: SUBSCRIPTION_PLANS.FREE,
+            status: SUBSCRIPTION_STATUS.ACTIVE,
+            features: PLAN_FEATURES[SUBSCRIPTION_PLANS.FREE],
+            startDate: serverTimestamp(),
+            endDate: null,
+            trialEndsAt: null,
+            customerId: null,
+            subscriptionId: null,
+          };
+        }
+
         transaction.update(userDocRef, {
           lastLoginAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
+          ...backfill,
         });
 
         return {
           uid: user.uid,
-          ...userDoc.data(),
+          ...existingData,
+          ...backfill,
         };
       }
 
@@ -89,6 +111,8 @@ export async function createUserProfileSafely(user) {
           showSessionNamesInCanvas: false,
           emailNotifications: true,
           eventAlerts: false,
+          newsSource: 'forex-factory',
+          preferredSource: 'auto',
         },
         
         // Timestamps

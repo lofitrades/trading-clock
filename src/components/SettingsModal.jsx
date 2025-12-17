@@ -5,6 +5,7 @@
  * Mirrors SettingsSidebar functionality with left navigation, account actions, and fullscreen toggle optimized for mobile.
  * 
  * Changelog:
+ * v1.1.0 - 2025-12-16 - Removed Clock Style and Canvas Size controls; appearance is fixed to normal at 100%.
  * v1.0.0 - 2025-12-11 - Replace drawer with ChatGPT-inspired modal while preserving all settings behaviors
  */
 
@@ -25,7 +26,6 @@ import {
 	Divider,
 	Paper,
 	TextField,
-	Slider,
 	Alert,
 	Tooltip,
 	useMediaQuery,
@@ -122,11 +122,7 @@ function SettingRow({ label, description, children, helperText, dense }) {
 export default function SettingsModal({ open, onClose }) {
 	const { user } = useAuth();
 	const {
-		clockStyle,
-		canvasSize,
 		sessions,
-		updateClockStyle,
-		updateCanvasSize,
 		updateSessions,
 		backgroundColor,
 		updateBackgroundColor,
@@ -301,37 +297,6 @@ export default function SettingsModal({ open, onClose }) {
 			)}
 
 			<Divider sx={{ my: 2 }} />
-
-			<SettingRow label="Clock Style" description="Choose the visual style of your clock">
-				<TextField
-					select
-					value={clockStyle}
-					onChange={(event) => updateClockStyle(event.target.value)}
-					size="small"
-					sx={{ minWidth: 160 }}
-				>
-					<MenuItemComponent value="normal">Normal</MenuItemComponent>
-					<MenuItemComponent value="aesthetic">Aesthetic</MenuItemComponent>
-					<MenuItemComponent value="minimalistic">Minimalistic</MenuItemComponent>
-				</TextField>
-			</SettingRow>
-
-			<Box sx={{ my: 2 }}>
-				<Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
-					Canvas Size
-				</Typography>
-				<Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-					Adjust the size of the clock canvas relative to viewport
-				</Typography>
-				<Slider
-					value={canvasSize}
-					onChange={(event, value) => updateCanvasSize(value)}
-					min={25}
-					max={100}
-					valueLabelDisplay="auto"
-					valueLabelFormat={(value) => `${value}%`}
-				/>
-			</Box>
 
 			<SettingRow label="Background Color" description="Choose a custom background color">
 				<TextField
@@ -523,7 +488,7 @@ export default function SettingsModal({ open, onClose }) {
 		if (activeSection === 'session') return renderSessionSection();
 		if (activeSection === 'about') return renderAboutSection();
 		return renderGeneralSection();
-	}, [activeSection, backgroundBasedOnSession, backgroundColor, canvasSize, clockStyle, sessions, showDigitalClock, showEventsOnCanvas, showHandClock, showSessionLabel, showSessionNamesInCanvas, showTimeToEnd, showTimeToStart, toggleError]);
+	}, [activeSection, backgroundBasedOnSession, backgroundColor, sessions, showDigitalClock, showEventsOnCanvas, showHandClock, showSessionLabel, showSessionNamesInCanvas, showTimeToEnd, showTimeToStart, toggleError]);
 
 	return (
 		<>
@@ -733,7 +698,7 @@ export default function SettingsModal({ open, onClose }) {
 					onClose={() => setShowResetConfirmModal(false)}
 					onConfirm={handleResetSettings}
 					title="Reset to Default Settings?"
-					message="This will reset all settings including clock style, sessions, colors, and preferences to their default values. This action cannot be undone."
+					message="This will reset all settings including sessions, colors, and preferences to their default values. This action cannot be undone."
 					confirmText="Reset Settings"
 					cancelText="Cancel"
 				/>

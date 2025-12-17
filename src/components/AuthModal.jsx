@@ -13,6 +13,7 @@
  * - Integration with forgot password flow
  * 
  * Changelog:
+ * v2.0.2 - 2025-12-16 - Raised dialog z-index above settings drawer and overlays for reliable stacking order
  * v2.0.1 - 2025-12-16 - ESLint compliance: PropTypes and escaped strings
  * v2.0.0 - 2025-12-16 - Complete redesign with passwordless auth, removed Facebook
  * v1.0.0 - 2025-09-15 - Initial implementation
@@ -55,8 +56,8 @@ function EmailSentModal({ email, isNewUser, onClose }) {
       maxWidth="sm"
       fullWidth
       slotProps={{
-        backdrop: { sx: { zIndex: 1500 } },
-        paper: { sx: { zIndex: 1501, borderRadius: 3 } },
+        backdrop: { sx: { zIndex: 1700 } },
+        paper: { sx: { zIndex: 1701, borderRadius: 3 } },
       }}
     >
       <DialogContent sx={{ p: 4, textAlign: 'center' }}>
@@ -141,8 +142,8 @@ function VerifyingModal({ onClose }) {
       maxWidth="sm"
       fullWidth
       slotProps={{
-        backdrop: { sx: { zIndex: 1500 } },
-        paper: { sx: { zIndex: 1501, borderRadius: 3 } },
+        backdrop: { sx: { zIndex: 1700 } },
+        paper: { sx: { zIndex: 1701, borderRadius: 3 } },
       }}
     >
       <DialogContent sx={{ p: 4, textAlign: 'center' }}>
@@ -318,8 +319,8 @@ export default function AuthModal({ open, onClose }) {
       maxWidth="sm"
       fullWidth
       slotProps={{
-        backdrop: { sx: { zIndex: 1500 } },
-        paper: { sx: { zIndex: 1501, borderRadius: 3 } },
+        backdrop: { sx: { zIndex: 1700 } },
+        paper: { sx: { zIndex: 1701, borderRadius: 3 } },
       }}
     >
       <IconButton

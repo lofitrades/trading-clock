@@ -5,6 +5,7 @@
  * Minimal chip-based label optimized for the clock overlay.
  *
  * Changelog:
+ * v1.1.1 - 2025-12-16 - Apply background-aware text color to inactive/next-session chip via caller-provided contrast color.
  * v1.1.0 - 2025-12-16 - Added PropTypes, removed unused imports/vars, and corrected header path.
  * v1.0.0 - 2025-12-15 - Initial implementation.
  */
@@ -37,6 +38,7 @@ export default function SessionLabel({
   nextSession,
   timeToStart,
   clockSize,
+  contrastTextColor,
 }) {
   // Responsive scaling based on clock size - clean minimal design
   const baseSize = 375;
@@ -48,7 +50,9 @@ export default function SessionLabel({
   
   // Session color with adaptive text
   const sessionColor = activeSession?.color || '#757575';
-  const textColor = isColorDark(sessionColor) ? '#fff' : '#000';
+  const sessionTextColor = isColorDark(sessionColor) ? '#fff' : '#000';
+  const outlinedColor = contrastTextColor || '#4B4B4B';
+  const outlinedBorderColor = `${outlinedColor}66`;
   
   return (
     <Fade in timeout={400}>
@@ -128,7 +132,7 @@ export default function SessionLabel({
                 size="small"
                 sx={{
                   backgroundColor: sessionColor,
-                  color: textColor,
+                  color: sessionTextColor,
                   fontWeight: 600,
                   fontSize: titleSize,
                   height: 'auto',
@@ -182,8 +186,8 @@ export default function SessionLabel({
                   fontWeight: 500,
                   height: 'auto',
                   padding: '6px 10px',
-                  borderColor: 'divider',
-                  color: 'text.secondary',
+                  borderColor: outlinedBorderColor,
+                  color: outlinedColor,
                   '& .MuiChip-label': {
                     padding: '0 4px',
                     width: '100%',
@@ -212,4 +216,5 @@ SessionLabel.propTypes = {
   }),
   timeToStart: PropTypes.number,
   clockSize: PropTypes.number.isRequired,
+  contrastTextColor: PropTypes.string,
 };

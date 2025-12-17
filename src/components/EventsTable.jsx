@@ -17,6 +17,11 @@
  * - Accessibility compliant
  * 
  * Changelog:
+  * v1.9.5 - 2025-12-16 - Always show "Actual: —" when actual values are unavailable.
+  * v1.9.4 - 2025-12-16 - Moved next clock icon to the right of time; added inline metrics summary as secondary text.
+ * v1.9.3 - 2025-12-16 - Removed horizontal overflow; table now fits drawer width with wrapping text and compact spacing.
+  * v1.9.2 - 2025-12-16 - Moved favorite/notes action column to the first position in table rows (mobile layout across all breakpoints).
+  * v1.9.1 - 2025-12-16 - Unified mobile table layout for all breakpoints; horizontal scroll retained for full data access.
  * v1.9.0 - 2025-12-15 - REFACTOR: Replaced hardcoded NOW/NEXT calculations with global eventTimeEngine utilities (computeNowNextState, getNowEpochMs)
  * v1.8.3 - 2025-12-15 - ENHANCEMENT: NEXT detection now based on filtered displayed events (matching timeline behavior), not contextEvents
  * v1.8.2 - 2025-12-15 - BUGFIX: Fixed NEXT/NOW badge detection - NOW events no longer counted as NEXT, added debug logging
@@ -61,7 +66,6 @@ import {
   AlertTitle,
   alpha,
   useTheme,
-  useMediaQuery,
   Fab,
   Zoom,
   CircularProgress,
@@ -97,25 +101,20 @@ import {
  * Table columns configuration
  */
 const COLUMNS = [
-  { id: 'time', label: 'Time', sortable: true, minWidth: 85, mobileWidth: 60, align: 'left' },
-  { id: 'currency', label: 'Cur', sortable: true, minWidth: 70, mobileWidth: 50, align: 'center' },
-  { id: 'impact', label: 'Imp', sortable: true, minWidth: 65, align: 'center' },
-  { id: 'name', label: 'Event Name', sortable: true, minWidth: 200, align: 'left' },
-  { id: 'actual', label: 'Act', sortable: false, minWidth: 60, align: 'center' },
-  { id: 'forecast', label: 'For', sortable: false, minWidth: 60, align: 'center' },
-  { id: 'previous', label: 'Pre', sortable: false, minWidth: 60, align: 'center' },
-  { id: 'action', label: '', sortable: false, minWidth: 70, align: 'center' },
+  { id: 'action', label: '', sortable: false, align: 'center' },
+  { id: 'time', label: 'Time', sortable: true, align: 'left' },
+  { id: 'currency', label: 'Cur', sortable: true, align: 'center' },
+  { id: 'impact', label: 'Imp', sortable: true, align: 'center' },
+  { id: 'name', label: 'Event Name', sortable: true, align: 'left' },
+  { id: 'actual', label: 'Act', sortable: false, align: 'center' },
+  { id: 'forecast', label: 'For', sortable: false, align: 'center' },
+  { id: 'previous', label: 'Pre', sortable: false, align: 'center' },
 ];
 
 /**
  * Mobile columns (reduced for smaller screens)
  */
-const MOBILE_COLUMNS = ['time', 'currency', 'impact', 'name', 'action'];
-
-/**
- * Tablet columns (reduced for medium screens)
- */
-const TABLET_COLUMNS = ['time', 'currency', 'impact', 'name', 'actual', 'forecast', 'action'];
+const MOBILE_COLUMNS = ['action', 'time', 'currency', 'impact', 'name'];
 
 /**
  * Currency to country code mapping
@@ -394,8 +393,8 @@ export default function EventsTable({
   isEventNotesLoading = () => false,
 }) {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  // Force the compact mobile layout for all breakpoints
+  const isMobile = true;
 
   // ========== STATE ==========
   const [page, setPage] = useState(0);
@@ -640,11 +639,7 @@ export default function EventsTable({
     }
   }, [nextEventMeta.nextFirstId, nextEventMeta.nowIds, targetToken, loading]);
 
-  const nextCountdownLabel = useMemo(() => {
-    if (!nextEventMeta.nextTime) return null;
-    const diff = Math.max(0, nextEventMeta.nextTime - countdownNow);
-    return formatCountdownHMS(diff);
-  }, [countdownNow, nextEventMeta.nextTime]);
+  // Countdown hidden in table view; icon-only indicator retained
 
   /**
    * Group events by date for table display
@@ -673,14 +668,9 @@ export default function EventsTable({
 
   // ========== COLUMNS VISIBILITY ==========
   const visibleColumns = useMemo(() => {
-    if (isMobile) {
-      return COLUMNS.filter(col => MOBILE_COLUMNS.includes(col.id) || col.id === 'action');
-    }
-    if (isTablet) {
-      return COLUMNS.filter(col => TABLET_COLUMNS.includes(col.id));
-    }
-    return COLUMNS;
-  }, [isMobile, isTablet]);
+    // Use the compact/mobile column set for all breakpoints
+    return COLUMNS.filter(col => MOBILE_COLUMNS.includes(col.id) || col.id === 'action');
+  }, []);
 
   // ========== HANDLERS ==========
   const handleSort = useCallback((columnId) => {
@@ -790,22 +780,24 @@ export default function EventsTable({
 
   return (
     <Paper sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-      <TableContainer ref={tableContainerRef} sx={{ flex: 1, overflow: 'auto' }}>
-        <Table stickyHeader>
-          <TableHead sx={{ display: { xs: 'none', sm: 'table-header-group' } }}>
+      <TableContainer
+        ref={tableContainerRef}
+        sx={{ flex: 1, overflowX: 'hidden', overflowY: 'auto' }}
+      >
+        <Table stickyHeader size="small">
+          <TableHead sx={{ display: 'none' }}>
             <TableRow>
               {visibleColumns.map((column) => (
                 <TableCell
                   key={column.id}
                   align={column.align}
-                  style={{ minWidth: isMobile && column.mobileWidth ? column.mobileWidth : column.minWidth }}
                   sx={{
                     bgcolor: 'background.paper',
                     fontWeight: 700,
                     borderBottom: 1,
                     borderColor: 'divider',
-                    py: 0.75,
-                    px: 1,
+                    py: 0.5,
+                    px: 0.75,
                     fontSize: '0.8125rem',
                   }}
                 >
@@ -932,78 +924,33 @@ export default function EventsTable({
 
                               // Mobile/tablet fallback: add speech summary under name when metric columns are hidden
                               const shouldShowInlineSpeech = speechNoMetrics && metricColumnsInView.length === 0 && column.id === 'name';
+                              const metricsSummary = (() => {
+                                if (speechNoMetrics) return null;
+                                const parts = [];
+                                if (hasMetricValue(event.actual)) parts.push(`Actual: ${event.actual}`);
+                                if (hasMetricValue(event.forecast)) parts.push(`Forecast: ${event.forecast}`);
+                                if (hasMetricValue(event.previous)) parts.push(`Previous: ${event.previous}`);
+                                return parts.length ? parts.join(' | ') : null;
+                              })();
 
                               return (
                                 <TableCell key={column.id} align={column.align}>
                                   {column.id === 'time' && (
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                      {/* Mobile: Simple green clock icon for NEXT/NOW */}
-                                      {(isNow || isNext) && (
-                                        <AccessTimeIcon 
-                                          sx={{ 
+                                      <Typography variant="body2" fontFamily="monospace" fontWeight={600} fontSize="0.8125rem">
+                                        {formatTime(event.time || event.date, timezone)}
+                                      </Typography>
+                                      {isNext && (
+                                        <AccessTimeIcon
+                                          sx={{
                                             fontSize: 16,
-                                            color: isNow ? '#0288d1' : 'primary.main',
-                                            display: { xs: 'block', sm: 'none' },
+                                            color: 'success.main',
+                                            display: 'inline-flex',
+                                            ml: 0.5,
                                             animation: 'pulseClockMobile 1.5s ease-in-out infinite',
                                             '@keyframes pulseClockMobile': {
                                               '0%, 100%': { opacity: 1 },
                                               '50%': { opacity: 0.6 },
-                                            },
-                                          }} 
-                                        />
-                                      )}
-                                      <Typography variant="body2" fontFamily="monospace" fontWeight={600} fontSize="0.8125rem">
-                                        {formatTime(event.time || event.date, timezone)}
-                                      </Typography>
-                                      {/* Desktop: Full chips with countdown labels */}
-                                      {isNow && (
-                                        <Chip
-                                          label={
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                                              <AccessTimeIcon sx={{ fontSize: 12 }} />
-                                              <Typography component="span" sx={{ fontWeight: 700, fontSize: '0.65rem' }}>
-                                                NOW
-                                              </Typography>
-                                            </Box>
-                                          }
-                                          size="small"
-                                          sx={{
-                                            display: { xs: 'none', sm: 'flex' },
-                                            height: 18,
-                                            fontWeight: 700,
-                                            bgcolor: '#0288d1',
-                                            color: '#fff',
-                                            '& .MuiChip-label': { px: 0.5 },
-                                            animation: 'nowScaleTable 1.25s ease-in-out infinite',
-                                            '@keyframes nowScaleTable': {
-                                              '0%, 100%': { transform: 'scale(1)' },
-                                              '50%': { transform: 'scale(1.05)' },
-                                            },
-                                          }}
-                                        />
-                                      )}
-                                      {isNext && (
-                                        <Chip
-                                          label={
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                                              <AccessTimeIcon sx={{ fontSize: 12 }} />
-                                              <Typography component="span" sx={{ fontWeight: 700, fontSize: '0.65rem' }}>
-                                                {nextCountdownLabel || 'Next'}
-                                              </Typography>
-                                            </Box>
-                                          }
-                                          size="small"
-                                          sx={{
-                                            display: { xs: 'none', sm: 'flex' },
-                                            height: 18,
-                                            fontWeight: 700,
-                                            bgcolor: '#018786',
-                                            color: '#fff',
-                                            '& .MuiChip-label': { px: 0.5 },
-                                            animation: 'nextScaleTable 1.25s ease-in-out infinite',
-                                            '@keyframes nextScaleTable': {
-                                              '0%, 100%': { transform: 'scale(1)' },
-                                              '50%': { transform: 'scale(1.05)' },
                                             },
                                           }}
                                         />
@@ -1013,13 +960,24 @@ export default function EventsTable({
                                   {column.id === 'currency' && <CurrencyCell currency={event.currency} isMobile={isMobile} />}
                                   {column.id === 'impact' && <ImpactCell strength={event.strength} isPast={isPast} />}
                                   {column.id === 'name' && (
-                                    <Typography variant="body2" fontWeight={500} fontSize="0.8125rem" lineHeight={1.3}>
+                                    <Typography
+                                      variant="body2"
+                                      fontWeight={500}
+                                      fontSize="0.8125rem"
+                                      lineHeight={1.3}
+                                      sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}
+                                    >
                                       {event.Name}
                                     </Typography>
                                   )}
                                   {shouldShowInlineSpeech && speechSummary && (
                                     <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25, fontSize: '0.7rem', lineHeight: 1.2 }}>
                                       {speechSummary}
+                                    </Typography>
+                                  )}
+                                  {column.id === 'name' && metricsSummary && (
+                                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25, fontSize: '0.7rem', lineHeight: 1.2 }}>
+                                      {metricsSummary}
                                     </Typography>
                                   )}
                                   {column.id === 'actual' && !speechNoMetrics && (
@@ -1029,7 +987,7 @@ export default function EventsTable({
                                       fontSize="0.8125rem"
                                       color={!isFuture && hasMetricValue(event.actual) ? 'primary.main' : 'text.disabled'}
                                     >
-                                      {isFuture ? '—' : (hasMetricValue(event.actual) ? event.actual : '—')}
+                                      {`Actual: ${hasMetricValue(event.actual) && !isFuture ? event.actual : '—'}`}
                                     </Typography>
                                   )}
                                   {column.id === 'forecast' && !speechNoMetrics && (

@@ -6,6 +6,7 @@
  * 
  * Changelog:
  * v2.0.0 - 2025-11-30 - Added React Router integration
+ * v2.0.2 - 2025-12-16 - Removed Router basename for root-level Firebase Hosting deployment.
  * v2.0.1 - 2025-12-16 - Added VisualViewport-based CSS vars to prevent fixed UI from sitting under mobile browser chrome.
  * v1.0.0 - 2025-09-15 - Initial implementation
  */
@@ -68,7 +69,7 @@ const root = createRoot(container);
 
 root.render(
   <React.StrictMode>
-    <BrowserRouter basename="/trading-clock">
+    <BrowserRouter>
       <ThemeProvider theme={theme}>
         <AuthProvider>
           <SettingsProvider>

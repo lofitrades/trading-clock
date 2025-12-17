@@ -5,6 +5,7 @@
  * Hosts general/session settings, auth actions, and pro prompts in a responsive MUI drawer.
  * 
  * Changelog:
+ * v1.3.0 - 2025-12-16 - Removed Clock Style and Canvas Size controls; appearance fixed to normal at 100%.
  * v1.2.2 - 2025-12-09 - Added indentation and divider for Show Events toggle to separate it from parent row
  * v1.2.1 - 2025-12-09 - Nested Show Events toggle directly under Hand Clock for clearer hierarchy
  * v1.2.0 - 2025-12-09 - Added Show Events on Clock toggle gated to Hand Clock visibility
@@ -20,9 +21,6 @@ import {
   Tab,
   Typography,
   IconButton,
-  Switch,
-  Select,
-  MenuItem,
   TextField,
   Button,
   Divider,
@@ -31,12 +29,8 @@ import {
   MenuItem as MenuItemComponent,
   Alert,
   Tooltip,
-  FormControl,
-  InputLabel,
   Stack,
   Paper,
-  Collapse,
-  Slider,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import FullscreenRoundedIcon from '@mui/icons-material/FullscreenRounded';
@@ -141,12 +135,8 @@ export default function SettingsSidebar({ open, onClose }) {
   // We'll need to pass these as props or use context
   // For now, using useSettings hook
   const {
-    clockStyle,
-    canvasSize,
     clockSize,
     sessions,
-    updateClockStyle,
-    updateCanvasSize,
     updateClockSize,
     updateSessions,
     backgroundColor,
@@ -530,48 +520,6 @@ export default function SettingsSidebar({ open, onClose }) {
               <Divider sx={{ my: 3 }} />
 
               <SettingRow
-                label="Clock Style"
-                description="Choose the visual style of your clock"
-              >
-                <Select
-                  value={clockStyle}
-                  onChange={(e) => updateClockStyle(e.target.value)}
-                  size="small"
-                  sx={{ 
-                    minWidth: { xs: 120, sm: 150 },
-                    fontSize: { xs: '0.85rem', sm: '0.9rem' },
-                  }}
-                >
-                  <MenuItem value="normal">Normal</MenuItem>
-                  <MenuItem value="aesthetic">Aesthetic</MenuItem>
-                  <MenuItem value="minimalistic">Minimalistic</MenuItem>
-                </Select>
-              </SettingRow>
-
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="body1" sx={{ fontWeight: 500, mb: 0.5, fontSize: { xs: '0.9rem', sm: '1rem' } }}>
-                  Canvas Size
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  color="text.secondary" 
-                  sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, lineHeight: 1.5, mb: 2 }}
-                >
-                  Adjust the size of the clock canvas relative to viewport
-                </Typography>
-                <Box sx={{ px: 1 }}>
-                  <Slider
-                    value={canvasSize}
-                    onChange={(e, newValue) => updateCanvasSize(newValue)}
-                    min={25}
-                    max={100}
-                    valueLabelDisplay="auto"
-                    valueLabelFormat={(value) => `${value}%`}
-                  />
-                </Box>
-              </Box>
-
-              <SettingRow
                 label="Background Color"
                 description="Choose a custom background color"
               >
@@ -868,7 +816,7 @@ export default function SettingsSidebar({ open, onClose }) {
           onClose={() => setShowResetConfirmModal(false)}
           onConfirm={handleResetSettings}
           title="Reset to Default Settings?"
-          message="This will reset all settings including clock style, sessions, colors, and preferences to their default values. This action cannot be undone."
+          message="This will reset all settings including sessions, colors, and preferences to their default values. This action cannot be undone."
           confirmText="Reset Settings"
           cancelText="Cancel"
         />

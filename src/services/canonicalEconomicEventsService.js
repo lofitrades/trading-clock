@@ -6,6 +6,7 @@
  * values based on user preference.
  *
  * Changelog:
+ * v1.1.0 - 2025-12-16 - Filter to NFS-backed events only; preserve enrichment while blocking JBlanked-only documents.
  * v1.0.0 - 2025-12-11 - Initial canonical fetcher with user-preferred source handling.
  */
 
@@ -92,23 +93,28 @@ export async function fetchCanonicalEconomicEvents({ from, to, currencies = [], 
     const q = query(eventsRef, ...whereClauses, orderBy('datetimeUtc', 'asc'));
     const snapshot = await getDocs(q);
 
-    const docs = snapshot.docs.map((docSnap) => {
-      const data = docSnap.data();
-      const dt = data.datetimeUtc?.toDate ? data.datetimeUtc.toDate() : null;
-      const picked = pickValuesForUser(data, preferredSource);
-      return {
-        id: docSnap.id,
-        name: data.name,
-        currency: data.currency ?? null,
-        impact: data.impact ?? null,
-        datetimeUtc: dt,
-        status: data.status || 'scheduled',
-        actual: picked.actual,
-        forecast: picked.forecast,
-        previous: picked.previous,
-        sourceKey: picked.sourceKey,
-      };
-    });
+    const docs = snapshot.docs
+      .map((docSnap) => {
+        const data = docSnap.data();
+        const hasNfsSource = Boolean(data?.sources?.nfs);
+        if (!hasNfsSource) return null;
+
+        const dt = data.datetimeUtc?.toDate ? data.datetimeUtc.toDate() : null;
+        const picked = pickValuesForUser(data, preferredSource);
+        return {
+          id: docSnap.id,
+          name: data.name,
+          currency: data.currency ?? null,
+          impact: data.impact ?? null,
+          datetimeUtc: dt,
+          status: data.status || 'scheduled',
+          actual: picked.actual,
+          forecast: picked.forecast,
+          previous: picked.previous,
+          sourceKey: picked.sourceKey,
+        };
+      })
+      .filter(Boolean);
 
     // If we could not use an "in" filter, filter currencies client-side
     const filteredDocs = !useInClause && currencies?.length > 0

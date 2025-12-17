@@ -5,6 +5,8 @@
  * Supplies clock visibility, styling, timezone, news source, and economic events overlay controls to the app.
  * 
  * Changelog:
+ * v1.3.1 - 2025-12-17 - Default news source set to Forex Factory for new users.
+ * v1.3.0 - 2025-12-16 - Locked clock style to normal and canvas size to 100% with no persistence or UI controls.
  * v1.2.2 - 2025-12-16 - Added showTimezoneLabel toggle with persistence to show/hide the timezone label in the main clock view.
  * v1.2.1 - 2025-12-12 - Persist favorites-only filter for economic events.
  * v1.2.0 - 2025-12-09 - Added showEventsOnCanvas toggle with persistence to control clock event markers visibility.
@@ -44,8 +46,8 @@ export function SettingsProvider({ children }) {
   
   // Provider for settings with localStorage and Firestore sync
   const [isLoading, setIsLoading] = useState(true);
-  const [clockStyle, setClockStyle] = useState('normal');
-  const [canvasSize, setCanvasSize] = useState(75);
+  const clockStyle = 'normal';
+  const canvasSize = 100;
   const [clockSize, setClockSize] = useState(375);
   const [sessions, setSessions] = useState([...defaultSessions]);
   const [selectedTimezone, setSelectedTimezone] = useState('America/New_York');
@@ -78,8 +80,6 @@ export function SettingsProvider({ children }) {
     const loadInitialSettings = async () => {
       setIsLoading(true);
       
-      const savedClockStyle = localStorage.getItem('clockStyle');
-      const savedCanvasSize = localStorage.getItem('canvasSize');
       const savedSize = localStorage.getItem('clockSize');
       const savedSessions = localStorage.getItem('sessions');
       const savedTimezone = localStorage.getItem('selectedTimezone');
@@ -97,8 +97,6 @@ export function SettingsProvider({ children }) {
       const savedPreferredSource = localStorage.getItem('preferredSource');
       const savedEventFilters = localStorage.getItem('eventFilters');
 
-      if (savedClockStyle) setClockStyle(savedClockStyle);
-      if (savedCanvasSize) setCanvasSize(parseInt(savedCanvasSize));
       if (savedSize) setClockSize(parseInt(savedSize));
       if (savedSessions) setSessions(JSON.parse(savedSessions));
       if (savedTimezone) setSelectedTimezone(savedTimezone);
@@ -150,8 +148,6 @@ export function SettingsProvider({ children }) {
         if (snap.exists()) {
           const data = snap.data();
           if (data.settings) {
-            if (data.settings.clockStyle) setClockStyle(data.settings.clockStyle);
-            if (data.settings.canvasSize !== undefined) setCanvasSize(data.settings.canvasSize);
             if (data.settings.clockSize) setClockSize(data.settings.clockSize);
             if (data.settings.sessions) setSessions(data.settings.sessions);
             if (data.settings.selectedTimezone) setSelectedTimezone(data.settings.selectedTimezone);
@@ -221,18 +217,6 @@ export function SettingsProvider({ children }) {
     const userRef = doc(db, 'users', user.uid);
     await setDoc(userRef, { settings: { ...newSettings } }, { merge: true });
   }
-
-  const updateClockStyle = (style) => {
-    setClockStyle(style);
-    localStorage.setItem('clockStyle', style);
-    if (user) saveSettingsToFirestore({ clockStyle: style });
-  };
-
-  const updateCanvasSize = (size) => {
-    setCanvasSize(size);
-    localStorage.setItem('canvasSize', size);
-    if (user) saveSettingsToFirestore({ canvasSize: size });
-  };
 
   const updateClockSize = (size) => {
     setClockSize(size);
@@ -421,8 +405,6 @@ export function SettingsProvider({ children }) {
     const resetSessions = defaultSessions.map(session => ({ ...session }));
     
     // Reset all state values to defaults
-    setClockStyle('normal');
-    setCanvasSize(75);
     setClockSize(375);
     setSessions(resetSessions);
     setSelectedTimezone('America/New_York');
@@ -451,7 +433,7 @@ export function SettingsProvider({ children }) {
     if (user) {
       const defaultSettings = {
         clockStyle: 'normal',
-        canvasSize: 75,
+        canvasSize: 100,
         clockSize: 375,
         sessions: defaultSessions.map(session => ({ ...session })),
         selectedTimezone: 'America/New_York',
@@ -479,8 +461,6 @@ export function SettingsProvider({ children }) {
     clockSize,
     sessions,
     selectedTimezone,
-    updateClockStyle,
-    updateCanvasSize,
     updateClockSize,
     updateSessions,
     updateSelectedTimezone,  // Proper function with Firestore persistence

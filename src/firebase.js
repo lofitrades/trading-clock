@@ -15,13 +15,7 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-console.log('🔥 [Firebase] Initializing Firebase...');
-console.log('📋 Firebase Config:', {
-  projectId: firebaseConfig.projectId,
-  authDomain: firebaseConfig.authDomain,
-  hasApiKey: !!firebaseConfig.apiKey,
-  hasAppId: !!firebaseConfig.appId,
-});
+console.log('🔥 Initializing Time 2 Trade...');
 
 const app = initializeApp(firebaseConfig);
 
@@ -30,6 +24,4 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app, 'us-central1');
 
-console.log('✅ [Firebase] Initialized successfully');
-console.log('🔐 Auth domain:', auth.config.apiHost);
-console.log('🆔 Project ID:', firebaseConfig.projectId);
+console.log('✅ Time 2 Trade initialized successfully');

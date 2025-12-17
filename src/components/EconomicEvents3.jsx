@@ -5,6 +5,8 @@
  * Provides filters, sync, refresh, news source selection, and timeline/table views using EventsFilters3 and EventsTimeline2/EventsTable.
  * 
  * Changelog:
+ * v1.5.2 - 2025-12-16 - Keep drawer width consistent in table view; enable horizontal scroll for table content.
+ * v1.5.1 - 2025-12-16 - Restricted sync actions to superadmin role in header controls.
  * v1.5.0 - 2025-12-15 - Added search functionality with client-side filtering (event names only), proper state management, and UX messages.
  * v1.4.1 - 2025-12-15 - Changed default date range from 'This Week' to 'Today' for refresh, background refresh, and initial load.
  * v1.4.0 - 2025-12-12 - Added synced event notes dialog with add/remove actions, badges, and auth-aware handling.
@@ -88,7 +90,8 @@ const ensureDate = (value) => {
 
 export default function EconomicEvents3({ open, onClose, autoScrollRequest = null, onOpenAuth, onOpenSettings }) {
 	const theme = useTheme();
-	const { user } = useAuth();
+	const { user, hasRole } = useAuth();
+	const isSuperAdmin = hasRole ? hasRole('superadmin') : false;
 	const { selectedTimezone, eventFilters, newsSource, updateNewsSource, updateEventFilters } = useSettings();
 	const { favoritesLoading, isFavorite, toggleFavorite, isFavoritePending } = useFavorites();
 	const {
@@ -568,16 +571,16 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 					position: 'fixed',
 					right: 0,
 					top: 0,
-					left: expanded ? 0 : 'auto',
+					left: 'auto',
 					height: 'var(--t2t-vv-height, 100dvh)',
-					width: expanded ? '100%' : { xs: '100%', sm: '100%', md: 520, lg: 560 },
+					width: { xs: '100%', sm: '100%', md: 520, lg: 560 },
 					display: 'flex',
 					flexDirection: 'column',
 					zIndex: 1300,
 					overflow: 'hidden',
 					bgcolor: shellBg,
 					color: headerFg,
-					borderRadius: expanded ? 0 : { xs: 0, sm: '16px 0 0 16px' },
+					borderRadius: { xs: 0, sm: '16px 0 0 16px' },
 					boxShadow: expanded ? 'none' : undefined,
 					transition: theme.transitions.create(['transform', 'opacity'], {
 						duration: 260,
@@ -638,7 +641,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 							</span>
 						</Tooltip>
 					)}
-					{user && (
+					{isSuperAdmin && (
 						<Tooltip title="Sync week (NFS)">
 							<span>
 								<IconButton onClick={handleSyncWeek} disabled={syncingWeek} sx={{ color: 'primary.contrastText' }} size="small">
@@ -652,7 +655,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 							</span>
 						</Tooltip>
 					)}
-					{user && (
+					{isSuperAdmin && (
 						<Tooltip title="Sync today's actuals (JBlanked)">
 							<span>
 								<IconButton onClick={handleSyncActuals} disabled={syncingActuals} sx={{ color: 'primary.contrastText' }} size="small">

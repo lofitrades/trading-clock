@@ -1,10 +1,20 @@
-﻿import { defineConfig } from 'vite'
+﻿/**
+ * vite.config.js
+ *
+ * Purpose: Vite configuration for the Time 2 Trade React app, including build base path and dev server settings.
+ * Key responsibility and main functionality: Sets root-relative asset base for Firebase Hosting, configures dev server and proxy for API calls.
+ *
+ * Changelog:
+ * v1.1.0 - 2025-12-16 - Switched base to root for Firebase Hosting custom domain deployment.
+ * v1.0.0 - 2025-12-16 - Initial configuration with React plugin and dev server proxy.
+ */
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/trading-clock/',
+  base: '/',
   server: {
     host: true,
     port: 5173,

@@ -5,6 +5,7 @@
  * Client-side types matching backend functions/src/types/economicEvents.ts
  * 
  * Changelog:
+ * v1.1.1 - 2025-12-17 - Set Forex Factory as default news source for new users.
  * v1.1.0 - 2025-12-11 - Added user-preferred source options for canonical events.
  * v1.0.0 - 2025-11-30 - Initial implementation with multi-source support
  */
@@ -22,7 +23,7 @@
  * Default news source for new users
  * @type {NewsSource}
  */
-export const DEFAULT_NEWS_SOURCE = 'mql5';
+export const DEFAULT_NEWS_SOURCE = 'forex-factory';
 
 /**
  * News source options with user-friendly labels and descriptions
