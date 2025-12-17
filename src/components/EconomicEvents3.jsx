@@ -566,7 +566,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 			unmountOnExit
 		>
 			<Paper
-				elevation={expanded ? 0 : 8}
+				elevation={8}
 				sx={{
 					position: 'fixed',
 					right: 0,
@@ -581,7 +581,6 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 					bgcolor: shellBg,
 					color: headerFg,
 					borderRadius: { xs: 0, sm: '16px 0 0 16px' },
-					boxShadow: expanded ? 'none' : undefined,
 					transition: theme.transitions.create(['transform', 'opacity'], {
 						duration: 260,
 						easing: transitionEasing.enter,

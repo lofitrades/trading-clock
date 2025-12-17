@@ -463,12 +463,12 @@ export default function SettingsModal({ open, onClose }) {
 			<Typography variant="body2" sx={{ mb: 2 }}>
 				Developed by: <strong>
 					<a
-						href="https://x.com/lofi_trades"
+						href="https://x.com/time2_trade"
 						target="_blank"
 						rel="noopener noreferrer"
 						style={{ color: 'inherit', textDecoration: 'none' }}
 					>
-						@lofi_trades
+						@time2_trade
 					</a>
 				</strong>
 			</Typography>

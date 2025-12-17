@@ -2150,7 +2150,7 @@ whyDidYouRender(React, {
 - **Repository:** https://github.com/lofitrades/trading-clock
 - **Firebase Console:** https://console.firebase.google.com/project/time-2-trade-app
 - **Support:** lofitradesx@gmail.com
-- **Twitter/X:** [@lofi_trades](https://x.com/lofi_trades)
+- **Twitter/X:** [@time2_trade](https://x.com/time2_trade)
 
 ### Contributing
 This is currently a private project. For questions or suggestions, contact the development team.
