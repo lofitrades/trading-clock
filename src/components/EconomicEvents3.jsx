@@ -824,7 +824,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 								flexDirection: 'column',
 								overflow: 'hidden',
 								borderRadius: expanded ? 2 : 2,
-								boxShadow: 'none',
+								boxShadow: expanded ? 'none' : undefined,
 							}}
 						>
 							<Box
