@@ -347,12 +347,14 @@ export default function App() {
                     renderHandsInCanvas={false}
                     handAnglesRef={handAnglesRef}
                   />
-                  <ClockHandsOverlay
-                    size={calculatedClockSize}
-                    handAnglesRef={handAnglesRef}
-                    handColor={effectiveTextColor}
-                    time={currentTime}
-                  />
+                  {!hideClockHands && (
+                    <ClockHandsOverlay
+                      size={calculatedClockSize}
+                      handAnglesRef={handAnglesRef}
+                      handColor={effectiveTextColor}
+                      time={currentTime}
+                    />
+                  )}
                   {showEventsOnCanvas ? (
                     <ClockEventsOverlay 
                       size={calculatedClockSize}
