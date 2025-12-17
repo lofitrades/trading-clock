@@ -5,7 +5,7 @@
  * Supplies clock visibility, styling, timezone, news source, and economic events overlay controls to the app.
  * 
  * Changelog:
- * v1.4.0 - 2025-12-17 - Added hideClockNumbers and hideClockHands toggles for granular analog clock customization.
+ * v1.4.0 - 2025-12-17 - Added showClockNumbers and showClockHands toggles for granular analog clock customization.
  * v1.3.1 - 2025-12-17 - Default news source set to Forex Factory for new users.
  * v1.3.0 - 2025-12-16 - Locked clock style to normal and canvas size to 100% with no persistence or UI controls.
  * v1.2.2 - 2025-12-16 - Added showTimezoneLabel toggle with persistence to show/hide the timezone label in the main clock view.
@@ -62,8 +62,8 @@ export function SettingsProvider({ children }) {
   const [showTimeToStart, setShowTimeToStart] = useState(true);
   const [showSessionNamesInCanvas, setShowSessionNamesInCanvas] = useState(false);
   const [showEventsOnCanvas, setShowEventsOnCanvas] = useState(true);
-  const [hideClockNumbers, setHideClockNumbers] = useState(false);
-  const [hideClockHands, setHideClockHands] = useState(false);
+  const [showClockNumbers, setShowClockNumbers] = useState(true);
+  const [showClockHands, setShowClockHands] = useState(true);
   
   // News source preference (for economic events calendar)
   const [newsSource, setNewsSource] = useState(DEFAULT_NEWS_SOURCE);
@@ -96,8 +96,8 @@ export function SettingsProvider({ children }) {
       const savedShowTimeToStart = localStorage.getItem('showTimeToStart');
       const savedShowSessionNamesInCanvas = localStorage.getItem('showSessionNamesInCanvas');
       const savedShowEventsOnCanvas = localStorage.getItem('showEventsOnCanvas');
-      const savedHideClockNumbers = localStorage.getItem('hideClockNumbers');
-      const savedHideClockHands = localStorage.getItem('hideClockHands');
+      const savedShowClockNumbers = localStorage.getItem('showClockNumbers');
+      const savedShowClockHands = localStorage.getItem('showClockHands');
       const savedNewsSource = localStorage.getItem('newsSource');
       const savedPreferredSource = localStorage.getItem('preferredSource');
       const savedEventFilters = localStorage.getItem('eventFilters');
@@ -116,8 +116,8 @@ export function SettingsProvider({ children }) {
       if (savedShowTimeToStart !== null) setShowTimeToStart(savedShowTimeToStart === 'true');
       if (savedShowSessionNamesInCanvas !== null) setShowSessionNamesInCanvas(savedShowSessionNamesInCanvas === 'true');
       if (savedShowEventsOnCanvas !== null) setShowEventsOnCanvas(savedShowEventsOnCanvas === 'true');
-      if (savedHideClockNumbers !== null) setHideClockNumbers(savedHideClockNumbers === 'true');
-      if (savedHideClockHands !== null) setHideClockHands(savedHideClockHands === 'true');
+      if (savedShowClockNumbers !== null) setShowClockNumbers(savedShowClockNumbers === 'true');
+      if (savedShowClockHands !== null) setShowClockHands(savedShowClockHands === 'true');
       if (savedNewsSource) setNewsSource(savedNewsSource);
       if (savedPreferredSource) setPreferredSource(savedPreferredSource);
       
@@ -169,8 +169,8 @@ export function SettingsProvider({ children }) {
             if (data.settings.showTimeToStart !== undefined) setShowTimeToStart(data.settings.showTimeToStart);
             if (data.settings.showSessionNamesInCanvas !== undefined) setShowSessionNamesInCanvas(data.settings.showSessionNamesInCanvas);
             if (data.settings.showEventsOnCanvas !== undefined) setShowEventsOnCanvas(data.settings.showEventsOnCanvas);
-            if (data.settings.hideClockNumbers !== undefined) setHideClockNumbers(data.settings.hideClockNumbers);
-            if (data.settings.hideClockHands !== undefined) setHideClockHands(data.settings.hideClockHands);
+            if (data.settings.showClockNumbers !== undefined) setShowClockNumbers(data.settings.showClockNumbers);
+            if (data.settings.showClockHands !== undefined) setShowClockHands(data.settings.showClockHands);
             
             // Load news source preference
             if (data.settings.newsSource) setNewsSource(data.settings.newsSource);
@@ -207,8 +207,8 @@ export function SettingsProvider({ children }) {
               showTimeToStart,
               showSessionNamesInCanvas,
               showEventsOnCanvas,
-              hideClockNumbers,
-              hideClockHands,
+              showClockNumbers,
+              showClockHands,
               newsSource, // Default news source preference
                 preferredSource: 'auto',
             }
@@ -360,20 +360,20 @@ export function SettingsProvider({ children }) {
     });
   };
 
-  const toggleHideClockNumbers = () => {
-    setHideClockNumbers(prev => {
+  const toggleShowClockNumbers = () => {
+    setShowClockNumbers(prev => {
       const newValue = !prev;
-      localStorage.setItem('hideClockNumbers', newValue);
-      if (user) saveSettingsToFirestore({ hideClockNumbers: newValue });
+      localStorage.setItem('showClockNumbers', newValue);
+      if (user) saveSettingsToFirestore({ showClockNumbers: newValue });
       return newValue;
     });
   };
 
-  const toggleHideClockHands = () => {
-    setHideClockHands(prev => {
+  const toggleShowClockHands = () => {
+    setShowClockHands(prev => {
       const newValue = !prev;
-      localStorage.setItem('hideClockHands', newValue);
-      if (user) saveSettingsToFirestore({ hideClockHands: newValue });
+      localStorage.setItem('showClockHands', newValue);
+      if (user) saveSettingsToFirestore({ showClockHands: newValue });
       return newValue;
     });
   };
@@ -447,8 +447,8 @@ export function SettingsProvider({ children }) {
     setShowTimeToStart(true);
     setShowSessionNamesInCanvas(false);
     setShowEventsOnCanvas(true);
-    setHideClockNumbers(false);
-    setHideClockHands(false);
+    setShowClockNumbers(true);
+    setShowClockHands(true);
     setNewsSource(DEFAULT_NEWS_SOURCE);
     setPreferredSource('auto');
     setEventFilters({
@@ -516,10 +516,10 @@ export function SettingsProvider({ children }) {
     toggleShowSessionNamesInCanvas,
     showEventsOnCanvas,
     toggleShowEventsOnCanvas,
-    hideClockNumbers,
-    toggleHideClockNumbers,
-    hideClockHands,
-    toggleHideClockHands,
+    showClockNumbers,
+    toggleShowClockNumbers,
+    showClockHands,
+    toggleShowClockHands,
     resetSettings,
     eventFilters,
     updateEventFilters,

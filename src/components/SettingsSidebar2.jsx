@@ -5,7 +5,7 @@
  * Inspired by modern app shells (Airbnb/ChatGPT) with quick toggles, sectional pills, and responsive cards that mirror existing settings logic.
  * 
  * Changelog:
- * v1.2.8 - 2025-12-17 - Added Hide Numbers and Hide Clock Hands child settings under Analog Hand Clock for granular canvas customization.
+ * v1.2.8 - 2025-12-17 - Added Show Numbers and Show Clock Hands child settings under Analog Hand Clock for granular canvas customization.
  * v1.2.7 - 2025-12-17 - Replaced hardcoded About content with dynamic loading from AboutContent.txt for SEO-rich enterprise copywriting.
  * v1.2.6 - 2025-12-16 - Hide settings drawer when reset confirmation is open so the modal always sits on top.
  * v1.2.5 - 2025-12-16 - Moved Show timezone label toggle into Visibility between Digital Clock and Session Label.
@@ -151,10 +151,10 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 		toggleShowSessionNamesInCanvas,
 		showEventsOnCanvas,
 		toggleShowEventsOnCanvas,
-		hideClockNumbers,
-		toggleHideClockNumbers,
-		hideClockHands,
-		toggleHideClockHands,
+		showClockNumbers,
+		toggleShowClockNumbers,
+		showClockHands,
+		toggleShowClockHands,
 		resetSettings,
 	} = useSettings();
 
@@ -429,29 +429,15 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 						>
 							<Box sx={{ flex: 1, minWidth: 0 }}>
 								<Typography variant="body2" sx={{ fontWeight: 600 }}>
-									Hide Numbers
-								</Typography>
-								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-									Hide 1-12 clock numbers from the analog face
-								</Typography>
-							</Box>
-							<SwitchComponent
-								checked={hideClockNumbers}
-								onChange={toggleHideClockNumbers}
-							/>
+								Show Numbers
+							</Typography>
+							<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+								Display 1-12 clock numbers on the analog face
+							</Typography>
 						</Box>
-
-						<Box
-							sx={{
-								display: 'flex',
-								gap: 1.5,
-								alignItems: 'center',
-								borderLeft: '1px solid',
-								borderColor: 'divider',
-								pl: 1.5,
-								minHeight: 44,
-								flexWrap: 'wrap',
-						}}
+						<SwitchComponent
+							checked={showClockNumbers}
+							onChange={toggleShowClockNumbers}
 						>
 							<Box sx={{ flex: 1, minWidth: 0 }}>
 								<Typography variant="body2" sx={{ fontWeight: 600 }}>

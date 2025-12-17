@@ -10,7 +10,7 @@ import {
   lightenColor
 } from '../utils/clockUtils';
 
-export default function ClockCanvas({ size, time, sessions, handColor, clockStyle = 'normal', showSessionNamesInCanvas = true, hideClockNumbers = false, hideClockHands = false, activeSession = null, backgroundBasedOnSession = false, renderHandsInCanvas = true, handAnglesRef = null }) {
+export default function ClockCanvas({ size, time, sessions, handColor, clockStyle = 'normal', showSessionNamesInCanvas = true, showClockNumbers = true, showClockHands = true, activeSession = null, backgroundBasedOnSession = false, renderHandsInCanvas = true, handAnglesRef = null }) {
   const canvasRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const [hoveredSession, setHoveredSession] = useState(null);
@@ -177,11 +177,11 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
         showSessionNamesInCanvas,
         activeSession,
         backgroundBasedOnSession,
-        renderHandsInCanvas && !hideClockHands
+        renderHandsInCanvas && showClockHands
       );
       
       // Pass handColor as the text color for the clock numbers and clockStyle
-      if (!hideClockNumbers) {
+      if (showClockNumbers) {
         drawClockNumbers(ctx, size / 2, size / 2, size / 2 - 5, handColor, clockStyle);
       }
   
@@ -189,7 +189,7 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     };
     animationId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationId);
-  }, [size, sessions, hoveredSession, handColor, clockStyle, showSessionNamesInCanvas, activeSession, backgroundBasedOnSession, hideClockNumbers, hideClockHands]);
+  }, [size, sessions, hoveredSession, handColor, clockStyle, showSessionNamesInCanvas, activeSession, backgroundBasedOnSession, showClockNumbers, showClockHands]);
 
   const detectHoveredSession = (canvas, mouseX, mouseY) => {
     const rect = canvas.getBoundingClientRect();
