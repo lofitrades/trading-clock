@@ -65,9 +65,9 @@ const LoadingAnimation = ({ clockSize = 375, isLoading = true }) => {
     const ctx = canvas.getContext('2d');
     const size = clockSize;
     const dpr = window.devicePixelRatio || 1;
-    
-     // Reset any prior transforms before sizing/scaling to avoid double-scaling artifacts
-     ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // Reset any prior transforms before sizing/scaling to avoid double-scaling artifacts
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     canvas.width = size * dpr;
     canvas.height = size * dpr;
@@ -82,17 +82,17 @@ const LoadingAnimation = ({ clockSize = 375, isLoading = true }) => {
     // Four donuts - two per arc (AM and PM circles)
     // Each donut is 90 degrees (quarter circle) with offset phases to avoid overlap
     const donutConfigs = [
-      // AM circle (inner) - two donuts
-      { radius: 0.52, color: '#A8D8B9', speed: 1.5, phase: 0, lineWidth: 30, arcLength: Math.PI / 2 },
-      { radius: 0.52, color: '#D1B2E1', speed: -1.8, phase: 180, lineWidth: 30, arcLength: Math.PI / 2 },
-      // PM circle (outer) - two donuts
-      { radius: 0.75, color: '#A7C7E7', speed: 1.2, phase: 90, lineWidth: 30, arcLength: Math.PI / 2 },
-      { radius: 0.75, color: '#F8C8D1', speed: -1.4, phase: 270, lineWidth: 30, arcLength: Math.PI / 2 },
+      // AM circle (inner) - multicolor palette accents
+      { radius: 0.52, color: '#018786', speed: 1.5, phase: 0, lineWidth: 30, arcLength: Math.PI / 2 }, // Right Large (teal)
+      { radius: 0.52, color: '#FF6F91', speed: -1.8, phase: 180, lineWidth: 30, arcLength: Math.PI / 2 }, // Right Inner (pink)
+      // PM circle (outer) - multicolor palette anchors
+      { radius: 0.75, color: '#4E7DFF', speed: 1.2, phase: 90, lineWidth: 30, arcLength: Math.PI / 2 }, // Top Left (blue)
+      { radius: 0.75, color: '#FFA85C', speed: -1.4, phase: 270, lineWidth: 30, arcLength: Math.PI / 2 }, // Bottom Left (orange)
     ];
 
     // Scale line width based on clock size
     const scaleFactor = size / 375;
-    
+
     // Initialize donuts animation states
     donutsRef.current = donutConfigs.map((config) => ({
       ...config,
@@ -139,7 +139,7 @@ const LoadingAnimation = ({ clockSize = 375, isLoading = true }) => {
         ctx.save();
         ctx.globalAlpha = donut.currentOpacity;
         ctx.beginPath();
-        
+
         const arcLength = donut.arcLength; // 90 degrees (quarter circle)
         ctx.arc(
           centerX,
@@ -148,7 +148,7 @@ const LoadingAnimation = ({ clockSize = 375, isLoading = true }) => {
           rotation - Math.PI / 2,
           rotation - Math.PI / 2 + arcLength
         );
-        
+
         ctx.lineWidth = donut.lineWidth;
         ctx.strokeStyle = donut.color;
         ctx.lineCap = 'round';
@@ -172,8 +172,8 @@ const LoadingAnimation = ({ clockSize = 375, isLoading = true }) => {
   if (!shouldRender) return null;
 
   return (
-    <canvas 
-      ref={canvasRef} 
+    <canvas
+      ref={canvasRef}
       style={{
         opacity: opacity,
         transition: 'opacity 500ms ease-in-out',

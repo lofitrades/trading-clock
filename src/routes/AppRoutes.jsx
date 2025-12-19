@@ -27,7 +27,9 @@ import PrivateRoute from '../components/routes/PrivateRoute';
 import PublicRoute from '../components/routes/PublicRoute';
 
 // Lazy load components for code splitting
-const MainApp = lazy(() => import('../App'));
+const LandingPage = lazy(() => import('../components/LandingPage'));
+const HomePage = lazy(() => import('../components/HomePage'));
+const AboutPage = lazy(() => import('../components/AboutPage'));
 const LoginPage = lazy(() => import('../components/LoginPage'));
 const UploadDescriptions = lazy(() => import('../components/UploadDescriptions'));
 const ExportEvents = lazy(() => import('../components/ExportEvents'));
@@ -57,7 +59,7 @@ const NotFound = () => (
   >
     <h1>404 - Page Not Found</h1>
     <p>The page you're looking for doesn't exist.</p>
-    <a href="/">Go back home</a>
+    <a href="/app">Go back home</a>
   </Box>
 );
 
@@ -67,7 +69,7 @@ const NotFound = () => (
  * Centralized routing configuration with the following features:
  * 
  * 1. PUBLIC ROUTES (accessible to everyone)
- *    - / - Main application (clock, events, etc.)
+ *    - / - Main application (clock, events, etc.) [served under /app basename]
  * 
  * 2. PRIVATE ROUTES (require authentication)
  *    - None currently (clock is public)
@@ -92,13 +94,33 @@ export default function AppRoutes() {
     <Suspense fallback={<LoadingFallback />}>
       <Routes>
         {/* ==================== PUBLIC ROUTES ==================== */}
-        
-        {/* Main Application - Accessible to everyone */}
+
+        {/* Landing Page - SEO-optimized marketing page */}
         <Route
           path="/"
           element={
             <PublicRoute>
-              <MainApp />
+              <LandingPage />
+            </PublicRoute>
+          }
+        />
+
+        {/* Main Application - Interactive trading clock */}
+        <Route
+          path="/app"
+          element={
+            <PublicRoute>
+              <HomePage />
+            </PublicRoute>
+          }
+        />
+
+        {/* About Page - Accessible to everyone */}
+        <Route
+          path="/about"
+          element={
+            <PublicRoute>
+              <AboutPage />
             </PublicRoute>
           }
         />
@@ -124,7 +146,7 @@ export default function AppRoutes() {
         />
 
         {/* ==================== ADMIN ROUTES ==================== */}
-        
+
         {/* Upload Economic Event Descriptions - Admin only */}
         <Route
           path="/upload-desc"
@@ -146,7 +168,7 @@ export default function AppRoutes() {
         />
 
         {/* ==================== PRIVATE ROUTES ==================== */}
-        
+
         {/* User Settings - Requires authentication
         <Route
           path="/settings"
@@ -170,7 +192,7 @@ export default function AppRoutes() {
         */}
 
         {/* ==================== PREMIUM ROUTES ==================== */}
-        
+
         {/* Analytics Dashboard - Requires premium or pro plan
         <Route
           path="/dashboard"
@@ -205,7 +227,7 @@ export default function AppRoutes() {
         */}
 
         {/* ==================== FEATURE-GATED ROUTES ==================== */}
-        
+
         {/* Advanced Trading Tools - Requires specific feature
         <Route
           path="/advanced-tools"
@@ -218,7 +240,7 @@ export default function AppRoutes() {
         */}
 
         {/* ==================== CATCH-ALL ROUTES ==================== */}
-        
+
         {/* 404 Not Found - Catch all unmatched routes */}
         <Route path="*" element={<NotFound />} />
       </Routes>

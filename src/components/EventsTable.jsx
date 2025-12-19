@@ -19,6 +19,7 @@
  * Changelog:
   * v1.9.5 - 2025-12-16 - Always show "Actual: —" when actual values are unavailable.
   * v1.9.4 - 2025-12-16 - Moved next clock icon to the right of time; added inline metrics summary as secondary text.
+ * v1.9.6 - 2025-12-18 - Centralize impact colors (low impact yellow #F2C94C, unknown taupe #C7B8A4) for table chips to avoid collisions with session/NOW palette.
  * v1.9.3 - 2025-12-16 - Removed horizontal overflow; table now fits drawer width with wrapping text and compact spacing.
   * v1.9.2 - 2025-12-16 - Moved favorite/notes action column to the first position in table rows (mobile layout across all breakpoints).
   * v1.9.1 - 2025-12-16 - Unified mobile table layout for all breakpoints; horizontal scroll retained for full data access.
@@ -44,6 +45,7 @@
  */
 
 import React, { useState, useMemo, useCallback, memo, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 import {
   Box,
   Paper,
@@ -89,9 +91,9 @@ import {
   getEventEpochMs,
   getNowEpochMs,
   isPastToday as isPastTodayEngine,
-  formatCountdownHMS,
   computeNowNextState,
 } from '../utils/eventTimeEngine';
+import { resolveImpactMeta } from '../utils/newsApi';
 
 // ============================================================================
 // CONSTANTS
@@ -101,14 +103,14 @@ import {
  * Table columns configuration
  */
 const COLUMNS = [
-  { id: 'action', label: '', sortable: false, align: 'center' },
-  { id: 'time', label: 'Time', sortable: true, align: 'left' },
-  { id: 'currency', label: 'Cur', sortable: true, align: 'center' },
-  { id: 'impact', label: 'Imp', sortable: true, align: 'center' },
-  { id: 'name', label: 'Event Name', sortable: true, align: 'left' },
-  { id: 'actual', label: 'Act', sortable: false, align: 'center' },
-  { id: 'forecast', label: 'For', sortable: false, align: 'center' },
-  { id: 'previous', label: 'Pre', sortable: false, align: 'center' },
+  { id: 'action', label: '', labelExpanded: '', sortable: false, align: 'center' },
+  { id: 'time', label: 'Time', labelExpanded: 'Time', sortable: true, align: 'left' },
+  { id: 'currency', label: 'Cur', labelExpanded: 'Cur', sortable: true, align: 'center' },
+  { id: 'impact', label: 'Imp', labelExpanded: 'Imp', sortable: true, align: 'center' },
+  { id: 'name', label: 'Event Name', labelExpanded: 'Event Name', sortable: true, align: 'left' },
+  { id: 'actual', label: 'A', labelExpanded: 'Actual', sortable: false, align: 'center' },
+  { id: 'forecast', label: 'F', labelExpanded: 'Forecast', sortable: false, align: 'center' },
+  { id: 'previous', label: 'P', labelExpanded: 'Previous', sortable: false, align: 'center' },
 ];
 
 /**
@@ -133,11 +135,12 @@ const CURRENCY_TO_COUNTRY = {
  * Impact configuration
  */
 const IMPACT_CONFIG = {
-  strong: { icon: '!!!', color: 'error.main', label: 'High' },
-  moderate: { icon: '!!', color: 'warning.main', label: 'Medium' },
-  weak: { icon: '!', color: 'info.main', label: 'Low' },
-  'non-economic': { icon: '~', color: 'grey.500', label: 'Non-Economic' },
-  unknown: { icon: '?', color: 'grey.500', label: 'Unknown' },
+  strong: { icon: '!!!', label: 'High' },
+  moderate: { icon: '!!', label: 'Medium' },
+  weak: { icon: '!', label: 'Low' },
+  'not-loaded': { icon: '?', label: 'Data Not Loaded' },
+  'non-economic': { icon: '~', label: 'Non-Economic' },
+  unknown: { icon: '?', label: 'Unknown' },
 };
 
 const SPEECH_TITLE_REGEX = /(speaks|remarks|address|testifies|statement|press conference|hearing|meeting|vote)/i;
@@ -174,15 +177,14 @@ const getSpeechSummary = (event) => {
  * Get impact config based on strength value
  */
 const getImpactConfig = (strength) => {
-  if (!strength) return IMPACT_CONFIG.unknown;
-  
-  const lower = strength.toLowerCase();
-  if (lower.includes('strong') || lower.includes('high')) return IMPACT_CONFIG.strong;
-  if (lower.includes('moderate') || lower.includes('medium')) return IMPACT_CONFIG.moderate;
-  if (lower.includes('weak') || lower.includes('low')) return IMPACT_CONFIG.weak;
-  if (lower.includes('non-economic')) return IMPACT_CONFIG['non-economic'];
-  
-  return IMPACT_CONFIG.unknown;
+  const meta = resolveImpactMeta(strength);
+  const base = IMPACT_CONFIG[meta.key] || IMPACT_CONFIG.unknown;
+  return {
+    ...base,
+    color: meta.color,
+    icon: base.icon || meta.icon,
+    label: base.label || meta.label,
+  };
 };
 
 /**
@@ -224,12 +226,16 @@ const SkeletonRow = memo(({ columnsCount }) => (
 
 SkeletonRow.displayName = 'SkeletonRow';
 
+SkeletonRow.propTypes = {
+  columnsCount: PropTypes.number.isRequired,
+};
+
 /**
  * Empty State Component
  */
 const EmptyState = memo(({ searchQuery = '' }) => {
   const hasSearch = Boolean(searchQuery && searchQuery.trim());
-  
+
   return (
     <Box
       sx={{
@@ -245,7 +251,7 @@ const EmptyState = memo(({ searchQuery = '' }) => {
         {hasSearch ? 'No events found' : 'No Events Found'}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', maxWidth: 400, mb: hasSearch ? 1 : 0 }}>
-        {hasSearch 
+        {hasSearch
           ? `No events match your search "${searchQuery}"`
           : 'Try adjusting your filters or date range to see more events.'}
       </Typography>
@@ -268,12 +274,16 @@ const EmptyState = memo(({ searchQuery = '' }) => {
 
 EmptyState.displayName = 'EmptyState';
 
+EmptyState.propTypes = {
+  searchQuery: PropTypes.string,
+};
+
 /**
  * Currency Flag Cell
  */
 const CurrencyCell = memo(({ currency, isMobile }) => {
   const countryCode = getCurrencyFlag(currency);
-  
+
   if (!countryCode) {
     return (
       <Typography variant="body2" fontWeight={600} fontSize="0.8125rem">
@@ -281,7 +291,7 @@ const CurrencyCell = memo(({ currency, isMobile }) => {
       </Typography>
     );
   }
-  
+
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center' }}>
       <Box
@@ -303,12 +313,17 @@ const CurrencyCell = memo(({ currency, isMobile }) => {
 
 CurrencyCell.displayName = 'CurrencyCell';
 
+CurrencyCell.propTypes = {
+  currency: PropTypes.string,
+  isMobile: PropTypes.bool.isRequired,
+};
+
 /**
  * Impact Cell
  */
 const ImpactCell = memo(({ strength, isPast }) => {
   const config = getImpactConfig(strength);
-  
+
   return (
     <Chip
       label={config.icon}
@@ -329,6 +344,11 @@ const ImpactCell = memo(({ strength, isPast }) => {
 
 ImpactCell.displayName = 'ImpactCell';
 
+ImpactCell.propTypes = {
+  strength: PropTypes.string,
+  isPast: PropTypes.bool.isRequired,
+};
+
 /**
  * Data Values Cell (Actual / Forecast / Previous)
  */
@@ -337,11 +357,11 @@ const DataValuesCell = memo(({ event }) => {
   const eventDate = new Date(event.date);
   const now = new Date();
   const isFuture = eventDate.getTime() > now.getTime();
-  
+
   const actual = isFuture ? '—' : (event.actual || '—');
   const forecast = event.forecast || '—';
   const previous = event.previous || '—';
-  
+
   return (
     <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
       <Typography
@@ -369,6 +389,15 @@ const DataValuesCell = memo(({ event }) => {
 
 DataValuesCell.displayName = 'DataValuesCell';
 
+DataValuesCell.propTypes = {
+  event: PropTypes.shape({
+    date: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]).isRequired,
+    actual: PropTypes.string,
+    forecast: PropTypes.string,
+    previous: PropTypes.string,
+  }).isRequired,
+};
+
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
@@ -378,6 +407,7 @@ DataValuesCell.displayName = 'DataValuesCell';
  */
 export default function EventsTable({
   events,
+  isExpanded = false,
   loading,
   error,
   timezone,
@@ -396,6 +426,13 @@ export default function EventsTable({
   // Force the compact mobile layout for all breakpoints
   const isMobile = true;
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNowTick(getNowEpochMs(timezone));
+    }, 1000); // 1 second for immediate NOW/NEXT updates
+    return () => clearInterval(interval);
+  }, [timezone]);
+
   // ========== STATE ==========
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(() => {
@@ -405,20 +442,19 @@ export default function EventsTable({
   const [orderBy, setOrderBy] = useState('date');
   const [order, setOrder] = useState('asc');
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [countdownNow, setCountdownNow] = useState(() => Date.now());
-  const [scrollPosition, setScrollPosition] = useState(0);
   const [showScrollToNext, setShowScrollToNext] = useState(false);
   const [favoriteConfirm, setFavoriteConfirm] = useState({ anchor: null, event: null });
+  const [nowTick, setNowTick] = useState(() => getNowEpochMs(timezone));
   const tableContainerRef = useRef(null);
   const lastScrollTokenRef = useRef(null);
 
   // ========== SORTING ==========
   const sortedEvents = useMemo(() => {
     if (!events || events.length === 0) return [];
-    
+
     const comparator = (a, b) => {
       let aValue, bValue;
-      
+
       switch (orderBy) {
         case 'date':
           aValue = new Date(a.date).getTime();
@@ -432,18 +468,12 @@ export default function EventsTable({
           aValue = a.currency || '';
           bValue = b.currency || '';
           break;
-        case 'impact':
-          const impactOrder = { strong: 3, moderate: 2, weak: 1, unknown: 0 };
-          const getImpactValue = (strength) => {
-            const lower = (strength || '').toLowerCase();
-            if (lower.includes('strong')) return impactOrder.strong;
-            if (lower.includes('moderate')) return impactOrder.moderate;
-            if (lower.includes('weak')) return impactOrder.weak;
-            return impactOrder.unknown;
-          };
+        case 'impact': {
+          const getImpactValue = (strength) => resolveImpactMeta(strength).priority;
           aValue = getImpactValue(a.strength);
           bValue = getImpactValue(b.strength);
           break;
+        }
         case 'name':
           aValue = a.Name || '';
           bValue = b.Name || '';
@@ -451,12 +481,12 @@ export default function EventsTable({
         default:
           return 0;
       }
-      
+
       if (aValue < bValue) return order === 'asc' ? -1 : 1;
       if (aValue > bValue) return order === 'asc' ? 1 : -1;
       return 0;
     };
-    
+
     return [...events].sort(comparator);
   }, [events, orderBy, order]);
 
@@ -471,7 +501,7 @@ export default function EventsTable({
       return { nextIds: new Set(), nextFirstId: null, nextTime: null, nowIds: new Set() };
     }
 
-    const nowEpochMs = getNowEpochMs(timezone);
+    const nowEpochMs = nowTick;
     const state = computeNowNextState({
       events: eventsForNext,
       nowEpochMs,
@@ -482,9 +512,9 @@ export default function EventsTable({
     const nextIds = new Set(state.nextEventIds);
     const nextFirstId = state.nextEventIds[0] || null;
     const nextTime = state.nextEventEpochMs;
-    
+
     return { nextIds, nextFirstId, nextTime, nowIds };
-  }, [events, timezone]);
+  }, [events, timezone, nowTick]);
 
   // ========== AUTO SCROLL LOGIC ==========
   const targetToken = useMemo(() => {
@@ -502,15 +532,10 @@ export default function EventsTable({
     return null;
   }, [autoScrollToNextKey]);
 
-  const targetIndex = useMemo(() => {
-    if (!targetIdFromToken) return -1;
-    return sortedEvents.findIndex((evt) => evt.id === targetIdFromToken);
-  }, [sortedEvents, targetIdFromToken]);
-
   useEffect(() => {
     if (!nextEventMeta.nextTime && nextEventMeta.nowIds.size === 0) return undefined;
-    const id = setInterval(() => setCountdownNow(Date.now()), 1000);
-    return () => clearInterval(id);
+    // Removed countdown timer as countdownNow state was unused
+    return undefined;
   }, [nextEventMeta.nextTime, nextEventMeta.nowIds]);
 
   /**
@@ -523,8 +548,8 @@ export default function EventsTable({
     if (!container) return undefined;
 
     const handleScroll = () => {
-      setScrollPosition(container.scrollTop);
-      
+      // Removed setScrollPosition as scrollPosition state was unused
+
       const hasNow = nextEventMeta.nowIds.size > 0;
       const targetIds = hasNow ? nextEventMeta.nowIds : nextEventMeta.nextIds;
       const firstTargetId = targetIds.size > 0 ? Array.from(targetIds)[0] : null;
@@ -593,14 +618,14 @@ export default function EventsTable({
     // Scroll to the target row after DOM update
     const scrollToTarget = () => {
       const targetRow = document.querySelector(`[data-event-id="${targetIdFromToken}"]`);
-      
+
       if (targetRow && tableContainerRef.current) {
         const container = tableContainerRef.current;
         const containerRect = container.getBoundingClientRect();
         const rowRect = targetRow.getBoundingClientRect();
         const rowTop = rowRect.top - containerRect.top + container.scrollTop;
         const scrollTo = rowTop - (containerRect.height / 2) + (rowRect.height / 2);
-        
+
         container.scrollTo({ top: scrollTo, behavior: 'smooth' });
         lastScrollTokenRef.current = targetToken;
       }
@@ -625,14 +650,14 @@ export default function EventsTable({
 
     if (firstDefaultId) {
       const nextRow = document.querySelector(`[data-event-id="${firstDefaultId}"]`);
-      
+
       if (nextRow && tableContainerRef.current) {
         const container = tableContainerRef.current;
         const containerRect = container.getBoundingClientRect();
         const rowRect = nextRow.getBoundingClientRect();
         const rowTop = rowRect.top - containerRect.top + container.scrollTop;
         const scrollTo = rowTop - (containerRect.height / 2) + (rowRect.height / 2);
-        
+
         container.scrollTo({ top: scrollTo, behavior: 'smooth' });
         lastScrollTokenRef.current = 'next-default';
       }
@@ -646,7 +671,7 @@ export default function EventsTable({
    */
   const groupedEvents = useMemo(() => {
     if (!sortedEvents || sortedEvents.length === 0) return {};
-    
+
     const groups = {};
     sortedEvents.forEach(event => {
       const dateKey = formatDate(event.date, timezone);
@@ -655,7 +680,7 @@ export default function EventsTable({
       }
       groups[dateKey].push(event);
     });
-    
+
     return groups;
   }, [sortedEvents, timezone]);
 
@@ -669,8 +694,11 @@ export default function EventsTable({
   // ========== COLUMNS VISIBILITY ==========
   const visibleColumns = useMemo(() => {
     // Use the compact/mobile column set for all breakpoints
-    return COLUMNS.filter(col => MOBILE_COLUMNS.includes(col.id) || col.id === 'action');
-  }, []);
+    return COLUMNS.filter(col => MOBILE_COLUMNS.includes(col.id) || col.id === 'action').map(col => ({
+      ...col,
+      label: isExpanded ? col.labelExpanded : col.label,
+    }));
+  }, [isExpanded]);
 
   // ========== HANDLERS ==========
   const handleSort = useCallback((columnId) => {
@@ -745,14 +773,14 @@ export default function EventsTable({
     if (!firstTargetId) return;
 
     const nextRow = document.querySelector(`[data-event-id="${firstTargetId}"]`);
-    
+
     if (nextRow && tableContainerRef.current) {
       const container = tableContainerRef.current;
       const containerRect = container.getBoundingClientRect();
       const rowRect = nextRow.getBoundingClientRect();
       const rowTop = rowRect.top - containerRect.top + container.scrollTop;
       const scrollTo = rowTop - (containerRect.height / 2) + (rowRect.height / 2);
-      
+
       container.scrollTo({ top: scrollTo, behavior: 'smooth' });
     }
   }, [nextEventMeta.nextFirstId, nextEventMeta.nowIds]);
@@ -782,7 +810,13 @@ export default function EventsTable({
     <Paper sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       <TableContainer
         ref={tableContainerRef}
-        sx={{ flex: 1, overflowX: 'hidden', overflowY: 'auto' }}
+        sx={{
+          flex: 1,
+          overflowX: 'hidden',
+          overflowY: 'auto',
+          // Reserve gutter on scrollbar side only to avoid reducing usable width
+          scrollbarGutter: 'stable',
+        }}
       >
         <Table stickyHeader size="small">
           <TableHead sx={{ display: 'none' }}>
@@ -831,7 +865,7 @@ export default function EventsTable({
               Object.entries(groupedEvents).map(([dateKey, dateEvents]) => {
                 const pageEvents = dateEvents.filter(event => paginatedEvents.includes(event));
                 if (pageEvents.length === 0) return null;
-                
+
                 return (
                   <React.Fragment key={dateKey}>
                     <TableRow>
@@ -852,50 +886,53 @@ export default function EventsTable({
                         {dateKey}
                       </TableCell>
                     </TableRow>
-                    
+
                     {pageEvents.map((event) => {
                       const nowEpochMs = Date.now();
                       const isNow = nextEventMeta.nowIds.has(event.id);
                       const isNext = nextEventMeta.nextIds.has(event.id);
                       const isPast = isPastEvent(event.time || event.date, timezone, nowEpochMs);
-                      
+
                       return (
-                      <TableRow
-                        key={event.id}
-                        data-event-id={event.id}
-                        hover
-                        onClick={() => handleRowClick(event)}
-                        sx={{
-                          cursor: 'pointer',
-                          bgcolor: isNow
-                            ? alpha(theme.palette.info.main, 0.08)
-                            : isNext
-                              ? alpha(theme.palette.primary.main, 0.06)
-                              : isPast
-                                ? '#f5f5f5'
-                                : 'transparent',
-                          color: isPast ? '#424242' : 'inherit',
-                          borderLeft: isNow
-                            ? `3px solid ${theme.palette.info.main}`
-                            : isNext
-                              ? `3px solid ${theme.palette.primary.main}`
-                              : 'none',
-                          '& td': {
-                            py: 0.5,
-                            px: 1,
-                            fontSize: '0.8125rem',
-                          },
-                          '& td, & th, & span, & p': {
-                            color: 'inherit',
-                          },
-                          '&:hover': {
+                        <TableRow
+                          key={event.id}
+                          data-event-id={event.id}
+                          hover
+                          onClick={() => handleRowClick(event)}
+                          sx={{
+                            cursor: 'pointer',
                             bgcolor: isNow
-                              ? alpha(theme.palette.info.main, 0.12)
-                              : alpha(theme.palette.primary.main, 0.1),
-                          },
-                        }}
-                      >
-                        {(() => {
+                              ? alpha(theme.palette.info.main, 0.08)
+                              : isNext
+                                ? alpha(theme.palette.primary.main, 0.06)
+                                : isPast
+                                  ? '#f5f5f5'
+                                  : 'transparent',
+                            color: isPast ? '#424242' : 'inherit',
+                            borderLeft: isNow
+                              ? `3px solid ${theme.palette.info.main}`
+                              : isNext
+                                ? `3px solid ${theme.palette.primary.main}`
+                                : 'none',
+                            '& td': {
+                              py: 0.5,
+                              px: 1,
+                              fontSize: '0.8125rem',
+                            },
+                            '& td, & th, & span, & p': {
+                              color: 'inherit',
+                            },
+                            '&:hover': {
+                              bgcolor: isNow
+                                ? alpha(theme.palette.info.main, 0.12)
+                                : alpha(theme.palette.primary.main, 0.1),
+                              '& .metrics-summary': {
+                                display: 'block',
+                              },
+                            },
+                          }}
+                        >
+                          {(() => {
                             const speechNoMetrics = isSpeechLikeEvent(event);
                             const speechSummary = speechNoMetrics ? getSpeechSummary(event) : null;
                             const metricColumnsInView = visibleColumns.filter((c) => ['actual', 'forecast', 'previous'].includes(c.id)).map((c) => c.id);
@@ -911,7 +948,19 @@ export default function EventsTable({
                                 if (column.id === 'actual') {
                                   return (
                                     <TableCell key={column.id} align="left" colSpan={metricColumnsInView.length}>
-                                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', lineHeight: 1.3 }}>
+                                      <Typography
+                                        className="metrics-summary"
+                                        variant="body2"
+                                        color="text.secondary"
+                                        sx={{
+                                          display: 'none',
+                                          fontSize: '0.75rem',
+                                          lineHeight: 1.3,
+                                          '@media (hover: none)': {
+                                            display: 'none !important',
+                                          },
+                                        }}
+                                      >
                                         {speechSummary}
                                       </Typography>
                                     </TableCell>
@@ -927,9 +976,12 @@ export default function EventsTable({
                               const metricsSummary = (() => {
                                 if (speechNoMetrics) return null;
                                 const parts = [];
-                                if (hasMetricValue(event.actual)) parts.push(`Actual: ${event.actual}`);
-                                if (hasMetricValue(event.forecast)) parts.push(`Forecast: ${event.forecast}`);
-                                if (hasMetricValue(event.previous)) parts.push(`Previous: ${event.previous}`);
+                                const actualLabel = isExpanded ? 'Actual' : 'A';
+                                const forecastLabel = isExpanded ? 'Forecast' : 'F';
+                                const previousLabel = isExpanded ? 'Previous' : 'P';
+                                if (hasMetricValue(event.actual)) parts.push(`${actualLabel}: ${event.actual}`);
+                                if (hasMetricValue(event.forecast)) parts.push(`${forecastLabel}: ${event.forecast}`);
+                                if (hasMetricValue(event.previous)) parts.push(`${previousLabel}: ${event.previous}`);
                                 return parts.length ? parts.join(' | ') : null;
                               })();
 
@@ -971,12 +1023,38 @@ export default function EventsTable({
                                     </Typography>
                                   )}
                                   {shouldShowInlineSpeech && speechSummary && (
-                                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25, fontSize: '0.7rem', lineHeight: 1.2 }}>
+                                    <Typography
+                                      className="metrics-summary"
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{
+                                        display: 'none',
+                                        mt: 0.25,
+                                        fontSize: '0.7rem',
+                                        lineHeight: 1.2,
+                                        '@media (hover: none)': {
+                                          display: 'none !important',
+                                        },
+                                      }}
+                                    >
                                       {speechSummary}
                                     </Typography>
                                   )}
                                   {column.id === 'name' && metricsSummary && (
-                                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25, fontSize: '0.7rem', lineHeight: 1.2 }}>
+                                    <Typography
+                                      className="metrics-summary"
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{
+                                        display: 'none',
+                                        mt: 0.25,
+                                        fontSize: '0.7rem',
+                                        lineHeight: 1.2,
+                                        '@media (hover: none)': {
+                                          display: 'none !important',
+                                        },
+                                      }}
+                                    >
                                       {metricsSummary}
                                     </Typography>
                                   )}
@@ -1071,10 +1149,11 @@ export default function EventsTable({
                                   )}
                                 </TableCell>
                               );
-                            });  
+                            });
                           })()}
-                      </TableRow>
-                    );})}
+                        </TableRow>
+                      );
+                    })}
                   </React.Fragment>
                 );
               })
@@ -1117,7 +1196,7 @@ export default function EventsTable({
         const nextRow = container && firstTargetId
           ? document.querySelector(`[data-event-id="${firstTargetId}"]`)
           : null;
-        
+
         let isNextAbove = false;
         if (container && nextRow) {
           const containerRect = container.getBoundingClientRect();
@@ -1149,9 +1228,9 @@ export default function EventsTable({
                 transition: 'all 0.2s ease',
               }}
             >
-              <MuiTooltip 
-                title={`${hasNow ? 'Scroll to Now Event' : 'Scroll to Next Event'} ${isNextAbove ? '(Above)' : '(Below)'}`} 
-                arrow 
+              <MuiTooltip
+                title={`${hasNow ? 'Scroll to Now Event' : 'Scroll to Next Event'} ${isNextAbove ? '(Above)' : '(Below)'}`}
+                arrow
                 placement="left"
               >
                 {isNextAbove ? (
@@ -1184,3 +1263,21 @@ export default function EventsTable({
     </Paper>
   );
 }
+
+EventsTable.propTypes = {
+  events: PropTypes.arrayOf(PropTypes.object).isRequired,
+  isExpanded: PropTypes.bool,
+  loading: PropTypes.bool,
+  error: PropTypes.string,
+  timezone: PropTypes.string.isRequired,
+  onRefresh: PropTypes.func,
+  autoScrollToNextKey: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  searchQuery: PropTypes.string,
+  isFavoriteEvent: PropTypes.func,
+  onToggleFavorite: PropTypes.func,
+  isFavoritePending: PropTypes.func,
+  favoritesLoading: PropTypes.bool,
+  hasEventNotes: PropTypes.func,
+  onOpenNotes: PropTypes.func,
+  isEventNotesLoading: PropTypes.func,
+};

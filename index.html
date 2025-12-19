@@ -1,10 +1,15 @@
 <!--
   index.html
-
+  
   Purpose: HTML document entry for Time 2 Trade SPA, defining global head metadata, fonts, and mount point.
-  Key responsibility and main functionality: Provides SEO and social share metadata, loads Google Fonts, and bootstraps the React bundle.
-
+  Key responsibility and main functionality: Provides SEO and social share metadata, loads Google Fonts, and bootstraps the React bundle while shipping crawlable fallback content for non-JS/AI crawlers.
+  
   Changelog:
+  v1.6.0 - 2025-12-17 - Added PWA manifest, Apple touch icon, and theme color to enable install prompts and Chrome add-to-homescreen.
+  v1.5.0 - 2025-12-17 - Added automatic light/dark favicon switching with prefers-color-scheme detection and safe fallback.
+  v1.4.0 - 2025-12-17 - Defer AdSense loading to post-interaction to reduce mobile main-thread blocking.
+  v1.3.0 - 2025-12-17 - Made Google Fonts non-blocking with preload+swap to improve initial render performance.
+  v1.2.0 - 2025-12-17 - Added crawlable home-page fallback content, homepage structured data (WebSite + SoftwareApplication), and tightened AI/SEO discoverability.
   v1.1.0 - 2025-12-16 - Refreshed SEO copy, Open Graph/Twitter tags, canonical URL, and social share image for time2.trade.
   v1.0.0 - 2025-09-15 - Initial implementation.
 -->
@@ -12,43 +17,242 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="ico" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0f6fec" />
+    <link rel="apple-touch-icon" href="/icons/icon-apple-180.png" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" id="t2t-favicon" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
     <link rel="canonical" href="https://time2.trade/" />
-    <title>Time 2 Trade | Trading Session Clock, Economic Events, and Timezone Intelligence</title>
+    <title>Time 2 Trade | Visual Trading Intelligence for Sessions, Events & Timezones</title>
+    <script>
+      (function() {
+        const lightHref = '/favicon.ico';
+        const darkHref = '/faviconDark.ico';
+        const favicon = document.getElementById('t2t-favicon') || (() => {
+          const link = document.createElement('link');
+          link.rel = 'icon';
+          link.id = 't2t-favicon';
+          document.head.appendChild(link);
+          return link;
+        })();
+
+        const applyIcon = (isDark) => {
+          favicon.href = isDark ? darkHref : lightHref;
+        };
+
+        try {
+          if (window.matchMedia) {
+            const media = window.matchMedia('(prefers-color-scheme: dark)');
+            applyIcon(media.matches);
+
+            const handler = (event) => applyIcon(event.matches);
+
+            if (typeof media.addEventListener === 'function') {
+              media.addEventListener('change', handler);
+            } else if (typeof media.addListener === 'function') {
+              media.addListener(handler);
+            }
+            return;
+          }
+        } catch (error) {
+          // Ignore and fall back to light favicon.
+        }
+
+        applyIcon(false);
+      })();
+    </script>
     
-    <!-- Poppins Font for MUI -->
+    <!-- Poppins Font for MUI (non-blocking) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;700&display=swap"
+      onload="this.rel='stylesheet'"
+    >
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;700&display=swap">
+    </noscript>
+    <script>
+      // Defer loading AdSense until after first interaction/idle to reduce main-thread blocking on mobile.
+      (function() {
+        const loadAds = () => {
+          if (window.__t2tAdsLoaded) return;
+          window.__t2tAdsLoaded = true;
+          const s = document.createElement('script');
+          s.async = true;
+          s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4259160503531805';
+          s.crossOrigin = 'anonymous';
+          document.head.appendChild(s);
+        };
+
+        const schedule = () => {
+          if ('requestIdleCallback' in window) {
+            requestIdleCallback(loadAds, { timeout: 4000 });
+          } else {
+            setTimeout(loadAds, 3000);
+          }
+        };
+
+        ['click', 'scroll', 'keydown', 'pointerdown'].forEach((evt) => {
+          window.addEventListener(evt, () => {
+            loadAds();
+          }, { once: true, passive: true });
+        });
+
+        schedule();
+      })();
+    </script>
     
-    <!-- Google Adsense -->
+    <!-- Google Adsense (deferred load) -->
     <meta name="google-adsense-account" content="ca-pub-4259160503531805">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4259160503531805" crossorigin="anonymous"></script>
     
     <!-- SEO Meta Information -->
-    <meta name="title" content="Time 2 Trade | Trading Session Clock, Economic Events, and Timezone Intelligence" />
-    <meta name="description" content="Time 2 Trade helps futures and forex day traders stay session-ready with a dual-circle analog clock, economic event overlays, timezone-aware alerts, and cloud-synced settings across devices." />
-    <meta name="author" content="Casa Digital" />
-    <meta name="keywords" content="Time 2 Trade, trading clock, market sessions, forex sessions, futures sessions, economic calendar, economic events, trading timezone, trading schedule, ICT killzones, forex factory calendar" />
+    <meta name="title" content="Time 2 Trade - Visual Trading Intelligence Platform" />
+    <meta name="description" content="Time 2 Trade is a visual trading intelligence platform for futures and forex day traders. Track global market sessions, high-impact economic events, and timezone-aware insights with our unique dual-circle visualization." />
+    <meta name="author" content="Time 2 Trade" />
+    <meta name="keywords" content="trading clock, market sessions, economic events, forex trading, futures trading, timezone converter, trading intelligence, ICT killzones, London session, New York session" />
     <meta property="og:type" content="webapp" />
     <meta property="og:url" content="https://time2.trade/" />
-    <meta property="og:title" content="Time 2 Trade | Trading Session Clock, Economic Events, and Timezone Intelligence" />
-    <meta property="og:description" content="Visualize AM/PM sessions, overlay economic events, and sync settings to the cloud. Stay aligned to every market open no matter your timezone." />
-    <meta property="og:image" content="https://firebasestorage.googleapis.com/v0/b/time-2-trade-app.firebasestorage.app/o/public%2FTime2Trade_SEO_Meta.PNG?alt=media&token=6b499e0a-685c-4921-9c5b-905bd63b3f92" />
-    <meta property="og:image:secure_url" content="https://firebasestorage.googleapis.com/v0/b/time-2-trade-app.firebasestorage.app/o/public%2FTime2Trade_SEO_Meta.PNG?alt=media&token=6b499e0a-685c-4921-9c5b-905bd63b3f92" />
+    <meta property="og:title" content="Time 2 Trade | Visual Trading Intelligence Platform" />
+    <meta property="og:description" content="Visualize market sessions with dual-circle interface, overlay live economic events, track timezone-aware insights, and sync your trading intelligence to the cloud. Stay aligned to every market open no matter your timezone." />
+    <meta property="og:image" content="https://firebasestorage.googleapis.com/v0/b/time-2-trade-app.firebasestorage.app/o/public%2FTime2Trade_SEO_Meta_2.PNG?alt=media&token=a3249adf-3fdc-4fff-9510-b32f10fb7a12" />
+    <meta property="og:image:secure_url" content="https://firebasestorage.googleapis.com/v0/b/time-2-trade-app.firebasestorage.app/o/public%2FTime2Trade_SEO_Meta_2.PNG?alt=media&token=a3249adf-3fdc-4fff-9510-b32f10fb7a12" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Time 2 Trade trading session clock and economic events visualization" />
+    <meta property="og:image:alt" content="Time 2 Trade visual trading intelligence platform showing session visualization and economic events" />
     <meta property="fb:app_id" content="1778817529625887" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Time 2 Trade | Trading Session Clock, Economic Events, and Timezone Intelligence" />
-    <meta name="twitter:description" content="Dual-circle session clock with economic events, timezone intelligence, and cloud sync for traders." />
-    <meta name="twitter:image" content="https://firebasestorage.googleapis.com/v0/b/time-2-trade-app.firebasestorage.app/o/public%2FTime2Trade_SEO_Meta.PNG?alt=media&token=6b499e0a-685c-4921-9c5b-905bd63b3f92" />
+    <meta name="twitter:title" content="Time 2 Trade | Visual Trading Intelligence Platform" />
+    <meta name="twitter:description" content="Visual trading intelligence with dual-circle session interface, live economic events, timezone insights, and cloud sync for futures and forex traders." />
+    <meta name="twitter:image" content="https://firebasestorage.googleapis.com/v0/b/time-2-trade-app.firebasestorage.app/o/public%2FTime2Trade_SEO_Meta_2.PNG?alt=media&token=a3249adf-3fdc-4fff-9510-b32f10fb7a12" />
+
+    <!-- Structured Data: WebSite + SoftwareApplication -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Time 2 Trade",
+        "url": "https://time2.trade/",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://time2.trade/?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Time 2 Trade",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web Browser",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "description": "Visual trading intelligence for futures and forex day traders. Track global market sessions, overlay high-impact economic events, and stay timezone-aware with dual-circle visualization.",
+        "url": "https://time2.trade/",
+        "creator": {
+          "@type": "Organization",
+          "name": "Lofi Trades",
+          "url": "https://time2.trade/"
+        },
+        "featureList": [
+          "Dual-circle session visualization",
+          "Live economic events overlay",
+          "Timezone intelligence",
+          "Cloud-synced settings",
+          "Customizable trading sessions",
+          "Session countdowns and alerts"
+        ],
+        "screenshot": "https://time2.trade/Time2Trade_SEO_Meta_2.PNG"
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <style>
+      noscript .static-fallback {
+        font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 24px 16px 32px;
+        color: #1f2430;
+        line-height: 1.7;
+      }
+      noscript .static-fallback h1,
+      noscript .static-fallback h2 {
+        color: #111827;
+        margin: 0 0 12px;
+      }
+      noscript .static-fallback ul {
+        padding-left: 20px;
+        margin: 0 0 16px;
+      }
+      noscript .static-fallback li {
+        margin-bottom: 8px;
+      }
+      noscript .static-fallback a {
+        color: #0f6fec;
+      }
+    </style>
+    <div id="root">
+      <!-- SEO fallback - hidden by default, only shown if JavaScript is disabled -->
+      <div id="seo-fallback" style="display: none; max-width: 1200px; margin: 0 auto; padding: 40px 20px; font-family: 'Poppins', Arial, sans-serif;">
+        <h1 style="font-size: 2.5rem; margin-bottom: 1rem; color: #111827;">Time 2 Trade: Visual Trading Intelligence</h1>
+        <p style="font-size: 1.1rem; line-height: 1.7; color: #374151; margin-bottom: 2rem;">
+          Time 2 Trade keeps futures and forex day traders aligned with every market open using a dual-circle session clock, live economic events, and timezone-aware insights.
+        </p>
+        
+        <h2 style="font-size: 1.8rem; margin: 2rem 0 1rem; color: #111827;">Key features</h2>
+        <ul style="line-height: 1.8; color: #374151; padding-left: 1.5rem;">
+          <li>Dual-circle session visualization with AM inner ring and PM outer ring</li>
+          <li>Live economic calendar overlay sourced from professional-grade data</li>
+          <li>Timezone intelligence with instant conversion to your local zone</li>
+          <li>Cloud-synced settings across devices for free accounts</li>
+          <li>Customizable sessions, colors, and alerts for your strategy</li>
+        </ul>
+        
+        <h2 style="font-size: 1.8rem; margin: 2rem 0 1rem; color: #111827;">Built for active traders</h2>
+        <p style="font-size: 1.1rem; line-height: 1.7; color: #374151;">
+          Designed for futures and forex day traders who need session awareness, ICT killzone timing, and real-time news context without heavy dashboards.
+        </p>
+        
+        <div style="margin-top: 2rem;">
+          <a href="/app" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">Launch App</a>
+          <a href="/about" style="display: inline-block; padding: 14px 28px; background: #f3f4f6; color: #111827; border-radius: 8px; text-decoration: none; font-weight: 600; margin-left: 12px;">Learn More</a>
+        </div>
+      </div>
+    </div>
+    <noscript>
+      <style>
+        /* Show SEO fallback only when JavaScript is disabled */
+        #seo-fallback {
+          display: block !important;
+        }
+      </style>
+    </noscript>
+    <noscript>
+      <div class="static-fallback" aria-label="Time 2 Trade overview">
+        <h1>Time 2 Trade: Visual Trading Intelligence</h1>
+        <p>Time 2 Trade keeps futures and forex day traders aligned with every market open using a dual-circle session clock, live economic events, and timezone-aware insights.</p>
+        <h2>Key features</h2>
+        <ul>
+          <li>Dual-circle session visualization with AM inner ring and PM outer ring.</li>
+          <li>Live economic calendar overlay sourced from professional-grade data.</li>
+          <li>Timezone intelligence with instant conversion to your local zone.</li>
+          <li>Cloud-synced settings across devices for free accounts.</li>
+          <li>Customizable sessions, colors, and alerts for your strategy.</li>
+        </ul>
+        <h2>Built for active traders</h2>
+        <p>Designed for futures and forex day traders who need session awareness, ICT killzone timing, and real-time news context without heavy dashboards.</p>
+        <p><a href="/about">Learn more on the About page</a> or jump into the app to see today&apos;s sessions and events.</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -1,0 +1,32 @@
+{
+  "_fileHeader": "public/manifest.webmanifest | Purpose: Installable PWA manifest for Time 2 Trade | Changelog: v1.1.0 - 2025-12-18 - Point start_url to /app for dedicated SPA entry; v1.0.0 - 2025-12-17 - Initial manifest with icons and install settings",
+  "name": "Time 2 Trade",
+  "short_name": "T2T",
+  "description": "Visual trading intelligence with dual-circle session clock, economic events overlay, and timezone-aware insights for futures and forex traders.",
+  "start_url": "/app",
+  "scope": "/app",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f8fafc",
+  "theme_color": "#f8fafc",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-apple-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

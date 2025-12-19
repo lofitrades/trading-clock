@@ -613,7 +613,7 @@ export default function SettingsModal({ open, onClose }) {
 									onClick={() => setShowAuthModal(true)}
 									sx={{ mt: 2, textTransform: 'none' }}
 								>
-									Login / Sign Up
+									Unlock all settings for free
 								</Button>
 							)}
 						</Box>

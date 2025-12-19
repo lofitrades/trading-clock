@@ -5,6 +5,7 @@
  * Key responsibility and main functionality: Sets root-relative asset base for Firebase Hosting, configures dev server and proxy for API calls.
  *
  * Changelog:
+ * v1.2.0 - 2025-12-17 - Added manual chunks for React/MUI/Firebase vendors to shrink initial payload and improve first paint.
  * v1.1.0 - 2025-12-16 - Switched base to root for Firebase Hosting custom domain deployment.
  * v1.0.0 - 2025-12-16 - Initial configuration with React plugin and dev server proxy.
  */
@@ -15,6 +16,17 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: '/',
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'mui-vendor': ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
+          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+        },
+      },
+    },
+  },
   server: {
     host: true,
     port: 5173,

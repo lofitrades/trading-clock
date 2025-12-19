@@ -5,6 +5,7 @@
  * Inspired by modern app shells (Airbnb/ChatGPT) with quick toggles, sectional pills, and responsive cards that mirror existing settings logic.
  * 
  * Changelog:
+ * v1.2.9 - 2025-12-17 - Refactored About tab to use shared aboutContent module and added "Read Full About Page" link for SEO route.
  * v1.2.8 - 2025-12-17 - Added Show Numbers and Show Clock Hands child settings under Analog Hand Clock for granular canvas customization.
  * v1.2.7 - 2025-12-17 - Replaced hardcoded About content with dynamic loading from AboutContent.txt for SEO-rich enterprise copywriting.
  * v1.2.6 - 2025-12-16 - Hide settings drawer when reset confirmation is open so the modal always sits on top.
@@ -24,7 +25,7 @@
  */
 
 import PropTypes from 'prop-types';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import {
 	Alert,
 	Avatar,
@@ -57,6 +58,7 @@ import ConfirmModal from './ConfirmModal';
 import SwitchComponent from './Switch';
 import useFullscreen from '../hooks/useFullscreen';
 import TimezoneSelector from './TimezoneSelector';
+import { aboutContent } from '../content/aboutContent';
 
 const navItems = [
 	{ key: 'general', label: 'General', icon: <SettingsRoundedIcon fontSize="small" /> },
@@ -166,16 +168,8 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 	const [clearSessionIndex, setClearSessionIndex] = useState(null);
 	const [userMenuAnchor, setUserMenuAnchor] = useState(null);
 	const [toggleError, setToggleError] = useState('');
-	const [aboutContent, setAboutContent] = useState('');
 
 	const { isFullscreen, canFullscreen, toggleFullscreen } = useFullscreen();
-
-	useEffect(() => {
-		fetch('/AboutContent.txt')
-			.then((response) => response.text())
-			.then((text) => setAboutContent(text))
-			.catch((error) => console.error('Failed to load About content:', error));
-	}, []);
 
 	const handleUserMenuClose = () => setUserMenuAnchor(null);
 
@@ -429,7 +423,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 						>
 							<Box sx={{ flex: 1, minWidth: 0 }}>
 								<Typography variant="body2" sx={{ fontWeight: 600 }}>
-								Show Numbers
+								Numbers
 							</Typography>
 							<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
 								Display 1-12 clock numbers on the analog face
@@ -455,7 +449,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 					>
 						<Box sx={{ flex: 1, minWidth: 0 }}>
 							<Typography variant="body2" sx={{ fontWeight: 600 }}>
-								Show Clock Hands
+								Clock Hands
 							</Typography>
 							<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
 								Display hour, minute, and second hands on the clock
@@ -464,31 +458,46 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 						<SwitchComponent
 							checked={showClockHands}
 							onChange={toggleShowClockHands}
-						borderColor: 'divider',
-					}}
-				>
-					<Box sx={{ flex: 1, minWidth: 0 }}>
-						<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
-							Digital Clock
-						</Typography>
-						<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-							Readable digits
-						</Typography>
+						/>
 					</Box>
-					<SwitchComponent checked={showDigitalClock} onChange={() => handleToggle(toggleShowDigitalClock)} />
 				</Box>
+			)}
 
-				<Box
-					sx={{
-						display: 'flex',
-						alignItems: 'center',
-						gap: 1.5,
-						px: 1.75,
-						py: 1.25,
-						bgcolor: 'background.paper',
-						borderColor: 'divider',
-					}}
-				>
+			<Box
+				sx={{
+					display: 'flex',
+					alignItems: 'center',
+					gap: 1.5,
+					px: 1.75,
+					py: 1.25,
+					bgcolor: 'background.paper',
+					borderColor: 'divider',
+				}}
+			>
+				<Box sx={{ flex: 1, minWidth: 0 }}>
+					<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+						Digital Clock
+					</Typography>
+					<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+						Readable digits
+					</Typography>
+				</Box>
+				<SwitchComponent checked={showDigitalClock} onChange={() => handleToggle(toggleShowDigitalClock)} />
+			</Box>
+
+			<Divider sx={{ width: '100%', mx: 'auto', borderColor: 'divider' }} />
+
+			<Box
+				sx={{
+					display: 'flex',
+					alignItems: 'center',
+					gap: 1.5,
+					px: 1.75,
+					py: 1.25,
+					bgcolor: 'background.paper',
+					borderColor: 'divider',
+				}}
+			>
 					<Box sx={{ flex: 1, minWidth: 0 }}>
 						<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
 							Timezone
@@ -749,50 +758,102 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 		</>
 	);
 
-	const renderAboutSection = (
-		<SectionCard>
-			<Box
-				dangerouslySetInnerHTML={{ __html: aboutContent }}
-				sx={{
-					'& h2': {
-						fontSize: { xs: '1.5rem', sm: '1.75rem' },
-						fontWeight: 700,
-						mb: 2,
-						mt: 0,
-					},
-					'& h3': {
-						fontSize: { xs: '1.1rem', sm: '1.25rem' },
-						fontWeight: 700,
-						mb: 1.5,
-						mt: 3,
-					},
-					'& p': {
+	// Helper to render content blocks from shared content module
+	const renderContentBlock = (block, index) => {
+		if (block.type === 'paragraph') {
+			return (
+				<Typography
+					key={index}
+					variant="body1"
+					sx={{
 						fontSize: { xs: '0.95rem', sm: '1rem' },
 						lineHeight: 1.7,
 						mb: 2,
 						color: 'text.primary',
-					},
-					'& ul': {
-						pl: 3,
-						mb: 2,
-					},
-					'& li': {
-						fontSize: { xs: '0.95rem', sm: '1rem' },
-						lineHeight: 1.7,
-						mb: 1,
-					},
-					'& strong': {
-						fontWeight: 700,
-					},
-					'& a': {
-						color: 'primary.main',
-						textDecoration: 'none',
-						'&:hover': {
-							textDecoration: 'underline',
-						},
-					},
+						'& strong': { fontWeight: 700 },
+						'& a': {
+							color: 'primary.main',
+							textDecoration: 'none',
+							'&:hover': { textDecoration: 'underline' }
+						}
+					}}
+					dangerouslySetInnerHTML={{ __html: block.text }}
+				/>
+			);
+		}
+
+		if (block.type === 'list') {
+			return (
+				<Box key={index} component="ul" sx={{ pl: 3, mb: 2 }}>
+					{block.items.map((item, itemIndex) => (
+						<Box key={itemIndex} component="li" sx={{ fontSize: { xs: '0.95rem', sm: '1rem' }, lineHeight: 1.7, mb: 1 }}>
+							<strong>{item.label}:</strong> {item.text}
+						</Box>
+					))}
+				</Box>
+			);
+		}
+
+		return null;
+	};
+
+	const renderAboutSection = (
+		<SectionCard>
+			<Typography
+				variant="h2"
+				sx={{
+					fontSize: { xs: '1.5rem', sm: '1.75rem' },
+					fontWeight: 700,
+					mb: 1,
+					mt: 0,
 				}}
-			/>
+			>
+				{aboutContent.title}
+			</Typography>
+			<Typography
+				variant="subtitle1"
+				sx={{
+					fontSize: { xs: '0.95rem', sm: '1rem' },
+					color: 'text.secondary',
+					mb: 3,
+				}}
+			>
+				{aboutContent.subtitle}
+			</Typography>
+			{aboutContent.sections.map((section, sectionIndex) => (
+				<Box key={sectionIndex} sx={{ mb: sectionIndex < aboutContent.sections.length - 1 ? 3 : 0 }}>
+					{section.title && (
+						<Typography
+							variant="h3"
+							sx={{
+								fontSize: { xs: '1.1rem', sm: '1.25rem' },
+								fontWeight: 700,
+								mb: 1.5,
+								mt: sectionIndex > 0 ? 3 : 0,
+							}}
+						>
+							{section.title}
+						</Typography>
+					)}
+					{section.content.map((block, blockIndex) => renderContentBlock(block, blockIndex))}
+				</Box>
+			))}
+			<Box sx={{ mt: 3, pt: 3, borderTop: 1, borderColor: 'divider' }}>
+				<Button
+					variant="outlined"
+					fullWidth
+					href="/about"
+					target="_blank"
+					rel="noopener noreferrer"
+					sx={{
+						textTransform: 'none',
+						borderRadius: 2,
+						py: 1.25,
+					}}
+				>
+					Read Full About Page
+				</Button>
+			</Box>
 		</SectionCard>
 	);
 
@@ -962,7 +1023,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 							onClick={onOpenAuth}
 							sx={{ textTransform: 'none', py: 1 }}
 						>
-							Login / Sign Up
+							Unlock all settings for free
 						</Button>
 					)}
 				</Box>

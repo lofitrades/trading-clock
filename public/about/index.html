@@ -1,0 +1,186 @@
+<!--
+/public/about/index.html
+
+Purpose: Static, crawlable About page for Time 2 Trade with full copy and structured data for bots/LLMs when JavaScript is unavailable.
+Changelog:
+v1.2.0 - 2025-12-17 - Added PWA manifest, theme color, and Apple touch icon links for install eligibility.
+v1.1.0 - 2025-12-17 - Added dynamic favicon switching using prefers-color-scheme with safe light fallback.
+v1.0.0 - 2025-12-17 - Added static About page with canonical metadata, structured data, and AI-friendly copy.
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0f6fec" />
+    <link rel="apple-touch-icon" href="/icons/icon-apple-180.png" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" id="t2t-favicon" />
+    <meta name="keywords" content="trading clock, market sessions, economic events, forex trading, futures trading, timezone converter, trading intelligence, ICT killzones, London session, New York session" />
+    <link rel="canonical" href="https://time2.trade/about" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="About Time 2 Trade - Visual Trading Intelligence Platform" />
+    <meta property="og:description" content="Visual trading intelligence for futures and forex day traders with dual-circle session visualization, live economic events, and timezone-aware insights." />
+    <meta property="og:url" content="https://time2.trade/about" />
+    <meta property="og:image" content="https://time2.trade/Time2Trade_SEO_Meta_2.PNG" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="About Time 2 Trade - Visual Trading Intelligence" />
+    <meta name="twitter:description" content="Learn how Time 2 Trade keeps traders aligned to market sessions with dual-circle visualization and economic event overlays." />
+    <meta name="twitter:image" content="https://time2.trade/Time2Trade_SEO_Meta_2.PNG" />
+    <style>
+      body {
+        font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+        color: #1f2430;
+        line-height: 1.7;
+        margin: 0;
+        background: #f8fafc;
+      }
+      .page {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 32px 16px 40px;
+      }
+      h1, h2, h3 {
+        color: #0f172a;
+        margin-bottom: 12px;
+      }
+      ul { padding-left: 20px; }
+      li { margin-bottom: 10px; }
+      a { color: #0f6fec; }
+      .card {
+        background: #ffffff;
+        padding: 28px 24px;
+        border-radius: 18px;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+        border: 1px solid #e2e8f0;
+      }
+      .cta {
+        margin-top: 28px;
+        text-align: center;
+      }
+      .cta a {
+        display: inline-block;
+        padding: 12px 20px;
+        border-radius: 10px;
+        background: #0f6fec;
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 700;
+      }
+    </style>
+
+    <script>
+      (function() {
+        const lightHref = '/favicon.ico';
+        const darkHref = '/faviconDark.ico';
+        const favicon = document.getElementById('t2t-favicon') || (() => {
+          const link = document.createElement('link');
+          link.rel = 'icon';
+          link.id = 't2t-favicon';
+          document.head.appendChild(link);
+          return link;
+        })();
+
+        const applyIcon = (isDark) => {
+          favicon.href = isDark ? darkHref : lightHref;
+        };
+
+        try {
+          if (window.matchMedia) {
+            const media = window.matchMedia('(prefers-color-scheme: dark)');
+            applyIcon(media.matches);
+
+            const handler = (event) => applyIcon(event.matches);
+
+            if (typeof media.addEventListener === 'function') {
+              media.addEventListener('change', handler);
+            } else if (typeof media.addListener === 'function') {
+              media.addListener(handler);
+            }
+            return;
+          }
+        } catch (error) {
+          // Ignore and fall back to light favicon.
+        }
+
+        applyIcon(false);
+      })();
+    </script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Time 2 Trade",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web Browser",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "description": "Visual trading intelligence for futures and forex day traders featuring dual-circle session visualization, live economic events, and timezone-aware insights.",
+        "url": "https://time2.trade/",
+        "creator": {
+          "@type": "Organization",
+          "name": "Lofi Trades",
+          "url": "https://time2.trade/"
+        },
+        "featureList": [
+          "Dual-circle session visualization",
+          "Live economic events overlay",
+          "Timezone intelligence",
+          "Cloud sync settings",
+          "Customizable trading sessions",
+          "Session alerts",
+          "Digital clock display",
+          "Responsive design"
+        ],
+        "screenshot": "https://time2.trade/Time2Trade_SEO_Meta_2.PNG"
+      }
+    </script>
+  </head>
+  <body>
+    <main class="page">
+      <article class="card" aria-label="About Time 2 Trade">
+        <h1>About Time 2 Trade</h1>
+        <p>Time 2 Trade is a visual trading intelligence platform designed for futures and forex day traders who need to stay aligned with global market sessions. Our dual-circle session clock makes it easy to see when markets are active, overlay high-impact economic events, and plan your trading day with confidence.</p>
+
+        <h2>What makes Time 2 Trade different</h2>
+        <p>Unlike simple world clocks, Time 2 Trade gives you a complete picture of the trading day in one glance. AM hours sit on the inner ring, PM hours on the outer ring, overlaid with live economic events and timezone-aware insights.</p>
+        <p>Whether you track London open, New York session, or Asian market hours, the clock adapts to your timezone automatically so you always know when each session starts, ends, and how much time remains.</p>
+
+        <h2>Key features</h2>
+        <ul>
+          <li><strong>Visual session intelligence:</strong> Eight customizable sessions on dual rings with active-session highlights.</li>
+          <li><strong>Live economic events overlay:</strong> High-impact events plotted directly on the session clock.</li>
+          <li><strong>Timezone intelligence:</strong> Automatic conversion to your local timezone.</li>
+          <li><strong>Cloud sync settings:</strong> Save preferences across devices with a free account.</li>
+          <li><strong>Customizable sessions:</strong> Rename, recolor, and resize sessions to match your playbook.</li>
+          <li><strong>Session alerts:</strong> Visual indicators show current and upcoming sessions.</li>
+          <li><strong>Responsive design:</strong> Works on desktop, tablet, and mobile.</li>
+        </ul>
+
+        <h2>How to use Time 2 Trade</h2>
+        <p><strong>Getting started:</strong> Visit <a href="https://time2.trade/">time2.trade</a> and the platform immediately displays session intelligence in your timezone.</p>
+        <p><strong>Customize:</strong> Adjust session times, colors, and labels. Filter economic events by impact and currency pairs.</p>
+        <p><strong>View events:</strong> Toggle the events overlay to see when major news releases occur and click through for details.</p>
+        <p><strong>Change timezones:</strong> Switch timezones to plan travel or coordinate with other desks.</p>
+        <p><strong>Save your setup:</strong> Create a free account to sync your configuration across devices.</p>
+
+        <h2>Who uses Time 2 Trade</h2>
+        <p>Built for active day traders working with futures and forex pairs who rely on session timing (ICT killzones, London/New York opens) and economic catalysts.</p>
+
+        <h2>Technology and data</h2>
+        <p>Powered by React, Vite, and Material Design components for a fast, responsive experience. Economic events come from the JBlanked News Calendar API, the same professional MQL5 source used by institutional platforms.</p>
+
+        <h2>Free to use</h2>
+        <p>Time 2 Trade is free with all intelligence features available to every account. We built it for our own trading, and we keep improving it with community feedback.</p>
+
+        <div class="cta">
+          <a href="https://time2.trade/">Start using Time 2 Trade</a>
+        </div>
+      </article>
+    </main>
+  </body>
+</html>

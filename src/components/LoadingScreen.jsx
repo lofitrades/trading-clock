@@ -5,13 +5,15 @@
  * Provides smooth fade transitions and consistent UX across app entry points.
  * 
  * Changelog:
+ * v1.3.0 - 2025-12-20 - Added responsive brand line below loader for clearer progress feedback
  * v1.2.0 - 2025-12-09 - Reduced loader size to compact, CircularProgress-like footprint
  * v1.1.0 - 2025-12-09 - Lengthened fade, keep-mounted transitions for smoother handoff
  * v1.0.0 - 2025-11-30 - Initial implementation
  */
 
-import React from 'react';
-import { Box, Fade } from '@mui/material';
+
+import PropTypes from 'prop-types';
+import { Box, Fade, Typography } from '@mui/material';
 import LoadingAnimation from './LoadingAnimation';
 
 const LoadingScreen = ({ isLoading, clockSize = 375 }) => {
@@ -32,14 +34,33 @@ const LoadingScreen = ({ isLoading, clockSize = 375 }) => {
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
-          gap: 3,
+          gap: 2.5,
           transition: 'opacity 0.6s ease',
+          px: { xs: 2, sm: 3 },
         }}
       >
         <LoadingAnimation clockSize={effectiveSize} isLoading={isLoading} />
+        <Typography
+          variant="subtitle1"
+          sx={{
+            textAlign: 'center',
+            fontWeight: 400,
+            color: '#202124a5',
+            letterSpacing: 0,
+            lineHeight: 1,
+            fontSize: { xs: '0.8rem', sm: '0.8rem' },
+          }}
+        >
+          Almost ready...
+        </Typography>
       </Box>
     </Fade>
   );
+};
+
+LoadingScreen.propTypes = {
+  isLoading: PropTypes.bool.isRequired,
+  clockSize: PropTypes.number,
 };
 
 export default LoadingScreen;

@@ -1,13 +1,13 @@
 // src/components/ClockCanvas.jsx
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import PropTypes from 'prop-types';
 import gsap from 'gsap';
-import { 
-  drawStaticElements, 
-  drawDynamicElements, 
-  getLineWidthAndHoverArea, 
+import {
+  drawStaticElements,
+  drawDynamicElements,
+  getLineWidthAndHoverArea,
   isColorDark,
-  drawClockNumbers,
-  lightenColor
+  drawClockNumbers
 } from '../utils/clockUtils';
 
 export default function ClockCanvas({ size, time, sessions, handColor, clockStyle = 'normal', showSessionNamesInCanvas = true, showClockNumbers = true, showClockHands = true, activeSession = null, backgroundBasedOnSession = false, renderHandsInCanvas = true, handAnglesRef = null }) {
@@ -15,13 +15,14 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
   const [tooltip, setTooltip] = useState(null);
   const [hoveredSession, setHoveredSession] = useState(null);
   const staticCanvas = useRef(document.createElement('canvas'));
-  
+  const targetDprRef = useRef(1);
+
   // Animation states for smooth transitions
   const animationStates = useRef({});
   const tooltipRef = useRef(null);
   const previousHoveredSession = useRef(null);
   const tooltipAnimation = useRef(null);
-  
+
   // Clock hand animation states (shared with overlay when provided)
   const internalHandAngles = useRef({
     hour: 0,
@@ -40,7 +41,7 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
           targetLineWidth: 0,
           targetOpacity: 1
         };
-        
+
         // Animate session entry with staggered delay
         gsap.to(animationStates.current[index], {
           lineWidth: getLineWidthAndHoverArea(size, clockStyle).lineWidth,
@@ -54,24 +55,28 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
   }, [sessions, size, clockStyle]);
 
   useEffect(() => {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 1.2), 2.5);
+    targetDprRef.current = dpr;
     const staticCtx = staticCanvas.current.getContext('2d');
     staticCanvas.current.width = Math.round(size * dpr);
     staticCanvas.current.height = Math.round(size * dpr);
+    staticCtx.setTransform(1, 0, 0, 1, 0, 0);
     staticCtx.scale(dpr, dpr);
+    staticCtx.imageSmoothingEnabled = true;
+    staticCtx.imageSmoothingQuality = 'high';
     drawStaticElements(staticCtx, size, showSessionNamesInCanvas, clockStyle);
   }, [size, showSessionNamesInCanvas, clockStyle]);
 
   // Animate hover effects
   useEffect(() => {
     const { lineWidth, hoverLineWidth } = getLineWidthAndHoverArea(size, clockStyle);
-    
+
     sessions.forEach((session, index) => {
       if (!animationStates.current[index]) return;
-      
+
       const isHovered = session === hoveredSession;
       const targetWidth = isHovered ? hoverLineWidth : lineWidth;
-      
+
       // Animate line width change on hover
       gsap.to(animationStates.current[index], {
         targetLineWidth: targetWidth,
@@ -87,31 +92,31 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     const minutes = time.getMinutes();
     const seconds = time.getSeconds();
     const milliseconds = time.getMilliseconds();
-    
+
     // Calculate target angles (in degrees for easier math)
     let secondAngle = (seconds + milliseconds / 1000) * 6; // 360/60 = 6 degrees per second
     let minuteAngle = (minutes + seconds / 60) * 6; // Smooth minute hand
     let hourAngle = ((hours % 12) + minutes / 60) * 30; // 360/12 = 30 degrees per hour
-    
+
     // Handle circular motion for second hand (prevent backward jump at 59->0)
     const currentSecond = handAngles.current.second;
     if (secondAngle < currentSecond && (currentSecond - secondAngle) > 180) {
       // We crossed from 59s to 0s, add 360 to continue forward
       secondAngle += 360;
     }
-    
+
     // Handle circular motion for minute hand (prevent backward jump at 59->0)
     const currentMinute = handAngles.current.minute;
     if (minuteAngle < currentMinute && (currentMinute - minuteAngle) > 180) {
       minuteAngle += 360;
     }
-    
+
     // Handle circular motion for hour hand (prevent backward jump at 11->12)
     const currentHour = handAngles.current.hour;
     if (hourAngle < currentHour && (currentHour - hourAngle) > 180) {
       hourAngle += 360;
     }
-    
+
     // Animate second hand (fast but smooth, linear for constant speed)
     gsap.to(handAngles.current, {
       second: secondAngle,
@@ -122,7 +127,7 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
         handAngles.current.second = handAngles.current.second % 360;
       }
     });
-    
+
     // Animate minute hand (medium speed)
     gsap.to(handAngles.current, {
       minute: minuteAngle,
@@ -132,7 +137,7 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
         handAngles.current.minute = handAngles.current.minute % 360;
       }
     });
-    
+
     // Animate hour hand (slow, smooth)
     gsap.to(handAngles.current, {
       hour: hourAngle,
@@ -142,12 +147,13 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
         handAngles.current.hour = handAngles.current.hour % 360;
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [time]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = targetDprRef.current || Math.min(Math.max(window.devicePixelRatio || 1, 1.2), 2.5);
 
     // Reset transform each time before applying DPR scaling to avoid compounded scaling artifacts
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -157,20 +163,22 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     canvas.style.width = `${size}px`;
     canvas.style.height = `${size}px`;
     ctx.scale(dpr, dpr);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
     let animationId;
     const animate = () => {
       ctx.clearRect(0, 0, size, size);
       ctx.drawImage(staticCanvas.current, 0, 0, size, size);
-      
+
       // Pass animation states and animated hand angles to draw function
       drawDynamicElements(
-        ctx, 
-        size, 
-        sessions, 
-        time, 
-        hoveredSession, 
-        handColor, 
+        ctx,
+        size,
+        sessions,
+        time,
+        hoveredSession,
+        handColor,
         clockStyle,
         animationStates.current,
         handAngles.current,
@@ -179,19 +187,19 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
         backgroundBasedOnSession,
         renderHandsInCanvas && showClockHands
       );
-      
+
       // Pass handColor as the text color for the clock numbers and clockStyle
       if (showClockNumbers) {
         drawClockNumbers(ctx, size / 2, size / 2, size / 2 - 5, handColor, clockStyle);
       }
-  
+
       animationId = requestAnimationFrame(animate);
     };
     animationId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationId);
-  }, [size, sessions, hoveredSession, handColor, clockStyle, showSessionNamesInCanvas, activeSession, backgroundBasedOnSession, showClockNumbers, showClockHands]);
+  }, [size, sessions, hoveredSession, handColor, clockStyle, showSessionNamesInCanvas, activeSession, backgroundBasedOnSession, showClockNumbers, showClockHands, renderHandsInCanvas, time, handAngles]);
 
-  const detectHoveredSession = (canvas, mouseX, mouseY) => {
+  const detectHoveredSession = useCallback((canvas, mouseX, mouseY) => {
     const rect = canvas.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
@@ -231,19 +239,19 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
       }
     }
     return null;
-  };
+  }, [sessions, size, clockStyle]);
 
   const showTooltip = (clientX, clientY, session) => {
     // Kill any ongoing tooltip animation
     if (tooltipAnimation.current) {
       tooltipAnimation.current.kill();
     }
-    
+
     setTooltip({ x: clientX, y: clientY, ...session });
-    
+
     // Animate tooltip entrance
     if (tooltipRef.current) {
-      tooltipAnimation.current = gsap.fromTo(tooltipRef.current, 
+      tooltipAnimation.current = gsap.fromTo(tooltipRef.current,
         { opacity: 0, scale: 0.8, y: -10 },
         { opacity: 1, scale: 1, y: 0, duration: 0.2, ease: "back.out(1.7)" }
       );
@@ -255,7 +263,7 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     if (tooltipAnimation.current) {
       tooltipAnimation.current.kill();
     }
-    
+
     if (tooltipRef.current) {
       tooltipAnimation.current = gsap.to(tooltipRef.current, {
         opacity: 0,
@@ -274,18 +282,18 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     if (clockStyle === 'minimalistic') {
       return;
     }
-    
+
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
     const hovered = detectHoveredSession(canvas, mouseX, mouseY);
-    
+
     // Only update if the hovered session actually changed
     if (hovered !== previousHoveredSession.current) {
       previousHoveredSession.current = hovered;
       setHoveredSession(hovered);
-      
+
       if (hovered) {
         showTooltip(e.clientX, e.clientY, hovered);
       } else {
@@ -315,13 +323,13 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
       if (clockStyle === 'minimalistic') {
         return;
       }
-      
+
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
       const touchX = touch.clientX - rect.left;
       const touchY = touch.clientY - rect.top;
       const tapped = detectHoveredSession(canvas, touchX, touchY);
-      
+
       if (tapped) {
         // Prevent default only when we detect a donut tap
         e.preventDefault();
@@ -339,7 +347,7 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     // Add event listeners for both mouse and touch
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('touchstart', handleClickOutside);
-    
+
     // Add touch listener with passive: false to allow preventDefault
     canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
 
@@ -348,12 +356,12 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
       document.removeEventListener('touchstart', handleClickOutside);
       canvas.removeEventListener('touchstart', handleTouchStart);
     };
-  }, [clockStyle, sessions, size]);
+  }, [clockStyle, sessions, size, detectHoveredSession]);
 
   return (
     <div className="canvas-container">
-      <canvas 
-        ref={canvasRef} 
+      <canvas
+        ref={canvasRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => {
           previousHoveredSession.current = null;
@@ -363,10 +371,10 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
         style={{ touchAction: 'none' }}
       />
       {tooltip && (
-        <div 
+        <div
           ref={tooltipRef}
-          className="tooltip" 
-          style={{ 
+          className="tooltip"
+          style={{
             left: tooltip.x + 10,
             top: tooltip.y + 10,
             backgroundColor: tooltip.color,
@@ -381,3 +389,25 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     </div>
   );
 }
+
+ClockCanvas.propTypes = {
+  size: PropTypes.number.isRequired,
+  time: PropTypes.instanceOf(Date).isRequired,
+  sessions: PropTypes.arrayOf(PropTypes.shape({
+    name: PropTypes.string,
+    startNY: PropTypes.string,
+    endNY: PropTypes.string,
+    color: PropTypes.string,
+  })).isRequired,
+  handColor: PropTypes.string.isRequired,
+  clockStyle: PropTypes.string,
+  showSessionNamesInCanvas: PropTypes.bool,
+  showClockNumbers: PropTypes.bool,
+  showClockHands: PropTypes.bool,
+  activeSession: PropTypes.object,
+  backgroundBasedOnSession: PropTypes.bool,
+  renderHandsInCanvas: PropTypes.bool,
+  handAnglesRef: PropTypes.shape({
+    current: PropTypes.object,
+  }),
+};

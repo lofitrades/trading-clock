@@ -5,6 +5,7 @@
  * Prevents duplicate user documents and handles race conditions.
  * 
  * Changelog:
+ * v1.1.1 - 2025-12-18 - Align default settings to show session names and time-to-end by default for new profiles.
  * v1.1.0 - 2025-12-16 - Backfilled missing role/subscription defaults when profiles already exist.
  * v1.0.1 - 2025-12-16 - Added showTimezoneLabel default setting for new user profiles.
  * v1.0.0 - 2025-12-16 - Initial implementation with duplicate prevention
@@ -106,9 +107,9 @@ export async function createUserProfileSafely(user) {
           showDigitalClock: true,
           showSessionLabel: true,
           showTimezoneLabel: true,
-          showTimeToEnd: false,
+          showTimeToEnd: true,
           showTimeToStart: true,
-          showSessionNamesInCanvas: false,
+          showSessionNamesInCanvas: true,
           emailNotifications: true,
           eventAlerts: false,
           newsSource: 'forex-factory',

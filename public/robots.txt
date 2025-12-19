@@ -1,0 +1,16 @@
+# robots.txt for Time 2 Trade
+# https://time2.trade
+
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://time2.trade/sitemap.xml
+
+# Disallow admin routes
+Disallow: /upload-desc
+Disallow: /export
+Disallow: /app/upload-desc
+Disallow: /app/export
+Disallow: /app/login

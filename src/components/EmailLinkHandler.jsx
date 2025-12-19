@@ -12,6 +12,7 @@
  * - "Request New Link" button for expired links
  * 
  * Changelog:
+ * v1.5.0 - 2025-12-17 - Sign out existing sessions before magic link sign-in and create profiles for new users to prevent cross-account logins
  * v1.4.0 - 2025-12-16 - Added "Request New Link" button and AuthModal integration
  * v1.3.0 - 2025-12-16 - Added proper error handling and clean email confirmation UI
  * v1.2.0 - 2025-12-16 - Don't navigate immediately, wait for auth state
@@ -20,10 +21,11 @@
  */
 
 import { useEffect, useState } from 'react';
-import { isSignInWithEmailLink, signInWithEmailLink, getAdditionalUserInfo } from 'firebase/auth';
+import { isSignInWithEmailLink, signInWithEmailLink, getAdditionalUserInfo, signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { Dialog, DialogContent, DialogTitle, TextField, Button, Typography, Alert, CircularProgress, Box } from '@mui/material';
 import AuthModal from './AuthModal';
+import { createUserProfileSafely } from '../utils/userProfileUtils';
 
 export default function EmailLinkHandler() {
   const [showEmailDialog, setShowEmailDialog] = useState(false);
@@ -61,10 +63,22 @@ export default function EmailLinkHandler() {
     setIsLinkExpired(false);
 
     try {
+      if (auth.currentUser) {
+        await signOut(auth);
+      }
+
       const result = await signInWithEmailLink(auth, emailToUse, window.location.href);
-      
+
       const additionalUserInfo = getAdditionalUserInfo(result);
       const isNewUser = additionalUserInfo?.isNewUser ?? false;
+
+      if (isNewUser) {
+        try {
+          await createUserProfileSafely(result.user);
+        } catch (profileError) {
+          console.error('[EmailLinkHandler] Profile creation failed:', profileError);
+        }
+      }
 
       // Store isNewUser flag for WelcomeModal (AuthContext will check this)
       if (isNewUser) {
@@ -73,24 +87,24 @@ export default function EmailLinkHandler() {
 
       // Clean up email
       window.localStorage.removeItem('emailForSignIn');
-      
+
       // Clean URL (remove the oobCode and other params)
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
-      
+
       // Close dialog if open
       setShowEmailDialog(false);
-      
+
       // DON'T navigate - let AuthContext detect the auth state change
       // and handle user creation + welcome modal, then app will load naturally
-      
+
     } catch (error) {
       console.error('[EmailLinkHandler] Sign-in failed:', error.code, error.message);
-      
+
       // Handle specific error cases with user-friendly messages
       let errorMessage = '';
       let linkExpired = false;
-      
+
       if (error.code === 'auth/invalid-action-code') {
         errorMessage = 'This sign-in link has expired or has already been used. Please request a new one.';
         linkExpired = true;
@@ -103,7 +117,7 @@ export default function EmailLinkHandler() {
         errorMessage = `Sign-in failed: ${error.message}. Please request a new link.`;
         linkExpired = true;
       }
-      
+
       setError(errorMessage);
       setIsLinkExpired(linkExpired);
       setIsProcessing(false);
@@ -112,7 +126,7 @@ export default function EmailLinkHandler() {
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!email || !email.includes('@')) {
       setError('Please enter a valid email address.');
       return;
@@ -125,7 +139,7 @@ export default function EmailLinkHandler() {
     setShowEmailDialog(false);
     setError('');
     setIsLinkExpired(false);
-    
+
     // Clean URL to remove email link parameters
     const cleanUrl = window.location.pathname;
     window.history.replaceState({}, document.title, cleanUrl);
@@ -136,11 +150,11 @@ export default function EmailLinkHandler() {
     setShowEmailDialog(false);
     setError('');
     setIsLinkExpired(false);
-    
+
     // Clean URL
     const cleanUrl = window.location.pathname;
     window.history.replaceState({}, document.title, cleanUrl);
-    
+
     // Open AuthModal to request new link
     setShowAuthModal(true);
   };

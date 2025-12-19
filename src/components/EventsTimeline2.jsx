@@ -7,9 +7,11 @@
  * for past events in the selected timezone.
  *
  * Changelog:
+ * v3.8.4 - 2025-12-18 - Centralize impact colors (low impact yellow #F2C94C, unknown taupe #C7B8A4) to avoid collisions with session and NOW colors across timeline badges.
+ * v3.8.3 - 2025-12-17 - Added sticky day chip that pins while scrolling a day (chip only; dividers remain inline) for chat-style day headers.
+ * v3.8.2 - 2025-12-16 - Floating scroll action now targets NOW when present (blue/info), otherwise NEXT; avoids misleading "Scroll to Next" during active NOW window.
  * v3.8.1 - 2025-12-15 - CRITICAL FIX: NEXT badge now respects all filters (date range, impacts, currencies) but ignores pagination.
  * v3.8.0 - 2025-12-15 - CRITICAL FIX: Refactored to use shared eventTimeEngine for absolute-epoch-based NOW/NEXT detection and countdown. Eliminates timezone-shifted Date object bugs.
- * v3.8.2 - 2025-12-16 - Floating scroll action now targets NOW when present (blue/info), otherwise NEXT; avoids misleading "Scroll to Next" during active NOW window.
  * v3.7.8 - 2025-12-15 - Fixed NEXT/NOW detection + NEXT badge countdown to use absolute event instants (DST-safe) while preserving timezone-aware display.
  * v3.7.7 - 2025-12-15 - Fixed NEXT countdown to use selected timezone (TimezoneSelector-aware) instead of system-local Date.now().
  * v3.7.6 - 2025-12-15 - Canvas-triggered auto-scroll applies a subtle 6s highlight animation on the targeted timeline event.
@@ -76,6 +78,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import MuiTooltip from '@mui/material/Tooltip';
+import { resolveImpactMeta } from '../utils/newsApi';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -92,7 +95,7 @@ import NoteAltIcon from '@mui/icons-material/NoteAlt';
 import { hasEventDescriptionEntry } from '../services/economicEventsService';
 import EventModal from './EventModal';
 import { formatTime } from '../utils/dateUtils';
-import { 
+import {
   NOW_WINDOW_MS,
   getEventEpochMs,
   computeNowNextState,
@@ -123,6 +126,14 @@ const ANIMATION_DURATION = {
 const SCROLL_OFFSET = 150;
 
 /**
+ * Sticky offset for day chips (chat-style pinning)
+ */
+const STICKY_DAY_CHIP_OFFSET = {
+  xs: 8,
+  sm: 12,
+};
+
+/**
  * Currency to country code mapping for flag icons
  * Comprehensive list of major trading currencies
  */
@@ -141,11 +152,12 @@ const CURRENCY_TO_COUNTRY = {
  * Maps impact strings to visual indicators
  */
 const IMPACT_CONFIG = {
-  strong: { icon: '!!!', color: 'error.main', label: 'High Impact' },
-  moderate: { icon: '!!', color: 'warning.main', label: 'Medium Impact' },
-  weak: { icon: '!', color: 'info.main', label: 'Low Impact' },
-  'non-economic': { icon: '~', color: 'grey.500', label: 'Non-Economic' },
-  unknown: { icon: '?', color: 'grey.500', label: 'Unknown' },
+  strong: { icon: '!!!', label: 'High Impact' },
+  moderate: { icon: '!!', label: 'Medium Impact' },
+  weak: { icon: '!', label: 'Low Impact' },
+  'not-loaded': { icon: '?', label: 'Data Not Loaded' },
+  'non-economic': { icon: '~', label: 'Non-Economic' },
+  unknown: { icon: '?', label: 'Unknown' },
 };
 
 const SPEECH_TITLE_REGEX = /(speaks|remarks|address|testifies|statement|press conference|hearing|meeting|vote)/i;
@@ -195,7 +207,7 @@ const getTimeStatus = (dateTime, timezone, nowEpochMs) => {
 
   // Use engine to check if past today
   const isPast = isPastTodayEngine({ eventEpochMs, nowEpochMs, timezone, nowWindowMs: NOW_WINDOW_MS });
-  
+
   return isPast ? 'past' : 'upcoming';
 };
 
@@ -207,7 +219,7 @@ const getTimeStatus = (dateTime, timezone, nowEpochMs) => {
 const getOutcomeIcon = (outcome) => {
   if (!outcome) return null;
   const lower = outcome.toLowerCase();
-  
+
   if (lower.includes('bullish') || lower.includes('positive')) {
     return <TrendingUpIcon sx={{ color: 'success.main', fontSize: 18 }} />;
   }
@@ -223,24 +235,14 @@ const getOutcomeIcon = (outcome) => {
  * @returns {Object} Impact config with icon, color, label
  */
 const getImpactConfig = (impact) => {
-  if (!impact) return IMPACT_CONFIG.unknown;
-  
-  const lower = impact.toLowerCase();
-  
-  if (lower.includes('strong') || lower.includes('high')) {
-    return IMPACT_CONFIG.strong;
-  }
-  if (lower.includes('moderate') || lower.includes('medium')) {
-    return IMPACT_CONFIG.moderate;
-  }
-  if (lower.includes('weak') || lower.includes('low')) {
-    return IMPACT_CONFIG.weak;
-  }
-  if (lower.includes('non-economic') || lower.includes('none')) {
-    return IMPACT_CONFIG['non-economic'];
-  }
-  
-  return IMPACT_CONFIG.unknown;
+  const meta = resolveImpactMeta(impact);
+  const base = IMPACT_CONFIG[meta.key] || IMPACT_CONFIG.unknown;
+  return {
+    ...base,
+    color: meta.color,
+    icon: base.icon || meta.icon,
+    label: base.label || meta.label,
+  };
 };
 
 /**
@@ -286,18 +288,18 @@ const getDaySerial = (date) => {
  */
 const normalizeDate = (date, timezone) => {
   if (!date) return null;
-  
+
   // Convert to Date object if it's a Unix timestamp
   const dateObj = typeof date === 'number' ? new Date(date) : new Date(date);
-  
+
   // Convert to timezone-specific date string, then parse back to Date at midnight
-  const dateStr = dateObj.toLocaleDateString('en-CA', { 
+  const dateStr = dateObj.toLocaleDateString('en-CA', {
     timeZone: timezone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
   }); // Returns YYYY-MM-DD format
-  
+
   return new Date(dateStr + 'T00:00:00');
 };
 
@@ -351,33 +353,34 @@ const formatDate = (date, isToday = false, timezone) => {
  * Day Divider - Separates events by day
  * Memoized to prevent unnecessary re-renders
  */
-const DayDivider = memo(({ date, isToday, isFirst, timezone }) => {
+const DayDivider = memo(({ date, isToday, isFirst, timezone, daySerial, registerDayMarker, floatingSerial }) => {
+  const markerRef = useRef(null);
+  const isFloatingActive = floatingSerial === daySerial;
+
+  useEffect(() => {
+    if (!registerDayMarker || !daySerial || !markerRef.current) return undefined;
+    registerDayMarker(daySerial, markerRef.current);
+    return () => registerDayMarker(daySerial, null);
+  }, [daySerial, registerDayMarker]);
+
   return (
     <Fade in timeout={ANIMATION_DURATION.fade}>
       <Box
+        ref={markerRef}
         sx={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          mt: 3,
-          mb: 3,
+          mt: isFloatingActive ? 1 : 3,
+          mb: isFloatingActive ? 2 : 3,
           px: 2,
         }}
       >
-        <Divider 
-          sx={{ 
-            flex: 1,
-            borderColor: isToday ? 'primary.main' : 'divider',
-            borderWidth: isToday ? 2 : 1,
-            transition: 'all 0.3s ease',
-          }} 
-        />
         <Chip
           icon={<EventIcon sx={{ fontSize: { xs: 14, sm: 16 } }} />}
           label={formatDate(date, isToday, timezone)}
           size="small"
           sx={{
-            mx: 2,
             bgcolor: isToday ? 'primary.main' : 'background.paper',
             color: isToday ? 'primary.contrastText' : 'text.secondary',
             fontWeight: isToday ? 700 : 600,
@@ -385,20 +388,13 @@ const DayDivider = memo(({ date, isToday, isFirst, timezone }) => {
             height: { xs: 26, sm: 28 },
             border: '1px solid',
             borderColor: isToday ? 'primary.dark' : 'divider',
-            boxShadow: isToday ? 2 : 'none',
-            transition: 'all 0.3s ease',
+            boxShadow: isToday ? 2 : 1,
+            transition: 'all 0.2s ease',
+            visibility: floatingSerial === daySerial ? 'hidden' : 'visible',
             '& .MuiChip-icon': {
-              color: 'inherit',
+              color: isToday ? 'primary.contrastText' : 'text.secondary',
             },
           }}
-        />
-        <Divider 
-          sx={{ 
-            flex: 1,
-            borderColor: isToday ? 'primary.main' : 'divider',
-            borderWidth: isToday ? 2 : 1,
-            transition: 'all 0.3s ease',
-          }} 
         />
       </Box>
     </Fade>
@@ -432,12 +428,12 @@ const TodayEmptyState = memo(({ date, timezone }) => {
             mb: 2,
           }}
         >
-          <Divider 
-            sx={{ 
+          <Divider
+            sx={{
               flex: 1,
               borderColor: 'primary.main',
               borderWidth: 2,
-            }} 
+            }}
           />
           <Chip
             icon={<EventIcon sx={{ fontSize: { xs: 14, sm: 16 } }} />}
@@ -458,12 +454,12 @@ const TodayEmptyState = memo(({ date, timezone }) => {
               },
             }}
           />
-          <Divider 
-            sx={{ 
+          <Divider
+            sx={{
               flex: 1,
               borderColor: 'primary.main',
               borderWidth: 2,
-            }} 
+            }}
           />
         </Box>
         <Typography
@@ -576,7 +572,7 @@ TimeChip.displayName = 'TimeChip';
  */
 const ImpactBadge = memo(({ impact, isPast }) => {
   const config = getImpactConfig(impact);
-  
+
   return (
     <MuiTooltip title={config.label} arrow placement="top">
       <Chip
@@ -614,7 +610,7 @@ ImpactBadge.displayName = 'ImpactBadge';
  */
 const CurrencyFlag = memo(({ currency }) => {
   const countryCode = getCurrencyFlag(currency);
-  
+
   if (!countryCode) {
     return (
       <Chip
@@ -631,7 +627,7 @@ const CurrencyFlag = memo(({ currency }) => {
       />
     );
   }
-  
+
   return (
     <MuiTooltip title={currency} arrow placement="top">
       <Box
@@ -706,13 +702,13 @@ const EventDescription = memo(({ description, loading }) => {
       </Card>
     );
   }
-  
+
   if (!description) {
     return (
-      <Alert 
-        severity="info" 
+      <Alert
+        severity="info"
         icon={<InfoOutlinedIcon />}
-        sx={{ 
+        sx={{
           borderRadius: 2,
           fontSize: { xs: '0.8rem', sm: '0.875rem' },
         }}
@@ -721,7 +717,7 @@ const EventDescription = memo(({ description, loading }) => {
       </Alert>
     );
   }
-  
+
   return (
     <Card
       elevation={0}
@@ -771,7 +767,7 @@ const EventDescription = memo(({ description, loading }) => {
               </Typography>
             </Box>
           )}
-          
+
           {/* Trading Implication */}
           {description.tradingImplication && (
             <Box>
@@ -803,7 +799,7 @@ const EventDescription = memo(({ description, loading }) => {
               </Typography>
             </Box>
           )}
-          
+
           {/* Key Thresholds */}
           {description.keyThresholds && Object.keys(description.keyThresholds).length > 0 && (
             <Box>
@@ -837,7 +833,7 @@ const EventDescription = memo(({ description, loading }) => {
                     <Typography
                       variant="caption"
                       color="text.secondary"
-                      sx={{ 
+                      sx={{
                         fontSize: { xs: '0.65rem', sm: '0.7rem' },
                         textTransform: 'capitalize',
                         fontWeight: 600,
@@ -847,7 +843,7 @@ const EventDescription = memo(({ description, loading }) => {
                     </Typography>
                     <Typography
                       variant="body2"
-                      sx={{ 
+                      sx={{
                         fontSize: { xs: '0.75rem', sm: '0.8rem' },
                         fontWeight: 700,
                         color: 'text.primary',
@@ -860,7 +856,7 @@ const EventDescription = memo(({ description, loading }) => {
               </Box>
             </Box>
           )}
-          
+
           {/* Release Info (Frequency & Source) */}
           {(description.frequency || description.source) && (
             <Box
@@ -880,7 +876,7 @@ const EventDescription = memo(({ description, loading }) => {
                   <Typography
                     variant="caption"
                     color="text.secondary"
-                    sx={{ 
+                    sx={{
                       fontSize: { xs: '0.65rem', sm: '0.7rem' },
                       fontWeight: 600,
                     }}
@@ -889,7 +885,7 @@ const EventDescription = memo(({ description, loading }) => {
                   </Typography>
                   <Typography
                     variant="body2"
-                    sx={{ 
+                    sx={{
                       fontSize: { xs: '0.75rem', sm: '0.8rem' },
                       fontWeight: 700,
                       color: 'text.primary',
@@ -904,7 +900,7 @@ const EventDescription = memo(({ description, loading }) => {
                   <Typography
                     variant="caption"
                     color="text.secondary"
-                    sx={{ 
+                    sx={{
                       fontSize: { xs: '0.65rem', sm: '0.7rem' },
                       fontWeight: 600,
                     }}
@@ -913,7 +909,7 @@ const EventDescription = memo(({ description, loading }) => {
                   </Typography>
                   <Typography
                     variant="body2"
-                    sx={{ 
+                    sx={{
                       fontSize: { xs: '0.75rem', sm: '0.8rem' },
                       fontWeight: 700,
                       color: 'text.primary',
@@ -925,7 +921,7 @@ const EventDescription = memo(({ description, loading }) => {
               )}
             </Box>
           )}
-          
+
           {/* Outcome */}
           {description.outcome && (
             <Box
@@ -976,6 +972,7 @@ const EventCard = memo(({
   highlightAnimated = false,
   hasDescription = true,
   onInfoClick,
+  onCardClick,
   isFavoriteEvent,
   onToggleFavorite,
   isFavoritePending,
@@ -989,7 +986,7 @@ const EventCard = memo(({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
+
   const impactConfig = getImpactConfig(event.strength || event.Strength);
   const hasAnyMetrics = hasMetricValue(event.actual) || hasMetricValue(event.forecast) || hasMetricValue(event.previous);
   const isSpeechNoMetrics = isSpeechLikeEvent(event);
@@ -1009,6 +1006,7 @@ const EventCard = memo(({
   const notesTooltip = notesLoading ? 'Loading notes...' : hasNotes ? 'View notes' : 'Add note';
 
   const [favoriteMenuAnchor, setFavoriteMenuAnchor] = useState(null);
+  const touchStartRef = useRef(null);
 
   const handleFavoriteRemove = () => {
     if (onToggleFavorite) {
@@ -1018,6 +1016,49 @@ const EventCard = memo(({
   };
 
   const handleFavoriteMenuClose = () => setFavoriteMenuAnchor(null);
+
+  // Touch handling to prevent opening during scroll
+  const handleTouchStart = (e) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      time: Date.now(),
+    };
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!touchStartRef.current) return;
+
+    const touchEnd = {
+      x: e.changedTouches[0].clientX,
+      y: e.changedTouches[0].clientY,
+      time: Date.now(),
+    };
+
+    const deltaX = Math.abs(touchEnd.x - touchStartRef.current.x);
+    const deltaY = Math.abs(touchEnd.y - touchStartRef.current.y);
+    const deltaTime = touchEnd.time - touchStartRef.current.time;
+
+    // Only trigger click if touch didn't move much (not a scroll) and was quick
+    if (deltaX < 10 && deltaY < 10 && deltaTime < 500) {
+      if (onCardClick && !e.defaultPrevented) {
+        onCardClick(event);
+      }
+    }
+
+    touchStartRef.current = null;
+  };
+
+  // Desktop click handler
+  const handleClick = (e) => {
+    // Prevent opening if clicking on buttons or interactive elements
+    const target = e.target;
+    const isInteractiveElement = target.closest('button') || target.closest('a') || target.closest('[role="button"]');
+
+    if (!isInteractiveElement && onCardClick) {
+      onCardClick(event);
+    }
+  };
 
   const handleFavoriteClick = (e) => {
     e.stopPropagation();
@@ -1037,7 +1078,7 @@ const EventCard = memo(({
       onOpenNotes(event);
     }
   };
-  
+
   // Determine border and shadow based on state priority: NOW > NEXT > PAST
   const getStateStyles = () => {
     if (isNow) {
@@ -1061,7 +1102,7 @@ const EventCard = memo(({
       color: isPast ? '#424242' : undefined,
     };
   };
-  
+
   const stateStyles = getStateStyles();
   const { boxShadow: stateBoxShadow = 'none', ...restStateStyles } = stateStyles;
   const normalizedStateShadow = typeof stateBoxShadow === 'number' ? theme.shadows[stateBoxShadow] : (stateBoxShadow || 'none');
@@ -1071,12 +1112,16 @@ const EventCard = memo(({
   const hoverShadow = theme.shadows[4];
   const highlightedBorderColor = isHighlighted ? (isNow ? 'info.dark' : 'primary.main') : restStateStyles.borderColor;
   const highlightedTransform = isHighlighted ? 'translateY(-2px)' : 'none';
-  
+
   const card = (
     <Card
       elevation={0}
+      onClick={handleClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       sx={{
         position: 'relative',
+        cursor: 'pointer',
         border: '2px solid',
         borderRadius: 2,
         overflow: 'hidden',
@@ -1239,7 +1284,7 @@ const EventCard = memo(({
               )}
             </Stack>
           </Box>
-          
+
           {/* Metadata Row */}
           <Box
             sx={{
@@ -1250,11 +1295,11 @@ const EventCard = memo(({
             }}
           >
             <ImpactBadge impact={event.strength || event.Strength} isPast={isPast} />
-            
+
             {(event.currency || event.Currency) && (
               <CurrencyFlag currency={event.currency || event.Currency} />
             )}
-            
+
             {((event.category || event.Category) && (event.category || event.Category) !== null && (event.category || event.Category) !== 'null') && (
               <Chip
                 label={event.category || event.Category}
@@ -1270,14 +1315,14 @@ const EventCard = memo(({
               />
             )}
           </Box>
-          
+
           {/* Event Data Values or Speech Summary */}
           {hasAnyMetrics && (() => {
             // Check if event is in the future (has not occurred yet)
             const eventLocal = toTimezoneDate(event.date, timezone);
             const baselineNow = typeof nowMs === 'number' ? nowMs : Date.now();
             const isFutureEvent = eventLocal ? eventLocal.getTime() > baselineNow : false;
-            
+
             // For future events, ALWAYS show '—' regardless of stored value
             // This is best UX practice - no actual data exists for events that haven't occurred
             let actualValue;
@@ -1290,7 +1335,7 @@ const EventCard = memo(({
             }
             const forecastValue = hasMetricValue(event.forecast) ? event.forecast : '—';
             const previousValue = hasMetricValue(event.previous) ? event.previous : '—';
-            
+
             return (
               <Box
                 sx={{
@@ -1299,10 +1344,10 @@ const EventCard = memo(({
                   justifyContent: 'space-around',
                   gap: { xs: 1, sm: 2 },
                   p: { xs: 1, sm: 1.5 },
-                    bgcolor: isPast ? '#d6d6d6' : alpha(theme.palette.primary.main, 0.05),
+                  bgcolor: isPast ? '#d6d6d6' : alpha(theme.palette.primary.main, 0.05),
                   borderRadius: 1,
                   border: '1px solid',
-                    borderColor: isPast ? '#b0b0b0' : alpha(theme.palette.primary.main, 0.2),
+                  borderColor: isPast ? '#b0b0b0' : alpha(theme.palette.primary.main, 0.2),
                 }}
               >
                 <Box sx={{ textAlign: 'center', flex: 1 }}>
@@ -1325,69 +1370,69 @@ const EventCard = memo(({
                     sx={{
                       fontWeight: 700,
                       fontSize: { xs: '0.85rem', sm: '0.95rem' },
-                        color: isPast
-                          ? '#424242'
-                          : (actualValue !== '—' ? 'primary.main' : 'text.disabled'),
+                      color: isPast
+                        ? '#424242'
+                        : (actualValue !== '—' ? 'primary.main' : 'text.disabled'),
                     }}
                   >
                     {actualValue}
                   </Typography>
                 </Box>
-              
-              <Box sx={{ textAlign: 'center', flex: 1 }}>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{
-                    display: 'block',
-                    fontSize: { xs: '0.65rem', sm: '0.7rem' },
-                    fontWeight: 600,
-                    mb: 0.5,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  Forecast
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 600,
-                    fontSize: { xs: '0.85rem', sm: '0.95rem' },
-                    color: isPast ? '#616161' : (forecastValue !== '—' ? 'text.secondary' : 'text.disabled'),
-                  }}
-                >
-                  {forecastValue}
-                </Typography>
+
+                <Box sx={{ textAlign: 'center', flex: 1 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{
+                      display: 'block',
+                      fontSize: { xs: '0.65rem', sm: '0.7rem' },
+                      fontWeight: 600,
+                      mb: 0.5,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    Forecast
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: { xs: '0.85rem', sm: '0.95rem' },
+                      color: isPast ? '#616161' : (forecastValue !== '—' ? 'text.secondary' : 'text.disabled'),
+                    }}
+                  >
+                    {forecastValue}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ textAlign: 'center', flex: 1 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{
+                      display: 'block',
+                      fontSize: { xs: '0.65rem', sm: '0.7rem' },
+                      fontWeight: 600,
+                      mb: 0.5,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    Previous
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: { xs: '0.85rem', sm: '0.95rem' },
+                      color: isPast ? '#616161' : (previousValue !== '—' ? 'text.secondary' : 'text.disabled'),
+                    }}
+                  >
+                    {previousValue}
+                  </Typography>
+                </Box>
               </Box>
-              
-              <Box sx={{ textAlign: 'center', flex: 1 }}>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{
-                    display: 'block',
-                    fontSize: { xs: '0.65rem', sm: '0.7rem' },
-                    fontWeight: 600,
-                    mb: 0.5,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  Previous
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 600,
-                    fontSize: { xs: '0.85rem', sm: '0.95rem' },
-                    color: isPast ? '#616161' : (previousValue !== '—' ? 'text.secondary' : 'text.disabled'),
-                  }}
-                >
-                  {previousValue}
-                </Typography>
-              </Box>
-            </Box>
             );
           })()}
 
@@ -1402,7 +1447,7 @@ const EventCard = memo(({
       </CardContent>
     </Card>
   );
-  
+
   // Wrap card with Badge based on state (NOW takes priority over NEXT)
   if (isNow) {
     return (
@@ -1448,7 +1493,7 @@ const EventCard = memo(({
       </Badge>
     );
   }
-  
+
   if (isNext) {
     return (
       <Badge
@@ -1503,7 +1548,7 @@ const EventCard = memo(({
       </Badge>
     );
   }
-  
+
   return card;
 });
 
@@ -1516,7 +1561,7 @@ EventCard.displayName = 'EventCard';
 const PaginationButton = memo(({ direction, onClick, disabled }) => {
   const theme = useTheme();
   const isShowPrevious = direction === 'previous';
-  
+
   return (
     <Fade in timeout={ANIMATION_DURATION.fade}>
       <Box
@@ -1574,7 +1619,7 @@ PaginationButton.displayName = 'PaginationButton';
  */
 const EmptyState = memo(({ showFirstTimeSetup = false, searchQuery = '' }) => {
   const hasSearch = Boolean(searchQuery && searchQuery.trim());
-  
+
   if (hasSearch) {
     return (
       <Box
@@ -1636,7 +1681,7 @@ const EmptyState = memo(({ showFirstTimeSetup = false, searchQuery = '' }) => {
         <Typography variant="body2" color="text.secondary" align="center" sx={{ maxWidth: 400 }}>
           No events match your current filters. Try adjusting your date range or removing some filters.
         </Typography>
-        
+
         {showFirstTimeSetup && (
           <Box
             sx={{
@@ -1672,10 +1717,10 @@ EmptyState.displayName = 'EmptyState';
 const LoadingState = memo(() => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
+
   // Generate 5 skeleton items to simulate loading events
   const skeletonItems = Array.from({ length: 5 }, (_, i) => i);
-  
+
   return (
     <Box sx={{ width: '100%', height: '100%', overflow: 'auto', py: 2, px: { xs: 1, sm: 2 } }}>
       {/* Day Divider Skeleton */}
@@ -1693,7 +1738,7 @@ const LoadingState = memo(() => {
         <Skeleton variant="rounded" width={isMobile ? 100 : 120} height={28} />
         <Skeleton variant="rectangular" width="30%" height={1} />
       </Box>
-      
+
       {/* Timeline Skeletons */}
       <Timeline
         position="right"
@@ -1706,18 +1751,18 @@ const LoadingState = memo(() => {
         {skeletonItems.map((item) => (
           <TimelineItem key={item}>
             <TimelineOppositeContent sx={{ flex: 0, display: 'none' }} />
-            
+
             <TimelineSeparator>
               <Box sx={{ pl: { xs: 1.5, sm: 2 } }}>
                 {/* Time Chip Skeleton */}
-                <Skeleton 
-                  variant="rounded" 
-                  width={isMobile ? 60 : 70} 
-                  height={isMobile ? 24 : 28} 
+                <Skeleton
+                  variant="rounded"
+                  width={isMobile ? 60 : 70}
+                  height={isMobile ? 24 : 28}
                   sx={{ borderRadius: 2 }}
                 />
               </Box>
-              
+
               {/* Connector */}
               {item < skeletonItems.length - 1 && (
                 <TimelineConnector
@@ -1729,7 +1774,7 @@ const LoadingState = memo(() => {
                 />
               )}
             </TimelineSeparator>
-            
+
             <TimelineContent sx={{ pr: { xs: 1, sm: 2 }, pb: 3 }}>
               {/* Event Card Skeleton */}
               <Card
@@ -1745,14 +1790,14 @@ const LoadingState = memo(() => {
                   <Stack spacing={1.5}>
                     {/* Title Skeleton */}
                     <Skeleton variant="text" width="80%" height={24} />
-                    
+
                     {/* Badges Row Skeleton */}
                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                       <Skeleton variant="rounded" width={40} height={22} />
                       <Skeleton variant="rounded" width={isMobile ? 60 : 80} height={22} />
                       <Skeleton variant="rounded" width={isMobile ? 80 : 100} height={22} />
                     </Box>
-                    
+
                     {/* Data Values Row Skeleton */}
                     <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
                       <Skeleton variant="rounded" width={60} height={32} />
@@ -1786,8 +1831,8 @@ const buildEventKey = (event, index) => {
  * Enterprise "Next" event tracking: Updates every 60 seconds (Microsoft Teams/Outlook pattern)
  * NEXT detection now respects all filters (date range, impacts, currencies) but ignores pagination
  */
-export default function EventsTimeline2({ 
-  events = [], 
+export default function EventsTimeline2({
+  events = [],
   contextEvents = null, // DEPRECATED: NEXT now calculated from filtered events prop
   loading = false,
   onVisibleCountChange = null,
@@ -1805,10 +1850,11 @@ export default function EventsTimeline2({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   // ========== STATE ==========
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [modalEvent, setModalEvent] = useState(null); // For card click modal
   const [visibleDayRange, setVisibleDayRange] = useState({ start: 0, end: 0 }); // Accumulative range
   const [highlightIds, setHighlightIds] = useState([]);
   const [highlightDurationMs, setHighlightDurationMs] = useState(4000);
@@ -1820,10 +1866,11 @@ export default function EventsTimeline2({
   const timelineContainerRef = useRef(null);
   const [scrollPosition, setScrollPosition] = useState(0);
   const [showScrollToNext, setShowScrollToNext] = useState(false);
+  const [floatingDay, setFloatingDay] = useState(null);
+  const dayMarkersRef = useRef(new Map());
   const [descriptionAvailability, setDescriptionAvailability] = useState({});
-  
-  // Track current time for "next" event calculation (updates every 60 seconds)
-  // Enterprise pattern: Microsoft Teams/Outlook approach for calendar event tracking
+
+  // Track current time for "next" event calculation (updates every second for instant NOW/NEXT)
   const [currentTime, setCurrentTime] = useState(() => Date.now());
 
   // CRITICAL: Use absolute epoch milliseconds - timezone only affects display, not countdown math
@@ -1833,6 +1880,15 @@ export default function EventsTimeline2({
     if (highlightTimeoutRef.current) {
       clearTimeout(highlightTimeoutRef.current);
       highlightTimeoutRef.current = null;
+    }
+  }, []);
+
+  const registerDayMarker = useCallback((serial, element) => {
+    if (!serial) return;
+    if (element) {
+      dayMarkersRef.current.set(serial, element);
+    } else {
+      dayMarkersRef.current.delete(serial);
     }
   }, []);
 
@@ -1859,9 +1915,9 @@ export default function EventsTimeline2({
   const shouldHighlightSimultaneous = useMemo(() => {
     return typeof autoScrollToNextKey === 'object' && autoScrollToNextKey?.source === 'canvas';
   }, [autoScrollToNextKey]);
-  
+
   // ========== MEMOIZED VALUES ==========
-  
+
   /**
    * Sorted events (ascending - oldest first)
    */
@@ -1919,7 +1975,7 @@ export default function EventsTimeline2({
     if (!targetIdFromToken) return -1;
     return sortedEvents.findIndex((evt) => evt.id === targetIdFromToken);
   }, [sortedEvents, targetIdFromToken]);
-  
+
   /**
    * Partition events into past, today, future (timezone-aware)
    */
@@ -1938,11 +1994,11 @@ export default function EventsTimeline2({
     for (let i = 0; i < todayGroup.events.length; i += 1) {
       const eventEpochMs = getEventEpochMs(todayGroup.events[i]);
       if (eventEpochMs === null) continue;
-      
+
       // Verify event is actually in today's day serial
       const eventLocal = toTimezoneDate(todayGroup.events[i].date, timezone);
       if (!eventLocal || getDaySerial(eventLocal) !== todaySerial) continue;
-      
+
       if (eventEpochMs >= nowEpochMs) return i;
     }
 
@@ -1957,7 +2013,7 @@ export default function EventsTimeline2({
     if (!dayGroups.length) return [];
     const start = Math.max(0, Math.min(visibleDayRange.start, dayGroups.length - 1));
     const end = Math.max(0, Math.min(visibleDayRange.end, dayGroups.length - 1));
-    
+
     const accumulated = [];
     for (let i = start; i <= end; i++) {
       if (dayGroups[i]?.events) {
@@ -1969,14 +2025,14 @@ export default function EventsTimeline2({
 
   const hasPreviousDay = visibleDayRange.start > 0;
   const hasNextDay = visibleDayRange.end < dayGroups.length - 1;
-  
+
   /**
    * Today's date normalized (timezone-aware)
    */
   const today = useMemo(() => {
     return normalizeDate(new Date(), timezone);
   }, [timezone]);
-  
+
   /**
    * Check if today has events
    */
@@ -1992,7 +2048,7 @@ export default function EventsTimeline2({
     if (!todayGroup) return false;
     return nextTodayIndex === -1;
   }, [dayGroups, todaySerial, nextTodayIndex]);
-  
+
   /**
    * Find today divider index (chronologically)
    */
@@ -2002,7 +2058,7 @@ export default function EventsTimeline2({
       return eventDate && eventDate.getTime() >= today.getTime();
     });
   }, [visibleEvents, today, timezone]);
-  
+
   /**
    * Check if today is within visible range
    */
@@ -2010,19 +2066,64 @@ export default function EventsTimeline2({
     if (visibleEvents.length === 0) return false;
     const daySerial = getDaySerial(today);
     if (daySerial === null) return false;
-    
+
     // Check if today's serial is in any visible day group
     for (let i = visibleDayRange.start; i <= visibleDayRange.end; i++) {
       if (dayGroups[i]?.serial === daySerial) return true;
     }
     return false;
   }, [visibleEvents, today, dayGroups, visibleDayRange]);
-  
+
   /**
    * Should show today empty divider
    */
   const shouldShowTodayDivider = !hasTodayEvents && isTodayInRange && todayDividerIndex >= 0;
-  
+
+  const updateFloatingDay = useCallback(() => {
+    const container = timelineContainerRef.current;
+    if (!container || dayMarkersRef.current.size === 0 || dayGroups.length === 0) {
+      setFloatingDay(null);
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const scrollTop = container.scrollTop;
+    const stickyOffsetPx = isMobile ? STICKY_DAY_CHIP_OFFSET.xs : STICKY_DAY_CHIP_OFFSET.sm;
+    const anchor = scrollTop + stickyOffsetPx; // change immediately when marker crosses sticky line
+
+    // Traverse visible day groups in chronological order to find the last marker above anchor.
+    const orderedVisible = dayGroups.slice(visibleDayRange.start, visibleDayRange.end + 1);
+    let activeSerial = null;
+    for (let i = 0; i < orderedVisible.length; i += 1) {
+      const group = orderedVisible[i];
+      if (!group) continue;
+      const el = dayMarkersRef.current.get(group.serial);
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      const markerTop = rect.top - containerRect.top + scrollTop;
+      if (markerTop <= anchor) {
+        activeSerial = group.serial; // keep advancing to the latest passed marker
+      } else {
+        break; // remaining markers are below anchor
+      }
+    }
+
+    // If no marker passed the anchor, stick to the first visible day.
+    const resolvedSerial = activeSerial ?? (orderedVisible[0]?.serial ?? null);
+    if (!resolvedSerial) return;
+
+    const group = dayGroups.find((g) => g.serial === resolvedSerial);
+    if (!group) return;
+    const label = formatDate(group.date, group.serial === todaySerial, timezone);
+
+    setFloatingDay((prev) => {
+      if (prev && prev.serial === resolvedSerial && prev.label === label && prev.isToday === (group.serial === todaySerial)) {
+        return prev;
+      }
+      return { serial: resolvedSerial, label, isToday: group.serial === todaySerial };
+    });
+  }, [dayGroups, isMobile, todaySerial, timezone, visibleDayRange]);
+
   /**
    * Calculate event states: NOW, NEXT, PAST, FUTURE
    * Recalculates when currentTime updates (every 60 seconds)
@@ -2045,11 +2146,11 @@ export default function EventsTimeline2({
       nowWindowMs: NOW_WINDOW_MS,
       buildKey: buildEventKey,
     });
-    
-    return { 
-      nowIds: nowEventIds, 
-      nextIds: nextEventIds, 
-      nextEventTime: nextEventEpochMs 
+
+    return {
+      nowIds: nowEventIds,
+      nextIds: nextEventIds,
+      nextEventTime: nextEventEpochMs
     };
   }, [contextSortedEvents, nowEpochMs]);
   const nextEventIndex = useMemo(() => {
@@ -2067,9 +2168,9 @@ export default function EventsTimeline2({
     const ss = String(seconds).padStart(2, '0');
     return `${hours}:${mm}:${ss}`;
   }, [countdownNow, eventStates.nextEventTime]);
-  
+
   // ========== EFFECTS ==========
-  
+
   /**
    * Enterprise pattern: Update "next" event every 60 seconds
    * Same approach as Microsoft Teams/Outlook for calendar event tracking
@@ -2080,8 +2181,8 @@ export default function EventsTimeline2({
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(Date.now());
-    }, 60000); // 60 seconds
-    
+    }, 1000); // 1 second for immediate NOW/NEXT updates
+
     return () => clearInterval(interval);
   }, []);
 
@@ -2089,7 +2190,7 @@ export default function EventsTimeline2({
     const interval = setInterval(() => {
       setCountdownNow(Date.now());
     }, 1000); // Update countdown every second
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -2109,6 +2210,7 @@ export default function EventsTimeline2({
     if (!container) return undefined;
 
     const handleScroll = () => {
+      updateFloatingDay();
       setScrollPosition(container.scrollTop);
 
       const targetIds = eventStates.nowIds.size > 0 ? eventStates.nowIds : eventStates.nextIds;
@@ -2146,7 +2248,7 @@ export default function EventsTimeline2({
     handleScroll(); // Initial check
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [eventStates.nextIds, eventStates.nowIds, visibleEvents]);
+  }, [eventStates.nextIds, eventStates.nowIds, visibleEvents, updateFloatingDay]);
 
   // Reset scroll-to-next button when events change
   useEffect(() => {
@@ -2166,7 +2268,7 @@ export default function EventsTimeline2({
     if (!targetEvent) return;
     const targetDay = getDaySerial(normalizeDate(new Date(targetEvent.date), timezone));
     const targetDayIndex = dayGroups.findIndex((g) => g.serial === targetDay);
-    
+
     if (targetDayIndex !== -1) {
       // Expand range to include target if not already visible
       setVisibleDayRange((prev) => ({
@@ -2176,7 +2278,7 @@ export default function EventsTimeline2({
     }
     lastPaginationTokenRef.current = targetToken;
   }, [targetToken, targetIndex, sortedEvents, timezone, dayGroups]);
-  
+
   /**
    * Reset pagination when events change, centering on today
    * Enterprise pattern: Start with reasonable default view
@@ -2203,6 +2305,10 @@ export default function EventsTimeline2({
       onVisibleCountChange(visibleEvents.length);
     }
   }, [visibleEvents.length, onVisibleCountChange]);
+
+  useEffect(() => {
+    updateFloatingDay();
+  }, [updateFloatingDay, visibleEvents]);
 
   // Prefetch description availability to hide info icons when no description exists
   useEffect(() => {
@@ -2269,8 +2375,8 @@ export default function EventsTimeline2({
     const targetTime = targetEventData ? new Date(targetEventData.date).getTime() : null;
     const simultaneousIds = (shouldHighlightSimultaneous && targetTime)
       ? sortedEvents
-          .filter((evt) => evt.id && new Date(evt.date).getTime() === targetTime)
-          .map((evt) => evt.id)
+        .filter((evt) => evt.id && new Date(evt.date).getTime() === targetTime)
+        .map((evt) => evt.id)
       : [targetIdFromToken];
 
     const scrollToTarget = () => {
@@ -2314,9 +2420,9 @@ export default function EventsTimeline2({
       lastScrollTokenRef.current = 'next-default';
     }
   }, [eventStates.nextIds, targetToken, loading, autoScrollToNextKey, isTodayComplete]);
-  
+
   // ========== CALLBACKS ==========
-  
+
   /**
    * Open modal with event details
    */
@@ -2335,26 +2441,40 @@ export default function EventsTimeline2({
       setSelectedEvent(null);
     }, 300);
   }, []);
-  
+
+  /**
+   * Handle card click to open modal
+   */
+  const handleCardClick = useCallback((event) => {
+    setModalEvent(event);
+  }, []);
+
+  /**
+   * Handle closing card modal
+   */
+  const handleCardModalClose = useCallback(() => {
+    setModalEvent(null);
+  }, []);
+
   /**
    * Load previous day (expand above)
    * Enterprise UX: Preserves scroll position by measuring and adjusting after DOM update
    */
   const handleLoadPrevious = useCallback(() => {
     if (visibleDayRange.start <= 0) return;
-    
+
     const container = timelineContainerRef.current;
     if (!container) {
       setVisibleDayRange((prev) => ({ ...prev, start: Math.max(prev.start - 1, 0) }));
       return;
     }
-    
+
     // Measure current scroll position and height before adding content
     const scrollBefore = container.scrollTop;
     const heightBefore = container.scrollHeight;
-    
+
     setVisibleDayRange((prev) => ({ ...prev, start: Math.max(prev.start - 1, 0) }));
-    
+
     // After React renders new content, adjust scroll to maintain visual position
     requestAnimationFrame(() => {
       const heightAfter = container.scrollHeight;
@@ -2362,7 +2482,7 @@ export default function EventsTimeline2({
       container.scrollTop = scrollBefore + heightDiff;
     });
   }, [visibleDayRange.start]);
-  
+
   /**
    * Load next day (expand below)
    * Enterprise UX: Natural scroll flow - new content appears below, no position adjustment needed
@@ -2386,30 +2506,70 @@ export default function EventsTimeline2({
       targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [eventStates.nextIds, eventStates.nowIds]);
-  
+
+  useEffect(() => {
+    updateFloatingDay();
+  }, [updateFloatingDay]);
+
   // ========== RENDER ==========
-  
+
   // Loading state
   if (loading) {
     return <LoadingState />;
   }
-  
+
   // Empty state
   if (events.length === 0) {
     return <EmptyState showFirstTimeSetup={false} searchQuery={searchQuery} />;
   }
-  
+
   return (
     <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Box ref={timelineContainerRef} data-timeline-container="true" sx={{ flex: 1, overflow: 'auto', px: { xs: 1, sm: 2 }, py: 2 }}>
         {/* Show Previous Day */}
         {hasPreviousDay && (
-          <PaginationButton 
-            direction="previous" 
+          <PaginationButton
+            direction="previous"
             onClick={handleLoadPrevious}
           />
         )}
-        
+
+        {floatingDay && (
+          <Box
+            sx={{
+              position: 'sticky',
+              top: { xs: `${STICKY_DAY_CHIP_OFFSET.xs}px`, sm: `${STICKY_DAY_CHIP_OFFSET.sm}px` },
+              zIndex: 12,
+              display: 'flex',
+              justifyContent: 'center',
+              pb: 1,
+              mt: -1,
+            }}
+          >
+            <Chip
+              icon={<EventIcon sx={{ fontSize: { xs: 14, sm: 16 } }} />}
+              label={floatingDay.label}
+              size="small"
+              sx={{
+                bgcolor: floatingDay.isToday ? 'primary.main' : 'background.paper',
+                color: floatingDay.isToday ? 'primary.contrastText' : 'text.secondary',
+                fontWeight: floatingDay.isToday ? 700 : 600,
+                fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                height: { xs: 26, sm: 28 },
+                border: '1px solid',
+                borderColor: floatingDay.isToday ? 'primary.dark' : 'divider',
+                boxShadow: floatingDay.isToday ? 3 : 2,
+                backdropFilter: 'blur(6px)',
+                pointerEvents: 'none',
+                userSelect: 'none',
+                '& .MuiChip-icon': {
+                  color: floatingDay.isToday ? 'primary.contrastText' : 'text.secondary',
+                },
+              }}
+            />
+          </Box>
+        )}
+
         {/* Timeline */}
         <Timeline
           position="right"
@@ -2425,120 +2585,124 @@ export default function EventsTimeline2({
             },
           }}
         >
-        {visibleEvents.map((event, index) => {
-          const uniqueKey = buildEventKey(event, index);
-          const eventKey = uniqueKey;
-          const isPast = getTimeStatus(event.date, timezone, nowEpochMs) === 'past';
-          const isNow = eventStates.nowIds.has(uniqueKey);
-          const isNext = eventStates.nextIds.has(uniqueKey);
-          const countdownLabel = isNext ? nextCountdownLabel : null;
-          const isHighlighted = event.id ? highlightIds.includes(event.id) : false;
-          const hasDescription = descriptionAvailability[uniqueKey];
-          
-          // Check if this is a new day
-          const currentDate = new Date(event.date);
-          const prevEvent = index > 0 ? visibleEvents[index - 1] : null;
-          const prevDate = prevEvent ? new Date(prevEvent.date) : null;
-          const isNewDay = index === 0 || (prevDate && !isSameDay(currentDate, prevDate));
-          const isToday = isSameDay(currentDate, today);
-          
-          // Check if we should show "Today" empty divider before this event
-          const showTodayDividerHere = shouldShowTodayDivider && index === todayDividerIndex;
-          
-          return (
-            <React.Fragment key={uniqueKey}>
-              {/* Today Empty Divider */}
-              {showTodayDividerHere && <TodayEmptyState date={today} timezone={timezone} />}
-              
-              {/* Day Divider */}
-              {isNewDay && (
-                <DayDivider 
-                  date={currentDate} 
-                  isToday={isToday} 
-                  isFirst={index === 0}
-                  timezone={timezone}
-                />
-              )}
-              
-              {/* Timeline Item */}
-              <TimelineItem data-event-id={uniqueKey}>
-                {/* Empty opposite content */}
-                <TimelineOppositeContent
-                  sx={{
-                    flex: 0,
-                    display: 'none',
-                  }}
-                />
-                
-                {/* Time separator */}
-                <TimelineSeparator>
-                  <Box sx={{ pl: { xs: 1.5, sm: 2 } }}>
-                    <TimeChip 
-                      time={event.time || event.date}
+          {visibleEvents.map((event, index) => {
+            const uniqueKey = buildEventKey(event, index);
+            const eventKey = uniqueKey;
+            const isPast = getTimeStatus(event.date, timezone, nowEpochMs) === 'past';
+            const isNow = eventStates.nowIds.has(uniqueKey);
+            const isNext = eventStates.nextIds.has(uniqueKey);
+            const countdownLabel = isNext ? nextCountdownLabel : null;
+            const isHighlighted = event.id ? highlightIds.includes(event.id) : false;
+            const hasDescription = descriptionAvailability[uniqueKey];
+
+            // Check if this is a new day
+            const currentDate = new Date(event.date);
+            const prevEvent = index > 0 ? visibleEvents[index - 1] : null;
+            const prevDate = prevEvent ? new Date(prevEvent.date) : null;
+            const isNewDay = index === 0 || (prevDate && !isSameDay(currentDate, prevDate));
+            const isToday = isSameDay(currentDate, today);
+
+            // Check if we should show "Today" empty divider before this event
+            const showTodayDividerHere = shouldShowTodayDivider && index === todayDividerIndex;
+
+            return (
+              <React.Fragment key={uniqueKey}>
+                {/* Today Empty Divider */}
+                {showTodayDividerHere && <TodayEmptyState date={today} timezone={timezone} />}
+
+                {/* Day Divider */}
+                {isNewDay && (
+                  <DayDivider
+                    date={currentDate}
+                    isToday={isToday}
+                    isFirst={index === 0}
+                    timezone={timezone}
+                    daySerial={getDaySerial(normalizeDate(currentDate, timezone))}
+                    registerDayMarker={registerDayMarker}
+                    floatingSerial={floatingDay?.serial || null}
+                  />
+                )}
+
+                {/* Timeline Item */}
+                <TimelineItem data-event-id={uniqueKey}>
+                  {/* Empty opposite content */}
+                  <TimelineOppositeContent
+                    sx={{
+                      flex: 0,
+                      display: 'none',
+                    }}
+                  />
+
+                  {/* Time separator */}
+                  <TimelineSeparator>
+                    <Box sx={{ pl: { xs: 1.5, sm: 2 } }}>
+                      <TimeChip
+                        time={event.time || event.date}
+                        isPast={isPast}
+                        isNow={isNow}
+                        isNext={isNext}
+                        timezone={timezone}
+                        countdownLabel={countdownLabel}
+                      />
+                    </Box>
+
+                    {/* Connector line */}
+                    {index < visibleEvents.length - 1 && (
+                      <TimelineConnector
+                        sx={{
+                          bgcolor: 'divider',
+                          minHeight: { xs: 30, sm: 40 },
+                          ml: { xs: 2.75, sm: 3.25 },
+                          transition: 'all 0.3s ease',
+                        }}
+                      />
+                    )}
+                  </TimelineSeparator>
+
+                  {/* Event content */}
+                  <TimelineContent sx={{ pr: { xs: 1, sm: 2 }, pb: 3, mt: 0, pt: 0 }}>
+                    <EventCard
+                      event={event}
+                      uniqueKey={uniqueKey}
                       isPast={isPast}
                       isNow={isNow}
                       isNext={isNext}
+                      isHighlighted={isHighlighted}
+                      highlightDurationMs={highlightDurationMs}
+                      highlightAnimated={isCanvasAutoScroll}
+                      hasDescription={hasDescription !== false}
+                      onInfoClick={handleInfoClick}
+                      onCardClick={handleCardClick}
+                      isFavoriteEvent={isFavoriteEvent}
+                      onToggleFavorite={onToggleFavorite}
+                      isFavoritePending={isFavoritePending}
+                      favoritesLoading={favoritesLoading}
+                      hasEventNotes={hasEventNotes}
+                      onOpenNotes={onOpenNotes}
+                      isEventNotesLoading={isEventNotesLoading}
                       timezone={timezone}
+                      nowMs={nowEpochMs}
                       countdownLabel={countdownLabel}
                     />
-                  </Box>
-                  
-                  {/* Connector line */}
-                  {index < visibleEvents.length - 1 && (
-                    <TimelineConnector
-                      sx={{
-                        bgcolor: 'divider',
-                        minHeight: { xs: 30, sm: 40 },
-                        ml: { xs: 2.75, sm: 3.25 },
-                        transition: 'all 0.3s ease',
-                      }}
-                    />
-                  )}
-                </TimelineSeparator>
-                
-                {/* Event content */}
-                <TimelineContent sx={{ pr: { xs: 1, sm: 2 }, pb: 3, mt: 0, pt: 0 }}>
-                  <EventCard
-                    event={event}
-                    uniqueKey={uniqueKey}
-                    isPast={isPast}
-                    isNow={isNow}
-                    isNext={isNext}
-                    isHighlighted={isHighlighted}
-                    highlightDurationMs={highlightDurationMs}
-                    highlightAnimated={isCanvasAutoScroll}
-                    hasDescription={hasDescription !== false}
-                    onInfoClick={handleInfoClick}
-                    isFavoriteEvent={isFavoriteEvent}
-                    onToggleFavorite={onToggleFavorite}
-                    isFavoritePending={isFavoritePending}
-                    favoritesLoading={favoritesLoading}
-                    hasEventNotes={hasEventNotes}
-                    onOpenNotes={onOpenNotes}
-                    isEventNotesLoading={isEventNotesLoading}
-                    timezone={timezone}
-                    nowMs={nowEpochMs}
-                    countdownLabel={countdownLabel}
-                  />
-                </TimelineContent>
-              </TimelineItem>
-            </React.Fragment>
-          );
-        })}
-      </Timeline>
-      
-      {/* Today Empty Divider at End */}
-      {shouldShowTodayDivider && todayDividerIndex === -1 && (
-        <TodayEmptyState date={today} timezone={timezone} />
-      )}
-      
-      {/* Load More Button - Only for future days */}
-      {hasNextDay && (
-        <PaginationButton 
-          direction="more" 
-          onClick={handleLoadMore}
-        />
-      )}
+                  </TimelineContent>
+                </TimelineItem>
+              </React.Fragment>
+            );
+          })}
+        </Timeline>
+
+        {/* Today Empty Divider at End */}
+        {shouldShowTodayDivider && todayDividerIndex === -1 && (
+          <TodayEmptyState date={today} timezone={timezone} />
+        )}
+
+        {/* Load More Button - Only for future days */}
+        {hasNextDay && (
+          <PaginationButton
+            direction="more"
+            onClick={handleLoadMore}
+          />
+        )}
       </Box>
 
       {/* Floating Scroll to Next/Now Button */}
@@ -2548,7 +2712,7 @@ export default function EventsTimeline2({
         const container = timelineContainerRef.current;
         const firstTargetId = Array.from(targetIds)[0];
         const targetElement = container && document.querySelector(`[data-event-id="${firstTargetId}"]`);
-        
+
         let isNextAbove = false;
         if (container && targetElement) {
           const containerRect = container.getBoundingClientRect();
@@ -2580,9 +2744,9 @@ export default function EventsTimeline2({
                 transition: 'all 0.2s ease',
               }}
             >
-              <MuiTooltip 
-                title={`${hasNow ? 'Scroll to Now Event' : 'Scroll to Next Event'} ${isNextAbove ? '(Above)' : '(Below)'}`} 
-                arrow 
+              <MuiTooltip
+                title={`${hasNow ? 'Scroll to Now Event' : 'Scroll to Next Event'} ${isNextAbove ? '(Above)' : '(Below)'}`}
+                arrow
                 placement="left"
               >
                 {isNextAbove ? (
@@ -2596,11 +2760,26 @@ export default function EventsTimeline2({
         );
       })()}
 
-      {/* Event Details Modal */}
+      {/* Event Details Modal (for info button) */}
       <EventModal
         open={modalOpen}
         onClose={handleModalClose}
         event={selectedEvent}
+        timezone={timezone}
+        isFavoriteEvent={isFavoriteEvent}
+        onToggleFavorite={onToggleFavorite}
+        isFavoritePending={isFavoritePending}
+        favoritesLoading={favoritesLoading}
+        hasEventNotes={hasEventNotes}
+        onOpenNotes={onOpenNotes}
+        isEventNotesLoading={isEventNotesLoading}
+      />
+
+      {/* Event Details Modal (for card click) */}
+      <EventModal
+        open={Boolean(modalEvent)}
+        onClose={handleCardModalClose}
+        event={modalEvent}
         timezone={timezone}
         isFavoriteEvent={isFavoriteEvent}
         onToggleFavorite={onToggleFavorite}

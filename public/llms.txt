@@ -1,0 +1,25 @@
+# /public/llms.txt
+# Purpose: Plain-text summary for AI/LLM crawlers describing Time 2 Trade, key features, and primary URLs.
+# Changelog:
+# v1.0.0 - 2025-12-17 - Initial AI-facing summary for crawlable discovery.
+
+Time 2 Trade (https://time2.trade)
+One-liner: Visual trading intelligence platform for futures and forex day traders, combining a dual-circle session clock with live economic events and timezone-aware insights.
+Who it's for: Traders who time entries/exits around global market sessions (London, New York, Asia) and need economic catalyst context.
+
+Key features:
+- Dual-circle session visualization (AM inner ring, PM outer ring)
+- Live economic events overlay sourced from professional-grade data (JBlanked News Calendar / MQL5)
+- Timezone intelligence with instant local conversion
+- Cloud-synced settings for free accounts (Firestore)
+- Customizable sessions, colors, alerts, and overlays
+- Responsive web app (desktop, tablet, mobile)
+
+Primary URLs:
+- Home/app: https://time2.trade/
+- About: https://time2.trade/about
+- Economic events: https://time2.trade/events
+- Login: https://time2.trade/login
+
+Contact: https://x.com/time2_trade | support@time2.trade
+Usage: Free to use; no trading advice provided. Suitable for informational/organizational use by traders.

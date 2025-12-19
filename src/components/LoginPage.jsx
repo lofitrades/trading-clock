@@ -5,20 +5,15 @@
  * Enterprise-grade design with passwordless email link authentication.
  * Mobile-first, fully responsive, with verification state management.
  * 
- * Features:
- * - Passwordless email link authentication (magic links)
- * - Social auth (Google, X/Twitter placeholder)
- * - Clean, centered design inspired by enterprise apps
- * - Email verification states
- * - Mobile-first responsive design
- * - Integration with forgot password flow
- * 
  * Changelog:
+ * v1.1.0 - 2025-12-18 - Removed react-helmet-async in favor of lightweight client title updates for /app.
+ * v1.0.3 - 2025-12-17 - Allow magic link to auto-link with existing Google accounts instead of blocking cross-provider emails
+ * v1.0.2 - 2025-12-17 - Centralized magic link continue URL to production https://time2.trade/ with secure dev fallback
  * v1.0.1 - 2025-12-16 - Removed unused variables, escaped apostrophe, and kept API surface unchanged.
  * v1.0.0 - 2025-12-16 - Initial implementation with passwordless auth
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -39,24 +34,38 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   TwitterAuthProvider,
-  fetchSignInMethodsForEmail,
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import { getFriendlyErrorMessage, getSuccessMessage } from '../utils/messages';
+import { getMagicLinkActionCodeSettings } from '../utils/authLinkSettings';
 import ForgotPasswordModal from './ForgotPasswordModal';
+import { buildSeoMeta } from '../utils/seoMeta';
+
+const LOGIN_DESCRIPTION = 'Sign in or create your free Time 2 Trade account with passwordless email links to sync sessions, timezones, and settings across devices.';
+
+const loginMeta = buildSeoMeta({
+  title: 'Login | Time 2 Trade',
+  description: LOGIN_DESCRIPTION,
+  path: '/login',
+});
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  
+
   const [email, setEmail] = useState('');
   const [isSignup, setIsSignup] = useState(false);
-  // showPassword is not used in passwordless flow; keep state removed to satisfy lint
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [showForgotModal, setShowForgotModal] = useState(false);
-  const [isVerifying] = useState(false); // state retained for future verification flow
+  const [isVerifying] = useState(false);
 
-  // Email link sign-in is now handled globally by EmailLinkHandler component
+  useEffect(() => {
+    document.title = loginMeta.title;
+    const descTag = document.querySelector('meta[name="description"]');
+    if (descTag) {
+      descTag.setAttribute('content', loginMeta.description);
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,40 +73,14 @@ export default function LoginPage() {
     setSuccessMsg('');
 
     try {
-      // Check if email already has sign-in methods
-      const signInMethods = await fetchSignInMethodsForEmail(auth, email).catch(() => []);
-      
-      // If user already exists with different provider, inform them
-      if (!isSignup && signInMethods.length > 0 && !signInMethods.includes('emailLink')) {
-        const providers = signInMethods.map(method => {
-          if (method.includes('google')) return 'Google';
-          if (method.includes('facebook')) return 'Facebook';
-          if (method.includes('twitter')) return 'X/Twitter';
-          if (method === 'password') return 'password';
-          return method;
-        }).join(', ');
-        
-        setErrorMsg(`This email is registered with ${providers}. Please use that method to sign in, or create a new account with a different email.`);
-        return;
-      }
-
-      const actionCodeSettings = {
-        // Use production URL when deployed, localhost for development  
-        url: window.location.hostname === 'localhost'
-          ? 'http://localhost:5173/trading-clock/'
-          : 'https://lofitrades.github.io/trading-clock/',
-        handleCodeInApp: true,
-      };
-
+      const actionCodeSettings = getMagicLinkActionCodeSettings();
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
       window.localStorage.setItem('emailForSignIn', email);
       window.localStorage.setItem('isNewUser', isSignup.toString());
-      setSuccessMsg(isSignup 
-        ? 'Check your email! We sent you a secure link to create your account.' 
+      setSuccessMsg(isSignup
+        ? 'Check your email! We sent you a secure link to create your account.'
         : 'Check your email! We sent you a secure sign-in link.');
     } catch (error) {
-      console.error('Send email link error:', error);
-      
       if (error.code === 'auth/invalid-email') {
         setErrorMsg('Please enter a valid email address.');
       } else if (error.code === 'auth/unauthorized-continue-uri') {
@@ -111,18 +94,17 @@ export default function LoginPage() {
   const handleSocialLogin = async (providerType) => {
     setErrorMsg('');
     setSuccessMsg('');
-    
+
     let provider;
     try {
       if (providerType === 'google') {
         provider = new GoogleAuthProvider();
       } else if (providerType === 'twitter') {
         provider = new TwitterAuthProvider();
-        // X/Twitter placeholder - show message
         setErrorMsg('Twitter/X login coming soon!');
         return;
       }
-      
+
       await signInWithPopup(auth, provider);
       setSuccessMsg(getSuccessMessage('login'));
       setTimeout(() => navigate('/'), 1000);
@@ -187,7 +169,6 @@ export default function LoginPage() {
               borderColor: 'divider',
             }}
           >
-            {/* Logo/Brand */}
             <Box sx={{ textAlign: 'center', mb: 3 }}>
               <Box
                 sx={{
@@ -210,13 +191,15 @@ export default function LoginPage() {
                 {isSignup ? 'Create your account' : 'Welcome back'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {isSignup 
-                  ? 'Get started with Time 2 Trade - no password required!' 
+                {isSignup
+                  ? 'Get started with Time 2 Trade - no password required!'
                   : 'Sign in to access your trading clock and sessions.'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                Already used Google with this email? We will link this magic link to that account automatically.
               </Typography>
             </Box>
 
-            {/* Social Login Buttons */}
             <Stack spacing={1.5} sx={{ mb: 3 }}>
               <Button
                 variant="outlined"
@@ -262,7 +245,6 @@ export default function LoginPage() {
               </Typography>
             </Divider>
 
-            {/* Email Form */}
             <Box component="form" onSubmit={handleSubmit}>
               <Stack spacing={2.5}>
                 <TextField
@@ -278,8 +260,8 @@ export default function LoginPage() {
                 />
 
                 {errorMsg && (
-                  <Alert 
-                    severity="error" 
+                  <Alert
+                    severity="error"
                     onClose={() => setErrorMsg('')}
                     sx={{ borderRadius: 2 }}
                   >
@@ -287,8 +269,8 @@ export default function LoginPage() {
                   </Alert>
                 )}
                 {successMsg && (
-                  <Alert 
-                    severity="success" 
+                  <Alert
+                    severity="success"
                     onClose={() => setSuccessMsg('')}
                     sx={{ borderRadius: 2 }}
                   >
@@ -312,11 +294,11 @@ export default function LoginPage() {
                 >
                   {isSignup ? 'Create account' : 'Send sign-in link'}
                 </Button>
-                
+
                 {isSignup && (
                   <Alert severity="info" sx={{ borderRadius: 2 }}>
                     <Typography variant="caption">
-                      <strong>Password-free sign up!</strong> We&apos;ll email you a secure link. 
+                      <strong>Password-free sign up!</strong> We&apos;ll email you a secure link.
                       Click it to create your account - no password needed.
                     </Typography>
                   </Alert>
@@ -324,11 +306,9 @@ export default function LoginPage() {
               </Stack>
             </Box>
 
-            {/* Signup/Login Toggle */}
             <Box sx={{ textAlign: 'center', mt: 3 }}>
               <Typography variant="body2" color="text.secondary">
-                {isSignup ? 'Already have an account?' : 'First time here?'}
-                {' '}
+                {isSignup ? 'Already have an account?' : 'First time here?'}{' '}
                 <Link
                   component="button"
                   type="button"
@@ -350,7 +330,7 @@ export default function LoginPage() {
                   {isSignup ? 'Sign in' : 'Create account'}
                 </Link>
               </Typography>
-              
+
               {!isSignup && (
                 <Link
                   component="button"
@@ -373,29 +353,18 @@ export default function LoginPage() {
               )}
             </Box>
 
-            {/* Security Notice */}
             <Box sx={{ textAlign: 'center', mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
               <Typography variant="caption" color="text.secondary" display="block">
                 Protected by enterprise-grade encryption. All access is audited.
               </Typography>
               <Box sx={{ mt: 1, display: 'flex', gap: 2, justifyContent: 'center' }}>
-                <Link
-                  href="#"
-                  variant="caption"
-                  color="text.secondary"
-                  underline="hover"
-                >
+                <Link href="#" variant="caption" color="text.secondary" underline="hover">
                   Privacy Policy
                 </Link>
                 <Typography variant="caption" color="text.secondary">
                   |
                 </Typography>
-                <Link
-                  href="#"
-                  variant="caption"
-                  color="text.secondary"
-                  underline="hover"
-                >
+                <Link href="#" variant="caption" color="text.secondary" underline="hover">
                   Terms of Use
                 </Link>
               </Box>

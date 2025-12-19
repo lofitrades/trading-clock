@@ -1,12 +1,22 @@
 // src/theme.js
+/**
+ * src/theme.js
+ * 
+ * Purpose: Global MUI theme configuration for Time 2 Trade.
+ * Defines brand palette, typography, and component overrides for consistent UI styling.
+ * 
+ * Changelog:
+ * v1.1.0 - 2025-12-18 - Documented brand teal palette usage for primary colors
+ * v1.0.0 - 2025-09-15 - Initial implementation
+ */
 import { createTheme } from '@mui/material/styles';
 
 const theme = createTheme({
   palette: {
     primary: {
       main: '#018786',
-      light: '#85b8b7',
-      dark: '#006665',
+      light: '#4FB6AC',
+      dark: '#006064',
     },
     secondary: {
       main: '#85b8b7',

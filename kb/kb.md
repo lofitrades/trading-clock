@@ -1,7 +1,7 @@
 # Time 2 Trade - Developer Knowledge Base
 
-**Last Updated:** November 29, 2025  
-**Version:** 2.0.0  
+**Last Updated:** December 18, 2025  
+**Version:** 2.6.0  
 **Maintainer:** Lofi Trades Development Team
 
 ---
@@ -249,10 +249,20 @@ trading-clock/
 │   ├── .env                                 # Functions environment variables
 │   ├── package.json                         # Functions dependencies
 │   └── tsconfig.json                        # TypeScript config
+├── pages/                                    # Legacy SSR pages (unused)
+│   ├── about.page.jsx                       # About page template (reference)
+│   ├── app.page.jsx                         # App page template (reference)
+│   └── index.page.jsx                       # Landing page template (reference)
 ├── public/
-│   └── AboutContent.txt                     # About page content
+│   ├── AboutContent.txt                     # About page content
+│   ├── llms.txt                             # AI crawler discovery file
+│   ├── robots.txt                           # Search engine directives
+│   └── sitemap.xml                          # Site URL map
+├── scripts/
+│   └── prerender.mjs                        # Post-build meta tag injection
 ├── src/
 │   ├── components/                          # React components
+│   │   ├── AboutPage.jsx                    # Public /about page
 │   │   ├── AccountModal.jsx                 # User account management
 │   │   ├── AuthModal.jsx                    # Login/signup
 │   │   ├── ClockCanvas.jsx                  # Analog clock (Canvas API)
@@ -260,6 +270,8 @@ trading-clock/
 │   │   ├── DigitalClock.jsx                 # Digital time display
 │   │   ├── EconomicEvents.jsx               # Events calendar panel
 │   │   ├── ForgotPasswordModal.jsx          # Password reset
+│   │   ├── LandingPage.jsx                  # SEO-optimized landing page
+│   │   ├── LandingPage.css                  # Landing page styles
 │   │   ├── LoadingScreen.jsx                # App loading state
 │   │   ├── SessionLabel.jsx                 # Active session display
 │   │   ├── SettingsSidebar.jsx              # Settings drawer
@@ -275,6 +287,8 @@ trading-clock/
 │   ├── hooks/
 │   │   ├── useClock.js                      # Clock tick & session detection
 │   │   └── useSettings.js                   # Settings persistence
+│   ├── routes/
+│   │   └── AppRoutes.jsx                    # React Router configuration
 │   ├── utils/
 │   │   ├── clockUtils.js                    # Canvas drawing utilities
 │   │   └── messages.js                      # User-friendly error messages
@@ -357,12 +371,12 @@ trading-clock/
 ```
 
 **Default Sessions:**
-1. **NY AM** (07:00-12:00) - Mint green (#A8D8B9)
-2. **NY PM** (12:00-16:00) - Baby blue (#A7C7E7)
-3. **Market Closed** (16:00-18:00) - Peach (#F7C2A3)
-4. **Asia** (18:00-03:00) - Pink (#F8C8D1)
-5. **London** (03:00-07:00) - Lavender (#D1B2E1)
-6-8. **User Customizable**
+1. **NY AM** (07:00-12:00) - #018786
+2. **NY PM** (12:00-16:00) - #FFA85C
+3. **Market Closed** (16:00-18:00) - #8B6CFF
+4. **Asia** (18:00-03:00) - #4E7DFF
+5. **London** (03:00-07:00) - #FF6F91
+6-8. **User Customizable** (defaults cycle the same multicolor palette)
 
 **Session Detection Algorithm:**
 1. Get current time in selected timezone
@@ -1256,7 +1270,7 @@ cd functions
 npm run build
 cd ..
 
-# 3. Build React app
+# 3. Build React app (includes postbuild prerender)
 npm run build
 
 # 4. Preview locally (optional)
@@ -1266,6 +1280,24 @@ npm run preview
 **Output:**
 - React app: `dist/` directory
 - Cloud Functions: `functions/lib/` directory
+
+**Build Process Details:**
+```bash
+# npm run build executes:
+1. vite build                    # Compiles React SPA
+2. node scripts/prerender.mjs    # Updates meta tags (postbuild)
+
+# To skip prerender:
+npm run build:no-prerender
+```
+
+**Prerender Script (`scripts/prerender.mjs`):**
+- Reads `dist/index.html` template
+- Updates `<title>` and `<meta name="description">` per route
+- Updates `<link rel="canonical">` to route-specific URL
+- Writes modified HTML to:
+  - `dist/index.html` (for / route)
+  - `dist/about/index.html` (for /about route)
 
 #### Build Optimization
 - **Code Splitting:** Vendor chunks for React, MUI, Firebase
@@ -1934,6 +1966,102 @@ whyDidYouRender(React, {
 
 ## 📝 Change Log
 
+### Version 2.6.0 - December 18, 2025
+**SEO Optimization (SPA-Based, No SSR)**
+
+#### ✨ New Features
+- **Custom Prerender Script:** Post-build meta tag injection via `scripts/prerender.mjs`
+  - Updates `<title>` and `<meta name="description">` for / and /about routes
+  - Updates canonical URLs per route
+  - Runs automatically via `postbuild` npm script
+- **SEO Fallback Content:** Hidden HTML in `index.html` for crawlers without JavaScript
+  - `<div id="seo-fallback">` with `display: none` by default
+  - Shown only via `<noscript>` CSS override for bots
+  - Removed by `main.jsx` before React mounts (prevents FOUC)
+- **AI Crawler Discovery:** `/public/llms.txt` file for LLM agents (ChatGPT, Claude, Perplexity)
+  - 100-line plain-text summary of features, URLs, and contact info
+- **Client-Side Route Pages:**
+  - `LandingPage.jsx` - SEO-optimized marketing page at /
+  - `AboutPage.jsx` - Public about page at /about
+  - Both update `document.title` and meta description on mount
+- **Routing Structure:**
+  - / → LandingPage (marketing with FAQ schema)
+  - /app → HomePage → App (interactive clock)
+  - /about → AboutPage (about content)
+  - /events → EventsPage (events table/timeline)
+
+#### 🔄 Changes
+- Added `AppRoutes.jsx` with React Router for client-side navigation
+- Updated `main.jsx` to render `<AppRoutes />` instead of `<App />`
+- Enhanced `index.html` with:
+  - Structured data (WebSite + SoftwareApplication schema)
+  - Open Graph and Twitter Card meta tags
+  - Crawlable fallback content in `<noscript>` blocks
+- Updated `package.json` scripts:
+  - `build` → runs `vite build` + `postbuild` automatically
+  - `postbuild` → executes `prerender.mjs`
+  - `build:no-prerender` → bypasses meta tag updates
+- Default session colors and reset palette now use multicolor BrandGuide arcs (#4E7DFF, #FFA85C, #018786, #FF6F91, #8B6CFF)
+- Loading animation donuts updated to the same multicolor palette to avoid legacy pastel colors on reset
+ - Swapped NY AM/NY PM defaults (NY AM → teal #018786, NY PM → orange #FFA85C) per BrandGuide direction
+ - Centralized impact colors; low-impact markers/chips now use yellow (#F2C94C), unknown uses taupe (#C7B8A4) to avoid collisions with session/NOW colors
+
+#### 🔧 Technical
+- **Architecture:** Pure SPA (no SSR) with client-side meta updates
+- **SEO Strategy:** Prerendered meta tags + hidden HTML fallback + AI discovery file
+- **Crawlability:** Tested with curl - full content visible to bots without JS
+- **Performance:** No SSR overhead, instant client-side navigation
+
+#### 📚 Files Added
+- `scripts/prerender.mjs` - Meta tag injection script
+- `src/components/LandingPage.jsx` - Marketing page component
+- `src/components/LandingPage.css` - Landing page styles
+- `src/components/AboutPage.jsx` - About page component
+- `src/routes/AppRoutes.jsx` - Route configuration
+- `public/llms.txt` - AI crawler discovery
+- `public/robots.txt` - Search engine directives
+- `public/sitemap.xml` - Site URL map
+
+#### 📚 Files Modified
+- `index.html` - Added SEO meta tags, structured data, fallback content
+- `src/main.jsx` - Changed to render AppRoutes, removes SEO fallback
+- `package.json` - Added postbuild script
+
+### Version 2.4.6 - December 17, 2025
+**Installable PWA + Chrome install CTA**
+
+#### ✨ New Features
+- Added PWA manifest, theme color, and service worker registration to unlock Chrome/Android add-to-homescreen flows.
+- Generated 192px/512px maskable icons and linked Apple touch icon for cross-device install readiness.
+- Introduced in-app install CTA that listens for the deferred `beforeinstallprompt` event and prompts users with a dismissible, safe-area-aware banner.
+
+### Version 2.4.5 - December 17, 2025
+**Magic link domain hardening**
+
+#### 🔄 Changes
+- Centralized passwordless magic link continue URL to https://time2.trade/ with explicit dev/staging fallbacks to prevent localhost links in production emails.
+- Enforced session sign-out before email link authentication and eager profile creation for new users to avoid cross-account reuse and ensure onboarding UI.
+
+#### 🐛 Bug Fixes
+- Prevented previously authenticated Google users from being reused when opening a magic link for another email address.
+
+### Version 2.4.4 - December 2025
+**SEO + AI Discoverability**
+
+#### ✨ New Features
+- Added crawlable static HTML fallbacks and JSON-LD for the homepage and About route to surface content without JavaScript.
+- Introduced /public/llms.txt for AI crawlers with product summary and key URLs.
+
+#### 🔄 Changes
+- Implemented shared SEO helper with route-level Helmet metadata for home, events, and login.
+- Updated About metadata to use the existing SEO image and added breadcrumb structured data.
+
+### Version 2.4.3 - December 2025
+**Guest Auth CTA**
+
+#### ✨ New Features
+- Added a fixed top-right "Get started free" button that shows only for guests and opens the authentication modal with safe-area spacing for mobile devices.
+
 ### Version 2.4.2 - December 2025
 **Timezone Label Toggle**
 
@@ -2146,7 +2274,7 @@ whyDidYouRender(React, {
 - [JBlanked API Documentation](https://www.jblanked.com/news/api/docs/calendar/)
 
 ### Project Links
-- **Production URL:** https://lofitrades.github.io/trading-clock/
+- **Production URL:** https://time2.trade/
 - **Repository:** https://github.com/lofitrades/trading-clock
 - **Firebase Console:** https://console.firebase.google.com/project/time-2-trade-app
 - **Support:** lofitradesx@gmail.com
@@ -2154,6 +2282,25 @@ whyDidYouRender(React, {
 
 ### Contributing
 This is currently a private project. For questions or suggestions, contact the development team.
+
+---
+
+## 🎨 Brand Guide
+
+**Reference:** `kb/BrandGuide.md`
+
+For detailed brand guidelines, color palettes, typography, logo usage, and visual identity standards, see the dedicated Brand Guide document:
+
+📄 **[kb/BrandGuide.md](kb/BrandGuide.md)**
+
+**Quick Reference:**
+- **Brand Name:** Time 2 Trade (T2T)
+- **Primary Colors:** See BrandGuide.md → Color Palette
+- **Typography:** See BrandGuide.md → Fonts & Typography
+- **Logo Assets:** See BrandGuide.md → Logo Usage
+- **Tone & Voice:** Professional, trader-focused, data-driven
+
+**Note:** This Knowledge Base focuses on technical implementation. For marketing assets, design specs, and brand consistency rules, refer to the Brand Guide.
 
 ---
 

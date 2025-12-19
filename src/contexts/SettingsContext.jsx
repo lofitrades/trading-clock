@@ -5,6 +5,10 @@
  * Supplies clock visibility, styling, timezone, news source, and economic events overlay controls to the app.
  * 
  * Changelog:
+ * v1.4.4 - 2025-12-18 - Swap NY AM/NY PM default colors (NY AM → teal, NY PM → orange) to match BrandGuide direction.
+ * v1.4.3 - 2025-12-18 - Enable session names on canvas by default and during reset to keep labels visible across sessions.
+ * v1.4.2 - 2025-12-17 - Remove artificial loading delay to shorten first paint and hand-off to clock UI.
+ * v1.4.1 - 2025-12-17 - Add default role/subscription when creating user doc from settings to avoid missing role on first login.
  * v1.4.0 - 2025-12-17 - Added showClockNumbers and showClockHands toggles for granular analog clock customization.
  * v1.3.1 - 2025-12-17 - Default news source set to Forex Factory for new users.
  * v1.3.0 - 2025-12-16 - Locked clock style to normal and canvas size to 100% with no persistence or UI controls.
@@ -15,25 +19,42 @@
  * v1.0.0 - 2025-09-15 - Initial implementation of settings context with Firestore sync.
  */
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useAuth } from './AuthContext';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { USER_ROLES, SUBSCRIPTION_PLANS, SUBSCRIPTION_STATUS, PLAN_FEATURES } from '../types/userTypes';
 import { DEFAULT_NEWS_SOURCE } from '../types/economicEvents';
 
-const defaultSessions = [
-  { name: "NY AM", startNY: "07:00", endNY: "11:00", color: "#A8D8B9" },
-  { name: "NY PM", startNY: "13:30", endNY: "16:00", color: "#A7C7E7" },
-  { name: "Market Closed", startNY: "17:00", endNY: "18:00", color: "#F7C2A3" },
-  { name: "Asia", startNY: "20:00", endNY: "00:00", color: "#F8C8D1" },
-  { name: "London", startNY: "02:00", endNY: "05:00", color: "#D1B2E1" },
-  { name: "", startNY: "", endNY: "", color: "#F9E89D" },
-  { name: "", startNY: "", endNY: "", color: "#F6A1A1" },
-  { name: "", startNY: "", endNY: "", color: "#D3D3D3" },
+// Brand-aligned multicolor defaults (per BrandGuide: Secondary Logo — Multicolor)
+const SESSION_COLOR_MAP = {
+  Asia: '#4E7DFF',
+  'NY PM': '#FFA85C',
+  London: '#FF6F91',
+  'Market Closed': '#8B6CFF',
+  'NY AM': '#018786',
+};
+
+const baseSessions = [
+  { name: "NY AM", startNY: "07:00", endNY: "11:00" },
+  { name: "NY PM", startNY: "13:30", endNY: "16:00" },
+  { name: "Market Closed", startNY: "17:00", endNY: "18:00" },
+  { name: "Asia", startNY: "20:00", endNY: "00:00" },
+  { name: "London", startNY: "02:00", endNY: "05:00" },
+  { name: "", startNY: "", endNY: "" },
+  { name: "", startNY: "", endNY: "" },
+  { name: "", startNY: "", endNY: "" },
 ];
+
+const defaultSessions = baseSessions.map((session, index) => ({
+  ...session,
+  color: SESSION_COLOR_MAP[session.name] || Object.values(SESSION_COLOR_MAP)[index % Object.values(SESSION_COLOR_MAP).length],
+}));
 
 const SettingsContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSettings() {
   const context = useContext(SettingsContext);
   if (!context) {
@@ -44,7 +65,7 @@ export function useSettings() {
 
 export function SettingsProvider({ children }) {
   const { user } = useAuth();
-  
+
   // Provider for settings with localStorage and Firestore sync
   const [isLoading, setIsLoading] = useState(true);
   const clockStyle = 'normal';
@@ -60,15 +81,15 @@ export function SettingsProvider({ children }) {
   const [showTimezoneLabel, setShowTimezoneLabel] = useState(true);
   const [showTimeToEnd, setShowTimeToEnd] = useState(true);
   const [showTimeToStart, setShowTimeToStart] = useState(true);
-  const [showSessionNamesInCanvas, setShowSessionNamesInCanvas] = useState(false);
+  const [showSessionNamesInCanvas, setShowSessionNamesInCanvas] = useState(true);
   const [showEventsOnCanvas, setShowEventsOnCanvas] = useState(true);
   const [showClockNumbers, setShowClockNumbers] = useState(true);
   const [showClockHands, setShowClockHands] = useState(true);
-  
+
   // News source preference (for economic events calendar)
   const [newsSource, setNewsSource] = useState(DEFAULT_NEWS_SOURCE);
   const [preferredSource, setPreferredSource] = useState('auto');
-  
+
   // Event filters state
   const [eventFilters, setEventFilters] = useState({
     startDate: null,
@@ -82,7 +103,7 @@ export function SettingsProvider({ children }) {
   useEffect(() => {
     const loadInitialSettings = async () => {
       setIsLoading(true);
-      
+
       const savedSize = localStorage.getItem('clockSize');
       const savedSessions = localStorage.getItem('sessions');
       const savedTimezone = localStorage.getItem('selectedTimezone');
@@ -120,7 +141,7 @@ export function SettingsProvider({ children }) {
       if (savedShowClockHands !== null) setShowClockHands(savedShowClockHands === 'true');
       if (savedNewsSource) setNewsSource(savedNewsSource);
       if (savedPreferredSource) setPreferredSource(savedPreferredSource);
-      
+
       // Load event filters with date deserialization
       if (savedEventFilters) {
         try {
@@ -135,19 +156,19 @@ export function SettingsProvider({ children }) {
           console.error('❌ Failed to parse saved event filters:', error);
         }
       }
-      
+
       // Minimum loading time for smooth UX
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 150));
       setIsLoading(false);
     };
-    
+
     loadInitialSettings();
   }, []);
 
   useEffect(() => {
     async function loadUserSettings() {
       if (!user) return;
-      
+
       setIsLoading(true);
       try {
         const userRef = doc(db, 'users', user.uid);
@@ -171,11 +192,11 @@ export function SettingsProvider({ children }) {
             if (data.settings.showEventsOnCanvas !== undefined) setShowEventsOnCanvas(data.settings.showEventsOnCanvas);
             if (data.settings.showClockNumbers !== undefined) setShowClockNumbers(data.settings.showClockNumbers);
             if (data.settings.showClockHands !== undefined) setShowClockHands(data.settings.showClockHands);
-            
+
             // Load news source preference
             if (data.settings.newsSource) setNewsSource(data.settings.newsSource);
             if (data.settings.preferredSource) setPreferredSource(data.settings.preferredSource);
-            
+
             // Load event filters with date deserialization
             if (data.settings.eventFilters) {
               const filters = data.settings.eventFilters;
@@ -188,9 +209,24 @@ export function SettingsProvider({ children }) {
             }
           }
         } else {
+          const defaultSubscription = {
+            plan: SUBSCRIPTION_PLANS.FREE,
+            status: SUBSCRIPTION_STATUS.ACTIVE,
+            features: PLAN_FEATURES[SUBSCRIPTION_PLANS.FREE],
+            startDate: serverTimestamp(),
+            endDate: null,
+            trialEndsAt: null,
+            customerId: null,
+            subscriptionId: null,
+          };
+
           await setDoc(userRef, {
             email: user.email,
+            role: USER_ROLES.USER,
+            subscription: defaultSubscription,
             createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            lastLoginAt: serverTimestamp(),
             settings: {
               clockStyle,
               canvasSize,
@@ -209,9 +245,9 @@ export function SettingsProvider({ children }) {
               showEventsOnCanvas,
               showClockNumbers,
               showClockHands,
-              newsSource, // Default news source preference
-                preferredSource: 'auto',
-            }
+              newsSource,
+              preferredSource: 'auto',
+            },
           });
         }
       } catch (error) {
@@ -221,6 +257,7 @@ export function SettingsProvider({ children }) {
       }
     }
     loadUserSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   async function saveSettingsToFirestore(newSettings) {
@@ -383,7 +420,7 @@ export function SettingsProvider({ children }) {
    */
   const updateEventFilters = (newFilters) => {
     setEventFilters(newFilters);
-    
+
     // Serialize dates for storage
     const serializedFilters = {
       ...newFilters,
@@ -391,9 +428,9 @@ export function SettingsProvider({ children }) {
       endDate: newFilters.endDate?.toISOString() || null,
       favoritesOnly: Boolean(newFilters.favoritesOnly),
     };
-    
+
     localStorage.setItem('eventFilters', JSON.stringify(serializedFilters));
-    
+
     if (user) {
       // For Firestore, use Timestamp for dates
       const firestoreFilters = {
@@ -429,10 +466,10 @@ export function SettingsProvider({ children }) {
   const resetSettings = async () => {
     // Clear localStorage
     localStorage.clear();
-    
+
     // Create deep copies of default sessions to ensure colors are fully reset
     const resetSessions = defaultSessions.map(session => ({ ...session }));
-    
+
     // Reset all state values to defaults
     setClockSize(375);
     setSessions(resetSessions);
@@ -445,7 +482,7 @@ export function SettingsProvider({ children }) {
     setShowTimezoneLabel(true);
     setShowTimeToEnd(true);
     setShowTimeToStart(true);
-    setShowSessionNamesInCanvas(false);
+    setShowSessionNamesInCanvas(true);
     setShowEventsOnCanvas(true);
     setShowClockNumbers(true);
     setShowClockHands(true);
@@ -459,7 +496,7 @@ export function SettingsProvider({ children }) {
       currencies: [],
       favoritesOnly: false,
     });
-    
+
     // Also reset in Firestore if user is logged in
     if (user) {
       const defaultSettings = {
@@ -476,7 +513,7 @@ export function SettingsProvider({ children }) {
         showTimezoneLabel: true,
         showTimeToEnd: true,
         showTimeToStart: true,
-        showSessionNamesInCanvas: false,
+        showSessionNamesInCanvas: true,
         showEventsOnCanvas: true,
         newsSource: DEFAULT_NEWS_SOURCE,
         preferredSource: 'auto',
@@ -535,3 +572,7 @@ export function SettingsProvider({ children }) {
     </SettingsContext.Provider>
   );
 }
+
+SettingsProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};

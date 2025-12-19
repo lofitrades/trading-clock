@@ -12,7 +12,14 @@
  * - Mobile-first responsive design
  * - Integration with forgot password flow
  * 
+ * Note: AuthModal2.jsx offers a more CTA-driven, benefit-focused design variant.
+ * 
  * Changelog:
+ * v2.0.7 - 2025-12-17 - Allow magic link to auto-link with existing Google accounts instead of blocking cross-provider emails
+ * v2.0.6 - 2025-12-17 - Centralized magic link continue URL to production https://time2.trade/ with secure dev fallback
+ * v2.0.5 - 2025-12-17 - Enhanced UX: improved spacing, visual hierarchy, and button styling
+ * v2.0.4 - 2025-12-17 - Fixed overlay flash on open by using single z-index on Dialog following MUI best practices
+ * v2.0.3 - 2025-12-17 - Increased z-index to 2000/2001 for highest stacking order above all drawers; App.jsx now closes all drawers before opening auth
  * v2.0.2 - 2025-12-16 - Raised dialog z-index above settings drawer and overlays for reliable stacking order
  * v2.0.1 - 2025-12-16 - ESLint compliance: PropTypes and escaped strings
  * v2.0.0 - 2025-12-16 - Complete redesign with passwordless auth, removed Facebook
@@ -42,10 +49,10 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   TwitterAuthProvider,
-  fetchSignInMethodsForEmail,
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import { getFriendlyErrorMessage, getSuccessMessage } from '../utils/messages';
+import { getMagicLinkActionCodeSettings } from '../utils/authLinkSettings';
 import ForgotPasswordModal from './ForgotPasswordModal';
 
 function EmailSentModal({ email, isNewUser, onClose }) {
@@ -55,9 +62,9 @@ function EmailSentModal({ email, isNewUser, onClose }) {
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      sx={{ zIndex: 2000 }}
       slotProps={{
-        backdrop: { sx: { zIndex: 1700 } },
-        paper: { sx: { zIndex: 1701, borderRadius: 3 } },
+        paper: { sx: { borderRadius: 3 } },
       }}
     >
       <DialogContent sx={{ p: 4, textAlign: 'center' }}>
@@ -85,7 +92,7 @@ function EmailSentModal({ email, isNewUser, onClose }) {
         <Typography variant="body1" fontWeight="600" color="primary.main" paragraph>
           {email}
         </Typography>
-        
+
         {isNewUser && (
           <Alert severity="info" sx={{ mb: 2, textAlign: 'left' }}>
             <Typography variant="body2" fontWeight="600" gutterBottom>
@@ -99,12 +106,12 @@ function EmailSentModal({ email, isNewUser, onClose }) {
             </Typography>
           </Alert>
         )}
-        
+
         <Typography variant="body2" color="text.secondary" paragraph>
-          Click the link in the email to {isNewUser ? 'create your account and sign in' : 'sign in'}. 
+          Click the link in the email to {isNewUser ? 'create your account and sign in' : 'sign in'}.
           {' '}The link will expire in 60 minutes.
         </Typography>
-        
+
         <Alert severity="warning" sx={{ mb: 2, textAlign: 'left' }}>
           <Typography variant="body2" fontWeight="600" gutterBottom>
             📬 Not seeing the email?
@@ -115,11 +122,11 @@ function EmailSentModal({ email, isNewUser, onClose }) {
             • If it&apos;s in spam, mark it as &quot;Not Spam&quot; to ensure future emails arrive in your inbox
           </Typography>
         </Alert>
-        
+
         <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
           💡 Tip: No password needed! This secure link works only once and only for you.
         </Typography>
-        
+
         <Button
           onClick={onClose}
           variant="contained"
@@ -141,9 +148,9 @@ function VerifyingModal({ onClose }) {
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      sx={{ zIndex: 2000 }}
       slotProps={{
-        backdrop: { sx: { zIndex: 1700 } },
-        paper: { sx: { zIndex: 1701, borderRadius: 3 } },
+        paper: { sx: { borderRadius: 3 } },
       }}
     >
       <DialogContent sx={{ p: 4, textAlign: 'center' }}>
@@ -174,14 +181,14 @@ export default function AuthModal({ open, onClose }) {
   // Rate limiting: Check for existing cooldown on mount and when modal opens
   useEffect(() => {
     if (!open) return;
-    
+
     const lastSendTime = localStorage.getItem('magicLinkLastSent');
     const lastEmail = localStorage.getItem('magicLinkEmail');
-    
+
     if (lastSendTime && lastEmail) {
       const elapsed = Math.floor((Date.now() - parseInt(lastSendTime)) / 1000);
       const remaining = Math.max(0, 60 - elapsed);
-      
+
       if (remaining > 0) {
         setCooldownSeconds(remaining);
         setLastSentEmail(lastEmail);
@@ -197,7 +204,7 @@ export default function AuthModal({ open, onClose }) {
   // Countdown timer for cooldown
   useEffect(() => {
     if (cooldownSeconds <= 0) return;
-    
+
     const timer = setInterval(() => {
       setCooldownSeconds((prev) => {
         if (prev <= 1) {
@@ -210,7 +217,7 @@ export default function AuthModal({ open, onClose }) {
         return prev - 1;
       });
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, [cooldownSeconds]);
 
@@ -226,47 +233,24 @@ export default function AuthModal({ open, onClose }) {
     }
 
     try {
-      // Check if email already has sign-in methods (optional check)
-      const signInMethods = await fetchSignInMethodsForEmail(auth, email).catch(() => []);
-      
-      // If user already exists with different provider, inform them
-      if (!isSignup && signInMethods.length > 0 && !signInMethods.includes('emailLink')) {
-        const providers = signInMethods.map(method => {
-          if (method.includes('google')) return 'Google';
-          if (method.includes('facebook')) return 'Facebook';
-          if (method.includes('twitter')) return 'X/Twitter';
-          if (method === 'password') return 'password';
-          return method;
-        }).join(', ');
-        
-        setErrorMsg(`This email is registered with ${providers}. Please use that method to sign in, or create a new account with a different email.`);
-        return;
-      }
+      const actionCodeSettings = getMagicLinkActionCodeSettings();
 
-      const actionCodeSettings = {
-        // Use production URL when deployed, localhost for development
-        url: window.location.hostname === 'localhost' 
-          ? 'http://localhost:5173/trading-clock/'
-          : 'https://lofitrades.github.io/trading-clock/',
-        handleCodeInApp: true,
-      };
-      
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      
+
       // Set cooldown and persist to localStorage
       const now = Date.now();
       localStorage.setItem('magicLinkLastSent', now.toString());
       localStorage.setItem('magicLinkEmail', email);
       setCooldownSeconds(60);
       setLastSentEmail(email);
-      
+
       window.localStorage.setItem('emailForSignIn', email);
       window.localStorage.setItem('isNewUser', isSignup.toString());
-      
+
       setShowEmailSentModal(true);
     } catch (error) {
       console.error('[AuthModal] Send email link failed:', error.code, error.message);
-      
+
       if (error.code === 'auth/invalid-email') {
         setErrorMsg('Please enter a valid email address.');
       } else if (error.code === 'auth/unauthorized-continue-uri') {
@@ -280,7 +264,7 @@ export default function AuthModal({ open, onClose }) {
   const handleSocialLogin = async (providerType) => {
     setErrorMsg('');
     setSuccessMsg('');
-    
+
     let provider;
     try {
       if (providerType === 'google') {
@@ -291,7 +275,7 @@ export default function AuthModal({ open, onClose }) {
         setErrorMsg('Twitter/X login coming soon!');
         return;
       }
-      
+
       await signInWithPopup(auth, provider);
       setSuccessMsg(getSuccessMessage('login'));
       setTimeout(() => onClose(), 1000);
@@ -318,9 +302,9 @@ export default function AuthModal({ open, onClose }) {
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      sx={{ zIndex: 2000 }}
       slotProps={{
-        backdrop: { sx: { zIndex: 1700 } },
-        paper: { sx: { zIndex: 1701, borderRadius: 3 } },
+        paper: { sx: { borderRadius: 3 } },
       }}
     >
       <IconButton
@@ -337,36 +321,40 @@ export default function AuthModal({ open, onClose }) {
 
       <DialogContent sx={{ p: { xs: 3, sm: 5 } }}>
         {/* Logo/Brand */}
-        <Box sx={{ textAlign: 'center', mb: 3 }}>
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
           <Box
             sx={{
-              width: 64,
-              height: 64,
+              width: 72,
+              height: 72,
               borderRadius: '50%',
               bgcolor: 'primary.main',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto',
-              mb: 2,
+              mb: 2.5,
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)',
             }}
           >
             <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
               T2T
             </Typography>
           </Box>
-          <Typography variant="h5" fontWeight="600" gutterBottom>
+          <Typography variant="h5" fontWeight="700" gutterBottom sx={{ mb: 1 }}>
             {isSignup ? 'Create your account' : 'Welcome back'}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {isSignup 
-              ? 'Get started with Time 2 Trade - no password required!' 
+          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+            {isSignup
+              ? 'Get started with Time 2 Trade - no password required!'
               : 'Sign in to access your trading clock and sessions.'}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            Already used Google with this email? We will link this magic link to that account automatically.
           </Typography>
         </Box>
 
         {/* Social Login Buttons */}
-        <Stack spacing={1.5} sx={{ mb: 3 }}>
+        <Stack spacing={2} sx={{ mb: 3 }}>
           <Button
             variant="outlined"
             fullWidth
@@ -377,10 +365,16 @@ export default function AuthModal({ open, onClose }) {
               borderColor: 'divider',
               color: 'text.primary',
               textTransform: 'none',
+              py: 1.5,
+              fontWeight: 600,
+              borderRadius: 2,
               '&:hover': {
                 borderColor: 'primary.main',
                 bgcolor: 'action.hover',
+                transform: 'translateY(-1px)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
               },
+              transition: 'all 0.2s ease-in-out',
             }}
           >
             Continue with Google
@@ -395,10 +389,16 @@ export default function AuthModal({ open, onClose }) {
               borderColor: 'divider',
               color: 'text.primary',
               textTransform: 'none',
+              py: 1.5,
+              fontWeight: 600,
+              borderRadius: 2,
               '&:hover': {
                 borderColor: 'primary.main',
                 bgcolor: 'action.hover',
+                transform: 'translateY(-1px)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
               },
+              transition: 'all 0.2s ease-in-out',
             }}
           >
             Continue with X
@@ -425,6 +425,11 @@ export default function AuthModal({ open, onClose }) {
               autoFocus
               placeholder="you@example.com"
               disabled={cooldownSeconds > 0}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                }
+              }}
             />
 
             {/* Cooldown/Rate Limit Alert */}
@@ -443,8 +448,8 @@ export default function AuthModal({ open, onClose }) {
             )}
 
             {errorMsg && (
-              <Alert 
-                severity="error" 
+              <Alert
+                severity="error"
                 onClose={() => setErrorMsg('')}
                 sx={{ borderRadius: 2 }}
               >
@@ -452,8 +457,8 @@ export default function AuthModal({ open, onClose }) {
               </Alert>
             )}
             {successMsg && (
-              <Alert 
-                severity="success" 
+              <Alert
+                severity="success"
                 onClose={() => setSuccessMsg('')}
                 sx={{ borderRadius: 2 }}
               >
@@ -469,23 +474,29 @@ export default function AuthModal({ open, onClose }) {
               size="large"
               disabled={cooldownSeconds > 0}
               sx={{
-                py: 1.5,
+                py: 1.75,
                 textTransform: 'none',
                 fontSize: '1rem',
-                fontWeight: 600,
+                fontWeight: 700,
                 borderRadius: 2,
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                '&:hover': {
+                  boxShadow: '0 6px 16px rgba(0, 0, 0, 0.2)',
+                  transform: 'translateY(-1px)',
+                },
+                transition: 'all 0.2s ease-in-out',
               }}
             >
-              {cooldownSeconds > 0 
-                ? `Resend available in ${cooldownSeconds}s` 
+              {cooldownSeconds > 0
+                ? `Resend available in ${cooldownSeconds}s`
                 : isSignup ? 'Create account' : 'Send sign-in link'
               }
             </Button>
-            
+
             {isSignup && (
               <Alert severity="info" sx={{ borderRadius: 2 }}>
                 <Typography variant="caption">
-                  <strong>Password-free sign up!</strong> We&apos;ll email you a secure link. 
+                  <strong>Password-free sign up!</strong> We&apos;ll email you a secure link.
                   Click it to create your account - no password needed.
                 </Typography>
               </Alert>
@@ -519,7 +530,7 @@ export default function AuthModal({ open, onClose }) {
               {isSignup ? 'Sign in' : 'Create account'}
             </Link>
           </Typography>
-          
+
           {!isSignup && (
             <Link
               component="button"

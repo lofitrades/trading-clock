@@ -1,10 +1,11 @@
-/**
+﻿/**
  * src/components/EconomicEvents3.jsx
  * 
  * Purpose: Airbnb-style economic events drawer with compact/right-drawer and full-width modes.
  * Provides filters, sync, refresh, news source selection, and timeline/table views using EventsFilters3 and EventsTimeline2/EventsTable.
  * 
  * Changelog:
+ * v1.5.3 - 2025-12-17 - Added secondary About CTA alongside auth prompt with mobile-first layout.
  * v1.5.2 - 2025-12-16 - Keep drawer width consistent in table view; enable horizontal scroll for table content.
  * v1.5.1 - 2025-12-16 - Restricted sync actions to superadmin role in header controls.
  * v1.5.0 - 2025-12-15 - Added search functionality with client-side filtering (event names only), proper state management, and UX messages.
@@ -27,7 +28,9 @@
  * v1.0.0 - 2025-12-11 - Initial implementation with dual-size drawer, timeline-first UX, and integrated filters/actions.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
 	Alert,
 	AlertTitle,
@@ -44,7 +47,6 @@ import {
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CloseIcon from '@mui/icons-material/Close';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek';
@@ -71,15 +73,6 @@ const buildTodayRange = (timezone) => {
 	const { year, month, day } = getDatePartsInTimezone(timezone);
 	const startDate = getUtcDateForTimezone(timezone, year, month, day);
 	const endDate = getUtcDateForTimezone(timezone, year, month, day, { endOfDay: true });
-	return { startDate, endDate };
-};
-
-const buildThisWeekRange = (timezone) => {
-	const { year, month, day, dayOfWeek } = getDatePartsInTimezone(timezone);
-	const weekStart = day - dayOfWeek;
-	const weekEnd = day + (6 - dayOfWeek);
-	const startDate = getUtcDateForTimezone(timezone, year, month, weekStart);
-	const endDate = getUtcDateForTimezone(timezone, year, month, weekEnd, { endOfDay: true });
 	return { startDate, endDate };
 };
 
@@ -178,7 +171,6 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 	const timelineKeyRef = useRef(0);
 
 	const todayRange = useMemo(() => buildTodayRange(selectedTimezone), [selectedTimezone]);
-	const thisWeekRange = useMemo(() => buildThisWeekRange(selectedTimezone), [selectedTimezone]);
 
 	const effectiveFilters = useMemo(() => {
 		const startDate = ensureDate(filters.startDate);
@@ -275,9 +267,9 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 				setEvents([]);
 				setError(result.error || 'Failed to load events.');
 			}
-		} catch (err) {
+		} catch (_error) {
 			setEvents([]);
-			setError(err.message || 'Unexpected error while loading events.');
+			setError(_error.message || 'Unexpected error while loading events.');
 		} finally {
 			setLoading(false);
 		}
@@ -412,12 +404,12 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 			applyFilters(resetFilters);
 			setSyncSuccess(`Events refreshed from ${newsSource}.`);
 			setTimeout(() => setSyncSuccess(null), 3000);
-		} catch (err) {
+		} catch {
 			setSyncSuccess('Failed to refresh events.');
 		} finally {
 			setRefreshing(false);
 		}
-	}, [applyFilters, newsSource, todayRange]);
+	}, [applyFilters, newsSource, refreshing, todayRange]);
 
 	const performBackgroundRefresh = useCallback(async () => {
 		if (refreshing || backgroundRefreshRef.current) return;
@@ -425,12 +417,12 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 		try {
 			await refreshEventsCache(newsSource);
 			applyFilters({ ...(filtersRef.current || filters), ...todayRange });
-		} catch (err) {
+		} catch {
 			// Silent failure for background refresh; manual refresh remains available.
 		} finally {
 			backgroundRefreshRef.current = false;
 		}
-	}, [applyFilters, filters, newsSource, todayRange]);
+	}, [applyFilters, filters, newsSource, refreshing, todayRange]);
 
 	useEffect(() => {
 		if (!open) return undefined;
@@ -476,13 +468,13 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 			} else {
 				setSyncSuccess(result.error || 'Failed to sync NFS week.');
 			}
-		} catch (err) {
+		} catch {
 			setSyncSuccess('Failed to sync NFS week.');
 		} finally {
 			setTimeout(() => setSyncSuccess(null), 4000);
 			setSyncingWeek(false);
 		}
-	}, [fetchEvents, syncingWeek]);
+	}, [fetchContextEvents, fetchEvents, syncingWeek]);
 
 	const handleSyncActuals = useCallback(async () => {
 		if (syncingActuals) return;
@@ -499,7 +491,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 			} else {
 				setSyncSuccess(result.error || 'Failed to sync actuals.');
 			}
-		} catch (err) {
+		} catch {
 			setSyncSuccess('Failed to sync actuals.');
 		} finally {
 			setTimeout(() => setSyncSuccess(null), 4000);
@@ -521,13 +513,12 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 			setFilters(seeded);
 			updateEventFilters(seeded);
 			fetchEvents(seeded);
-			fetchContextEvents(); // Fetch context events
+			fetchContextEvents();
 		} else {
 			fetchEvents();
-			fetchContextEvents(); // Fetch context events
+			fetchContextEvents();
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [newsSource, selectedTimezone, todayRange.startDate, todayRange.endDate]);
+	}, [fetchContextEvents, fetchEvents, filters, newsSource, selectedTimezone, todayRange, updateEventFilters]);
 
 	useEffect(() => {
 		if (open && user) {
@@ -548,8 +539,9 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 	const contentLabel = expanded ? 'Table' : 'Timeline';
 
 	const handleOpenSettings = useCallback(() => {
+		onClose(); // Close events drawer when opening settings
 		if (onOpenSettings) onOpenSettings();
-	}, [onOpenSettings]);
+	}, [onClose, onOpenSettings]);
 
 	const transitionEasing = {
 		enter: theme.transitions.easing.easeOut,
@@ -595,41 +587,65 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 					borderBottom: '1px solid',
 					borderColor: 'primary.dark',
 					display: 'flex',
-					flexDirection: { xs: 'column', sm: 'row' },
-					alignItems: { xs: 'flex-start', sm: 'center' },
+					flexDirection: 'row',
+					alignItems: 'center',
 					justifyContent: 'space-between',
-					gap: { xs: 1, sm: 0 },
+					gap: 1,
 					bgcolor: 'primary.main',
 					position: expanded ? 'sticky' : 'relative',
 					top: 0,
 					zIndex: 1400,
 				}}
 			>
+				{/* Left: Logo and Title */}
+				<Box
+					sx={{
+						display: 'flex',
+						alignItems: 'center',
+						gap: 1,
+						minWidth: 0,
+						flex: 1,
+					}}
+				>
+					<IconButton
+						onClick={onClose}
+						sx={{
+							width: { xs: 44, md: 48 },
+							height: { xs: 44, md: 48 },
+							mx: 0.5,
+							p: 0,
+							borderRadius: 1,
+						}}
+					>
+						<img
+							src={`${import.meta.env.BASE_URL}Time2Trade_Logo_White.svg`}
+							alt="Time 2 Trade"
+							style={{
+								width: '100%',
+								height: '100%',
+								objectFit: 'contain',
+							}}
+						/>
+					</IconButton>
+					<Box>
+						<Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 1, color: alpha(theme.palette.primary.contrastText, 0.8) }}>
+							Time 2 Trade
+						</Typography>
+						<Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.contrastText' }}>
+							{headerLabel}
+						</Typography>
+					</Box>
+				</Box>
+
+				{/* Right: Action Icons */}
 				<Stack
 					direction="row"
 					spacing={0.75}
 					alignItems="center"
 					sx={{
-						order: { xs: 1, sm: 2 },
-						width: '100%',
-						justifyContent: { xs: 'flex-end', sm: 'flex-end' },
-						flexWrap: 'wrap',
-						gap: 0.75,
-						pr: 0,
+						flexShrink: 0,
 					}}
 				>
-					<Box
-						sx={{
-							display: { xs: 'grid', sm: 'none' },
-							width: 36,
-							height: 36,
-							borderRadius: '50%',
-							bgcolor: alpha(theme.palette.common.white, 0.18),
-							placeItems: 'center',
-						}}
-					>
-						<CalendarMonthIcon sx={{ fontSize: 20, color: 'primary.contrastText' }} />
-					</Box>
 
 					{user && (
 						<Tooltip title={expanded ? 'Switch to Timeline view' : 'Switch to Table view'}>
@@ -697,38 +713,6 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 						</span>
 					</Tooltip>
 				</Stack>
-				<Box
-					sx={{
-						order: { xs: 2, sm: 1 },
-						width: '100%',
-						mt: { xs: 0.5, sm: 0 },
-						display: 'flex',
-						alignItems: 'center',
-						gap: 1,
-					}}
-				>
-					<Box
-						sx={{
-							display: { xs: 'none', sm: 'grid' },
-							width: 36,
-							height: 36,
-							borderRadius: '50%',
-							bgcolor: alpha(theme.palette.common.white, 0.18),
-							placeItems: 'center',
-				}}
-					>
-						<CalendarMonthIcon sx={{ fontSize: 20, color: 'primary.contrastText' }} />
-					</Box>
-					<Box>
-						<Typography variant="subtitle2" sx={{ textTransform: 'uppercase', letterSpacing: 1, color: alpha(theme.palette.primary.contrastText, 0.8) }}>
-							Economic Calendar
-						</Typography>
-						<Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.contrastText' }}>
-							{headerLabel}
-						</Typography>
-					</Box>
-				</Box>
-
 			</Box>
 
 			{user && syncSuccess && (
@@ -753,7 +737,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 						<Alert severity="info" sx={{ '& .MuiAlert-message': { width: '100%' } }}>
 							<AlertTitle sx={{ fontWeight: 800, fontSize: '1.05rem' }}>🔒 Authentication Required</AlertTitle>
 							<Typography variant="body1" sx={{ mb: 1.5 }}>
-								Create a free account to unlock the live economic calendar.
+								Login or create a free account to unlock the live economic calendar.
 							</Typography>
 							<Typography variant="body2" color="text.secondary">
 								- Real-time economic events
@@ -764,16 +748,39 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 							<Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
 								- Cloud sync across devices
 							</Typography>
-							<Button 
-								variant="contained" 
-								onClick={() => {
-									onClose();
-									if (onOpenAuth) onOpenAuth();
-								}} 
-								sx={{ textTransform: 'none', fontWeight: 700 }}
+							<Stack
+								direction={{ xs: 'column', sm: 'row' }}
+								spacing={{ xs: 1.25, sm: 1 }}
+								alignItems={{ xs: 'stretch', sm: 'center' }}
 							>
-								Sign Up / Log In
-							</Button>
+								<Button
+									variant="contained"
+									onClick={() => {
+										onClose();
+										if (onOpenAuth) onOpenAuth();
+									}}
+									fullWidth
+									sx={{ textTransform: 'none', fontWeight: 700 }}
+								>
+									Log In / Sign Up
+								</Button>
+								<Button
+									variant="outlined"
+									color="primary"
+									component={RouterLink}
+									to="/about"
+									onClick={onClose}
+									fullWidth
+									sx={{
+										textTransform: 'none',
+										fontWeight: 700,
+										borderWidth: 2,
+										'&:hover': { borderWidth: 2 },
+									}}
+								>
+									About Time 2 Trade
+								</Button>
+							</Stack>
 						</Alert>
 					</Box>
 				)}
@@ -856,7 +863,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 							{expanded ? (
 								<EventsTable
 									events={displayedEvents}
-
+								isExpanded={expanded}
 									loading={loading}
 									error={error}
 									timezone={selectedTimezone}
@@ -877,7 +884,9 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 									loading={loading}
 									timezone={selectedTimezone}
 									onVisibleCountChange={setVisibleCount}
-									autoScrollToNextKey={autoScrollRequest || autoScrollToken}								searchQuery={filters.searchQuery}									isFavoriteEvent={isFavorite}
+									autoScrollToNextKey={autoScrollRequest || autoScrollToken}
+									searchQuery={filters.searchQuery}
+									isFavoriteEvent={isFavorite}
 									onToggleFavorite={handleToggleFavorite}
 									isFavoritePending={isFavoritePending}
 									favoritesLoading={favoritesLoading}
@@ -917,3 +926,14 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 	</Slide>
 );
 }
+
+EconomicEvents3.propTypes = {
+	open: PropTypes.bool.isRequired,
+	onClose: PropTypes.func.isRequired,
+	autoScrollRequest: PropTypes.oneOfType([
+		PropTypes.object,
+		PropTypes.number,
+	]),
+	onOpenAuth: PropTypes.func,
+	onOpenSettings: PropTypes.func,
+};

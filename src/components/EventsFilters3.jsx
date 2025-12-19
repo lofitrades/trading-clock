@@ -13,6 +13,11 @@
  * - Persistent settings via SettingsContext and parent callbacks
  * 
  * Changelog:
+ * v1.3.6 - 2025-12-18 - When exactly one impact is selected, collapsed impact chip adopts that impact color with contrast-safe text.
+ * v1.3.5 - 2025-12-18 - Compute text color via isColorDark for selected impact chips to ensure contrast on all impact backgrounds.
+ * v1.3.4 - 2025-12-18 - Use explicit impact hex fills (red/orange/yellow/taupe/gray) so selected chips never fall back to gray; dark text on all fills.
+ * v1.3.3 - 2025-12-18 - When selected, impact filter chips fill with their impact color (no gray); dark text for readability.
+ * v1.3.2 - 2025-12-18 - Align low-impact chip color with centralized yellow palette; unknown remains taupe.
  * v1.3.0 - 2025-12-15 - Added search functionality with circular search icon, expandable search row, debounced auto-search (400ms), and search within filtered events.
  * v1.2.2 - 2025-12-15 - Changed default date range from 'This Week' to 'Today' for mount, reset, and refresh scenarios.
  * v1.2.1 - 2025-12-12 - Tighten vertical spacing when filter chips wrap onto multiple rows.
@@ -57,6 +62,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import { getEventCurrencies } from '../services/economicEventsService';
 import { getDatePartsInTimezone, getUtcDateForTimezone } from '../utils/dateUtils';
+import { isColorDark } from '../utils/clockUtils';
 import { getCurrencyFlag } from './EventsTimeline2';
 
 // ============================================================================
@@ -89,11 +95,28 @@ const impactIconMap = IMPACT_LEVELS.reduce((acc, curr) => {
 }, {});
 
 const impactChipStyle = {
-  'Strong Data': { borderColor: 'error.light', color: 'error.dark', bgcolor: 'error.lighter' },
-  'Moderate Data': { borderColor: 'warning.light', color: 'warning.dark', bgcolor: 'warning.lighter' },
-  'Weak Data': { borderColor: 'info.light', color: 'info.dark', bgcolor: 'info.lighter' },
-  'Data Not Loaded': { borderColor: 'divider', color: 'text.secondary', bgcolor: 'background.paper' },
-  'Non-Economic': { borderColor: 'success.light', color: 'success.dark', bgcolor: 'success.lighter' },
+  'Strong Data': { borderColor: '#d32f2f', bgcolor: '#d32f2f' },
+  'Moderate Data': { borderColor: '#f57c00', bgcolor: '#f57c00' },
+  'Weak Data': { borderColor: '#F2C94C', bgcolor: '#F2C94C' },
+  'Data Not Loaded': { borderColor: '#C7B8A4', bgcolor: '#C7B8A4' },
+  'Non-Economic': { borderColor: '#9e9e9e', bgcolor: '#9e9e9e' },
+};
+
+const getImpactTextColor = (impactValue) => {
+  const bg = impactChipStyle[impactValue]?.bgcolor;
+  if (!bg) return 'text.primary';
+  return isColorDark(bg) ? '#fff' : '#000';
+};
+
+const getImpactSummaryColors = (impacts = []) => {
+  if (impacts.length !== 1) return null;
+  const selected = impacts[0];
+  const style = impactChipStyle[selected];
+  if (!style?.bgcolor) return null;
+  return {
+    background: style.bgcolor,
+    text: getImpactTextColor(selected),
+  };
 };
 
 // ============================================================================
@@ -411,6 +434,8 @@ export default function EventsFilters3({
     return `${localFilters.impacts.length} impacts`;
   }, [localFilters.impacts]);
 
+  const impactSummaryColors = useMemo(() => getImpactSummaryColors(localFilters.impacts), [localFilters.impacts]);
+
   const currencyLabel = useMemo(() => {
     if (!localFilters.currencies?.length) return 'All currencies';
     const first = localFilters.currencies[0];
@@ -444,25 +469,38 @@ export default function EventsFilters3({
     );
   }, [localFilters.currencies]);
 
-  const ChipButton = ({ label, onClick, active }) => (
-    <Chip
-      label={label}
-      onClick={onClick}
-      icon={<ExpandMoreIcon />}
-      variant={active ? 'filled' : 'outlined'}
-      color={active ? 'primary' : 'default'}
-      sx={{
-        borderRadius: 999,
-        fontWeight: 700,
-        height: 40,
-        px: 0.75,
-        boxShadow: active ? 1 : 0,
-        flexShrink: 0,
-        '& .MuiChip-icon': { fontSize: 18 },
-        '& .MuiChip-label': { display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' },
-      }}
-    />
-  );
+  const ChipButton = ({ label, onClick, active, colorOverride }) => {
+    const customActive = Boolean(active && colorOverride);
+    return (
+      <Chip
+        label={label}
+        onClick={onClick}
+        icon={<ExpandMoreIcon />}
+        variant={active ? 'filled' : 'outlined'}
+        color={customActive ? 'default' : active ? 'primary' : 'default'}
+        sx={{
+          borderRadius: 999,
+          fontWeight: 700,
+          height: 40,
+          px: 0.75,
+          boxShadow: active ? 1 : 0,
+          flexShrink: 0,
+          bgcolor: customActive ? colorOverride.background : undefined,
+          color: customActive ? colorOverride.text : undefined,
+          borderColor: customActive ? colorOverride.background : undefined,
+          '& .MuiChip-icon': { fontSize: 18, color: customActive ? colorOverride.text : undefined },
+          '& .MuiChip-label': { display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' },
+          '&.MuiChip-filled': customActive
+            ? { bgcolor: colorOverride.background, color: colorOverride.text }
+            : undefined,
+          '&.MuiChip-filledDefault': customActive
+            ? { bgcolor: colorOverride.background, color: colorOverride.text }
+            : undefined,
+          '&:hover': customActive ? { bgcolor: colorOverride.background } : undefined,
+        }}
+      />
+    );
+  };
 
   const renderDatePopover = () => (
     <Popover
@@ -552,7 +590,7 @@ export default function EventsFilters3({
               <Chip
                 key={impactValue}
                 label={`${impactIconMap[impactValue] || ''} ${impactLabelMap[impactValue] || impactValue}`.trim()}
-                color={localFilters.impacts.includes(impactValue) ? 'primary' : 'default'}
+                color="default"
                 variant={localFilters.impacts.includes(impactValue) ? 'filled' : 'outlined'}
                 onClick={() => toggleImpact(impactValue)}
                 sx={{
@@ -561,10 +599,23 @@ export default function EventsFilters3({
                   width: '100%',
                   justifyContent: 'flex-start',
                   borderColor: impactChipStyle[impactValue]?.borderColor,
-                  color: impactChipStyle[impactValue]?.color,
+                  color: localFilters.impacts.includes(impactValue)
+                    ? getImpactTextColor(impactValue)
+                    : impactChipStyle[impactValue]?.borderColor,
                   bgcolor: localFilters.impacts.includes(impactValue)
                     ? impactChipStyle[impactValue]?.bgcolor
                     : 'transparent',
+                  '&.MuiChip-filled': {
+                    bgcolor: impactChipStyle[impactValue]?.bgcolor,
+                    color: getImpactTextColor(impactValue),
+                  },
+                  '&.MuiChip-filledDefault': {
+                    bgcolor: impactChipStyle[impactValue]?.bgcolor,
+                    color: getImpactTextColor(impactValue),
+                  },
+                  '&.MuiChip-outlined': {
+                    bgcolor: 'transparent',
+                  },
                 }}
               />
             ))}
@@ -574,7 +625,7 @@ export default function EventsFilters3({
               <Chip
                 key={impactValue}
                 label={`${impactIconMap[impactValue] || ''} ${impactLabelMap[impactValue] || impactValue}`.trim()}
-                color={localFilters.impacts.includes(impactValue) ? 'primary' : 'default'}
+                color="default"
                 variant={localFilters.impacts.includes(impactValue) ? 'filled' : 'outlined'}
                 onClick={() => toggleImpact(impactValue)}
                 sx={{
@@ -583,10 +634,21 @@ export default function EventsFilters3({
                   width: '100%',
                   justifyContent: 'flex-start',
                   borderColor: impactChipStyle[impactValue]?.borderColor,
-                  color: impactChipStyle[impactValue]?.color,
+                  color: localFilters.impacts.includes(impactValue) ? impactChipStyle[impactValue]?.color : impactChipStyle[impactValue]?.color,
                   bgcolor: localFilters.impacts.includes(impactValue)
                     ? impactChipStyle[impactValue]?.bgcolor
                     : 'transparent',
+                  '&.MuiChip-filled': {
+                    bgcolor: impactChipStyle[impactValue]?.bgcolor,
+                    color: impactChipStyle[impactValue]?.color,
+                  },
+                  '&.MuiChip-filledDefault': {
+                    bgcolor: impactChipStyle[impactValue]?.bgcolor,
+                    color: impactChipStyle[impactValue]?.color,
+                  },
+                  '&.MuiChip-outlined': {
+                    bgcolor: 'transparent',
+                  },
                 }}
               />
             ))}
@@ -824,6 +886,7 @@ export default function EventsFilters3({
           label={impactsLabel}
           onClick={(event) => setAnchorImpactPos(getAnchorPosition(event.currentTarget))}
           active={Boolean(localFilters.impacts.length)}
+          colorOverride={impactSummaryColors}
         />
       </Stack>
 

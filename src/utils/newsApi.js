@@ -1,11 +1,39 @@
-// src/utils/newsApi.js
 /**
- * News API Service for JBlanked News API
- * Documentation: https://www.jblanked.com/news/api/docs/
- * 
- * This service handles all API calls to the JBlanked News API
- * including the Calendar endpoint for economic events.
+ * src/utils/newsApi.js
+ *
+ * Purpose: News API service for JBlanked (economic calendar + metadata) and shared event impact utilities.
+ * Handles API calls, authentication headers, and provides centralized impact color/label helpers for UI consistency.
+ *
+ * Changelog:
+ * v1.3.1 - 2025-12-18 - Updated impact palette: low = yellow (#F2C94C), unknown = taupe (#C7B8A4) to mirror Forex Factory-style cues and avoid session conflicts.
+ * v1.3.0 - 2025-12-18 - Centralized impact palette/meta helpers and updated low-impact color to taupe (#C7B8A4) to avoid session color conflicts.
+ * v1.2.0 - 2025-12-01 - Added caching helpers and event transformation utilities.
+ * v1.1.0 - 2025-11-30 - Added filter helpers and pagination support for economic events.
+ * v1.0.0 - 2025-11-29 - Initial implementation for JBlanked News API.
  */
+
+// Centralized impact palette (enterprise-safe, avoids collisions with clock session colors)
+export const IMPACT_COLORS = {
+  high: '#d32f2f',      // Red
+  medium: '#f57c00',    // Orange
+  low: '#F2C94C',       // Yellow (folder yellow) for low impact
+  nonEconomic: '#9e9e9e',
+  unknown: '#C7B8A4',   // Taupe for unknown
+};
+
+export const IMPACT_LEVELS = [
+  { key: 'strong', label: 'High Impact', icon: '!!!', color: IMPACT_COLORS.high, priority: 4, test: (v) => v.includes('strong') || v.includes('high') },
+  { key: 'moderate', label: 'Medium Impact', icon: '!!', color: IMPACT_COLORS.medium, priority: 3, test: (v) => v.includes('moderate') || v.includes('medium') },
+  { key: 'weak', label: 'Low Impact', icon: '!', color: IMPACT_COLORS.low, priority: 2, test: (v) => v.includes('weak') || v.includes('low') },
+  { key: 'not-loaded', label: 'Data Not Loaded', icon: '?', color: IMPACT_COLORS.nonEconomic, priority: 1, test: (v) => v.includes('not loaded') },
+  { key: 'non-economic', label: 'Non-Economic', icon: '~', color: IMPACT_COLORS.nonEconomic, priority: 1, test: (v) => v.includes('non-economic') || v === 'none' },
+  { key: 'unknown', label: 'Unknown', icon: '?', color: IMPACT_COLORS.unknown, priority: 0, test: () => true },
+];
+
+export const resolveImpactMeta = (impact) => {
+  const normalized = (impact || '').toString().toLowerCase();
+  return IMPACT_LEVELS.find(({ test }) => test(normalized)) || IMPACT_LEVELS[IMPACT_LEVELS.length - 1];
+};
 
 // Use proxy in development to bypass CORS, direct URL in production
 const NEWS_API_BASE_URL = import.meta.env.DEV 
@@ -504,41 +532,10 @@ export const filterEventsByImpact = (events, impacts = []) => {
 };
 
 /**
- * Get impact color based on level
- * Returns color consistent with app's design system
- * Handles both MQL5 API format ("Strong Data") and legacy format ("High")
+ * Get impact color based on level (shared across overlay, table, timeline, modal)
+ * Returns color consistent with app's design system and avoids session color collisions.
  */
-export const getImpactColor = (impact) => {
-  if (!impact) return '#666666';
-  
-  const impactStr = impact.toString().toLowerCase();
-  
-  // Handle future events with no data loaded yet
-  if (impactStr.includes('not loaded')) {
-    return '#9e9e9e'; // Grey - Data not available yet
-  }
-  
-  // MQL5 API format (from Firestore)
-  if (impactStr.includes('strong')) {
-    return '#d32f2f'; // Red - High impact
-  }
-  if (impactStr.includes('moderate')) {
-    return '#f57c00'; // Orange - Medium impact
-  }
-  if (impactStr.includes('weak')) {
-    return '#018786'; // Teal - Low impact
-  }
-  if (impactStr.includes('non-economic')) {
-    return '#9e9e9e'; // Grey - Non-economic
-  }
-  
-  // Legacy format (backward compatibility)
-  if (impactStr === 'high') return '#d32f2f';
-  if (impactStr === 'medium') return '#f57c00';
-  if (impactStr === 'low') return '#018786';
-  
-  return '#666666'; // Default grey
-};
+export const getImpactColor = (impact) => resolveImpactMeta(impact).color;
 
 /**
  * Get impact badge text

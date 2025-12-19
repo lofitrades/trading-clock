@@ -1,12 +1,15 @@
 /**
  * Firestore Document Structure Reference
  * Collection: economicEventsCalendar
+/* eslint-env node */
+/* global Timestamp, module */
+/* eslint-disable no-unused-vars */
+/**
+ * FIRESTORE_STRUCTURE.js
  * 
- * This document describes the actual structure of economic event documents
- * stored in Firestore after syncing from JBlanked/MQL5 API.
- * 
- * IMPORTANT: All field names are LOWERCASE (not PascalCase)
- * 
+ * Purpose: Documentation of Firestore collections, subcollections, indexes, and sample queries
+ * for Time 2 Trade. This file is for reference and is not executed at runtime.
+ *
  * Last Updated: 2025-11-29
  */
 

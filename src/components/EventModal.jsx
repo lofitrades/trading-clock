@@ -17,6 +17,8 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v1.10.1 - 2025-12-18 - Centralize impact color sourcing: low = yellow (#F2C94C), unknown = taupe (#C7B8A4) to avoid session color conflicts across modal chips.
+ * v1.10.0 - 2025-12-18 - Centralize impact color sourcing and set low impact to taupe (#C7B8A4) to avoid session color conflicts across modal chips.
  * v1.9.1 - 2025-12-15 - REFACTOR: Replaced hardcoded NOW/NEXT calculations with global timezone-aware eventTimeEngine utilities (NOW_WINDOW_MS, getEventEpochMs, getNowEpochMs, computeNowNextState)
  * v1.9.0 - 2025-12-15 - Feature: Added countdown timer to NEXT badge with live updates; Added favorite and notes action buttons in header with full functionality, loading states, and mobile-first design
  * v1.8.0 - 2025-12-11 - Feature: Added NOW/NEXT event status chips (NOW = within 9min window with pulse animation, NEXT = upcoming within 24h); added all canonical fields display (status, winnerSource, sourceKey, sources, qualityScore, outcome, quality)
@@ -77,12 +79,13 @@ import { getEventDescription } from '../services/economicEventsService';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { formatTime, formatDate, DATE_FORMAT_OPTIONS } from '../utils/dateUtils';
-import { 
-  formatCountdownHMS, 
-  NOW_WINDOW_MS, 
-  getEventEpochMs, 
+import { resolveImpactMeta } from '../utils/newsApi';
+import {
+  formatCountdownHMS,
+  NOW_WINDOW_MS,
+  getEventEpochMs,
   getNowEpochMs,
-  computeNowNextState 
+  computeNowNextState
 } from '../utils/eventTimeEngine';
 
 // ============================================================================
@@ -106,17 +109,17 @@ const CURRENCY_TO_COUNTRY = {
  * Currency names for tooltips
  */
 const CURRENCY_NAMES = {
-  'USD': 'United States Dollar', 'EUR': 'Euro', 'GBP': 'British Pound Sterling', 
-  'JPY': 'Japanese Yen', 'CHF': 'Swiss Franc', 'AUD': 'Australian Dollar', 
-  'CAD': 'Canadian Dollar', 'NZD': 'New Zealand Dollar', 'CNY': 'Chinese Yuan', 
-  'HKD': 'Hong Kong Dollar', 'SGD': 'Singapore Dollar', 'SEK': 'Swedish Krona', 
-  'NOK': 'Norwegian Krone', 'DKK': 'Danish Krone', 'PLN': 'Polish Zloty', 
-  'CZK': 'Czech Koruna', 'HUF': 'Hungarian Forint', 'RON': 'Romanian Leu', 
-  'TRY': 'Turkish Lira', 'ZAR': 'South African Rand', 'BRL': 'Brazilian Real', 
-  'MXN': 'Mexican Peso', 'INR': 'Indian Rupee', 'KRW': 'South Korean Won', 
-  'RUB': 'Russian Ruble', 'THB': 'Thai Baht', 'IDR': 'Indonesian Rupiah', 
-  'MYR': 'Malaysian Ringgit', 'PHP': 'Philippine Peso', 'ILS': 'Israeli Shekel', 
-  'CLP': 'Chilean Peso', 'ARS': 'Argentine Peso', 'COP': 'Colombian Peso', 
+  'USD': 'United States Dollar', 'EUR': 'Euro', 'GBP': 'British Pound Sterling',
+  'JPY': 'Japanese Yen', 'CHF': 'Swiss Franc', 'AUD': 'Australian Dollar',
+  'CAD': 'Canadian Dollar', 'NZD': 'New Zealand Dollar', 'CNY': 'Chinese Yuan',
+  'HKD': 'Hong Kong Dollar', 'SGD': 'Singapore Dollar', 'SEK': 'Swedish Krona',
+  'NOK': 'Norwegian Krone', 'DKK': 'Danish Krone', 'PLN': 'Polish Zloty',
+  'CZK': 'Czech Koruna', 'HUF': 'Hungarian Forint', 'RON': 'Romanian Leu',
+  'TRY': 'Turkish Lira', 'ZAR': 'South African Rand', 'BRL': 'Brazilian Real',
+  'MXN': 'Mexican Peso', 'INR': 'Indian Rupee', 'KRW': 'South Korean Won',
+  'RUB': 'Russian Ruble', 'THB': 'Thai Baht', 'IDR': 'Indonesian Rupiah',
+  'MYR': 'Malaysian Ringgit', 'PHP': 'Philippine Peso', 'ILS': 'Israeli Shekel',
+  'CLP': 'Chilean Peso', 'ARS': 'Argentine Peso', 'COP': 'Colombian Peso',
   'PEN': 'Peruvian Sol', 'VND': 'Vietnamese Dong',
 };
 
@@ -124,33 +127,33 @@ const CURRENCY_NAMES = {
  * Impact level configuration
  */
 const IMPACT_CONFIG = {
-  strong: { 
-    icon: '!!!', 
-    color: 'error.main', 
+  strong: {
+    icon: '!!!',
     label: 'High Impact',
     description: 'Major market-moving event that typically causes significant volatility and price action'
   },
-  moderate: { 
-    icon: '!!', 
-    color: 'warning.main', 
+  moderate: {
+    icon: '!!',
     label: 'Medium Impact',
     description: 'Notable event that can influence market direction with moderate price movements'
   },
-  weak: { 
-    icon: '!', 
-    color: 'info.main', 
+  weak: {
+    icon: '!',
     label: 'Low Impact',
     description: 'Minor event with limited market impact and minimal expected volatility'
   },
-  'non-economic': { 
-    icon: '~', 
-    color: 'grey.500', 
+  'not-loaded': {
+    icon: '?',
+    label: 'Data Not Loaded',
+    description: 'Impact data not yet available; will update when feed loads'
+  },
+  'non-economic': {
+    icon: '~',
     label: 'Non-Economic',
     description: 'Non-economic event or announcement with indirect market influence'
   },
-  unknown: { 
-    icon: '?', 
-    color: 'grey.500', 
+  unknown: {
+    icon: '?',
     label: 'Unknown',
     description: 'Impact level not yet classified or unavailable'
   },
@@ -172,24 +175,14 @@ const ANIMATION_DURATION = {
  * Get impact configuration based on impact level
  */
 const getImpactConfig = (impact) => {
-  if (!impact) return IMPACT_CONFIG.unknown;
-  
-  const lower = impact.toLowerCase();
-  
-  if (lower.includes('strong') || lower.includes('high')) {
-    return IMPACT_CONFIG.strong;
-  }
-  if (lower.includes('moderate') || lower.includes('medium')) {
-    return IMPACT_CONFIG.moderate;
-  }
-  if (lower.includes('weak') || lower.includes('low')) {
-    return IMPACT_CONFIG.weak;
-  }
-  if (lower.includes('non-economic') || lower.includes('none')) {
-    return IMPACT_CONFIG['non-economic'];
-  }
-  
-  return IMPACT_CONFIG.unknown;
+  const meta = resolveImpactMeta(impact);
+  const base = IMPACT_CONFIG[meta.key] || IMPACT_CONFIG.unknown;
+  return {
+    ...base,
+    color: meta.color,
+    icon: base.icon || meta.icon,
+    label: base.label || meta.label,
+  };
 };
 
 /**
@@ -206,7 +199,7 @@ const getCurrencyFlag = (currency) => {
 const getOutcomeIcon = (outcome) => {
   if (!outcome) return null;
   const lower = outcome.toLowerCase();
-  
+
   if (lower.includes('bullish') || lower.includes('positive')) {
     return <TrendingUpIcon sx={{ color: 'success.main', fontSize: 20 }} />;
   }
@@ -235,9 +228,9 @@ const SlideTransition = React.forwardRef(function Transition(props, ref) {
  */
 const ImpactBadge = memo(({ impact }) => {
   const config = getImpactConfig(impact);
-  
+
   return (
-    <MuiTooltip 
+    <MuiTooltip
       title={
         <Box sx={{ p: 0.5 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
@@ -248,7 +241,7 @@ const ImpactBadge = memo(({ impact }) => {
           </Typography>
         </Box>
       }
-      arrow 
+      arrow
       placement="top"
       enterTouchDelay={100}
       leaveTouchDelay={3000}
@@ -314,12 +307,12 @@ ImpactBadge.displayName = 'ImpactBadge';
 const CurrencyFlag = memo(({ currency }) => {
   const countryCode = getCurrencyFlag(currency);
   const currencyName = CURRENCY_NAMES[currency] || currency;
-  
+
   if (!countryCode) {
     return (
-      <MuiTooltip 
+      <MuiTooltip
         title={`${currencyName} - Economic data affects this currency`}
-        arrow 
+        arrow
         placement="top"
         enterTouchDelay={100}
         leaveTouchDelay={3000}
@@ -362,9 +355,9 @@ const CurrencyFlag = memo(({ currency }) => {
       </MuiTooltip>
     );
   }
-  
+
   return (
-    <MuiTooltip 
+    <MuiTooltip
       title={
         <Box sx={{ p: 0.5 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.25 }}>
@@ -378,7 +371,7 @@ const CurrencyFlag = memo(({ currency }) => {
           </Typography>
         </Box>
       }
-      arrow 
+      arrow
       placement="top"
       enterTouchDelay={100}
       leaveTouchDelay={3000}
@@ -494,7 +487,7 @@ EnhancedTooltip.displayName = 'EnhancedTooltip';
  */
 const DataValueBox = memo(({ label, value, isPrimary = false, loading = false }) => {
   const hasValue = value && value !== '—' && value !== '-';
-  
+
   return (
     <Box sx={{ textAlign: 'center', flex: 1 }}>
       <Typography
@@ -516,7 +509,7 @@ const DataValueBox = memo(({ label, value, isPrimary = false, loading = false })
           variant="text"
           width="80%"
           height={36}
-          sx={{ 
+          sx={{
             mx: 'auto',
             fontSize: { xs: '1rem', sm: '1.125rem' },
           }}
@@ -570,10 +563,10 @@ ModalSkeleton.displayName = 'ModalSkeleton';
  * @param {Function} onOpenNotes - Open notes dialog handler
  * @param {Function} isEventNotesLoading - Check if notes are loading
  */
-export default function EventModal({ 
-  open, 
-  onClose, 
-  event, 
+export default function EventModal({
+  open,
+  onClose,
+  event,
   timezone = 'America/New_York',
   isFavoriteEvent = () => false,
   onToggleFavorite = null,
@@ -638,7 +631,7 @@ export default function EventModal({
 
     setRefreshingEvent(true);
     setRefreshSuccess(false);
-    
+
     try {
       const eventDocRef = doc(db, 'economicEventsCalendar', event.id);
       const eventDoc = await getDoc(eventDocRef);
@@ -646,7 +639,7 @@ export default function EventModal({
       if (eventDoc.exists()) {
         const data = eventDoc.data();
         const eventDate = data.date?.toDate ? data.date.toDate() : null;
-        
+
         const updatedEvent = {
           id: eventDoc.id,
           ...data,
@@ -657,7 +650,7 @@ export default function EventModal({
 
         setRefreshedEvent(updatedEvent);
         setRefreshSuccess(true);
-        
+
         // Hide success message after 3 seconds
         setTimeout(() => {
           setRefreshSuccess(false);
@@ -678,25 +671,25 @@ export default function EventModal({
   // Use global timezone-aware NOW/NEXT engine instead of hardcoded calculations
   const nowEpochMs = getNowEpochMs(timezone);
   const eventEpochMs = getEventEpochMs(currentEvent);
-  
+
   // Compute NOW/NEXT state using global engine
-  const nowNextState = computeNowNextState({ 
-    events: currentEvent ? [currentEvent] : [], 
+  const nowNextState = computeNowNextState({
+    events: currentEvent ? [currentEvent] : [],
     nowEpochMs,
     nowWindowMs: NOW_WINDOW_MS,
     buildKey: (evt) => evt.id || 'current-event'
   });
-  
+
   const eventKey = currentEvent?.id || 'current-event';
   const isNow = nowNextState.nowEventIds.has(eventKey);
   const isNext = nowNextState.nextEventIds.has(eventKey);
-  
+
   const isFutureEvent = eventEpochMs !== null && eventEpochMs > nowEpochMs;
   const isPast = eventEpochMs !== null && !isFutureEvent && !isNow;
 
   // Calculate countdown for NEXT badge using absolute epoch comparison
-  const nextCountdown = isNext && eventEpochMs !== null 
-    ? formatCountdownHMS(Math.max(0, eventEpochMs - countdownNow)) 
+  const nextCountdown = isNext && eventEpochMs !== null
+    ? formatCountdownHMS(Math.max(0, eventEpochMs - countdownNow))
     : null;
 
   // Determine actual value display
@@ -704,11 +697,11 @@ export default function EventModal({
   if (isFutureEvent) {
     actualValue = '—';
   } else {
-    const hasValidActual = currentEvent.actual && 
-                          currentEvent.actual !== '-' && 
-                          currentEvent.actual !== '' && 
-                          currentEvent.actual !== '0' && 
-                          currentEvent.actual !== 0;
+    const hasValidActual = currentEvent.actual &&
+      currentEvent.actual !== '-' &&
+      currentEvent.actual !== '' &&
+      currentEvent.actual !== '0' &&
+      currentEvent.actual !== 0;
     actualValue = hasValidActual ? currentEvent.actual : '—';
   }
 
@@ -754,7 +747,7 @@ export default function EventModal({
           >
             {currentEvent.Name || 'Economic Event'}
           </Typography>
-          
+
           {/* Date and Time */}
           <Box
             sx={{
@@ -784,7 +777,7 @@ export default function EventModal({
         <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
           {/* Notes Button */}
           {onOpenNotes && (
-            <MuiTooltip 
+            <MuiTooltip
               title={isEventNotesLoading(currentEvent) ? 'Loading notes...' : (hasEventNotes(currentEvent) ? 'View notes' : 'Add note')}
               arrow
               placement="bottom"
@@ -821,7 +814,7 @@ export default function EventModal({
 
           {/* Favorite Button */}
           {onToggleFavorite && (
-            <MuiTooltip 
+            <MuiTooltip
               title={favoritesLoading ? 'Loading favorites...' : (isFavoriteEvent(currentEvent) ? 'Remove from favorites' : 'Save to favorites')}
               arrow
               placement="bottom"
@@ -905,13 +898,13 @@ export default function EventModal({
                     }}
                   >
                     <ImpactBadge impact={currentEvent.strength || currentEvent.impact} />
-                    
+
                     {currentEvent.currency && <CurrencyFlag currency={currentEvent.currency} />}
-                    
+
                     {currentEvent.category && (
-                      <MuiTooltip 
+                      <MuiTooltip
                         title={`Category: ${currentEvent.category} - Event classification for filtering and analysis`}
-                        arrow 
+                        arrow
                         placement="top"
                         enterTouchDelay={100}
                         leaveTouchDelay={3000}
@@ -955,12 +948,12 @@ export default function EventModal({
                         />
                       </MuiTooltip>
                     )}
-                    
+
                     {/* Status Badge */}
                     {currentEvent.status && (
-                      <MuiTooltip 
+                      <MuiTooltip
                         title={`Status: ${currentEvent.status} - Current state of the economic event`}
-                        arrow 
+                        arrow
                         placement="top"
                         enterTouchDelay={100}
                         leaveTouchDelay={3000}
@@ -996,26 +989,26 @@ export default function EventModal({
                             height: 24,
                             fontSize: '0.7rem',
                             fontWeight: 600,
-                            bgcolor: 
+                            bgcolor:
                               currentEvent.status === 'released' ? alpha(theme.palette.success.main, 0.12) :
-                              currentEvent.status === 'revised' ? alpha(theme.palette.warning.main, 0.12) :
-                              currentEvent.status === 'cancelled' ? alpha(theme.palette.error.main, 0.12) :
-                              'action.hover',
-                            color: 
+                                currentEvent.status === 'revised' ? alpha(theme.palette.warning.main, 0.12) :
+                                  currentEvent.status === 'cancelled' ? alpha(theme.palette.error.main, 0.12) :
+                                    'action.hover',
+                            color:
                               currentEvent.status === 'released' ? 'success.dark' :
-                              currentEvent.status === 'revised' ? 'warning.dark' :
-                              currentEvent.status === 'cancelled' ? 'error.dark' :
-                              'text.secondary',
+                                currentEvent.status === 'revised' ? 'warning.dark' :
+                                  currentEvent.status === 'cancelled' ? 'error.dark' :
+                                    'text.secondary',
                             cursor: 'help',
                           }}
                         />
                       </MuiTooltip>
                     )}
-                    
+
                     {isNow && !currentEvent.status && (
-                      <MuiTooltip 
+                      <MuiTooltip
                         title="This event is happening NOW - within the 9-minute active window"
-                        arrow 
+                        arrow
                         placement="top"
                         enterTouchDelay={100}
                         leaveTouchDelay={3000}
@@ -1069,11 +1062,11 @@ export default function EventModal({
                         />
                       </MuiTooltip>
                     )}
-                    
+
                     {isNext && !currentEvent.status && !isNow && (
-                      <MuiTooltip 
+                      <MuiTooltip
                         title={`Next event in ${nextCountdown || 'calculating...'}`}
-                        arrow 
+                        arrow
                         placement="top"
                         enterTouchDelay={100}
                         leaveTouchDelay={3000}
@@ -1125,11 +1118,11 @@ export default function EventModal({
                         />
                       </MuiTooltip>
                     )}
-                    
+
                     {isPast && !currentEvent.status && (
-                      <MuiTooltip 
+                      <MuiTooltip
                         title="This event has already occurred - data reflects actual results"
-                        arrow 
+                        arrow
                         placement="top"
                         enterTouchDelay={100}
                         leaveTouchDelay={3000}
@@ -1173,7 +1166,7 @@ export default function EventModal({
                       </MuiTooltip>
                     )}
                   </Box>
-                  
+
                   {/* Data Source Information */}
                   {(currentEvent.winnerSource || currentEvent.sourceKey || currentEvent.sources) && (
                     <Box
@@ -1185,9 +1178,9 @@ export default function EventModal({
                       }}
                     >
                       {(currentEvent.winnerSource || currentEvent.sourceKey) && (
-                        <MuiTooltip 
+                        <MuiTooltip
                           title="Primary data source for this event's values"
-                          arrow 
+                          arrow
                           placement="top"
                           enterTouchDelay={100}
                           leaveTouchDelay={3000}
@@ -1227,11 +1220,11 @@ export default function EventModal({
                           />
                         </MuiTooltip>
                       )}
-                      
+
                       {currentEvent.sources && Object.keys(currentEvent.sources).length > 1 && (
-                        <MuiTooltip 
+                        <MuiTooltip
                           title={`Available from ${Object.keys(currentEvent.sources).length} sources: ${Object.keys(currentEvent.sources).join(', ')}`}
-                          arrow 
+                          arrow
                           placement="top"
                           enterTouchDelay={100}
                           leaveTouchDelay={3000}
@@ -1270,11 +1263,11 @@ export default function EventModal({
                           />
                         </MuiTooltip>
                       )}
-                      
+
                       {currentEvent.qualityScore && (
-                        <MuiTooltip 
+                        <MuiTooltip
                           title={`Data quality score: ${currentEvent.qualityScore}/100 - Higher scores indicate more reliable data`}
-                          arrow 
+                          arrow
                           placement="top"
                           enterTouchDelay={100}
                           leaveTouchDelay={3000}
@@ -1349,24 +1342,24 @@ export default function EventModal({
                     >
                       📊 Event Data
                       <EnhancedTooltip title="Real-time economic data: Actual results vs market forecasts and previous values">
-                        <HelpOutlineIcon 
-                          sx={{ 
-                            fontSize: { xs: 14, sm: 16 }, 
+                        <HelpOutlineIcon
+                          sx={{
+                            fontSize: { xs: 14, sm: 16 },
                             color: 'primary.main',
                             opacity: 0.7,
                             cursor: 'help',
-                          }} 
+                          }}
                         />
                       </EnhancedTooltip>
                     </Typography>
-                    
+
                     <Fade in={refreshSuccess} timeout={300}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <CheckCircleIcon 
-                          sx={{ 
-                            fontSize: { xs: 16, sm: 18 }, 
+                        <CheckCircleIcon
+                          sx={{
+                            fontSize: { xs: 16, sm: 18 },
                             color: 'success.main',
-                          }} 
+                          }}
                         />
                         <Typography
                           variant="caption"
@@ -1381,7 +1374,7 @@ export default function EventModal({
                       </Box>
                     </Fade>
                   </Box>
-                  
+
                   {/* Refresh Icon - Top Right Corner (MUI Best Practice) */}
                   <MuiTooltip title="Refresh event data from Firestore" arrow placement="left">
                     <IconButton
@@ -1417,7 +1410,7 @@ export default function EventModal({
                       />
                     </IconButton>
                   </MuiTooltip>
-                  
+
                   {/* Data Values Grid - 3 columns on all screen sizes */}
                   <Box
                     sx={{
@@ -1475,13 +1468,13 @@ export default function EventModal({
                     <InfoOutlinedIcon sx={{ fontSize: 18 }} />
                     About This Event
                     <EnhancedTooltip title="Comprehensive overview of what this economic indicator measures and why it matters">
-                      <HelpOutlineIcon 
-                        sx={{ 
-                          fontSize: { xs: 14, sm: 16 }, 
+                      <HelpOutlineIcon
+                        sx={{
+                          fontSize: { xs: 14, sm: 16 },
                           color: 'primary.main',
                           opacity: 0.7,
                           cursor: 'help',
-                        }} 
+                        }}
                       />
                     </EnhancedTooltip>
                   </Typography>
@@ -1527,13 +1520,13 @@ export default function EventModal({
                   >
                     💡 Trading Implication
                     <EnhancedTooltip title="How this event typically impacts markets and trading strategies to consider">
-                      <HelpOutlineIcon 
-                        sx={{ 
-                          fontSize: { xs: 14, sm: 16 }, 
+                      <HelpOutlineIcon
+                        sx={{
+                          fontSize: { xs: 14, sm: 16 },
                           color: 'success.main',
                           opacity: 0.7,
                           cursor: 'help',
-                        }} 
+                        }}
                       />
                     </EnhancedTooltip>
                   </Typography>
@@ -1578,13 +1571,13 @@ export default function EventModal({
                   >
                     📊 Key Thresholds
                     <EnhancedTooltip title="Critical levels that trigger significant market reactions and volatility">
-                      <HelpOutlineIcon 
-                        sx={{ 
-                          fontSize: { xs: 14, sm: 16 }, 
+                      <HelpOutlineIcon
+                        sx={{
+                          fontSize: { xs: 14, sm: 16 },
                           color: 'warning.main',
                           opacity: 0.7,
                           cursor: 'help',
-                        }} 
+                        }}
                       />
                     </EnhancedTooltip>
                   </Typography>
@@ -1672,13 +1665,13 @@ export default function EventModal({
                         >
                           Frequency
                           <EnhancedTooltip title="How often this economic indicator is released">
-                            <HelpOutlineIcon 
-                              sx={{ 
-                                fontSize: 12, 
+                            <HelpOutlineIcon
+                              sx={{
+                                fontSize: 12,
                                 color: 'text.secondary',
                                 opacity: 0.6,
                                 cursor: 'help',
-                              }} 
+                              }}
                             />
                           </EnhancedTooltip>
                         </Typography>
@@ -1712,13 +1705,13 @@ export default function EventModal({
                         >
                           Source
                           <EnhancedTooltip title="Official organization that publishes this data">
-                            <HelpOutlineIcon 
-                              sx={{ 
-                                fontSize: 12, 
+                            <HelpOutlineIcon
+                              sx={{
+                                fontSize: 12,
                                 color: 'text.secondary',
                                 opacity: 0.6,
                                 cursor: 'help',
-                              }} 
+                              }}
                             />
                           </EnhancedTooltip>
                         </Typography>
@@ -1776,13 +1769,13 @@ export default function EventModal({
                           >
                             Outcome
                             <EnhancedTooltip title="Market sentiment and directional bias based on the event result">
-                              <HelpOutlineIcon 
-                                sx={{ 
-                                  fontSize: 12, 
+                              <HelpOutlineIcon
+                                sx={{
+                                  fontSize: 12,
                                   color: 'text.secondary',
                                   opacity: 0.6,
                                   cursor: 'help',
-                                }} 
+                                }}
                               />
                             </EnhancedTooltip>
                           </Typography>
@@ -1798,7 +1791,7 @@ export default function EventModal({
                         </Box>
                       </Box>
                     )}
-                    
+
                     {currentEvent.quality && (
                       <Box>
                         <Typography
@@ -1817,13 +1810,13 @@ export default function EventModal({
                         >
                           Data Quality
                           <EnhancedTooltip title="Assessment of data reliability and accuracy">
-                            <HelpOutlineIcon 
-                              sx={{ 
-                                fontSize: 12, 
+                            <HelpOutlineIcon
+                              sx={{
+                                fontSize: 12,
                                 color: 'text.secondary',
                                 opacity: 0.6,
                                 cursor: 'help',
-                              }} 
+                              }}
                             />
                           </EnhancedTooltip>
                         </Typography>
@@ -1863,9 +1856,9 @@ export default function EventModal({
       >
         {/* Event ID - Left Side with Copy to Clipboard */}
         {currentEvent.id && (
-          <MuiTooltip 
+          <MuiTooltip
             title={copySuccess ? "Copied!" : "Click to copy Event ID"}
-            arrow 
+            arrow
             placement="top"
           >
             <Box
@@ -1873,7 +1866,7 @@ export default function EventModal({
                 try {
                   await navigator.clipboard.writeText(currentEvent.id);
                   setCopySuccess(true);
-                  
+
                   // Reset success state after 2 seconds
                   setTimeout(() => {
                     setCopySuccess(false);
@@ -1889,7 +1882,7 @@ export default function EventModal({
                 px: 1.5,
                 py: 0.75,
                 borderRadius: 1,
-                bgcolor: copySuccess 
+                bgcolor: copySuccess
                   ? alpha(theme.palette.success.main, 0.12)
                   : alpha(theme.palette.primary.main, 0.08),
                 border: '1px solid',
@@ -1940,7 +1933,7 @@ export default function EventModal({
             </Box>
           </MuiTooltip>
         )}
-        
+
         {/* Close Button - Right Side */}
         <Button
           onClick={onClose}
