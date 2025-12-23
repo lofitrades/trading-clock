@@ -16,6 +16,7 @@
  * - Keyboard navigation and accessibility
  * 
  * Changelog:
+ * v1.4.3 - 2025-12-22 - Locked events page behind authentication (RBAC guard + tab value hardening).
  * v1.4.2 - 2025-12-18 - Removed unused schema/breadcrumb metadata and moved title/description update into component to resolve lint errors post-Helmet removal.
  * v1.4.1 - 2025-12-17 - Fixed JSX fragment closing to resolve parsing errors and TypeScript diagnostics.
  * v1.4.0 - 2025-12-15 - Added client-side search filtering (searches name, currency, description, category) with UX messages for no results.
@@ -55,7 +56,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import TimelineIcon from '@mui/icons-material/Timeline';
@@ -108,7 +109,7 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { eventFilters, newsSource, selectedTimezone } = useSettings();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   /**
    * Apply client-side search filter to events
@@ -146,9 +147,15 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
   }, [selectedTimezone]);
 
   // ========== STATE ==========
-  const [activeTab, setActiveTab] = useState(
-    searchParams.get('view') || TAB_VALUES.TIMELINE
-  );
+  const initialTab = (() => {
+    const fromQuery = searchParams.get('view');
+    if (fromQuery && [TAB_VALUES.TABLE, TAB_VALUES.TIMELINE].includes(fromQuery)) {
+      return fromQuery;
+    }
+    return TAB_VALUES.TIMELINE;
+  })();
+
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -181,68 +188,6 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
   const filteredEvents = useMemo(() => {
     return applySearchFilter(events, filters.searchQuery);
   }, [events, filters.searchQuery, applySearchFilter]);
-
-  // Update document title/description in SPA context (SSR handles marketing pages)
-  useEffect(() => {
-    document.title = eventsMeta.title;
-    const descTag = document.querySelector('meta[name="description"]');
-    if (descTag) {
-      descTag.setAttribute('content', eventsMeta.description);
-    }
-  }, []);
-
-  // ========== EFFECTS ==========
-
-  /**
-   * Sync active tab with URL
-   */
-  useEffect(() => {
-    const viewParam = searchParams.get('view');
-    if (viewParam && [TAB_VALUES.TABLE, TAB_VALUES.TIMELINE].includes(viewParam)) {
-      setActiveTab(viewParam);
-    }
-  }, [searchParams]);
-
-  /**
-   * Initial data load - 2 weeks on mount (matches cache: 14d back + 8d forward for optimal performance)
-   * Cache pre-loads this range, so queries will be instant from localStorage
-   */
-  useEffect(() => {
-    if (hasInitializedRef.current) {
-      return;
-    }
-
-    if (!filters.startDate || !filters.endDate) {
-      const { startDate, endDate } = buildTodayRange();
-      const newFilters = {
-        ...filters,
-        startDate,
-        endDate,
-      };
-      setFilters(newFilters);
-      fetchEvents(newFilters);
-    } else {
-      fetchEvents();
-    }
-    hasInitializedRef.current = true;
-  }, [buildTodayRange, fetchEvents, filters]);
-
-  /**
-   * Fetch events when news source changes
-   * Cache is source-isolated, so switching loads from new source's cache instantly
-   */
-  useEffect(() => {
-    if (!filters.startDate || !filters.endDate) {
-      return;
-    }
-
-    if (previousNewsSourceRef.current !== newsSource) {
-      previousNewsSourceRef.current = newsSource;
-      fetchEvents();
-    }
-  }, [fetchEvents, filters.endDate, filters.startDate, newsSource]);
-
-  // ========== HANDLERS ==========
 
   /**
    * Fetch events with current filters
@@ -310,6 +255,68 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
       setLoading(false);
     }
   }, [filters, newsSource, onEventsUpdate]);
+
+  // Update document title/description in SPA context (SSR handles marketing pages)
+  useEffect(() => {
+    document.title = eventsMeta.title;
+    const descTag = document.querySelector('meta[name="description"]');
+    if (descTag) {
+      descTag.setAttribute('content', eventsMeta.description);
+    }
+  }, []);
+
+  // ========== EFFECTS ==========
+
+  /**
+   * Sync active tab with URL
+   */
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam && [TAB_VALUES.TABLE, TAB_VALUES.TIMELINE].includes(viewParam)) {
+      setActiveTab(viewParam);
+    }
+  }, [searchParams]);
+
+  /**
+   * Initial data load - 2 weeks on mount (matches cache: 14d back + 8d forward for optimal performance)
+   * Cache pre-loads this range, so queries will be instant from localStorage
+   */
+  useEffect(() => {
+    if (hasInitializedRef.current) {
+      return;
+    }
+
+    if (!filters.startDate || !filters.endDate) {
+      const { startDate, endDate } = buildTodayRange();
+      const newFilters = {
+        ...filters,
+        startDate,
+        endDate,
+      };
+      setFilters(newFilters);
+      fetchEvents(newFilters);
+    } else {
+      fetchEvents();
+    }
+    hasInitializedRef.current = true;
+  }, [buildTodayRange, fetchEvents, filters]);
+
+  /**
+   * Fetch events when news source changes
+   * Cache is source-isolated, so switching loads from new source's cache instantly
+   */
+  useEffect(() => {
+    if (!filters.startDate || !filters.endDate) {
+      return;
+    }
+
+    if (previousNewsSourceRef.current !== newsSource) {
+      previousNewsSourceRef.current = newsSource;
+      fetchEvents();
+    }
+  }, [fetchEvents, filters.endDate, filters.startDate, newsSource]);
+
+  // ========== HANDLERS ==========
 
   /**
    * Handle filter changes
@@ -407,6 +414,9 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
 
   return (
     <React.Fragment>
+      {!embedded && !authLoading && !user && (
+        <Navigate to="/login" replace />
+      )}
       <Box
         sx={{
           minHeight: embedded ? 'auto' : 'var(--t2t-vv-height, 100dvh)',
@@ -565,6 +575,7 @@ const EventsPage = React.forwardRef(({ embedded = false, onEventsUpdate, hideBac
               }}
             >
               <Tabs
+                value={currentTab}
                 onChange={handleTabChange}
                 variant={isMobile ? 'fullWidth' : 'standard'}
                 sx={{

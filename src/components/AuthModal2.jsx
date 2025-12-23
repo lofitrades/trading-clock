@@ -13,6 +13,8 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v1.1.4 - 2025-12-22 - Redirect OAuth success to /app after closing modal.
+ * v1.1.3 - 2025-12-22 - Replaced missing logo reference with official secondary white transparent asset for teal hero pane.
  * v1.1.2 - 2025-12-17 - Allow magic link to auto-link with existing Google accounts instead of blocking cross-provider emails
  * v1.1.1 - 2025-12-17 - Centralized magic link continue URL to production https://time2.trade/ with secure dev fallback
  * v1.1.0 - 2025-12-17 - Updated to green gradients and benefits-focused copy
@@ -21,6 +23,7 @@
 
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -56,6 +59,8 @@ import { auth } from '../firebase';
 import { getFriendlyErrorMessage, getSuccessMessage } from '../utils/messages';
 import { getMagicLinkActionCodeSettings } from '../utils/authLinkSettings';
 import ForgotPasswordModal from './ForgotPasswordModal';
+
+const LOGO_SECONDARY_WHITE_TRANSPARENT = `${import.meta.env.BASE_URL}logos/svg/Time2Trade_Logo_Secondary_White_Transparent_1080.svg`;
 
 function EmailSentModal({ email, isNewUser, onClose }) {
   return (
@@ -210,6 +215,7 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup' }) {
   const [showVerifyingModal, setShowVerifyingModal] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [lastSentEmail, setLastSentEmail] = useState('');
+  const navigate = useNavigate();
 
   // Rate limiting: Check for existing cooldown on mount and when modal opens
   useEffect(() => {
@@ -306,7 +312,10 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup' }) {
 
       await signInWithPopup(auth, provider);
       setSuccessMsg(getSuccessMessage('login'));
-      setTimeout(() => onClose(), 1000);
+      setTimeout(() => {
+        onClose();
+        navigate('/app');
+      }, 800);
     } catch (err) {
       setErrorMsg(getFriendlyErrorMessage(err.code));
     }
@@ -406,7 +415,7 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup' }) {
                 }}
               >
                 <img
-                  src={`${import.meta.env.BASE_URL}Time2Trade_Logo_White.svg`}
+                  src={LOGO_SECONDARY_WHITE_TRANSPARENT}
                   alt="Time 2 Trade"
                   style={{
                     width: '100%',

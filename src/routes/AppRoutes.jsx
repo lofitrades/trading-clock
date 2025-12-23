@@ -12,15 +12,15 @@
  * - Premium Routes: Require specific subscription plans
  * 
  * Changelog:
+ * v1.1.2 - 2025-12-22 - Route / to HomePage2 (landing) and /app to HomePage (app) to fix landing/app split.
  * v1.1.1 - 2025-12-09 - Removed redundant Suspense loader to avoid double-loading animation (App handles unified loader).
  * v1.1.0 - 2025-12-09 - Replaced CircularProgress fallback with branded donut loader
  * v1.0.0 - 2025-11-30 - Initial implementation with RBAC and subscription support
  */
 
-import React, { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { Box } from '@mui/material';
-import RouteLoading from '../components/routes/RouteLoading';
 
 // Route Guards
 import PrivateRoute from '../components/routes/PrivateRoute';
@@ -58,7 +58,7 @@ const NotFound = () => (
     }}
   >
     <h1>404 - Page Not Found</h1>
-    <p>The page you're looking for doesn't exist.</p>
+    <p>The page you&apos;re looking for doesn&apos;t exist.</p>
     <a href="/app">Go back home</a>
   </Box>
 );
@@ -95,7 +95,7 @@ export default function AppRoutes() {
       <Routes>
         {/* ==================== PUBLIC ROUTES ==================== */}
 
-        {/* Landing Page - SEO-optimized marketing page */}
+        {/* Landing Page - SEO-optimized marketing page (HomePage2) */}
         <Route
           path="/"
           element={
@@ -125,13 +125,13 @@ export default function AppRoutes() {
           }
         />
 
-        {/* Economic Events Page - Table and Timeline views */}
+        {/* Economic Events Page - Requires authentication */}
         <Route
           path="/events"
           element={
-            <PublicRoute>
+            <PrivateRoute redirectTo="/login">
               <EventsPage />
-            </PublicRoute>
+            </PrivateRoute>
           }
         />
 

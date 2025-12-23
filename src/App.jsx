@@ -183,7 +183,8 @@ export default function App() {
       calculatedSize = Math.max(150, calculatedSize);
 
       // Also respect viewport width (leave small margin)
-      const maxWidthSize = viewportWidth - 60;
+      const horizontalMargin = viewportWidth < 600 ? 16 : 48; // tighter margin on mobile
+      const maxWidthSize = viewportWidth - horizontalMargin;
       calculatedSize = Math.min(calculatedSize, maxWidthSize);
 
       // Verify everything fits with actual scaled sizes
@@ -583,17 +584,26 @@ export default function App() {
             </div>
           )}
           {showDigitalClock && !renderSkeleton && (
-            <DigitalClock
-              time={currentTime}
-              clockSize={calculatedClockSize}
-              textColor={effectiveTextColor}
-            />
+            <Box
+              sx={{
+                mt: { xs: 3, sm: 2 },
+                display: 'flex',
+                justifyContent: 'center',
+                width: '100%',
+              }}
+            >
+              <DigitalClock
+                time={currentTime}
+                clockSize={calculatedClockSize}
+                textColor={effectiveTextColor}
+              />
+            </Box>
           )}
           {showTimezoneLabel && !renderSkeleton && timezoneLabelText && (
             <Box
               sx={{
                 textAlign: 'center',
-                mt: { xs: 0, sm: 0 },
+                mt: { xs: -2, sm: -2 },
                 mb: { xs: 0.5, sm: 1.5 },
                 px: { xs: 1.5, sm: 2 },
                 maxWidth: { xs: '95%', sm: calculatedClockSize },

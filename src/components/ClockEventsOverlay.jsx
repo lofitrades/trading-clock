@@ -5,6 +5,9 @@
  * Renders impact-based icons on AM (inner) and PM (outer) rings using current filters and news source.
  *
  * Changelog:
+ * v1.12.8 - 2025-12-22 - Add suppressTooltipAutoscroll to tooltip close listener deps to satisfy lint and keep effect in sync.
+ * v1.12.7 - 2025-12-22 - Measure overlay bounds and fill parent to keep markers centered when containers add padding/margins (e.g., Paper hero card).
+ * v1.12.6 - 2025-12-22 - Align marker radii with ClockCanvas (0.47/0.78) so markers stay centered on AM/PM arcs inside responsive app paper layouts.
  * v1.12.5 - 2025-12-18 - Group events by 10-minute window per impact (cross-currency). Marker position uses the bucket start time while preserving priority: NOW > NEXT > favorite > note > impact.
  * v1.12.4 - 2025-12-18 - Group same-time same-impact events into a single marker (multi-currency). Marker icon/color chosen by priority: NOW > NEXT > favorite > note > impact (high→low) > upcoming.
  * v1.12.3 - 2025-12-18 - Marker click keeps tooltip open (no drawer). Only tooltip event rows open drawer for precise intent on desktop/touch.
@@ -139,7 +142,7 @@ const useTimeParts = (timezone) => {
   };
 };
 
-function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventClick, onLoadingStateChange }) {
+function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventClick, onLoadingStateChange, suppressTooltipAutoscroll = false }) {
   const [events, setEvents] = useState([]);
   const [nowTick, setNowTick] = useState(Date.now());
   const [openMarkerKey, setOpenMarkerKey] = useState(null);
@@ -148,6 +151,8 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
   const closeTimerRef = useRef(null);
   const exitCleanupRef = useRef(null);
   const lastAutoScrollKeyRef = useRef(null);
+  const overlayRef = useRef(null);
+  const [measuredSize, setMeasuredSize] = useState(size);
   const { isFavorite } = useFavorites();
   const { hasNotes } = useEventNotes();
 
@@ -183,8 +188,34 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
 
   useEffect(() => () => clearCloseTimer(), [clearCloseTimer]);
 
+  // Track the actual overlay box size so marker math stays aligned even if the parent adds padding/margins.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const measure = () => {
+      const el = overlayRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const next = Math.round(Math.min(rect.width, rect.height));
+      if (!Number.isFinite(next) || next <= 0) return;
+      setMeasuredSize((prev) => (prev === next ? prev : next));
+    };
+
+    measure();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(measure);
+      if (overlayRef.current) observer.observe(overlayRef.current);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [size]);
+
   // Keep tooltip open after click and close only on explicit outside interaction
   useEffect(() => {
+    if (suppressTooltipAutoscroll) return undefined;
     if (!openMarkerKey) return;
 
     const handleKeyDown = (e) => {
@@ -213,7 +244,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
       document.removeEventListener('mousedown', handlePointerDown, true);
       document.removeEventListener('touchstart', handlePointerDown, true);
     };
-  }, [closeTooltip, openMarkerKey]);
+  }, [closeTooltip, openMarkerKey, suppressTooltipAutoscroll]);
 
   // Auto-scroll the tooltip on open so passed events above are hidden.
   useEffect(() => {
@@ -236,6 +267,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
     };
 
     const scroll = () => {
+      if (suppressTooltipAutoscroll) return;
       const tooltipEl = findTooltipEl();
       if (!tooltipEl) return;
 
@@ -255,7 +287,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
 
     // Wait for Popper/Tooltip DOM to mount before attempting to scroll.
     requestAnimationFrame(() => requestAnimationFrame(scroll));
-  }, [openMarkerKey]);
+  }, [openMarkerKey, suppressTooltipAutoscroll]);
 
   const handleMarkerSelect = useCallback((marker, markerKey) => {
     if (!marker) return;
@@ -536,10 +568,12 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
     };
   }, [markers, renderedMarkers]);
 
-  const center = size / 2;
-  const radius = size / 2 - 5;
-  const amRadius = radius * 0.52;
-  const pmRadius = radius * 0.75;
+  const effectiveSize = measuredSize || size;
+  const center = effectiveSize / 2;
+  const radius = effectiveSize / 2 - 5;
+  // Match session arc radii from ClockCanvas (drawDynamicElements) for perfect alignment in responsive containers.
+  const amRadius = radius * 0.47;
+  const pmRadius = radius * 0.78;
 
   const getPosition = (hour, minute, useAm) => {
     const angle = ((hour % 12) + minute / 60) * (Math.PI * 2) / 12 - Math.PI / 2;
@@ -552,7 +586,8 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
   return (
     <Box
       className="clock-events-overlay"
-      sx={{ position: 'absolute', inset: 0, pointerEvents: 'none', width: size, height: size, zIndex: 2 }}
+      ref={overlayRef}
+      sx={{ position: 'absolute', inset: 0, pointerEvents: 'none', width: '100%', height: '100%', zIndex: 2 }}
     >
       {renderedMarkers.map((marker) => {
         const isAm = marker.hour < 12;
@@ -929,6 +964,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
             slotProps={{
               popper: {
                 'data-t2t-event-tooltip-key': markerKey,
+                keepMounted: true,
                 modifiers: [
                   {
                     name: 'preventOverflow',
@@ -1116,6 +1152,7 @@ ClockEventsOverlay.propTypes = {
   newsSource: PropTypes.string,
   onEventClick: PropTypes.func,
   onLoadingStateChange: PropTypes.func,
+  suppressTooltipAutoscroll: PropTypes.bool,
 };
 
 export default MemoClockEventsOverlay;

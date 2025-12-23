@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 
 export default function ClockHandsOverlay({ size, handAnglesRef, handColor, time }) {
   const canvasRef = useRef(null);
@@ -46,7 +47,13 @@ export default function ClockHandsOverlay({ size, handAnglesRef, handColor, time
 
       const angles = handAnglesRef?.current || { hour: 0, minute: 0, second: 0 };
       const hours = timeRef.current?.getHours?.() ?? 0;
-      const hourLength = hours >= 12 ? radius * 0.74 : radius * 0.5;
+      const isXsViewport = typeof window !== 'undefined' && window.matchMedia('(max-width: 599px)').matches;
+      const innerRadius = radius * 0.47;
+      const outerRadius = radius * (isXsViewport ? 0.78 : 0.78);
+      const hourLength = hours >= 12 ? outerRadius : innerRadius;
+      const maxHandLength = radius - 4;
+      const minuteLength = radius - 20;
+      const secondLength = Math.min(maxHandLength, outerRadius + radius);
 
       const drawHand = (deg, length, width) => {
         const angle = (deg * Math.PI) / 180;
@@ -63,8 +70,8 @@ export default function ClockHandsOverlay({ size, handAnglesRef, handColor, time
       };
 
       drawHand(angles.hour, hourLength, 6);
-      drawHand(angles.minute, radius * 0.9, 3);
-      drawHand(angles.second, radius * 1, 1);
+      drawHand(angles.minute, minuteLength, 3);
+      drawHand(angles.second, secondLength, 1);
 
       // Center pin
       ctx.beginPath();
@@ -91,3 +98,16 @@ export default function ClockHandsOverlay({ size, handAnglesRef, handColor, time
     />
   );
 }
+
+ClockHandsOverlay.propTypes = {
+  size: PropTypes.number.isRequired,
+  handAnglesRef: PropTypes.shape({
+    current: PropTypes.shape({
+      hour: PropTypes.number,
+      minute: PropTypes.number,
+      second: PropTypes.number,
+    })
+  }),
+  handColor: PropTypes.string.isRequired,
+  time: PropTypes.instanceOf(Date).isRequired,
+};

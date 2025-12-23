@@ -14,9 +14,10 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
     // Scale proportionally based on current size
     const baseSize = 375;
     
-    // Aesthetic style has much thicker donuts (2.67x thicker than normal)
-    // Normal: 30px base, Aesthetic: 80px base (at 375px reference)
-    const baseLineWidth = clockStyle === 'aesthetic' ? 80 : 30;
+    // Aesthetic style has much thicker donuts (2.5x thicker than normal)
+    // Normal: 40px base, Aesthetic: 100px base (at 375px reference)
+    // Increased for compact logo-friendly design
+    const baseLineWidth = clockStyle === 'aesthetic' ? 100 : 40;
     
     // Calculate proportional line width
     const scaleFactor = clockSize / baseSize;
@@ -54,9 +55,9 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
     if (clockStyle === 'minimalistic') {
       numberRadius = 0.5;
     } else if (clockStyle === 'aesthetic') {
-      numberRadius = 0.18; 
+      numberRadius = 0.14; 
     } else {
-      numberRadius = showSessionNamesInCanvas ? 0.24 : 0.29;
+      numberRadius = showSessionNamesInCanvas ? 0.18 : 0.22;
     }
   
     for (let num = 1; num <= 12; num++) {
@@ -100,7 +101,11 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
         if (startHour > endHour || (startHour === endHour && startMinute > endMinute)) {
           angleEnd += Math.PI * 2;
         }
-        const targetRadius = startHour < 12 ? radius * 0.52 : radius * 0.75;
+        const isInnerSession = startHour < 12;
+        const isXsViewport = typeof window !== 'undefined' && window.matchMedia('(max-width: 599px)').matches;
+        const innerRadius = radius * 0.47;
+        const outerRadius = radius * (isXsViewport ? 0.78 : 0.78);
+        const targetRadius = isInnerSession ? innerRadius : outerRadius;
         
         // Use animated line width with smooth interpolation
         const currentWidth = animState.targetLineWidth || (kz === hoveredSession ? hoverLineWidth : lineWidth);
@@ -276,10 +281,11 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
               ctx.textBaseline = 'middle';
               
               // Position text: inner donuts (AM) on inner curve, outer donuts (PM) on outer curve
-              const isInnerDonut = targetRadius === radius * 0.52; // AM sessions
-              const textRadius = isInnerDonut 
-                ? targetRadius - currentWidth / 2 - fontSize * 1.5  // Inner curve for AM (more pronounced curve + spacing)
-                : targetRadius + currentWidth / 2 + fontSize * 1.2; // Outer curve for PM (more spacing)
+              const isInnerDonut = isInnerSession;
+              const maxTextRadius = radius - Math.max(fontSize * 0.6, currentWidth * 0.1); // Keep text inside canvas bounds
+              const textRadius = isInnerDonut
+                ? Math.max(targetRadius - currentWidth / 2 - fontSize * 1.1, fontSize * 2)  // Inner curve for AM
+                : Math.min(targetRadius + currentWidth / 2 + fontSize * 1.1, maxTextRadius); // Outer curve for PM (clamped)
               
               // Calculate middle angle of the arc for centering
               const middleAngle = (adjustedAngleStart + adjustedAngleEnd) / 2;
@@ -330,6 +336,9 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
     if (drawHands) {
       // Draw clock hands using handColor prop
       const hours = time.getHours();
+      const isXsViewport = typeof window !== 'undefined' && window.matchMedia('(max-width: 599px)').matches;
+      const innerRadius = radius * 0.47;
+      const outerRadius = radius * (isXsViewport ? 0.8 : 0.78);
       const drawHand = (angle, length, width, color) => {
         ctx.beginPath();
         ctx.moveTo(centerX, centerY);
@@ -350,21 +359,29 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
         const minuteAngle = handAngles.minute * Math.PI / 180;
         const secondAngle = handAngles.second * Math.PI / 180;
         
-        const hourLength = hours >= 12 ? radius * 0.74 : radius * 0.5;
+        const isPm = hours >= 12;
+        const hourLength = isPm ? outerRadius : innerRadius;
+        const maxHandLength = radius - 4; // keep within canvas bounds
+        const minuteLength = Math.min(maxHandLength, outerRadius * 0.95);
+        const secondLength = Math.min(maxHandLength, outerRadius + radius);
         drawHand(hourAngle, hourLength, 6, handColor);
-        drawHand(minuteAngle, radius * 0.9, 3, handColor);
-        drawHand(secondAngle, radius * 1, 1, handColor);
+        drawHand(minuteAngle, minuteLength, 3, handColor);
+        drawHand(secondAngle, secondLength, 1, handColor);
       } else {
         // Fallback to instant positioning (for backward compatibility)
         const minutes = time.getMinutes();
         const seconds = time.getSeconds();
         const hourAngle = ((hours % 12) * 30 + minutes * 0.5) * Math.PI / 180;
-        const hourLength = hours >= 12 ? radius * 0.74 : radius * 0.5;
+        const isPm = hours >= 12;
+        const hourLength = isPm ? outerRadius : innerRadius;
+        const maxHandLength = radius - 4;
+        const minuteLength = Math.min(maxHandLength, outerRadius * 0.95);
+        const secondLength = Math.min(maxHandLength, outerRadius + radius * 0.08);
         drawHand(hourAngle, hourLength, 6, handColor);
         const minuteAngle = (minutes * 6) * Math.PI / 180;
-        drawHand(minuteAngle, radius * 0.9, 3, handColor);
+        drawHand(minuteAngle, minuteLength, 3, handColor);
         const secondAngle = (seconds * 6) * Math.PI / 180;
-        drawHand(secondAngle, radius * 1, 1, handColor);
+        drawHand(secondAngle, secondLength, 1, handColor);
       }
       
       // Draw center pin/cap that holds the hands

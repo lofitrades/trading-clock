@@ -6,6 +6,8 @@
  * Mobile-first, fully responsive, with verification state management.
  * 
  * Changelog:
+ * v1.1.2 - 2025-12-22 - Redirect social login success to /app instead of root for post-auth landing.
+ * v1.1.1 - 2025-12-22 - Swapped text avatar with official secondary teal logo asset and aligned with brand hierarchy.
  * v1.1.0 - 2025-12-18 - Removed react-helmet-async in favor of lightweight client title updates for /app.
  * v1.0.3 - 2025-12-17 - Allow magic link to auto-link with existing Google accounts instead of blocking cross-provider emails
  * v1.0.2 - 2025-12-17 - Centralized magic link continue URL to production https://time2.trade/ with secure dev fallback
@@ -42,6 +44,8 @@ import ForgotPasswordModal from './ForgotPasswordModal';
 import { buildSeoMeta } from '../utils/seoMeta';
 
 const LOGIN_DESCRIPTION = 'Sign in or create your free Time 2 Trade account with passwordless email links to sync sessions, timezones, and settings across devices.';
+
+const LOGO_SECONDARY_TEAL = `${import.meta.env.BASE_URL}logos/svg/Time2Trade_Logo_Secondary_TealOnWhite_1080.svg`;
 
 const loginMeta = buildSeoMeta({
   title: 'Login | Time 2 Trade',
@@ -107,7 +111,7 @@ export default function LoginPage() {
 
       await signInWithPopup(auth, provider);
       setSuccessMsg(getSuccessMessage('login'));
-      setTimeout(() => navigate('/'), 1000);
+      setTimeout(() => navigate('/app'), 1000);
     } catch (err) {
       setErrorMsg(getFriendlyErrorMessage(err.code));
     }
@@ -170,22 +174,14 @@ export default function LoginPage() {
             }}
           >
             <Box sx={{ textAlign: 'center', mb: 3 }}>
-              <Box
-                sx={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: '50%',
-                  bgcolor: 'primary.main',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto',
-                  mb: 2,
-                }}
-              >
-                <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
-                  T2T
-                </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                <Box
+                  component="img"
+                  src={LOGO_SECONDARY_TEAL}
+                  alt="Time 2 Trade logo"
+                  sx={{ width: 140, maxWidth: '60%', height: 'auto' }}
+                  loading="lazy"
+                />
               </Box>
               <Typography variant="h5" fontWeight="600" gutterBottom>
                 {isSignup ? 'Create your account' : 'Welcome back'}

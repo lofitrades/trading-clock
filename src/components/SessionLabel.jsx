@@ -20,7 +20,7 @@ const formatTimeSmart = (seconds) => {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
-  
+
   if (seconds < 3600) {
     // Less than 1 hour: show mm'm':ss's'
     return `${m.toString().padStart(2, '0')}m:${s.toString().padStart(2, '0')}s`;
@@ -43,17 +43,17 @@ export default function SessionLabel({
   // Responsive scaling based on clock size - clean minimal design
   const baseSize = 375;
   const scaleFactor = Math.min(Math.max(clockSize / baseSize, 0.7), 1.3);
-  
+
   // Font sizes that scale smoothly
   const titleSize = `${0.875 * scaleFactor}rem`; // 14px base
   const iconSize = 12 * scaleFactor;
-  
+
   // Session color with adaptive text
   const sessionColor = activeSession?.color || '#757575';
   const sessionTextColor = isColorDark(sessionColor) ? '#fff' : '#000';
   const outlinedColor = contrastTextColor || '#4B4B4B';
   const outlinedBorderColor = `${outlinedColor}66`;
-  
+
   return (
     <Fade in timeout={400}>
       <Box
@@ -73,6 +73,7 @@ export default function SessionLabel({
             backgroundColor: 'transparent',
             padding: '4px 12px',
             transition: 'all 0.3s ease',
+            mt: 2,
           }}
         >
           {/* Session Status Indicator */}
@@ -112,15 +113,15 @@ export default function SessionLabel({
                           opacity: 0.9,
                         }}
                       >
-                        <CheckCircleIcon 
-                          sx={{ 
+                        <CheckCircleIcon
+                          sx={{
                             fontSize: `${iconSize * 0.85}px`,
                             animation: 'pulse 2s ease-in-out infinite',
                             '@keyframes pulse': {
                               '0%, 100%': { opacity: 1 },
                               '50%': { opacity: 0.6 },
                             },
-                          }} 
+                          }}
                         />
                         <span style={{ fontWeight: 500 }}>
                           Ends in: {formatTimeSmart(timeToEnd)}

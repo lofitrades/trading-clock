@@ -6,51 +6,39 @@ This document defines the approved usage, variants, and color specifications for
 
 ## 1️⃣ Brand Identity Overview
 
-The brand has **two official logo variants**, each serving a different purpose:
+The brand has **three tiers**, ordered by priority:
 
-### Primary Logo — *Mono Teal*
+1. **Primary Logo — Multicolor** (default for expressive and brand-forward contexts)
+2. **Secondary Logo — Color Variations** (teal/white swaps for product UI and clarity)
+3. **Other Logo — Black** (rare, accessibility or monochrome constraints only)
 
-Used for the product, UI, and corporate environments.
-Represents trust, professionalism, and consistency.
-
-### Secondary Logo — *Multicolor*
-
-Used for marketing, storytelling, and user-facing brand moments.
-Represents creativity, friendliness, and energy.
-
-Both are official and valid.
+All variants must keep shape, spacing, and stroke proportions intact.
 
 ---
 
-## 2️⃣ Primary Logo (Mono Teal)
+## 2️⃣ Primary Logo (Multicolor)
 
 ### Default Use Cases
 
-* In-app UI
-* Navigation bars
-* Product interface
-* Platform/system UI
-* Formal/enterprise contexts
-* Corporate documents
+* Marketing website and landing pages
+* Hero sections and storytelling moments
+* Presentation slides and social media
+* Brand-forward UI moments (sparingly)
 
 ### Color Specification
 
-**Teal Brand Color**
+| Arc Position | Hex                             |
+| ------------ | ------------------------------- |
+| Top Left     | `#4E7DFF` (Blue)                |
+| Bottom Left  | `#FFA85C` (Orange)              |
+| Right Large  | `#018786` (Teal — brand anchor) |
+| Right Inner  | `#FF6F91` (Pink)                |
+| Bottom Small | `#8B6CFF` (Purple)              |
 
-```
-#018786
-```
+### Files (preferred)
 
-**Optional Supporting Dark Variant**
-
-```
-#006064
-```
-
-### Variants
-
-* Teal arcs on white background → Default usage
-* White arcs on teal background → Inverse usage when needed
+* Multicolor (opaque): Time2Trade_Logo_Main_Multicolor_1080.png / .svg
+* Multicolor (transparent): Time2Trade_Logo_Main_Multicolor_Transparent_1080.png / .svg
 
 ### Rules
 
@@ -61,28 +49,14 @@ Both are official and valid.
 
 ---
 
-## 3️⃣ Secondary Logo (Multicolor)
+## 3️⃣ Secondary Logo (Color Variations)
 
 ### Default Use Cases
 
-* Marketing website
-* Hero sections
-* Landing pages
-* Presentation slides
-* Social media
-* Emotional storytelling contexts
-
-### Color System
-
-Use the following fixed colors for each arc:
-
-| Arc Position | Hex                             |
-| ------------ | ------------------------------- |
-| Top Left     | `#4E7DFF` (Blue)                |
-| Bottom Left  | `#FFA85C` (Orange)              |
-| Right Large  | `#018786` (Teal — brand anchor) |
-| Right Inner  | `#FF6F91` (Pink)                |
-| Bottom Small | `#8B6CFF` (Purple)              |
+* In-app UI (default)
+* Navigation bars and system UI
+* Formal/enterprise contexts
+* Corporate documents and data-heavy screens
 
 ### Rules
 
@@ -92,19 +66,42 @@ Use the following fixed colors for each arc:
 * Do not change the order of colors
 * Do not randomize colors in different contexts
 
+### Variants + Files
+
+* Teal on white (default product): Time2Trade_Logo_Secondary_TealOnWhite_1080.png / .svg
+* Teal transparent: Time2Trade_Logo_Secondary_Teal_Transparent_1080.png / .svg
+* White on teal (inverse): Time2Trade_Logo_Secondary_WhiteOnTeal_1080.png / .svg
+* White transparent: Time2Trade_Logo_Secondary_White_Transparent_1080.png / .svg
+
 ---
 
-## 4️⃣ Favicon & Small Icon Usage
+## 4️⃣ Other Logo (Very Occasional Use)
+
+### Default Use Cases
+
+* Monochrome-only environments
+* Legacy or accessibility-driven constraints where teal/white fail contrast
+* Watermarks that must stay grayscale
+
+### File
+
+* Black transparent: Time2Trade_Logo_Other_Black_Transparent_1080.png / .svg
+
+Use only when Primary or Secondary options are unsuitable.
+
+---
+
+## 5️⃣ Favicon & Small Icon Usage
 
 For extremely small usage sizes:
 
-* Prefer **mono teal logo**
-* Or white arcs on teal background for visibility
-* If necessary, a special “thicker stroke” export may be created for clarity (design asset level)
+* Prefer teal-based secondary variants for clarity
+* White-on-teal is acceptable when dark backgrounds are required
+* Favicon set: android-chrome-192x192.png, android-chrome-512x512.png, apple-touch-icon.png, favicon-16x16.png, favicon-32x32.png, favicon.ico
 
 ---
 
-## 5️⃣ Background & Contrast Rules
+## 6️⃣ Background & Contrast Rules
 
 ### Light Mode
 
@@ -119,7 +116,7 @@ For extremely small usage sizes:
 
 ---
 
-## 6️⃣ Brand Integrity Rules
+## 7️⃣ Brand Integrity Rules
 
 To protect the identity:
 
@@ -137,7 +134,7 @@ To protect the identity:
 
 ---
 
-## 7️⃣ Decision Guidance
+## 8️⃣ Decision Guidance
 
 If unsure which logo to use:
 
@@ -148,8 +145,6 @@ If unsure which logo to use:
 
 ---
 
-## 8️⃣ Official Status
+## 9️⃣ Official Status
 
-Both logos are approved.
-Mono teal is the **primary identity**.
-Multicolor is the **secondary expressive identity**.
+All logos above are approved within the stated hierarchy: Primary (Multicolor) → Secondary (Color Variations) → Other (Black, rare).
