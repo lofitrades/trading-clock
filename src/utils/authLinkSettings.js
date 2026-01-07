@@ -5,14 +5,20 @@
  * Provides consistent actionCodeSettings for dev and production domains to avoid misrouted links.
  * 
  * Changelog:
+ * v1.2.0 - 2026-01-07 - Allow custom continue path (defaults to /app) so calendar embeds can keep users on /calendar after auth.
+ * v1.1.0 - 2025-12-22 - Route magic link continue URLs to /app across environments so email links land on the authenticated app shell.
  * v1.0.0 - 2025-12-17 - Added helper returning actionCodeSettings with production https://time2.trade/ and dev localhost fallback.
  */
+const PROD_BASE_URL = 'https://time2.trade';
+const DEV_BASE_URL = 'http://localhost:5173';
+const GH_PAGES_BASE_URL = 'https://lofitrades.github.io/trading-clock';
 
-const PROD_CONTINUE_URL = 'https://time2.trade/';
-const DEV_CONTINUE_URL = 'http://localhost:5173/';
-const GH_PAGES_CONTINUE_URL = 'https://lofitrades.github.io/trading-clock/';
+const buildUrl = (base, path) => {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${normalizedPath}`;
+};
 
-export function getMagicLinkActionCodeSettings() {
+export function getMagicLinkActionCodeSettings(path = '/app') {
   const { hostname, origin } = window.location;
   const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
   const isProdHost = hostname === 'time2.trade' || hostname?.endsWith('.time2.trade');
@@ -20,28 +26,28 @@ export function getMagicLinkActionCodeSettings() {
 
   if (isLocalhost) {
     return {
-      url: DEV_CONTINUE_URL,
+      url: buildUrl(DEV_BASE_URL, path),
       handleCodeInApp: true,
     };
   }
 
   if (isProdHost) {
     return {
-      url: PROD_CONTINUE_URL,
+      url: buildUrl(PROD_BASE_URL, path),
       handleCodeInApp: true,
     };
   }
 
   if (isGithubHost) {
     return {
-      url: GH_PAGES_CONTINUE_URL,
+      url: buildUrl(GH_PAGES_BASE_URL, path),
       handleCodeInApp: true,
     };
   }
 
   // Fallback to current origin for any staged/custom domains while avoiding localhost misuse
   return {
-    url: `${origin}/`,
+    url: buildUrl(origin, path),
     handleCodeInApp: true,
   };
 }

@@ -1007,6 +1007,8 @@ const EventCard = memo(({
 
   const [favoriteMenuAnchor, setFavoriteMenuAnchor] = useState(null);
   const touchStartRef = useRef(null);
+  const TAP_DISTANCE_THRESHOLD = 15;
+  const TAP_TIME_THRESHOLD = 800;
 
   const handleFavoriteRemove = () => {
     if (onToggleFavorite) {
@@ -1029,6 +1031,13 @@ const EventCard = memo(({
   const handleTouchEnd = (e) => {
     if (!touchStartRef.current) return;
 
+    const target = e.target;
+    const isInteractiveElement = target.closest('button') || target.closest('a') || target.closest('[role="button"]');
+    if (isInteractiveElement) {
+      touchStartRef.current = null;
+      return;
+    }
+
     const touchEnd = {
       x: e.changedTouches[0].clientX,
       y: e.changedTouches[0].clientY,
@@ -1040,12 +1049,16 @@ const EventCard = memo(({
     const deltaTime = touchEnd.time - touchStartRef.current.time;
 
     // Only trigger click if touch didn't move much (not a scroll) and was quick
-    if (deltaX < 10 && deltaY < 10 && deltaTime < 500) {
+    if (deltaX < TAP_DISTANCE_THRESHOLD && deltaY < TAP_DISTANCE_THRESHOLD && deltaTime < TAP_TIME_THRESHOLD) {
       if (onCardClick && !e.defaultPrevented) {
         onCardClick(event);
       }
     }
 
+    touchStartRef.current = null;
+  };
+
+  const handleTouchCancel = () => {
     touchStartRef.current = null;
   };
 
@@ -1070,6 +1083,12 @@ const EventCard = memo(({
     if (onToggleFavorite) {
       onToggleFavorite(event);
     }
+  };
+
+  // Ensure favorite menu opens on touch (mobile) without triggering card click
+  const handleFavoriteTouch = (e) => {
+    e.preventDefault();
+    handleFavoriteClick(e);
   };
 
   const handleNotesClick = (e) => {
@@ -1119,6 +1138,7 @@ const EventCard = memo(({
       onClick={handleClick}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
       sx={{
         position: 'relative',
         cursor: 'pointer',
@@ -1221,6 +1241,7 @@ const EventCard = memo(({
                   <IconButton
                     size="small"
                     onClick={handleFavoriteClick}
+                    onTouchEnd={handleFavoriteTouch}
                     disabled={favoriteDisabled}
                     sx={{
                       flexShrink: 0,

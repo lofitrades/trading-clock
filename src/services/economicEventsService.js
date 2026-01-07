@@ -5,6 +5,7 @@
  * Supports multi-source economic calendar data (mql5, forex-factory, fxstreet)
  * 
  * Changelog:
+ * v2.5.1 - 2026-01-06 - Improved event name formatting to preserve common acronyms (NFP, GDP, CPI, etc.) while keeping matching behavior intact.
  * v2.5.0 - 2025-12-12 - Added cached description index and helper for description availability checks (reduces per-event Firestore reads).
  * v2.4.1 - 2025-12-11 - Normalized impact values for consistent filtering across canonical and legacy data paths.
  * v2.4.0 - 2025-12-11 - Canonical-aware filters (currencies/categories), title-casing event names, cache alignment for canonical path.
@@ -33,16 +34,77 @@ import { getEconomicEventsCollectionRef } from './firestoreHelpers';
 import { DEFAULT_NEWS_SOURCE } from '../types/economicEvents';
 import { fetchCanonicalEconomicEvents } from './canonicalEconomicEventsService';
 
-// Title-case helper for event names (keeps short all-caps acronyms intact)
+// Common economic acronyms to preserve in uppercase or preferred casing
+const ACRONYM_MAP = new Map([
+  ['gdp', 'GDP'],
+  ['cpi', 'CPI'],
+  ['ppi', 'PPI'],
+  ['pce', 'PCE'],
+  ['pmi', 'PMI'],
+  ['ism', 'ISM'],
+  ['nfp', 'NFP'],
+  ['fomc', 'FOMC'],
+  ['ecb', 'ECB'],
+  ['boe', 'BoE'],
+  ['boj', 'BoJ'],
+  ['boc', 'BoC'],
+  ['snb', 'SNB'],
+  ['rba', 'RBA'],
+  ['rbnz', 'RBNZ'],
+  ['opec', 'OPEC'],
+  ['eia', 'EIA'],
+  ['api', 'API'],
+  ['ifo', 'IFO'],
+  ['zew', 'ZEW'],
+  ['adp', 'ADP'],
+  ['mom', 'MoM'],
+  ['yoy', 'YoY'],
+  ['qoq', 'QoQ'],
+  ['m/m', 'M/M'],
+  ['y/y', 'Y/Y'],
+  ['q/q', 'Q/Q'],
+  ['uom', 'UoM'],
+]);
+
+// Title-case helper for event names with acronym preservation
 function formatEventName(name = '') {
   if (!name) return '';
+
+  const formatToken = (token = '') => {
+    if (!token) return '';
+
+    const leading = token.match(/^[^A-Za-z0-9]+/)?.[0] ?? '';
+    const trailing = token.match(/[^A-Za-z0-9%]+$/)?.[0] ?? '';
+    const core = token.slice(leading.length, token.length - trailing.length);
+    if (!core) return token;
+
+    const lowerCore = core.toLowerCase();
+
+    const mapped = ACRONYM_MAP.get(lowerCore);
+    if (mapped) return `${leading}${mapped}${trailing}`;
+
+    if (/^[A-Z0-9]{2,}$/.test(core)) {
+      return `${leading}${core}${trailing}`;
+    }
+
+    const hyphenCased = core
+      .split('-')
+      .map((part) => {
+        if (!part) return part;
+        const partLower = part.toLowerCase();
+        const partMapped = ACRONYM_MAP.get(partLower);
+        if (partMapped) return partMapped;
+        if (/^[A-Z0-9]{2,}$/.test(part)) return part;
+        return partLower.charAt(0).toUpperCase() + partLower.slice(1);
+      })
+      .join('-');
+
+    return `${leading}${hyphenCased}${trailing}`;
+  };
+
   return name
     .split(/\s+/)
-    .map((word) => {
-      if (word.length <= 3 && word === word.toUpperCase()) return word; // Keep acronyms
-      const lower = word.toLowerCase();
-      return lower.charAt(0).toUpperCase() + lower.slice(1);
-    })
+    .map((token) => formatToken(token))
     .join(' ');
 }
 

@@ -5,6 +5,12 @@
  * Renders impact-based icons on AM (inner) and PM (outer) rings using current filters and news source.
  *
  * Changelog:
+ * v1.13.4 - 2026-01-06 - Keep marker currency flags visible for passed events and gray them out to match tooltip behavior.
+ * v1.13.3 - 2026-01-06 - Remove legacy allowedEventKeys hook dependency so overlay runs standalone without ReferenceError.
+ * v1.13.2 - 2026-01-06 - Overlay always shows today's events (timezone-aware) regardless of date range filters; impact/currency filters still apply for performance.
+ * v1.13.1 - 2026-01-06 - Honor allowedEventKeys so filtered-out events never render markers or tooltips.
+ * v1.13.0 - 2026-01-06 - Refine hover detection so tooltips show on hybrid devices; add embed-ready parity for non-autoscrolling marker clicks.
+ * v1.12.9 - 2025-12-22 - Add disableTooltips option so landing hero preview can show markers without opening marker tooltips.
  * v1.12.8 - 2025-12-22 - Add suppressTooltipAutoscroll to tooltip close listener deps to satisfy lint and keep effect in sync.
  * v1.12.7 - 2025-12-22 - Measure overlay bounds and fill parent to keep markers centered when containers add padding/margins (e.g., Paper hero card).
  * v1.12.6 - 2025-12-22 - Align marker radii with ClockCanvas (0.47/0.78) so markers stay centered on AM/PM arcs inside responsive app paper layouts.
@@ -55,7 +61,7 @@ import { Box, Tooltip, Typography, Stack, alpha, Divider, Chip } from '@mui/mate
 import { getEventsByDateRange } from '../services/economicEventsService';
 import { sortEventsByTime } from '../utils/newsApi';
 import { formatTime } from '../utils/dateUtils';
-import { getCurrencyFlag } from './EventsTimeline2';
+import { getCurrencyFlag } from '../utils/currencyFlags';
 import { useFavorites } from '../hooks/useFavorites';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import { useEventNotes } from '../hooks/useEventNotes';
@@ -120,6 +126,12 @@ const formatTimeToEvent = (dateLike, _timezone, nowEpochMs) => {
   return formatRelativeLabel({ eventEpochMs, nowEpochMs, nowWindowMs: NOW_WINDOW_MS });
 };
 
+const makeEventKey = (evt) => {
+  const epoch = getEventEpochMs(evt);
+  const identifier = evt?.id || evt?.Event_ID || evt?.name || evt?.Name || 'event';
+  return `${identifier}-${epoch ?? 'na'}`;
+};
+
 const useTimeParts = (timezone) => {
   const formatter = useMemo(
     () =>
@@ -142,7 +154,7 @@ const useTimeParts = (timezone) => {
   };
 };
 
-function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventClick, onLoadingStateChange, suppressTooltipAutoscroll = false }) {
+function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventClick, onLoadingStateChange, suppressTooltipAutoscroll = false, disableTooltips = false }) {
   const [events, setEvents] = useState([]);
   const [nowTick, setNowTick] = useState(Date.now());
   const [openMarkerKey, setOpenMarkerKey] = useState(null);
@@ -158,8 +170,15 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
 
   const isTouchDevice = useMemo(() => {
     if (typeof window === 'undefined') return false;
-    return 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+    const supportsHover = typeof window.matchMedia === 'function' && window.matchMedia('(hover: hover)').matches;
+    const hasCoarsePointer = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    const touchCapable = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+    return !supportsHover && hasCoarsePointer && touchCapable;
   }, []);
+
+  const impactsKey = useMemo(() => (eventFilters?.impacts ? eventFilters.impacts.join('|') : ''), [eventFilters?.impacts]);
+  const eventTypesKey = useMemo(() => (eventFilters?.eventTypes ? eventFilters.eventTypes.join('|') : ''), [eventFilters?.eventTypes]);
+  const currenciesKey = useMemo(() => (eventFilters?.currencies ? eventFilters.currencies.join('|') : ''), [eventFilters?.currencies]);
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current) {
@@ -321,16 +340,9 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
 
     const load = async () => {
       try {
-        // Use eventFilters date range if provided, otherwise default to today
-        let start, end;
-        if (eventFilters?.startDate && eventFilters?.endDate) {
-          start = new Date(eventFilters.startDate);
-          end = new Date(eventFilters.endDate);
-        } else {
-          const todayRange = getTodayRangeInTimezone(timezone);
-          start = todayRange.start;
-          end = todayRange.end;
-        }
+        const todayRange = getTodayRangeInTimezone(timezone);
+        const start = todayRange.start;
+        const end = todayRange.end;
 
         const result = await getEventsByDateRange(start, end, {
           source: newsSource,
@@ -357,7 +369,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
     return () => {
       cancelled = true;
     };
-  }, [timezone, newsSource, eventFilters?.impacts, eventFilters?.eventTypes, eventFilters?.currencies, eventFilters?.startDate, eventFilters?.endDate, onLoadingStateChange]);
+  }, [timezone, newsSource, impactsKey, eventTypesKey, currenciesKey, onLoadingStateChange, eventFilters?.impacts, eventFilters?.eventTypes, eventFilters?.currencies]);
 
   // CRITICAL: Use absolute epoch milliseconds - timezone only affects display
   const nowEpochMs = nowTick;
@@ -368,10 +380,13 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
   }, []);
 
   const filteredEvents = useMemo(() => {
+    let result = events;
+
     if (eventFilters?.favoritesOnly) {
-      return events.filter((evt) => isFavorite(evt));
+      result = result.filter((evt) => isFavorite(evt));
     }
-    return events;
+
+    return result;
   }, [eventFilters?.favoritesOnly, events, isFavorite]);
 
   const earliestFuture = useMemo(() => {
@@ -624,6 +639,9 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
           position: 'absolute',
           left: x,
           top: y,
+          width: 24,
+          height: 24,
+          borderRadius: '50%',
           transform: 'translate(-50%, -50%)',
           transformOrigin: 'center',
           backgroundColor: marker.isNow
@@ -646,7 +664,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
                   ? `nextScale ${MARKER_ANIM_MS}ms ease-in-out ${Math.round(MARKER_ANIM_MS * 0.15)}ms infinite`
                   : 'none'
               }`,
-          cursor: 'pointer',
+          cursor: disableTooltips ? 'default' : 'pointer',
           userSelect: 'none',
           zIndex,
           '@keyframes nowScale': {
@@ -677,258 +695,346 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
           },
         };
 
-        // Group events by day for dividers
-        const eventsByDay = marker.events.reduce((acc, evt) => {
-          const eventDate = new Date(evt.date || evt.dateTime || evt.Date);
-          const dayKey = eventDate.toLocaleDateString('en-US', {
+        let tooltipContent = null;
+        if (!disableTooltips) {
+          // Group events by day for dividers
+          const eventsByDay = marker.events.reduce((acc, evt) => {
+            const eventDate = new Date(evt.date || evt.dateTime || evt.Date);
+            const dayKey = eventDate.toLocaleDateString('en-US', {
+              timeZone: timezone,
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric'
+            });
+            if (!acc[dayKey]) acc[dayKey] = [];
+            acc[dayKey].push(evt);
+            return acc;
+          }, {});
+
+          const dayKeys = Object.keys(eventsByDay);
+          const hasMultipleDays = dayKeys.length > 1;
+
+          // Passed-state colors: slightly muted but still AA-readable on #111 background.
+          const passedPrimaryColor = 'rgba(255,255,255,0.74)';
+          const passedSecondaryColor = 'rgba(255,255,255,0.64)';
+          const activeDayHeaderColor = 'rgba(255,255,255,0.82)';
+          const passedDayHeaderColor = 'rgba(255,255,255,0.72)';
+
+          // Determine "Today" for comparison
+          const todayKey = new Date().toLocaleDateString('en-US', {
             timeZone: timezone,
             weekday: 'short',
             month: 'short',
             day: 'numeric'
           });
-          if (!acc[dayKey]) acc[dayKey] = [];
-          acc[dayKey].push(evt);
-          return acc;
-        }, {});
 
-        const dayKeys = Object.keys(eventsByDay);
-        const hasMultipleDays = dayKeys.length > 1;
+          tooltipContent = (
+            <Stack spacing={0.5} sx={{ minWidth: 240 }}>
+              {dayKeys.map((dayKey, dayIndex) => (
+                <React.Fragment key={dayKey}>
+                  {(() => {
+                    const dayHasUpcoming = (eventsByDay[dayKey] || []).some((evt) => {
+                      const epochMs = getEventEpochMs(evt);
+                      if (epochMs === null) return false;
+                      const isNowEvent = nowEpochMs >= epochMs && nowEpochMs < epochMs + NOW_WINDOW_MS;
+                      return epochMs >= nowEpochMs || isNowEvent;
+                    });
+                    const dayHeaderColor = dayHasUpcoming ? activeDayHeaderColor : passedDayHeaderColor;
 
-        // Passed-state colors: slightly muted but still AA-readable on #111 background.
-        const passedPrimaryColor = 'rgba(255,255,255,0.74)';
-        const passedSecondaryColor = 'rgba(255,255,255,0.64)';
-        const activeDayHeaderColor = 'rgba(255,255,255,0.82)';
-        const passedDayHeaderColor = 'rgba(255,255,255,0.72)';
+                    const isTodayHeader = dayKey === todayKey;
 
-        // Determine "Today" for comparison
-        const todayKey = new Date().toLocaleDateString('en-US', {
-          timeZone: timezone,
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric'
-        });
+                    return (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 700,
+                          color: isTodayHeader ? 'primary.contrastText' : dayHeaderColor,
+                          bgcolor: isTodayHeader ? 'primary.main' : 'transparent',
+                          pl: isTodayHeader ? 1 : 0.5,
+                          pr: isTodayHeader ? 2 : 1.75,
+                          py: isTodayHeader ? 0.5 : 0,
+                          mt: dayIndex > 0 ? 0.5 : 0,
+                          fontSize: '0.7rem',
+                          letterSpacing: 0.5,
+                          lineHeight: 1.2,
+                          display: 'block',
+                          // Reserve space so right rounded corners don't sit under the scrollbar.
+                          width: '100%', // 'calc(100% - 10px)',
+                          //mr: '10px',
+                          boxSizing: 'border-box',
+                          borderRadius: isTodayHeader ? 1 : 0,
+                        }}
+                      >
+                        {isTodayHeader ? 'Today - ' : ''}{dayKey}
+                      </Typography>
+                    );
+                  })()}
+                  {eventsByDay[dayKey].map((evt) => {
+                    const timeLabel = formatTime(evt.date || evt.dateTime || evt.Date, timezone);
+                    const impactMeta = getImpactMeta(evt.impact || evt.strength || evt.Strength);
+                    const currency = evt.currency || evt.Currency;
+                    const countryCode = currency ? getCurrencyFlag(currency) : null;
+                    const timeToEvent = formatTimeToEvent(evt.date || evt.dateTime || evt.Date, timezone, nowEpochMs);
+                    const isEventFavorite = isFavorite(evt);
+                    const hasEventNotes = hasNotes(evt);
 
-        const tooltipContent = (
-          <Stack spacing={0.5} sx={{ minWidth: 240 }}>
-            {dayKeys.map((dayKey, dayIndex) => (
-              <React.Fragment key={dayKey}>
-                {(() => {
-                  const dayHasUpcoming = (eventsByDay[dayKey] || []).some((evt) => {
-                    const epochMs = getEventEpochMs(evt);
-                    if (epochMs === null) return false;
-                    const isNowEvent = nowEpochMs >= epochMs && nowEpochMs < epochMs + NOW_WINDOW_MS;
-                    return epochMs >= nowEpochMs || isNowEvent;
-                  });
-                  const dayHeaderColor = dayHasUpcoming ? activeDayHeaderColor : passedDayHeaderColor;
+                    // Check if this event is NOW or NEXT or PASSED
+                    const eventEpochMs = getEventEpochMs(evt);
+                    const hasValidEpoch = eventEpochMs !== null;
+                    const isEventNow = hasValidEpoch && nowEpochMs >= eventEpochMs && nowEpochMs < eventEpochMs + NOW_WINDOW_MS;
+                    const isEventNext = hasValidEpoch && !isEventNow && earliestFuture !== null && eventEpochMs === earliestFuture;
+                    const isEventPassed = hasValidEpoch && eventEpochMs < nowEpochMs && !isEventNow;
 
-                  const isTodayHeader = dayKey === todayKey;
-
-                  return (
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontWeight: 700,
-                        color: isTodayHeader ? 'primary.contrastText' : dayHeaderColor,
-                        bgcolor: isTodayHeader ? 'primary.main' : 'transparent',
-                        pl: isTodayHeader ? 1 : 0.5,
-                        pr: isTodayHeader ? 2 : 1.75,
-                        py: isTodayHeader ? 0.5 : 0,
-                        mt: dayIndex > 0 ? 0.5 : 0,
-                        fontSize: '0.7rem',
-                        letterSpacing: 0.5,
-                        lineHeight: 1.2,
-                        display: 'block',
-                        // Reserve space so right rounded corners don't sit under the scrollbar.
-                        width: '100%', // 'calc(100% - 10px)',
-                        //mr: '10px',
-                        boxSizing: 'border-box',
-                        borderRadius: isTodayHeader ? 1 : 0,
-                      }}
-                    >
-                      {isTodayHeader ? 'Today - ' : ''}{dayKey}
-                    </Typography>
-                  );
-                })()}
-                {eventsByDay[dayKey].map((evt) => {
-                  const timeLabel = formatTime(evt.date || evt.dateTime || evt.Date, timezone);
-                  const impactMeta = getImpactMeta(evt.impact || evt.strength || evt.Strength);
-                  const currency = evt.currency || evt.Currency;
-                  const countryCode = currency ? getCurrencyFlag(currency) : null;
-                  const timeToEvent = formatTimeToEvent(evt.date || evt.dateTime || evt.Date, timezone, nowEpochMs);
-                  const isEventFavorite = isFavorite(evt);
-                  const hasEventNotes = hasNotes(evt);
-
-                  // Check if this event is NOW or NEXT or PASSED
-                  const eventEpochMs = getEventEpochMs(evt);
-                  const hasValidEpoch = eventEpochMs !== null;
-                  const isEventNow = hasValidEpoch && nowEpochMs >= eventEpochMs && nowEpochMs < eventEpochMs + NOW_WINDOW_MS;
-                  const isEventNext = hasValidEpoch && !isEventNow && earliestFuture !== null && eventEpochMs === earliestFuture;
-                  const isEventPassed = hasValidEpoch && eventEpochMs < nowEpochMs && !isEventNow;
-
-                  return (
-                    <Box
-                      key={`${evt.id}-${evt.name || evt.Name}`}
-                      data-t2t-event-row-state={isEventPassed ? 'past' : isEventNow ? 'now' : isEventNext ? 'next' : 'upcoming'}
-                      data-t2t-event-row-id={evt.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleTooltipEventSelect(evt);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
+                    return (
+                      <Box
+                        key={`${evt.id}-${evt.name || evt.Name}`}
+                        data-t2t-event-row-state={isEventPassed ? 'past' : isEventNow ? 'now' : isEventNext ? 'next' : 'upcoming'}
+                        data-t2t-event-row-id={evt.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
                           handleTooltipEventSelect(evt);
-                        }
-                      }}
-                      sx={{
-                        display: 'flex',
-                        gap: 1,
-                        alignItems: 'flex-start',
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                        borderRadius: 1,
-                        px: 0.5,
-                        py: 0.25,
-                        '&:hover': isTouchDevice ? undefined : { bgcolor: alpha('#fff', 0.08) },
-                        '&:focus-visible': {
-                          outline: '2px solid rgba(255,255,255,0.35)',
-                          outlineOffset: 2,
-                        },
-                      }}
-                    >
-                      <Chip
-                        component="span"
-                        label={impactMeta.icon}
-                        size="small"
-                        aria-label={`${impactMeta.label} impact`}
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleTooltipEventSelect(evt);
+                          }
+                        }}
                         sx={{
-                          minWidth: 40,
-                          height: 20,
-                          mt: '2px',
-                          flex: '0 0 auto',
-                          bgcolor: isEventPassed ? '#616161' : impactMeta.color,
-                          color: '#fff',
-                          fontWeight: 700,
-                          fontSize: '0.75rem',
-                          fontFamily: 'monospace',
-                          '& .MuiChip-label': {
-                            px: 0.75,
-                            py: 0,
+                          display: 'flex',
+                          gap: 1,
+                          alignItems: 'flex-start',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          borderRadius: 1,
+                          px: 0.5,
+                          py: 0.25,
+                          '&:hover': isTouchDevice ? undefined : { bgcolor: alpha('#fff', 0.08) },
+                          '&:focus-visible': {
+                            outline: '2px solid rgba(255,255,255,0.35)',
+                            outlineOffset: 2,
                           },
                         }}
-                      />
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                          variant="body2"
+                      >
+                        <Chip
+                          component="span"
+                          label={impactMeta.icon}
+                          size="small"
+                          aria-label={`${impactMeta.label} impact`}
                           sx={{
+                            minWidth: 40,
+                            height: 20,
+                            mt: '2px',
+                            flex: '0 0 auto',
+                            bgcolor: isEventPassed ? '#616161' : impactMeta.color,
+                            color: '#fff',
                             fontWeight: 700,
-                            lineHeight: 1.3,
-                            color: isEventPassed ? passedPrimaryColor : '#fff',
+                            fontSize: '0.75rem',
+                            fontFamily: 'monospace',
+                            '& .MuiChip-label': {
+                              px: 0.75,
+                              py: 0,
+                            },
                           }}
-                        >
-                          {evt.name || evt.Name}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.75,
-                            flexWrap: 'wrap',
-                            color: isEventPassed ? passedSecondaryColor : 'rgba(255,255,255,0.82)',
-                          }}
-                        >
-                          <span>{timeLabel}</span>
-                          {currency && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                              {countryCode ? (
-                                <span
-                                  className={`fi fi-${countryCode}`}
-                                  style={{
-                                    display: 'inline-block',
-                                    width: 16,
-                                    height: 12,
-                                    borderRadius: 2,
-                                    boxShadow: '0 0 0 1px rgba(255,255,255,0.18)',
-                                    opacity: isEventPassed ? 0.75 : 1,
-                                    filter: isEventPassed ? 'grayscale(1)' : 'none',
-                                  }}
-                                  title={currency}
-                                />
-                              ) : null}
-                              <span>{currency}</span>
-                            </span>
-                          )}
-                          {timeToEvent && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                              · {timeToEvent}
-                              {isEventNow && (
-                                <Box
-                                  component="span"
-                                  sx={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    px: 0.5,
-                                    py: 0.125,
-                                    bgcolor: '#0288d1',
-                                    color: '#fff',
-                                    borderRadius: 0.5,
-                                    fontSize: '0.6rem',
-                                    fontWeight: 700,
-                                    textTransform: 'uppercase',
-                                    letterSpacing: 0.5,
-                                    ml: 0.5,
-                                  }}
-                                >
-                                  NOW
-                                </Box>
-                              )}
-                              {isEventNext && (
-                                <Box
-                                  component="span"
-                                  sx={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    px: 0.5,
-                                    py: 0.125,
-                                    bgcolor: '#018786',
-                                    color: '#fff',
-                                    borderRadius: 0.5,
-                                    fontSize: '0.6rem',
-                                    fontWeight: 700,
-                                    textTransform: 'uppercase',
-                                    letterSpacing: 0.5,
-                                    ml: 0.5,
-                                  }}
-                                >
-                                  NEXT
-                                </Box>
-                              )}
-                              {isEventFavorite && (
-                                <FavoriteIcon sx={{ fontSize: 12, color: isEventPassed ? passedSecondaryColor : '#f50057', ml: 0.25 }} />
-                              )}
-                              {hasEventNotes && (
-                                <NoteAltIcon sx={{ fontSize: 12, color: isEventPassed ? passedSecondaryColor : '#fff', ml: 0.25 }} />
-                              )}
-                            </span>
-                          )}
-                          {evt.category || evt.Category ? <span>· {evt.category || evt.Category}</span> : null}
-                        </Typography>
+                        />
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 700,
+                              lineHeight: 1.3,
+                              color: isEventPassed ? passedPrimaryColor : '#fff',
+                            }}
+                          >
+                            {evt.name || evt.Name}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.75,
+                              flexWrap: 'wrap',
+                              color: isEventPassed ? passedSecondaryColor : 'rgba(255,255,255,0.82)',
+                            }}
+                          >
+                            <span>{timeLabel}</span>
+                            {currency && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                {countryCode ? (
+                                  <span
+                                    className={`fi fi-${countryCode}`}
+                                    style={{
+                                      display: 'inline-block',
+                                      width: 16,
+                                      height: 12,
+                                      borderRadius: 2,
+                                      boxShadow: '0 0 0 1px rgba(255,255,255,0.18)',
+                                      opacity: isEventPassed ? 0.75 : 1,
+                                      filter: isEventPassed ? 'grayscale(1)' : 'none',
+                                    }}
+                                    title={currency}
+                                  />
+                                ) : null}
+                                <span>{currency}</span>
+                              </span>
+                            )}
+                            {timeToEvent && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                · {timeToEvent}
+                                {isEventNow && (
+                                  <Box
+                                    component="span"
+                                    sx={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      px: 0.5,
+                                      py: 0.125,
+                                      bgcolor: '#0288d1',
+                                      color: '#fff',
+                                      borderRadius: 0.5,
+                                      fontSize: '0.6rem',
+                                      fontWeight: 700,
+                                      textTransform: 'uppercase',
+                                      letterSpacing: 0.5,
+                                      ml: 0.5,
+                                    }}
+                                  >
+                                    NOW
+                                  </Box>
+                                )}
+                                {isEventNext && (
+                                  <Box
+                                    component="span"
+                                    sx={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      px: 0.5,
+                                      py: 0.125,
+                                      bgcolor: '#018786',
+                                      color: '#fff',
+                                      borderRadius: 0.5,
+                                      fontSize: '0.6rem',
+                                      fontWeight: 700,
+                                      textTransform: 'uppercase',
+                                      letterSpacing: 0.5,
+                                      ml: 0.5,
+                                    }}
+                                  >
+                                    NEXT
+                                  </Box>
+                                )}
+                                {isEventFavorite && (
+                                  <FavoriteIcon sx={{ fontSize: 12, color: isEventPassed ? passedSecondaryColor : '#f50057', ml: 0.25 }} />
+                                )}
+                                {hasEventNotes && (
+                                  <NoteAltIcon sx={{ fontSize: 12, color: isEventPassed ? passedSecondaryColor : '#fff', ml: 0.25 }} />
+                                )}
+                              </span>
+                            )}
+                            {evt.category || evt.Category ? <span>· {evt.category || evt.Category}</span> : null}
+                          </Typography>
+                        </Box>
                       </Box>
-                    </Box>
-                  );
-                })}
-                {hasMultipleDays && dayIndex < dayKeys.length - 1 && (
-                  <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', my: 0.5 }} />
-                )}
-              </React.Fragment>
-            ))}
-          </Stack>
+                    );
+                  })}
+                  {hasMultipleDays && dayIndex < dayKeys.length - 1 && (
+                    <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', my: 0.5 }} />
+                  )}
+                </React.Fragment>
+              ))}
+            </Stack>
+          );
+        }
+
+        const markerNode = (
+          <Box
+            className="clock-event-marker"
+            sx={markerStyle}
+            style={{ pointerEvents: disableTooltips ? 'none' : 'auto' }}
+            data-t2t-event-marker-key={markerKey}
+            onMouseEnter={!disableTooltips && !isTouchDevice ? () => {
+              // Enterprise: only one tooltip open at a time (switch instantly)
+              clearCloseTimer();
+              setOpenMarkerKey(markerKey);
+            } : undefined}
+            onMouseLeave={!disableTooltips && !isTouchDevice ? scheduleClose : undefined}
+            onFocus={!disableTooltips && !isTouchDevice ? () => {
+              clearCloseTimer();
+              setOpenMarkerKey(markerKey);
+            } : undefined}
+            onBlur={!disableTooltips && !isTouchDevice ? scheduleClose : undefined}
+            onClick={!disableTooltips ? () => handleMarkerSelect(marker, markerKey) : undefined}
+          >
+            {(marker.hasNoteMarker || marker.hasNoteMarkerAny) && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -6,
+                  left: -6,
+                  width: 18,
+                  height: 18,
+                  borderRadius: '50%',
+                  bgcolor: (marker.isTodayPast || !marker.hasNoteMarker) ? '#616161' : 'primary.main',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
+                  pointerEvents: 'none',
+                }}
+              >
+                <NoteAltIcon sx={{ fontSize: 12, color: '#fff', opacity: (marker.isTodayPast || !marker.hasNoteMarker) ? 0.9 : 1 }} />
+              </Box>
+            )}
+            {(marker.isFavoriteMarker || marker.isFavoriteMarkerAny) && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -6,
+                  right: -6,
+                  width: 18,
+                  height: 18,
+                  borderRadius: '50%',
+                  bgcolor: (marker.isTodayPast || !marker.isFavoriteMarker) ? '#616161' : 'error.main',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
+                  pointerEvents: 'none',
+                }}
+              >
+                <FavoriteIcon sx={{ fontSize: 12, color: '#fff', opacity: (marker.isTodayPast || !marker.isFavoriteMarker) ? 0.9 : 1 }} />
+              </Box>
+            )}
+            <Typography component="span" variant="caption" sx={{ fontWeight: 800, fontSize: '0.75rem' }}>
+              {marker.meta.icon}
+            </Typography>
+            {marker.countryCode ? (
+              <span
+                className="clock-event-flag"
+                title={marker.currency}
+                style={{
+                  opacity: marker.isTodayPast ? 0.75 : 1,
+                  filter: marker.isTodayPast ? 'grayscale(1)' : 'none',
+                }}
+              >
+                <span className={`fi fi-${marker.countryCode}`} />
+              </span>
+            ) : null}
+          </Box>
         );
+
+        if (disableTooltips) {
+          return (
+            <React.Fragment key={markerKey}>
+              {markerNode}
+            </React.Fragment>
+          );
+        }
 
         const touchTooltipProps = isTouchDevice
           ? {
@@ -1053,73 +1159,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
               },
             }}
           >
-            <Box
-              className="clock-event-marker"
-              sx={markerStyle}
-              style={{ pointerEvents: 'auto' }}
-              data-t2t-event-marker-key={markerKey}
-              onMouseEnter={!isTouchDevice ? () => {
-                // Enterprise: only one tooltip open at a time (switch instantly)
-                clearCloseTimer();
-                setOpenMarkerKey(markerKey);
-              } : undefined}
-              onMouseLeave={!isTouchDevice ? scheduleClose : undefined}
-              onFocus={!isTouchDevice ? () => {
-                clearCloseTimer();
-                setOpenMarkerKey(markerKey);
-              } : undefined}
-              onBlur={!isTouchDevice ? scheduleClose : undefined}
-              onClick={() => handleMarkerSelect(marker, markerKey)}
-            >
-              {(marker.hasNoteMarker || marker.hasNoteMarkerAny) && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: -6,
-                    left: -6,
-                    width: 18,
-                    height: 18,
-                    borderRadius: '50%',
-                    bgcolor: (marker.isTodayPast || !marker.hasNoteMarker) ? '#616161' : 'primary.main',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  <NoteAltIcon sx={{ fontSize: 12, color: '#fff', opacity: (marker.isTodayPast || !marker.hasNoteMarker) ? 0.9 : 1 }} />
-                </Box>
-              )}
-              {(marker.isFavoriteMarker || marker.isFavoriteMarkerAny) && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: -6,
-                    right: -6,
-                    width: 18,
-                    height: 18,
-                    borderRadius: '50%',
-                    bgcolor: (marker.isTodayPast || !marker.isFavoriteMarker) ? '#616161' : 'error.main',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  <FavoriteIcon sx={{ fontSize: 12, color: '#fff', opacity: (marker.isTodayPast || !marker.isFavoriteMarker) ? 0.9 : 1 }} />
-                </Box>
-              )}
-              <Typography component="span" variant="caption" sx={{ fontWeight: 800, fontSize: '0.75rem' }}>
-                {marker.meta.icon}
-              </Typography>
-              {marker.countryCode && !marker.isTodayPast ? (
-                <span className="clock-event-flag" title={marker.currency}>
-                  <span className={`fi fi-${marker.countryCode}`} />
-                </span>
-              ) : null}
-            </Box>
+            {markerNode}
           </Tooltip>
         );
       })}
@@ -1153,6 +1193,7 @@ ClockEventsOverlay.propTypes = {
   onEventClick: PropTypes.func,
   onLoadingStateChange: PropTypes.func,
   suppressTooltipAutoscroll: PropTypes.bool,
+  disableTooltips: PropTypes.bool,
 };
 
 export default MemoClockEventsOverlay;

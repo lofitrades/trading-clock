@@ -5,6 +5,7 @@
  * Bootstraps React with providers and routing.
  * 
  * Changelog:
+ * v3.0.3 - 2025-12-22 - Wrapped app with HelmetProvider for route-level SEO metadata.
  * v3.0.2 - 2025-12-18 - Added viewport CSS vars and flag-icons loading for proper initialization.
  * v3.0.1 - 2025-12-18 - Restored SPA entry after removing incomplete SSR implementation.
  * v3.0.0 - 2025-12-18 - Delegated bootstrap to src/app/AppBootstrap for SSR-safe reuse.
@@ -19,6 +20,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { ThemeProvider } from '@mui/material/styles';
 import { AuthProvider } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
@@ -42,15 +44,17 @@ scheduleNonCriticalAssets(registerServiceWorker);
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
-      <ThemeProvider theme={theme}>
-        <AuthProvider>
-          <SettingsProvider>
-            <AppRoutes />
-          </SettingsProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+    <HelmetProvider>
+      <BrowserRouter>
+        <ThemeProvider theme={theme}>
+          <AuthProvider>
+            <SettingsProvider>
+              <AppRoutes />
+            </SettingsProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    </HelmetProvider>
   </StrictMode>
 );
 

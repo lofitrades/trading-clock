@@ -14,7 +14,7 @@ import { escapeInject, dangerouslySkipEscape } from 'vite-plugin-ssr/server';
 import { PageShell } from './PageShell';
 
 const siteUrl = 'https://time2.trade';
-const defaultOgImage = `${siteUrl}/Time2Trade_SEO_Meta_2.PNG`;
+const defaultOgImage = `${siteUrl}/Time2Trade_SEO_Meta_3.PNG`;
 const fontHref = 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap';
 
 const globalStyles = `

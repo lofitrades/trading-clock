@@ -11,6 +11,10 @@
  * 3. Rebuild/redeploy for public route to reflect updates
  * 
  * Changelog:
+ * v1.3.1 - 2026-01-07 - Cleaned string escapes to satisfy lint rules without altering copy.
+ * v1.3.0 - 2026-01-07 - Updated About copy and metadata to emphasize Forex Factory economic calendar + session clock experience.
+ * v1.2.0 - 2025-12-22 - Rewrote About copy for clarity on sessions + economic events, updated metadata and structured data.
+ * v1.1.0 - 2025-12-22 - Updated About positioning, metadata, and structured data for trading clock + economic events workspace.
  * v1.0.0 - 2025-12-17 - Initial extraction from AboutContent.txt for shared use across routes
  */
 
@@ -29,69 +33,178 @@
  */
 export const aboutContent = {
   title: "About Time 2 Trade",
-  subtitle: "Visual trading intelligence platform for futures and forex day traders.",
+  subtitle: "Forex Factory-powered economic calendar and session clock for futures and forex day traders.",
   sections: [
     {
       title: null,
       content: [
         {
           type: "paragraph",
-          text: "Time 2 Trade is a visual trading intelligence platform designed specifically for futures and forex day traders who need to stay aligned with global market sessions across different timezones. Our dual-circle session visualization interface makes it easy to see when markets are active, track high-impact economic events, and plan your trading day with precision."
-        }
-      ]
-    },
-    
-    {
-      title: "What Makes Time 2 Trade Different",
-      content: [
-        {
-          type: "paragraph",
-          text: "Unlike traditional world clocks or generic market timers, Time 2 Trade is a comprehensive intelligence platform that gives you a complete picture of the trading day in one glance. Our unique dual-circle visualization interface shows AM hours on the inner ring and PM hours on the outer ring, creating an intuitive 24-hour view that matches how professional traders think about market sessions—overlaid with live economic events and timezone-aware insights."
+          text: "Time 2 Trade is a lightweight web app that pairs a Forex Factory economic calendar with a live market session clock so you can plan and execute around sessions and scheduled events."
         },
         {
           type: "paragraph",
-          text: "Whether you're tracking the London open, New York session, or Asian market hours, our clock adapts to your timezone automatically. You'll always know exactly when each session starts, ends, and how much time remains."
+          text: "The goal is simple: help you visualize time so you can trade with better timing, fewer surprises, and a more consistent routine."
         }
       ]
     },
     
     {
-      title: "Key Features",
+      title: "What Time 2 Trade does",
+      content: [
+        {
+          type: "paragraph",
+          text: "Time 2 Trade turns the 24-hour day into a clean visual clock so you can instantly see New York, London, and Asia session windows, overlaps, where you are right now, and what's next—alongside today's economic events."
+        },
+        {
+          type: "list",
+          items: [
+            {
+              label: "Visual market sessions",
+              text: "Dual-circle clock shows session windows, overlaps, and your current position in the trading day."
+            },
+            {
+              label: "Forex Factory economic calendar",
+              text: "View upcoming releases in a timeline or table, filter by impact level and currency, save favorites and add notes (with an account), and export events for planning."
+            }
+          ]
+        },
+        {
+          type: "paragraph",
+          text: "Time 2 Trade is not a trading terminal and does not provide buy/sell signals. It's a timing and awareness layer you can keep next to your charts."
+        }
+      ]
+    },
+    
+    {
+      title: "Who it's built for",
       content: [
         {
           type: "list",
           items: [
             {
-              label: "Visual Session Intelligence",
-              text: "Dual-circle interface visualizes all eight major trading sessions simultaneously with AM sessions on the inner ring and PM sessions on the outer ring—go beyond simple time tracking"
+              label: "Futures and forex day traders",
+              text: "Intraday traders who rely on session timing."
             },
             {
-              label: "Live Economic Events Overlay",
-              text: "High-impact economic events displayed directly on your session visualization, sourced from the same professional-grade data that powers MetaTrader platforms"
+              label: "Economic calendar users",
+              text: "Traders who check news releases regularly."
             },
             {
-              label: "Timezone Intelligence",
-              text: "Automatic conversion to your local timezone with support for traders in any region around the world"
+              label: "New York time workflows",
+              text: "Teams and individuals who anchor to NY session timing."
             },
             {
-              label: "Cloud Sync Settings",
-              text: "Create a free account to save your preferences and access them from any device, anywhere"
+              label: "Funded/prop traders",
+              text: "Traders who need disciplined routines and event awareness."
             },
             {
-              label: "Customizable Sessions",
-              text: "Adjust session times, colors, and labels to match your personal trading strategy"
+              label: "Session-based frameworks",
+              text: "Students and practitioners of session-focused timing (including ICT-style timing)."
+            }
+          ]
+        },
+        {
+          type: "paragraph",
+          text: "If your process includes session windows, overlaps, or avoiding high-impact releases, this tool fits naturally."
+        }
+      ]
+    },
+    
+    {
+      title: "Why \"visualizing time\" matters",
+      content: [
+        {
+          type: "paragraph",
+          text: "Intraday trading often comes down to timing:"
+        },
+        {
+          type: "list",
+          items: [
+            {
+              label: "Session transitions",
+              text: "Volatility and volume shift as sessions open and close."
             },
             {
-              label: "Session Alerts",
-              text: "Visual indicators show you which session is currently active and when the next one begins"
+              label: "Overlaps",
+              text: "The conditions many strategies depend on are tied to overlaps."
             },
             {
-              label: "Digital Clock Display",
-              text: "Quick reference for current time in your selected timezone"
+              label: "High-impact events",
+              text: "News can turn a normal setup into a high-risk one."
+            }
+          ]
+        },
+        {
+          type: "paragraph",
+          text: "Time 2 Trade helps you answer the key question fast: Is this the right time to trade?"
+        }
+      ]
+    },
+    
+    {
+      title: "Privacy, security, and data handling",
+      content: [
+        {
+          type: "paragraph",
+          text: "Trust matters. Time 2 Trade is designed to be safe by default."
+        },
+        {
+          type: "paragraph",
+          text: "What we store"
+        },
+        {
+          type: "list",
+          items: [
+            {
+              label: "Guest mode",
+              text: "Basic preferences can be saved locally on your device."
             },
             {
-              label: "Responsive Design",
-              text: "Works seamlessly on desktop, tablet, and mobile devices"
+              label: "Account mode",
+              text: "If you create an account, settings can sync across devices and you can save calendar favorites and notes."
+            }
+          ]
+        },
+        {
+          type: "paragraph",
+          text: "What we don't do"
+        },
+        {
+          type: "list",
+          items: [
+            {
+              label: "No broker connections",
+              text: "We do not connect to your broker or execute trades."
+            },
+            {
+              label: "No signals",
+              text: "We do not sell trading signals."
+            },
+            {
+              label: "No sensitive asks",
+              text: "We do not ask for sensitive personal financial information to provide core functionality."
+            }
+          ]
+        },
+        {
+          type: "paragraph",
+          text: "Data protection principles"
+        },
+        {
+          type: "list",
+          items: [
+            {
+              label: "Minimal data collection",
+              text: "Only what's needed for the feature to work."
+            },
+            {
+              label: "Clear separation",
+              text: "Public content and account-only features stay distinct."
+            },
+            {
+              label: "User-first features",
+              text: "Account features exist to improve your workflow, not to harvest data."
             }
           ]
         }
@@ -99,83 +212,35 @@ export const aboutContent = {
     },
     
     {
-      title: "How to Use Time 2 Trade",
+      title: "Built for speed and everyday use",
       content: [
         {
           type: "paragraph",
-          text: "<strong>Getting Started:</strong> Simply visit time2.trade and the platform immediately displays session intelligence in your local timezone. No setup required. The default configuration shows popular trading sessions like London, New York, Tokyo, and Sydney with live economic events."
-        },
-        {
-          type: "paragraph",
-          text: "<strong>Customizing Your Intelligence:</strong> Click the settings icon to adjust session times, choose different colors, rename sessions, or turn specific sessions on and off. Configure up to eight custom sessions to match your trading strategy and filter economic events by impact level and currency pairs."
-        },
-        {
-          type: "paragraph",
-          text: "<strong>Viewing Economic Events:</strong> Toggle the economic events overlay to see when major news releases are scheduled. Filter by currency pairs that matter to your trading strategy, and click any event to see detailed descriptions and historical impact."
-        },
-        {
-          type: "paragraph",
-          text: "<strong>Changing Timezones:</strong> Use the timezone selector at the bottom of the screen to view market sessions from any timezone perspective. This is especially helpful when coordinating with traders in other regions or planning travel."
-        },
-        {
-          type: "paragraph",
-          text: "<strong>Saving Your Setup:</strong> Create a free account to automatically sync your settings across all your devices. Your session configurations, color preferences, and timezone choices are stored securely in the cloud."
+          text: "Time 2 Trade is built to load fast, work on mobile, and stay out of your way. You can also install it as a web app (PWA) so it launches like a native app, ideal for quick checks before a session starts or before a release."
         }
       ]
     },
     
     {
-      title: "Who Uses Time 2 Trade",
+      title: "A note from the founder",
       content: [
         {
           type: "paragraph",
-          text: "Time 2 Trade is built for active day traders who work with futures contracts, forex currency pairs, and other instruments that trade on session-based schedules. It's particularly useful for traders who follow specific market sessions like ICT killzones, London session strategies, or New York open setups."
+          text: "Time 2 Trade is built by Juan Diego, a developer and day-trading tool builder focused on making time-based trading workflows simpler and more consistent."
         },
         {
           type: "paragraph",
-          text: "Many traders use Time 2 Trade alongside their charting platforms as a dedicated intelligence layer—maintaining session awareness and event tracking without cluttering their trading workspace. The clean, minimal design keeps your focus where it matters while providing the contextual intelligence you need to time your entries and exits."
+          text: "The product is shaped by real intraday routines (sessions, overlaps, and scheduled events) so the app stays practical, focused, and fast."
         }
       ]
     },
     
     {
-      title: "Technology and Data Sources",
+      title: "Ready to visualize your trading day?",
       content: [
         {
           type: "paragraph",
-          text: "Time 2 Trade is powered by modern web technology including React and Material Design components for a fast, responsive intelligence platform. Economic events data comes from the JBlanked News Calendar API, which aggregates information from the same professional MQL5 source used by MetaTrader platforms worldwide, ensuring you have the same event intelligence as institutional traders."
-        },
-        {
-          type: "paragraph",
-          text: "Your settings are stored using Firebase cloud infrastructure with bank-level encryption and industry-standard security practices. We never sell your data or show you ads that track your behavior."
-        }
-      ]
-    },
-    
-    {
-      title: "Free to Use, Built by Traders",
-      content: [
-        {
-          type: "paragraph",
-          text: "Time 2 Trade is completely free to use with all intelligence features available to anyone who creates an account. We built this platform because we needed it ourselves, and we believe every trader should have access to professional-grade session intelligence and event tracking without paying monthly subscription fees."
-        },
-        {
-          type: "paragraph",
-          text: "The project is actively maintained by the Time 2 Trade team. We regularly add new features based on feedback from the trading community and keep our economic events data synchronized daily."
-        }
-      ]
-    },
-    
-    {
-      title: "Get Started Today",
-      content: [
-        {
-          type: "paragraph",
-          text: "No credit card required. No trial periods. No hidden fees. Just create a free account and start leveraging visual trading intelligence with the session insights and event awareness you need to trade with confidence."
-        },
-        {
-          type: "paragraph",
-          text: "Follow us on <a href=\"https://x.com/time2_trade\" target=\"_blank\" rel=\"noopener noreferrer\">@time2_trade</a> for updates, tips, and trading insights from our community."
+          text: "Open the app and get instant session and event context in one clean view."
         }
       ]
     }
@@ -186,12 +251,12 @@ export const aboutContent = {
  * SEO Metadata for About Page
  */
 export const aboutMeta = {
-  title: "About Time 2 Trade - Visual Trading Intelligence Platform",
-  description: "Time 2 Trade is a visual trading intelligence platform for futures and forex day traders. Track global market sessions, high-impact economic events, and timezone-aware insights with our unique dual-circle visualization.",
-  keywords: "trading clock, market sessions, economic events, forex trading, futures trading, timezone converter, trading intelligence, ICT killzones, London session, New York session",
+  title: "About Time 2 Trade | Forex Factory Economic Calendar + Session Clock",
+  description: "Forex Factory-powered economic calendar paired with a live session clock for futures and forex day traders. See New York / London / Asia overlaps, filter events by impact and currency, save favorites and notes, export, and install fast as a PWA. No trading signals.",
+  keywords: "economic calendar, forex factory calendar, trading session clock, market session overlaps, futures economic calendar, forex news calendar, impact filters, currency filters, day trading routine, prop trader workflow, New York session timing, London session timing",
   canonical: "https://time2.trade/about",
   ogType: "website",
-  ogImage: "https://time2.trade/Time2Trade_SEO_Meta_2.PNG",
+  ogImage: "https://time2.trade/Time2Trade_SEO_Meta_3.PNG",
   twitterCard: "summary_large_image",
   twitterSite: "@time2_trade"
 };
@@ -210,7 +275,7 @@ export const aboutStructuredData = {
     "price": "0",
     "priceCurrency": "USD"
   },
-  "description": "Visual trading intelligence platform for futures and forex day traders featuring dual-circle session visualization, live economic events, and timezone-aware insights.",
+  "description": "Forex Factory economic calendar paired with a live session clock for futures and forex day traders. Visualize sessions and overlaps, filter events by impact and currency, save favorites/notes, export, and install as a fast PWA.",
   "url": "https://time2.trade",
   "creator": {
     "@type": "Organization",
@@ -218,14 +283,13 @@ export const aboutStructuredData = {
     "url": "https://time2.trade"
   },
   "featureList": [
-    "Dual-circle session visualization",
-    "Live economic events overlay",
-    "Timezone intelligence",
-    "Cloud sync settings",
-    "Customizable trading sessions",
-    "Session alerts",
-    "Digital clock display",
-    "Responsive design"
+    "Dual-circle session clock showing overlaps and current position in the day",
+    "New York time-first defaults with timezone-aware countdowns",
+    "Forex Factory economic events timeline and table views with impact and currency filters",
+    "Favorites and personal notes for authenticated users",
+    "Exports from the events workspace for planning",
+    "Customizable trading sessions and colors (up to eight)",
+    "Installable PWA for fast launch"
   ],
-  "screenshot": "https://time2.trade/Time2Trade_SEO_Meta_2.PNG"
+  "screenshot": "https://time2.trade/Time2Trade_SEO_Meta_3.PNG"
 };

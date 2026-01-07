@@ -11,6 +11,7 @@
  * - Dismissible (shown once)
  * 
  * Changelog:
+ * v1.1.0 - 2025-12-22 - Use centralized welcome copy shared across auth providers.
  * v1.0.1 - 2025-12-16 - Added PropTypes and removed unused imports.
  * v1.0.0 - 2025-12-16 - Initial implementation
  */
@@ -28,6 +29,7 @@ import {
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import SettingsIcon from '@mui/icons-material/Settings';
+import { WELCOME_COPY } from '../utils/welcomeCopy';
 
 export default function WelcomeModal({ onClose, userEmail }) {
   return (
@@ -62,10 +64,13 @@ export default function WelcomeModal({ onClose, userEmail }) {
             </Typography>
           </Box>
           <Typography variant="h5" fontWeight="600" gutterBottom>
-            Welcome to Time 2 Trade!
+            {WELCOME_COPY.headline}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Your account has been created successfully.
+            {WELCOME_COPY.confirmation}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            {WELCOME_COPY.multiProvider}
           </Typography>
           {userEmail && (
             <Typography variant="body2" color="primary.main" fontWeight="600" sx={{ mt: 1 }}>
@@ -80,7 +85,7 @@ export default function WelcomeModal({ onClose, userEmail }) {
         <Typography variant="h6" fontWeight="600" gutterBottom>
           Quick Start Guide
         </Typography>
-        
+
         <Stack spacing={2} sx={{ mb: 3 }}>
           <Box sx={{ display: 'flex', gap: 2 }}>
             <AccessTimeIcon color="primary" />

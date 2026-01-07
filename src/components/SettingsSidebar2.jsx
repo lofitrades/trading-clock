@@ -5,6 +5,7 @@
  * Inspired by modern app shells (Airbnb/ChatGPT) with quick toggles, sectional pills, and responsive cards that mirror existing settings logic.
  * 
  * Changelog:
+ * v1.3.0 - 2026-01-06 - Remove timezone visibility toggle; timezone label is always shown.
  * v1.2.9 - 2025-12-17 - Refactored About tab to use shared aboutContent module and added "Read Full About Page" link for SEO route.
  * v1.2.8 - 2025-12-17 - Added Show Numbers and Show Clock Hands child settings under Analog Hand Clock for granular canvas customization.
  * v1.2.7 - 2025-12-17 - Replaced hardcoded About content with dynamic loading from AboutContent.txt for SEO-rich enterprise copywriting.
@@ -45,6 +46,7 @@ import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import FullscreenRoundedIcon from '@mui/icons-material/FullscreenRounded';
 import FullscreenExitRoundedIcon from '@mui/icons-material/FullscreenExitRounded';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
@@ -140,11 +142,9 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 		showHandClock,
 		showDigitalClock,
 		showSessionLabel,
-		showTimezoneLabel,
 		toggleShowHandClock,
 		toggleShowDigitalClock,
 		toggleShowSessionLabel,
-		toggleShowTimezoneLabel,
 		showTimeToEnd,
 		showTimeToStart,
 		toggleShowTimeToEnd,
@@ -232,7 +232,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 		if (!user) {
 			setShowUnlockModal(true);
 			return;
-	};
+		};
 		setClearSessionIndex(index);
 		setShowClearSessionConfirm(true);
 	};
@@ -367,7 +367,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 								pl: 1.5,
 								minHeight: 44,
 								flexWrap: 'wrap',
-						}}
+							}}
 						>
 							<Box sx={{ flex: 1, minWidth: 0 }}>
 								<Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -393,7 +393,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 								pl: 1.5,
 								minHeight: 44,
 								flexWrap: 'wrap',
-						}}
+							}}
 						>
 							<Box sx={{ flex: 1, minWidth: 0 }}>
 								<Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -419,94 +419,70 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 								pl: 1.5,
 								minHeight: 44,
 								flexWrap: 'wrap',
-						}}
+							}}
 						>
 							<Box sx={{ flex: 1, minWidth: 0 }}>
 								<Typography variant="body2" sx={{ fontWeight: 600 }}>
-								Numbers
-							</Typography>
-							<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-								Display 1-12 clock numbers on the analog face
-							</Typography>
+									Numbers
+								</Typography>
+								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+									Display 1-12 clock numbers on the analog face
+								</Typography>
+							</Box>
+							<SwitchComponent
+								checked={showClockNumbers}
+								onChange={toggleShowClockNumbers}
+							/>
 						</Box>
-						<SwitchComponent
-							checked={showClockNumbers}
-							onChange={toggleShowClockNumbers}
-						/>
-					</Box>
 
-					<Box
-						sx={{
-							display: 'flex',
-							gap: 1.5,
-							alignItems: 'center',
-							borderLeft: '1px solid',
-							borderColor: 'divider',
-							pl: 1.5,
-							minHeight: 44,
-							flexWrap: 'wrap',
+						<Box
+							sx={{
+								display: 'flex',
+								gap: 1.5,
+								alignItems: 'center',
+								borderLeft: '1px solid',
+								borderColor: 'divider',
+								pl: 1.5,
+								minHeight: 44,
+								flexWrap: 'wrap',
+							}}
+						>
+							<Box sx={{ flex: 1, minWidth: 0 }}>
+								<Typography variant="body2" sx={{ fontWeight: 600 }}>
+									Clock Hands
+								</Typography>
+								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+									Display hour, minute, and second hands on the clock
+								</Typography>
+							</Box>
+							<SwitchComponent
+								checked={showClockHands}
+								onChange={toggleShowClockHands}
+							/>
+						</Box>
+					</Box>
+				)}
+
+				<Box
+					sx={{
+						display: 'flex',
+						alignItems: 'center',
+						gap: 1.5,
+						px: 1.75,
+						py: 1.25,
+						bgcolor: 'background.paper',
+						borderColor: 'divider',
 					}}
-					>
-						<Box sx={{ flex: 1, minWidth: 0 }}>
-							<Typography variant="body2" sx={{ fontWeight: 600 }}>
-								Clock Hands
-							</Typography>
-							<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-								Display hour, minute, and second hands on the clock
-							</Typography>
-						</Box>
-						<SwitchComponent
-							checked={showClockHands}
-							onChange={toggleShowClockHands}
-						/>
-					</Box>
-				</Box>
-			)}
-
-			<Box
-				sx={{
-					display: 'flex',
-					alignItems: 'center',
-					gap: 1.5,
-					px: 1.75,
-					py: 1.25,
-					bgcolor: 'background.paper',
-					borderColor: 'divider',
-				}}
-			>
-				<Box sx={{ flex: 1, minWidth: 0 }}>
-					<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
-						Digital Clock
-					</Typography>
-					<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-						Readable digits
-					</Typography>
-				</Box>
-				<SwitchComponent checked={showDigitalClock} onChange={() => handleToggle(toggleShowDigitalClock)} />
-			</Box>
-
-			<Divider sx={{ width: '100%', mx: 'auto', borderColor: 'divider' }} />
-
-			<Box
-				sx={{
-					display: 'flex',
-					alignItems: 'center',
-					gap: 1.5,
-					px: 1.75,
-					py: 1.25,
-					bgcolor: 'background.paper',
-					borderColor: 'divider',
-				}}
-			>
+				>
 					<Box sx={{ flex: 1, minWidth: 0 }}>
 						<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
-							Timezone
+							Digital Clock
 						</Typography>
 						<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-							Display the selected timezone.
+							Readable digits
 						</Typography>
 					</Box>
-					<SwitchComponent checked={showTimezoneLabel} onChange={toggleShowTimezoneLabel} />
+					<SwitchComponent checked={showDigitalClock} onChange={() => handleToggle(toggleShowDigitalClock)} />
 				</Box>
 
 				<Divider sx={{ width: '100%', mx: 'auto', borderColor: 'divider' }} />
@@ -953,39 +929,39 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 										cursor: 'pointer',
 										bgcolor: 'action.hover',
 									}}
-								onClick={() => {
-									// If collapsing (menu is open), just close it
-									if (userMenuAnchor) {
-										setUserMenuAnchor(false);
-									}
-									// If expanding and no displayName, open account modal directly
-									else if (!user.displayName) {
-										setShowAccountModal(true);
-									}
-									// Otherwise toggle the menu normally
-									else {
-										setUserMenuAnchor(true);
-									}
-								}}
+									onClick={() => {
+										// If collapsing (menu is open), just close it
+										if (userMenuAnchor) {
+											setUserMenuAnchor(false);
+										}
+										// If expanding and no displayName, open account modal directly
+										else if (!user.displayName) {
+											setShowAccountModal(true);
+										}
+										// Otherwise toggle the menu normally
+										else {
+											setUserMenuAnchor(true);
+										}
+									}}
 								>
 									{user.photoURL ? (
 										<Avatar
 											src={user.photoURL}
-										alt={user.displayName || user.email || 'User'}
-										sx={{ width: 40, height: 40 }}
-										imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' }}
-									/>
-								) : (
-									<Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main' }}>
-										<AccountCircleIcon />
-									</Avatar>
-								)}
-								<Box sx={{ flex: 1, minWidth: 0 }}>
-									<Typography variant="subtitle2" noWrap sx={{ fontWeight: 700 }}>
-										{user.displayName || user.email}
-									</Typography>
-									<Typography variant="caption" color="text.secondary" noWrap>
-										{user.displayName ? user.email : 'Click to add your name'}
+											alt={user.displayName || user.email || 'User'}
+											sx={{ width: 40, height: 40 }}
+											imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' }}
+										/>
+									) : (
+										<Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main' }}>
+											<AccountCircleIcon />
+										</Avatar>
+									)}
+									<Box sx={{ flex: 1, minWidth: 0 }}>
+										<Typography variant="subtitle2" noWrap sx={{ fontWeight: 700 }}>
+											{user.displayName || user.email}
+										</Typography>
+										<Typography variant="caption" color="text.secondary" noWrap>
+											{user.displayName ? user.email : 'Click to add your name'}
 										</Typography>
 									</Box>
 									<ArrowDropDownIcon fontSize="small" sx={{ transform: userMenuAnchor ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
@@ -1019,11 +995,23 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 					) : (
 						<Button
 							variant="contained"
+							color="primary"
 							fullWidth
+							startIcon={<LockOpenIcon />}
 							onClick={onOpenAuth}
-							sx={{ textTransform: 'none', py: 1 }}
+							sx={{
+								textTransform: 'none',
+								fontWeight: 700,
+								fontSize: { xs: '0.875rem', sm: '0.9375rem' },
+								py: 1.25,
+								borderRadius: 2,
+								boxShadow: '0 2px 8px rgba(15, 111, 236, 0.2)',
+								'&:hover': {
+									boxShadow: '0 4px 12px rgba(15, 111, 236, 0.3)',
+								},
+							}}
 						>
-							Unlock all settings for free
+							Unlock all settings
 						</Button>
 					)}
 				</Box>
@@ -1039,7 +1027,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 						backgroundImage: 'linear-gradient(to bottom right, rgba(0,0,0,0.01), transparent)',
 					}}
 				>
-					  {renderContent()}
+					{renderContent()}
 				</Box>
 
 				{!user && (

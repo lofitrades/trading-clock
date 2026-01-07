@@ -5,6 +5,7 @@
  * Enables separate z-layer control to keep hands above event markers while retaining smooth animation.
  *
  * Changelog:
+ * v1.0.3 - 2026-01-06 - Remove sub-second interpolation to reduce render overhead; rely on upstream hand angles for smooth but lightweight motion.
  * v1.0.1 - 2025-12-09 - Stabilized animation by decoupling render loop from per-second time updates (uses refs instead of recreating the loop).
  * v1.0.0 - 2025-12-09 - Initial extraction of hour/minute/second hands to overlay canvas with DPR scaling.
  */

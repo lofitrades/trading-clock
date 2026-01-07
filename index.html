@@ -5,6 +5,9 @@
   Key responsibility and main functionality: Provides SEO and social share metadata, loads Google Fonts, and bootstraps the React bundle while shipping crawlable fallback content for non-JS/AI crawlers.
   
   Changelog:
+  v1.9.0 - 2026-01-07 - Updated SEO meta to highlight economic calendar, session clock, and Forex Factory source; kept AdSense publisher ID.
+  v1.8.0 - 2026-01-07 - Updated AdSense publisher ID to ca-pub-3984565509623618 for time2.trade verification.
+  v1.7.0 - 2025-12-22 - Refreshed SEO copy, OG/Twitter images, structured data, and fallback content for trading clock + economic events positioning.
   v1.6.0 - 2025-12-17 - Added PWA manifest, Apple touch icon, and theme color to enable install prompts and Chrome add-to-homescreen.
   v1.5.0 - 2025-12-17 - Added automatic light/dark favicon switching with prefers-color-scheme detection and safe fallback.
   v1.4.0 - 2025-12-17 - Defer AdSense loading to post-interaction to reduce mobile main-thread blocking.
@@ -23,7 +26,7 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico" id="t2t-favicon" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
     <link rel="canonical" href="https://time2.trade/" />
-    <title>Time 2 Trade | Visual Trading Intelligence for Sessions, Events & Timezones</title>
+    <title>Time 2 Trade | Economic Calendar + Session Clock (Forex Factory)</title>
     <script>
       (function() {
         const lightHref = '/favicon.ico';
@@ -82,7 +85,7 @@
           window.__t2tAdsLoaded = true;
           const s = document.createElement('script');
           s.async = true;
-          s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4259160503531805';
+          s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3984565509623618';
           s.crossOrigin = 'anonymous';
           document.head.appendChild(s);
         };
@@ -101,33 +104,38 @@
           }, { once: true, passive: true });
         });
 
+        window.addEventListener('t2t-consent-update', () => {
+          // Ads already loaded once; consent changes handled by individual widgets via requestNonPersonalizedAds.
+          loadAds();
+        });
+
         schedule();
       })();
     </script>
     
     <!-- Google Adsense (deferred load) -->
-    <meta name="google-adsense-account" content="ca-pub-4259160503531805">
+    <meta name="google-adsense-account" content="ca-pub-3984565509623618">
     
     <!-- SEO Meta Information -->
-    <meta name="title" content="Time 2 Trade - Visual Trading Intelligence Platform" />
-    <meta name="description" content="Time 2 Trade is a visual trading intelligence platform for futures and forex day traders. Track global market sessions, high-impact economic events, and timezone-aware insights with our unique dual-circle visualization." />
+    <meta name="title" content="Time 2 Trade | Economic Calendar + Session Clock (Forex Factory)" />
+    <meta name="description" content="Trading economic calendar with today’s market session clock and events overview. Built on the trusted Forex Factory source with impact/currency filters, favorites, notes, exports, and a clean, mobile-first UI." />
     <meta name="author" content="Time 2 Trade" />
-    <meta name="keywords" content="trading clock, market sessions, economic events, forex trading, futures trading, timezone converter, trading intelligence, ICT killzones, London session, New York session" />
-    <meta property="og:type" content="webapp" />
+    <meta name="keywords" content="economic calendar, forex factory calendar, market session clock, today’s economic events, forex news calendar, futures calendar, session overlaps, impact filters, currency filters, countdowns" />
+    <meta property="og:type" content="website" />
     <meta property="og:url" content="https://time2.trade/" />
-    <meta property="og:title" content="Time 2 Trade | Visual Trading Intelligence Platform" />
-    <meta property="og:description" content="Visualize market sessions with dual-circle interface, overlay live economic events, track timezone-aware insights, and sync your trading intelligence to the cloud. Stay aligned to every market open no matter your timezone." />
-    <meta property="og:image" content="https://firebasestorage.googleapis.com/v0/b/time-2-trade-app.firebasestorage.app/o/public%2FTime2Trade_SEO_Meta_2.PNG?alt=media&token=a3249adf-3fdc-4fff-9510-b32f10fb7a12" />
-    <meta property="og:image:secure_url" content="https://firebasestorage.googleapis.com/v0/b/time-2-trade-app.firebasestorage.app/o/public%2FTime2Trade_SEO_Meta_2.PNG?alt=media&token=a3249adf-3fdc-4fff-9510-b32f10fb7a12" />
+    <meta property="og:title" content="Time 2 Trade | Economic Calendar + Session Clock" />
+    <meta property="og:description" content="Forex Factory-powered economic calendar with a live session clock, today’s events overview, impact/currency filters, favorites, notes, and exports in a minimalist, mobile-first experience." />
+    <meta property="og:image" content="https://time2.trade/Time2Trade_SEO_Meta_3.PNG" />
+    <meta property="og:image:secure_url" content="https://time2.trade/Time2Trade_SEO_Meta_3.PNG" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Time 2 Trade visual trading intelligence platform showing session visualization and economic events" />
     <meta property="fb:app_id" content="1778817529625887" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Time 2 Trade | Visual Trading Intelligence Platform" />
-    <meta name="twitter:description" content="Visual trading intelligence with dual-circle session interface, live economic events, timezone insights, and cloud sync for futures and forex traders." />
-    <meta name="twitter:image" content="https://firebasestorage.googleapis.com/v0/b/time-2-trade-app.firebasestorage.app/o/public%2FTime2Trade_SEO_Meta_2.PNG?alt=media&token=a3249adf-3fdc-4fff-9510-b32f10fb7a12" />
+    <meta name="twitter:title" content="Time 2 Trade | Economic Calendar + Session Clock" />
+    <meta name="twitter:description" content="Forex Factory-powered economic calendar with a live session clock, today’s events overview, impact/currency filters, favorites, notes, and exports in a minimalist, mobile-first experience." />
+    <meta name="twitter:image" content="https://time2.trade/Time2Trade_SEO_Meta_3.PNG" />
 
     <!-- Structured Data: WebSite + SoftwareApplication -->
     <script type="application/ld+json">
@@ -155,7 +163,7 @@
           "price": "0",
           "priceCurrency": "USD"
         },
-        "description": "Visual trading intelligence for futures and forex day traders. Track global market sessions, overlay high-impact economic events, and stay timezone-aware with dual-circle visualization.",
+        "description": "New York time-first trading clock and economic events workspace for futures and forex day traders. Visualize sessions, overlaps, and filtered events with saved favorites/notes and exports.",
         "url": "https://time2.trade/",
         "creator": {
           "@type": "Organization",
@@ -163,14 +171,15 @@
           "url": "https://time2.trade/"
         },
         "featureList": [
-          "Dual-circle session visualization",
-          "Live economic events overlay",
-          "Timezone intelligence",
-          "Cloud-synced settings",
-          "Customizable trading sessions",
-          "Session countdowns and alerts"
+          "Dual-circle session clock with overlaps and active session detection",
+          "New York time-first defaults with timezone-aware countdowns",
+          "Economic events timeline and table views with impact/currency filters",
+          "Favorites and personal notes for authenticated users",
+          "Exports (CSV and JSON) from the events workspace",
+          "Customizable trading sessions and colors (up to eight)",
+          "Installable PWA for fast launch"
         ],
-        "screenshot": "https://time2.trade/Time2Trade_SEO_Meta_2.PNG"
+        "screenshot": "https://time2.trade/Time2Trade_SEO_Meta_3.PNG"
       }
     </script>
   </head>
@@ -203,23 +212,23 @@
     <div id="root">
       <!-- SEO fallback - hidden by default, only shown if JavaScript is disabled -->
       <div id="seo-fallback" style="display: none; max-width: 1200px; margin: 0 auto; padding: 40px 20px; font-family: 'Poppins', Arial, sans-serif;">
-        <h1 style="font-size: 2.5rem; margin-bottom: 1rem; color: #111827;">Time 2 Trade: Visual Trading Intelligence</h1>
+        <h1 style="font-size: 2.5rem; margin-bottom: 1rem; color: #111827;">Time 2 Trade: Trading Clock + Economic Events</h1>
         <p style="font-size: 1.1rem; line-height: 1.7; color: #374151; margin-bottom: 2rem;">
-          Time 2 Trade keeps futures and forex day traders aligned with every market open using a dual-circle session clock, live economic events, and timezone-aware insights.
+          Time 2 Trade keeps futures and forex day traders aligned with session overlaps and scheduled catalysts using a New York time-first clock plus an economic events workspace.
         </p>
         
         <h2 style="font-size: 1.8rem; margin: 2rem 0 1rem; color: #111827;">Key features</h2>
         <ul style="line-height: 1.8; color: #374151; padding-left: 1.5rem;">
-          <li>Dual-circle session visualization with AM inner ring and PM outer ring</li>
-          <li>Live economic calendar overlay sourced from professional-grade data</li>
-          <li>Timezone intelligence with instant conversion to your local zone</li>
-          <li>Cloud-synced settings across devices for free accounts</li>
-          <li>Customizable sessions, colors, and alerts for your strategy</li>
+          <li>Dual-circle session clock with overlaps and active session detection</li>
+          <li>Economic events timeline/table with impact and currency filters (workspace unlocks with a free account)</li>
+          <li>Favorites and personal notes synced for authenticated users</li>
+          <li>Exports (CSV/JSON) from the events workspace</li>
+          <li>PWA install for fast launch and a New York time-first workflow</li>
         </ul>
         
         <h2 style="font-size: 1.8rem; margin: 2rem 0 1rem; color: #111827;">Built for active traders</h2>
         <p style="font-size: 1.1rem; line-height: 1.7; color: #374151;">
-          Designed for futures and forex day traders who need session awareness, ICT killzone timing, and real-time news context without heavy dashboards.
+          Designed for futures and forex day traders who need session awareness, overlap timing, and real-time economic event context without heavy dashboards or trading signals.
         </p>
         
         <div style="margin-top: 2rem;">
@@ -238,18 +247,18 @@
     </noscript>
     <noscript>
       <div class="static-fallback" aria-label="Time 2 Trade overview">
-        <h1>Time 2 Trade: Visual Trading Intelligence</h1>
-        <p>Time 2 Trade keeps futures and forex day traders aligned with every market open using a dual-circle session clock, live economic events, and timezone-aware insights.</p>
+        <h1>Time 2 Trade: Trading Clock + Economic Events</h1>
+        <p>Time 2 Trade keeps futures and forex day traders aligned with session overlaps and scheduled catalysts using a New York time-first clock plus an economic events workspace.</p>
         <h2>Key features</h2>
         <ul>
-          <li>Dual-circle session visualization with AM inner ring and PM outer ring.</li>
-          <li>Live economic calendar overlay sourced from professional-grade data.</li>
-          <li>Timezone intelligence with instant conversion to your local zone.</li>
-          <li>Cloud-synced settings across devices for free accounts.</li>
-          <li>Customizable sessions, colors, and alerts for your strategy.</li>
+          <li>Dual-circle session clock with overlaps and active session detection.</li>
+          <li>Economic events timeline/table with impact and currency filters (workspace unlocks with a free account).</li>
+          <li>Favorites and personal notes synced for authenticated users.</li>
+          <li>Exports (CSV/JSON) from the events workspace.</li>
+          <li>PWA install for fast launch and a New York time-first workflow.</li>
         </ul>
         <h2>Built for active traders</h2>
-        <p>Designed for futures and forex day traders who need session awareness, ICT killzone timing, and real-time news context without heavy dashboards.</p>
+        <p>Designed for futures and forex day traders who need session awareness, overlap timing, and real-time economic event context without trading signals.</p>
         <p><a href="/about">Learn more on the About page</a> or jump into the app to see today&apos;s sessions and events.</p>
       </div>
     </noscript>

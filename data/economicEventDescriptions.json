@@ -177,6 +177,26 @@
       }
     },
     {
+      "name": "Prelim GDP q/q",
+      "aliases": [
+        "Preliminary GDP",
+        "Second Estimate GDP",
+        "GDP Second Estimate"
+      ],
+      "category": "Core Economy Report",
+      "impact": "high",
+      "frequency": "Quarterly (three releases: advance, preliminary, final)",
+      "releaseTime": "8:30 AM ET, roughly one month after the advance release",
+      "source": "Bureau of Economic Analysis",
+      "description": "The second estimate of quarterly U.S. GDP that incorporates more complete source data than the advance release. It can meaningfully revise growth estimates and reset expectations ahead of the final print.",
+      "tradingImplication": "Upward revisions are typically USD bullish; downward revisions are bearish. Market impact is usually smaller than the advance release but can be notable when revisions are large or shift the growth narrative.",
+      "keyThresholds": {
+        "strong": "> 3.0% annualized",
+        "moderate": "2.0% - 3.0% annualized",
+        "weak": "< 2.0% annualized"
+      }
+    },
+    {
       "name": "Retail Sales m/m",
       "aliases": [
         "Retail Sales",

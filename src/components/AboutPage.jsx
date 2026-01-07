@@ -6,6 +6,7 @@
  * Includes proper SEO metadata, structured data, and mobile-first responsive design.
  * 
  * Changelog:
+ * v1.2.0 - 2025-12-22 - Moved to shared Helmet-based SEO metadata with refreshed About positioning.
  * v1.1.0 - 2025-12-18 - Removed react-helmet-async; client title/description updates for /app.
  * v1.0.0 - 2025-12-17 - Initial implementation with SEO metadata and MUI components
  */
@@ -25,7 +26,8 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router-dom';
-import { aboutContent, aboutMeta } from '../content/aboutContent';
+import SEO from './SEO';
+import { aboutContent, aboutMeta, aboutStructuredData } from '../content/aboutContent';
 
 /**
  * Render content block based on type
@@ -118,15 +120,11 @@ export default function AboutPage() {
   // Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
-    document.title = aboutMeta.title;
-    const descTag = document.querySelector('meta[name="description"]');
-    if (descTag) {
-      descTag.setAttribute('content', aboutMeta.description);
-    }
   }, []);
 
   return (
     <>
+      <SEO {...aboutMeta} structuredData={[aboutStructuredData]} />
       <Box
         sx={{
           minHeight: 'var(--t2t-vv-height, 100dvh)',
@@ -221,7 +219,7 @@ export default function AboutPage() {
               <Button
                 variant="contained"
                 size="large"
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/app')}
                 sx={{
                   textTransform: 'none',
                   px: 4,

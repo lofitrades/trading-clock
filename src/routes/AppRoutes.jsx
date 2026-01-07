@@ -12,19 +12,26 @@
  * - Premium Routes: Require specific subscription plans
  * 
  * Changelog:
+ * v1.1.6 - 2026-01-07 - Added /privacy route using shared PrivacyPage component.
+ * v1.1.5 - 2026-01-07 - Mount CookiesBanner globally so consent prompt appears on all SPA routes.
+ * v1.1.4 - 2025-12-22 - Initialize Firebase Analytics with SPA page view logging across route changes.
+ * v1.1.3 - 2025-12-22 - Mount EmailLinkHandler globally so magic links resolve on any route and keep /app routing aligned.
  * v1.1.2 - 2025-12-22 - Route / to HomePage2 (landing) and /app to HomePage (app) to fix landing/app split.
  * v1.1.1 - 2025-12-09 - Removed redundant Suspense loader to avoid double-loading animation (App handles unified loader).
  * v1.1.0 - 2025-12-09 - Replaced CircularProgress fallback with branded donut loader
  * v1.0.0 - 2025-11-30 - Initial implementation with RBAC and subscription support
  */
 
-import { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { Box } from '@mui/material';
+import EmailLinkHandler from '../components/EmailLinkHandler';
+import { initAnalytics, logPageView } from '../utils/analytics';
 
 // Route Guards
 import PrivateRoute from '../components/routes/PrivateRoute';
 import PublicRoute from '../components/routes/PublicRoute';
+import CookiesBanner from '../components/CookiesBanner';
 
 // Lazy load components for code splitting
 const LandingPage = lazy(() => import('../components/LandingPage'));
@@ -34,6 +41,9 @@ const LoginPage = lazy(() => import('../components/LoginPage'));
 const UploadDescriptions = lazy(() => import('../components/UploadDescriptions'));
 const ExportEvents = lazy(() => import('../components/ExportEvents'));
 const EventsPage = lazy(() => import('../components/EventsPage'));
+const CalendarPage = lazy(() => import('../components/CalendarPage'));
+const PrivacyPage = lazy(() => import('../components/PrivacyPage'));
+const TermsPage = lazy(() => import('../components/TermsPage'));
 
 /**
  * Loading Component
@@ -63,6 +73,20 @@ const NotFound = () => (
   </Box>
 );
 
+function AnalyticsInitializer() {
+  const location = useLocation();
+
+  useEffect(() => {
+    initAnalytics();
+  }, []);
+
+  useEffect(() => {
+    logPageView(location.pathname + location.search, document.title, location.search);
+  }, [location.pathname, location.search]);
+
+  return null;
+}
+
 /**
  * AppRoutes Component
  * 
@@ -91,85 +115,119 @@ const NotFound = () => (
  */
 export default function AppRoutes() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <Routes>
-        {/* ==================== PUBLIC ROUTES ==================== */}
+    <>
+      <EmailLinkHandler />
+      <AnalyticsInitializer />
+      <CookiesBanner />
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          {/* ==================== PUBLIC ROUTES ==================== */}
 
-        {/* Landing Page - SEO-optimized marketing page (HomePage2) */}
-        <Route
-          path="/"
-          element={
-            <PublicRoute>
-              <LandingPage />
-            </PublicRoute>
-          }
-        />
+          {/* Landing Page - SEO-optimized marketing page (HomePage2) */}
+          <Route
+            path="/"
+            element={
+              <PublicRoute>
+                <LandingPage />
+              </PublicRoute>
+            }
+          />
 
-        {/* Main Application - Interactive trading clock */}
-        <Route
-          path="/app"
-          element={
-            <PublicRoute>
-              <HomePage />
-            </PublicRoute>
-          }
-        />
+          {/* Main Application - Interactive trading clock */}
+          <Route
+            path="/app"
+            element={
+              <PublicRoute>
+                <HomePage />
+              </PublicRoute>
+            }
+          />
 
-        {/* About Page - Accessible to everyone */}
-        <Route
-          path="/about"
-          element={
-            <PublicRoute>
-              <AboutPage />
-            </PublicRoute>
-          }
-        />
+          {/* About Page - Accessible to everyone */}
+          <Route
+            path="/about"
+            element={
+              <PublicRoute>
+                <AboutPage />
+              </PublicRoute>
+            }
+          />
 
-        {/* Economic Events Page - Requires authentication */}
-        <Route
-          path="/events"
-          element={
-            <PrivateRoute redirectTo="/login">
-              <EventsPage />
-            </PrivateRoute>
-          }
-        />
+          {/* Privacy Page - Accessible to everyone */}
+          <Route
+            path="/privacy"
+            element={
+              <PublicRoute>
+                <PrivacyPage />
+              </PublicRoute>
+            }
+          />
 
-        {/* Login Page - Standalone passwordless authentication */}
-        <Route
-          path="/login"
-          element={
-            <PublicRoute restricted={true} redirectTo="/">
-              <LoginPage />
-            </PublicRoute>
-          }
-        />
+          {/* Terms Page - Accessible to everyone */}
+          <Route
+            path="/terms"
+            element={
+              <PublicRoute>
+                <TermsPage />
+              </PublicRoute>
+            }
+          />
 
-        {/* ==================== ADMIN ROUTES ==================== */}
+          {/* Calendar Page - Public */}
+          <Route
+            path="/calendar"
+            element={
+              <PublicRoute>
+                <CalendarPage />
+              </PublicRoute>
+            }
+          />
 
-        {/* Upload Economic Event Descriptions - Admin only */}
-        <Route
-          path="/upload-desc"
-          element={
-            <PrivateRoute roles={['admin', 'superadmin']}>
-              <UploadDescriptions />
-            </PrivateRoute>
-          }
-        />
+          {/* Economic Events Page - Requires authentication */}
+          <Route
+            path="/events"
+            element={
+              <PrivateRoute redirectTo="/login">
+                <EventsPage />
+              </PrivateRoute>
+            }
+          />
 
-        {/* Export Events - Admin only */}
-        <Route
-          path="/export"
-          element={
-            <PrivateRoute roles={['admin', 'superadmin']}>
-              <ExportEvents />
-            </PrivateRoute>
-          }
-        />
+          {/* Login Page - Standalone passwordless authentication */}
+          <Route
+            path="/login"
+            element={
+              <PublicRoute restricted={true} redirectTo="/app">
+                <LoginPage />
+              </PublicRoute>
+            }
+          />
 
-        {/* ==================== PRIVATE ROUTES ==================== */}
+          {/* ==================== ADMIN ROUTES ==================== */}
 
-        {/* User Settings - Requires authentication
+          {/* Upload Economic Event Descriptions - Admin only */}
+          <Route
+            path="/upload-desc"
+            element={
+              <PrivateRoute roles={['admin', 'superadmin']}>
+                <UploadDescriptions />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Export Events - Admin only */}
+          <Route
+            path="/export"
+            element={
+              <PrivateRoute roles={['admin', 'superadmin']}>
+                <ExportEvents />
+              </PrivateRoute>
+            }
+          />
+
+          {/* ==================== PRIVATE ROUTES ==================== */}
+
+          {/* User Settings - Requires authentication
         <Route
           path="/settings"
           element={
@@ -180,7 +238,7 @@ export default function AppRoutes() {
         />
         */}
 
-        {/* User Profile - Requires authentication
+          {/* User Profile - Requires authentication
         <Route
           path="/profile"
           element={
@@ -191,9 +249,9 @@ export default function AppRoutes() {
         />
         */}
 
-        {/* ==================== PREMIUM ROUTES ==================== */}
+          {/* ==================== PREMIUM ROUTES ==================== */}
 
-        {/* Analytics Dashboard - Requires premium or pro plan
+          {/* Analytics Dashboard - Requires premium or pro plan
         <Route
           path="/dashboard"
           element={
@@ -204,7 +262,7 @@ export default function AppRoutes() {
         />
         */}
 
-        {/* Custom Alerts - Requires premium or pro plan
+          {/* Custom Alerts - Requires premium or pro plan
         <Route
           path="/alerts"
           element={
@@ -215,7 +273,7 @@ export default function AppRoutes() {
         />
         */}
 
-        {/* API Access - Requires pro plan
+          {/* API Access - Requires pro plan
         <Route
           path="/api-access"
           element={
@@ -226,9 +284,9 @@ export default function AppRoutes() {
         />
         */}
 
-        {/* ==================== FEATURE-GATED ROUTES ==================== */}
+          {/* ==================== FEATURE-GATED ROUTES ==================== */}
 
-        {/* Advanced Trading Tools - Requires specific feature
+          {/* Advanced Trading Tools - Requires specific feature
         <Route
           path="/advanced-tools"
           element={
@@ -239,12 +297,13 @@ export default function AppRoutes() {
         />
         */}
 
-        {/* ==================== CATCH-ALL ROUTES ==================== */}
+          {/* ==================== CATCH-ALL ROUTES ==================== */}
 
-        {/* 404 Not Found - Catch all unmatched routes */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+          {/* 404 Not Found - Catch all unmatched routes */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </>
   );
 }
 

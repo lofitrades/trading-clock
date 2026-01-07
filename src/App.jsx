@@ -6,6 +6,7 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
+ * v2.6.25 - 2025-12-22 - Centralize email link handling in AppRoutes so the app shell no longer mounts a redundant handler.
  * v2.6.24 - 2025-12-20 - Sync PWA status/navigation bars to user background color at runtime for installed/standalone mode
  * v2.6.23 - 2025-12-20 - Keep loader visible until events overlay finishes loading so clock hands/donuts and markers are ready before reveal
  * v2.6.22 - 2025-12-17 - Let loader dismiss once settings/layout/min-duration are ready; do not block on overlay lazy load
@@ -53,7 +54,6 @@ import ClockHandsOverlay from './components/ClockHandsOverlay';
 import DigitalClock from './components/DigitalClock';
 import SessionLabel from './components/SessionLabel';
 import LoadingScreen from './components/LoadingScreen';
-import EmailLinkHandler from './components/EmailLinkHandler';
 import InstallPromptCTA from './components/InstallPromptCTA';
 import { isColorDark } from './utils/clockUtils';
 import { getDatePartsInTimezone, getUtcDateForTimezone } from './utils/dateUtils';
@@ -353,7 +353,6 @@ export default function App() {
   if (!ready) {
     return (
       <>
-        <EmailLinkHandler />
         <InstallPromptCTA isBusy />
         <LoadingScreen isLoading clockSize={calculatedClockSize} />
       </>
@@ -362,8 +361,6 @@ export default function App() {
 
   return (
     <>
-      {/* Global email link handler */}
-      <EmailLinkHandler />
       <InstallPromptCTA isBusy={suppressInstallPrompt} />
 
       <LoadingScreen isLoading={showLoadingScreen} clockSize={calculatedClockSize} />

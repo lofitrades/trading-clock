@@ -2,9 +2,10 @@
  * src/components/EconomicEvents3.jsx
  * 
  * Purpose: Airbnb-style economic events drawer with compact/right-drawer and full-width modes.
- * Provides filters, sync, refresh, news source selection, and timeline/table views using EventsFilters3 and EventsTimeline2/EventsTable.
+ * Provides filters, sync, refresh, news source selection, and table view using EventsFilters3 and EventsTable.
  * 
  * Changelog:
+ * v1.6.0 - 2025-12-22 - Remove timeline view; drawer is now table-only with simplified state and fetches.
  * v1.5.4 - 2025-12-22 - Repointed header logo to official secondary white transparent asset to fix missing image in drawer.
  * v1.5.3 - 2025-12-17 - Added secondary About CTA alongside auth prompt with mobile-first layout.
  * v1.5.2 - 2025-12-16 - Keep drawer width consistent in table view; enable horizontal scroll for table content.
@@ -48,13 +49,10 @@ import {
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CloseIcon from '@mui/icons-material/Close';
-import TimelineIcon from '@mui/icons-material/Timeline';
-import TableChartIcon from '@mui/icons-material/TableChart';
 import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import SettingsIcon from '@mui/icons-material/Settings';
 import EventsFilters3 from './EventsFilters3';
-import EventsTimeline2 from './EventsTimeline2';
 import EventsTable from './EventsTable';
 import NewsSourceSelector from './NewsSourceSelector';
 import EventNotesDialog from './EventNotesDialog';
@@ -109,16 +107,13 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 		searchQuery: eventFilters.searchQuery || '',
 	}));
 	const [events, setEvents] = useState([]);
-	const [contextEvents, setContextEvents] = useState([]); // Today + future for NEXT detection
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState(null);
 	const [noteTarget, setNoteTarget] = useState(null);
 	const [syncingWeek, setSyncingWeek] = useState(false);
 	const [syncingActuals, setSyncingActuals] = useState(false);
 	const [refreshing, setRefreshing] = useState(false);
-	const [expanded, setExpanded] = useState(false);
 	const [syncSuccess, setSyncSuccess] = useState(null);
-	const [visibleCount, setVisibleCount] = useState(0);
 	const [lastUpdated, setLastUpdated] = useState(null);
 	const [autoScrollToken, setAutoScrollToken] = useState(0);
 	const filtersRef = useRef(filters);
@@ -170,8 +165,6 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 		return result;
 	}, [noteTarget, onClose, onOpenAuth, removeNote]);
 
-	const timelineKeyRef = useRef(0);
-
 	const todayRange = useMemo(() => buildTodayRange(selectedTimezone), [selectedTimezone]);
 
 	const effectiveFilters = useMemo(() => {
@@ -212,11 +205,12 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 		return filtered;
 	}, [events, filters.favoritesOnly, filters.searchQuery, isFavorite]);
 
+	const visibleCount = displayedEvents.length;
+
 	const fetchEvents = useCallback(async (incomingFilters = null) => {
 		const active = incomingFilters ? { ...incomingFilters } : { ...effectiveFilters };
 		const startDate = ensureDate(active.startDate);
 		const endDate = ensureDate(active.endDate);
-		const searchQuery = active.searchQuery || '';
 
 		if (!startDate || !endDate) {
 			setError('Please select a date range to view events.');
@@ -243,28 +237,6 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 				const sorted = sortEventsByTime(result.data);
 				setEvents(sorted);
 				setLastUpdated(new Date());
-
-				// Calculate visible count (will be computed by displayedEvents memo)
-				let filtered = sorted;
-				if (searchQuery && searchQuery.trim()) {
-					const query = searchQuery.toLowerCase().trim();
-					filtered = filtered.filter((event) => {
-						const name = (event.name || event.Name || event.title || event.Title || '').toLowerCase();
-						if (name.includes(query)) return true;
-
-						const currency = (event.currency || event.Currency || '').toLowerCase();
-						if (currency.includes(query)) return true;
-
-						const description = (event.description || event.Description || event.summary || event.Summary || '').toLowerCase();
-						if (description.includes(query)) return true;
-
-						return false;
-					});
-				}
-				if (active.favoritesOnly) {
-					filtered = filtered.filter((event) => isFavorite(event));
-				}
-				setVisibleCount(filtered.length);
 			} else {
 				setEvents([]);
 				setError(result.error || 'Failed to load events.');
@@ -275,38 +247,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 		} finally {
 			setLoading(false);
 		}
-	}, [effectiveFilters, isFavorite, newsSource]);
-
-	const fetchContextEvents = useCallback(async () => {
-		// Always fetch today + 7 days future for accurate NEXT detection
-		// regardless of user's selected date filter
-		const { year, month, day } = getDatePartsInTimezone(selectedTimezone);
-		const contextStart = getUtcDateForTimezone(selectedTimezone, year, month, day);
-		const contextEnd = getUtcDateForTimezone(selectedTimezone, year, month, day + 7, { endOfDay: true });
-
-		try {
-			const result = await getEventsByDateRange(contextStart, contextEnd, {
-				source: newsSource,
-				impacts: [], // No impact filter for context (all events)
-				currencies: [], // No currency filter for context
-			});
-
-			if (result.success) {
-				const sorted = sortEventsByTime(result.data);
-				setContextEvents(sorted);
-			} else {
-				console.warn('[EconomicEvents3] Failed to fetch context events:', result.error);
-			}
-		} catch (err) {
-			console.warn('[EconomicEvents3] Failed to fetch context events for NEXT detection:', err);
-		}
-	}, [newsSource, selectedTimezone]);
-
-	useEffect(() => {
-		if (filters.favoritesOnly) {
-			setVisibleCount(displayedEvents.length);
-		}
-	}, [displayedEvents, filters.favoritesOnly]);
+	}, [effectiveFilters, newsSource]);
 
 	useEffect(() => {
 		if (!user && noteTarget) {
@@ -338,8 +279,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 		setFilters(resolved);
 		updateEventFilters(resolved);
 		fetchEvents(resolved);
-		fetchContextEvents(); // Always fetch context for NEXT detection
-	}, [fetchContextEvents, fetchEvents, filters, todayRange.endDate, todayRange.startDate, updateEventFilters]);
+	}, [fetchEvents, filters, todayRange.endDate, todayRange.startDate, updateEventFilters]);
 
 	const handleFiltersChange = useCallback((nextFilters) => {
 		setFilters((prev) => ({ ...prev, ...nextFilters }));
@@ -466,7 +406,6 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 			if (result.success) {
 				setSyncSuccess('Synced NFS weekly schedule.');
 				fetchEvents();
-				fetchContextEvents(); // Refresh context events
 			} else {
 				setSyncSuccess(result.error || 'Failed to sync NFS week.');
 			}
@@ -476,7 +415,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 			setTimeout(() => setSyncSuccess(null), 4000);
 			setSyncingWeek(false);
 		}
-	}, [fetchContextEvents, fetchEvents, syncingWeek]);
+	}, [fetchEvents, syncingWeek]);
 
 	const handleSyncActuals = useCallback(async () => {
 		if (syncingActuals) return;
@@ -489,7 +428,6 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 			if (result.success) {
 				setSyncSuccess('Synced today\'s actuals from JBlanked.');
 				fetchEvents();
-				fetchContextEvents(); // Refresh context events
 			} else {
 				setSyncSuccess(result.error || 'Failed to sync actuals.');
 			}
@@ -499,15 +437,14 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 			setTimeout(() => setSyncSuccess(null), 4000);
 			setSyncingActuals(false);
 		}
-	}, [fetchEvents, fetchContextEvents, syncingActuals]);
+	}, [fetchEvents, syncingActuals]);
 
 	const handleNewsSourceChange = useCallback((newSource) => {
 		updateNewsSource(newSource);
 		setSyncSuccess(`Switched to ${newSource.toUpperCase()}.`);
 		fetchEvents();
-		fetchContextEvents(); // Refresh context events
 		setTimeout(() => setSyncSuccess(null), 2500);
-	}, [fetchContextEvents, fetchEvents, updateNewsSource]);
+	}, [fetchEvents, updateNewsSource]);
 
 	useEffect(() => {
 		if (!filters.startDate || !filters.endDate) {
@@ -515,16 +452,13 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 			setFilters(seeded);
 			updateEventFilters(seeded);
 			fetchEvents(seeded);
-			fetchContextEvents();
 		} else {
 			fetchEvents();
-			fetchContextEvents();
 		}
-	}, [fetchContextEvents, fetchEvents, filters, newsSource, selectedTimezone, todayRange, updateEventFilters]);
+	}, [fetchEvents, filters, newsSource, selectedTimezone, todayRange, updateEventFilters]);
 
 	useEffect(() => {
 		if (open && user) {
-			timelineKeyRef.current += 1;
 			setAutoScrollToken((prev) => prev + 1);
 		}
 	}, [open, user]);
@@ -535,10 +469,10 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 		}
 	}, [autoScrollRequest]);
 
-	const shellBg = expanded ? 'background.default' : 'background.paper';
-	const headerFg = expanded ? 'text.primary' : 'text.primary';
-	const headerLabel = expanded ? 'Events Table' : 'Events Timeline';
-	const contentLabel = expanded ? 'Table' : 'Timeline';
+	const shellBg = 'background.paper';
+	const headerFg = 'text.primary';
+	const headerLabel = 'Events Table';
+	const contentLabel = 'Table';
 
 	const handleOpenSettings = useCallback(() => {
 		onClose(); // Close events drawer when opening settings
@@ -594,7 +528,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 						justifyContent: 'space-between',
 						gap: 1,
 						bgcolor: 'primary.main',
-						position: expanded ? 'sticky' : 'relative',
+						position: 'sticky',
 						top: 0,
 						zIndex: 1400,
 					}}
@@ -648,16 +582,6 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 							flexShrink: 0,
 						}}
 					>
-
-						{user && (
-							<Tooltip title={expanded ? 'Switch to Timeline view' : 'Switch to Table view'}>
-								<span>
-									<IconButton onClick={() => setExpanded((prev) => !prev)} sx={{ color: 'primary.contrastText' }} size="small">
-										{expanded ? <TimelineIcon /> : <TableChartIcon />}
-									</IconButton>
-								</span>
-							</Tooltip>
-						)}
 						{isSuperAdmin && (
 							<Tooltip title="Sync week (NFS)">
 								<span>
@@ -795,17 +719,17 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 								flexDirection: 'column',
 								gap: 1.25,
 								overflow: 'hidden',
-								p: expanded ? { xs: 1.5, sm: 2 } : { xs: 1.25, sm: 1.75 },
+								p: { xs: 1.25, sm: 1.75 },
 							}}
 						>
 							<Paper
-								elevation={expanded ? 0 : 0}
+								elevation={0}
 								sx={{
-									border: expanded ? '1px solid' : '1px solid',
+									border: '1px solid',
 									borderColor: 'divider',
 									bgcolor: 'background.paper',
 									color: 'text.primary',
-									borderRadius: expanded ? 2 : 2,
+									borderRadius: 2,
 									flexShrink: 0,
 									overflow: 'hidden',
 								}}
@@ -831,8 +755,8 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 									display: 'flex',
 									flexDirection: 'column',
 									overflow: 'hidden',
-									borderRadius: expanded ? 2 : 2,
-									boxShadow: expanded ? 'none' : undefined,
+									borderRadius: 2,
+									boxShadow: 'none',
 								}}
 							>
 								<Box
@@ -862,44 +786,25 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 								</Box>
 
 								<Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-									{expanded ? (
-										<EventsTable
-											events={displayedEvents}
-											isExpanded={expanded}
-											loading={loading}
-											error={error}
-											timezone={selectedTimezone}
-											onRefresh={handleRefresh}
-											autoScrollToNextKey={autoScrollRequest || autoScrollToken}
-											isFavoriteEvent={isFavorite}
-											onToggleFavorite={handleToggleFavorite}
-											isFavoritePending={isFavoritePending}
-											favoritesLoading={favoritesLoading}
-											hasEventNotes={hasNotes}
-											onOpenNotes={handleOpenNotes}
-											isEventNotesLoading={isEventNotesLoading}
-										/>
-									) : (
-										<EventsTimeline2
-											events={displayedEvents}
-											contextEvents={contextEvents}
-											loading={loading}
-											timezone={selectedTimezone}
-											onVisibleCountChange={setVisibleCount}
-											autoScrollToNextKey={autoScrollRequest || autoScrollToken}
-											searchQuery={filters.searchQuery}
-											isFavoriteEvent={isFavorite}
-											onToggleFavorite={handleToggleFavorite}
-											isFavoritePending={isFavoritePending}
-											favoritesLoading={favoritesLoading}
-											hasEventNotes={hasNotes}
-											onOpenNotes={handleOpenNotes}
-											isEventNotesLoading={isEventNotesLoading}
-										/>
-									)}
+									<EventsTable
+										events={displayedEvents}
+										isExpanded={true}
+										loading={loading}
+										error={error}
+										timezone={selectedTimezone}
+										onRefresh={handleRefresh}
+										autoScrollToNextKey={autoScrollRequest || autoScrollToken}
+										isFavoriteEvent={isFavorite}
+										onToggleFavorite={handleToggleFavorite}
+										isFavoritePending={isFavoritePending}
+										favoritesLoading={favoritesLoading}
+										hasEventNotes={hasNotes}
+										onOpenNotes={handleOpenNotes}
+										isEventNotesLoading={isEventNotesLoading}
+									/>
 								</Box>
 
-								{!expanded && error && (
+								{error && (
 									<Box sx={{ borderTop: '1px solid', borderColor: alpha('#1e293b', 0.6), px: 1.5, py: 1 }}>
 										<Alert severity="error" sx={{ my: 0 }}>
 											{error}
@@ -923,7 +828,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 					error={notesError}
 				/>
 
-				{/* Footer removed in compact (non-expanded) mode to maximize vertical space */}
+				{/* Footer intentionally omitted to maximize vertical space inside drawer */}
 			</Paper>
 		</Slide>
 	);

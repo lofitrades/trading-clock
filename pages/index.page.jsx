@@ -10,7 +10,7 @@
  */
 
 const siteUrl = 'https://time2.trade';
-const ogImage = `${siteUrl}/Time2Trade_SEO_Meta_2.PNG`;
+const ogImage = `${siteUrl}/Time2Trade_SEO_Meta_3.PNG`;
 
 const faqEntries = [
     {
@@ -135,7 +135,7 @@ export default function Page() {
                     <span>Time 2 Trade</span>
                 </div>
                 <nav className="nav">
-                    <a href="/app" aria-label="Open the trading clock app">Open app</a>
+                    <a href="/app" aria-label="Open the timing trading app">Open app</a>
                     <a href="/about" aria-label="Learn about Time 2 Trade">About</a>
                     <a href="#faq" aria-label="Read frequently asked questions">FAQ</a>
                 </nav>

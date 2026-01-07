@@ -13,6 +13,12 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v1.2.1 - 2026-01-07 - Add redirectPath support so calendar embeds keep users on /calendar after auth; reuse same path for magic link continue URLs.
+ * v1.2.0 - 2025-12-22 - Show welcome modal for new Google signups and centralize welcome copy.
+ * v1.1.8 - 2025-12-22 - Swap logo to main multicolor transparent PNG to match brand kit.
+ * v1.1.7 - 2025-12-22 - Swap hero/logo asset to teal transparent PNG to match brand usage.
+ * v1.1.6 - 2025-12-22 - Moved brand logo + name above the form on the light pane for mobile-first layout.
+ * v1.1.5 - 2025-12-22 - Added forceOpen mode to require authentication without dismiss controls.
  * v1.1.4 - 2025-12-22 - Redirect OAuth success to /app after closing modal.
  * v1.1.3 - 2025-12-22 - Replaced missing logo reference with official secondary white transparent asset for teal hero pane.
  * v1.1.2 - 2025-12-17 - Allow magic link to auto-link with existing Google accounts instead of blocking cross-provider emails
@@ -23,7 +29,7 @@
 
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -44,7 +50,6 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import GoogleIcon from '@mui/icons-material/Google';
-import XIcon from '@mui/icons-material/X';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PublicIcon from '@mui/icons-material/Public';
@@ -54,13 +59,15 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   TwitterAuthProvider,
+  getAdditionalUserInfo,
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import { getFriendlyErrorMessage, getSuccessMessage } from '../utils/messages';
 import { getMagicLinkActionCodeSettings } from '../utils/authLinkSettings';
+import { WELCOME_COPY } from '../utils/welcomeCopy';
 import ForgotPasswordModal from './ForgotPasswordModal';
 
-const LOGO_SECONDARY_WHITE_TRANSPARENT = `${import.meta.env.BASE_URL}logos/svg/Time2Trade_Logo_Secondary_White_Transparent_1080.svg`;
+const LOGO_SECONDARY_WHITE_TRANSPARENT = `${import.meta.env.BASE_URL}logos/png/Time2Trade_Logo_Main_Multicolor_Transparent_1080.png`;
 
 function EmailSentModal({ email, isNewUser, onClose }) {
   return (
@@ -115,7 +122,10 @@ function EmailSentModal({ email, isNewUser, onClose }) {
         {isNewUser && (
           <Alert severity="info" sx={{ mb: 3, textAlign: 'left', borderRadius: 2 }}>
             <Typography variant="body2" fontWeight="600" gutterBottom>
-              🎉 Welcome to Time 2 Trade!
+              🎉 {WELCOME_COPY.headline}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {WELCOME_COPY.multiProvider}
             </Typography>
             <Typography variant="body2" component="div" sx={{ mt: 1 }}>
               1. Check your inbox for our email<br />
@@ -205,7 +215,7 @@ function VerifyingModal({ onClose }) {
   );
 }
 
-export default function AuthModal2({ open, onClose, initialMode = 'signup' }) {
+export default function AuthModal2({ open, onClose, initialMode = 'signup', forceOpen = false, redirectPath = '/app' }) {
   const [email, setEmail] = useState('');
   const [isSignup, setIsSignup] = useState(initialMode === 'signup');
   const [errorMsg, setErrorMsg] = useState('');
@@ -269,7 +279,7 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup' }) {
     }
 
     try {
-      const actionCodeSettings = getMagicLinkActionCodeSettings();
+      const actionCodeSettings = getMagicLinkActionCodeSettings(redirectPath);
 
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
 
@@ -310,11 +320,18 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup' }) {
         return;
       }
 
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const additionalInfo = getAdditionalUserInfo(result);
+      const isNewUser = additionalInfo?.isNewUser ?? false;
+
+      if (isNewUser) {
+        window.localStorage.setItem('showWelcomeModal', 'true');
+        window.localStorage.setItem('isNewUser', 'true');
+      }
       setSuccessMsg(getSuccessMessage('login'));
       setTimeout(() => {
         onClose();
-        navigate('/app');
+        navigate(redirectPath);
       }, 800);
     } catch (err) {
       setErrorMsg(getFriendlyErrorMessage(err.code));
@@ -360,34 +377,38 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup' }) {
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={forceOpen ? () => { } : onClose}
       maxWidth="md"
       fullWidth
       sx={{ zIndex: 2000 }}
+      disableEscapeKeyDown={forceOpen}
       slotProps={{
         paper: {
           sx: {
             borderRadius: 3,
           }
         },
+        backdrop: forceOpen ? { onClick: (e) => e.stopPropagation() } : undefined,
       }}
     >
-      <IconButton
-        onClick={onClose}
-        sx={{
-          position: 'absolute',
-          right: 12,
-          top: 12,
-          color: 'text.secondary',
-          bgcolor: 'background.paper',
-          '&:hover': {
-            bgcolor: 'action.hover',
-          },
-          zIndex: 1,
-        }}
-      >
-        <CloseIcon />
-      </IconButton>
+      {!forceOpen && (
+        <IconButton
+          onClick={onClose}
+          sx={{
+            position: 'absolute',
+            right: 12,
+            top: 12,
+            color: 'text.secondary',
+            bgcolor: 'background.paper',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+            zIndex: 1,
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+      )}
 
       <DialogContent sx={{ p: 0 }}>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column-reverse', md: 'row' } }}>
@@ -407,33 +428,13 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup' }) {
           >
             <Box sx={{ position: 'relative', zIndex: 1 }}>
               {/* Logo/Brand */}
-              <Box
-                sx={{
-                  mb: 3,
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <img
-                  src={LOGO_SECONDARY_WHITE_TRANSPARENT}
-                  alt="Time 2 Trade"
-                  style={{
-                    width: '100%',
-                    maxWidth: '50px',
-                    height: 'auto',
-                  }}
-                />
-              </Box>
 
               <Typography variant="h4" fontWeight="700" gutterBottom sx={{ mb: 2 }}>
                 Everything Free.
               </Typography>
 
               <Typography variant="body1" sx={{ mb: 0, lineHeight: 1.7, fontSize: '1.05rem' }}>
-                See what you get with a free Time 2 Trade account.
-              </Typography>
-              <Typography variant="body1" sx={{ mb: 4, lineHeight: 1.7, fontSize: '1.05rem' }}>
-                No credit card. No trials. No limits.
+                See what you get with a free Time 2 Trade account. No credit card. No trials. No limits.
               </Typography>
               {/* Benefits List */}
               <List sx={{ p: 0 }}>
@@ -492,14 +493,69 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup' }) {
           >
             {/* Main content wrapper - grows to push footer down */}
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Box
+                component={RouterLink}
+                to="/"
+                sx={{
+                  mb: { xs: 2.5, sm: 3 },
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.2,
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  justifyContent: { xs: 'flex-start', md: 'flex-start' },
+                  '&:focus-visible': {
+                    outline: '2px solid rgba(0,0,0,0.5)',
+                    outlineOffset: 4,
+                    borderRadius: 1,
+                  },
+                }}
+              >
+                <img
+                  src={LOGO_SECONDARY_WHITE_TRANSPARENT}
+                  alt="Time 2 Trade"
+                  style={{
+                    width: '100%',
+                    maxWidth: '52px',
+                    height: 'auto',
+                    flexShrink: 0,
+                  }}
+                />
+                <Typography variant="h7" fontWeight="700" sx={{ color: 'primary.text' }}>
+                  Time 2 Trade
+                </Typography>
+              </Box>
               <Typography variant="h5" fontWeight="700" gutterBottom>
                 {isSignup ? 'Get instant access' : 'Sign in to continue'}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                {isSignup
-                  ? 'Claim your free account - all premium features included'
-                  : 'Access your personalized dashboard and synced settings'}
-              </Typography>
+              {/* Account Toggle */}
+              <Box sx={{ textAlign: 'left', mb: 3 }}>
+                <Typography variant="body2" color="text.secondary">
+                  {isSignup ? 'Already have an account?' : 'New to Time 2 Trade?'}
+                  {' '}
+                  <Link
+                    component="button"
+                    type="button"
+                    variant="body2"
+                    onClick={() => {
+                      setIsSignup(!isSignup);
+                      setErrorMsg('');
+                      setSuccessMsg('');
+                    }}
+                    sx={{
+                      textDecoration: 'none',
+                      color: 'success.dark',
+                      fontWeight: 700,
+                      '&:hover': {
+                        textDecoration: 'underline',
+                      },
+                    }}
+                  >
+                    {isSignup ? 'Sign in' : 'Create free account →'}
+                  </Link>
+                </Typography>
+              </Box>
+
               {/* Social Login Buttons */}
               <Stack spacing={1.5} sx={{ mb: 3 }}>
                 <Button
@@ -521,26 +577,6 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup' }) {
                   }}
                 >
                   Continue with Google
-                </Button>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  size="large"
-                  startIcon={<XIcon />}
-                  onClick={() => handleSocialLogin('twitter')}
-                  sx={{
-                    borderColor: 'divider',
-                    color: 'text.primary',
-                    textTransform: 'none',
-                    py: 1.5,
-                    fontWeight: 600,
-                    '&:hover': {
-                      borderColor: 'primary.main',
-                      bgcolor: 'action.hover',
-                    },
-                  }}
-                >
-                  Continue with X
                 </Button>
               </Stack>
 
@@ -633,38 +669,56 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup' }) {
                       : isSignup ? 'Get Free Access Now →' : '✉️ Send Sign-In Link'
                     }
                   </Button>
+
+                  {/* Legal Consent Notice */}
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: 'text.secondary',
+                      textAlign: 'left',
+                      lineHeight: 1.5,
+                      px: { xs: 1, sm: 2 },
+                      mt: 1,
+                    }}
+                  >
+                    By proceeding, you agree to our{' '}
+                    <Link
+                      component={RouterLink}
+                      to="/terms"
+                      sx={{
+                        color: 'primary.main',
+                        textDecoration: 'underline',
+                        fontWeight: 600,
+                        '&:hover': {
+                          color: 'primary.dark',
+                        },
+                      }}
+                    >
+                      Terms of Service
+                    </Link>
+                    {' '}and{' '}
+                    <Link
+                      component={RouterLink}
+                      to="/privacy"
+                      sx={{
+                        color: 'primary.main',
+                        textDecoration: 'underline',
+                        fontWeight: 600,
+                        '&:hover': {
+                          color: 'primary.dark',
+                        },
+                      }}
+                    >
+                      Privacy Policy
+                    </Link>
+                  </Typography>
                 </Stack>
               </Box>
             </Box>
 
-            {/* Toggle and Footer - fixed to bottom */}
-            <Box sx={{ textAlign: 'center', mt: { xs: 4, md: 0 } }}>
-              <Typography variant="body2" color="text.secondary">
-                {isSignup ? 'Already have an account?' : 'New to Time 2 Trade?'}
-                {' '}
-                <Link
-                  component="button"
-                  type="button"
-                  variant="body2"
-                  onClick={() => {
-                    setIsSignup(!isSignup);
-                    setErrorMsg('');
-                    setSuccessMsg('');
-                  }}
-                  sx={{
-                    textDecoration: 'none',
-                    color: 'success.dark',
-                    fontWeight: 700,
-                    '&:hover': {
-                      textDecoration: 'underline',
-                    },
-                  }}
-                >
-                  {isSignup ? 'Sign in' : 'Create free account →'}
-                </Link>
-              </Typography>
-
-              {!isSignup && (
+            {/* Forgot Password Link - fixed to bottom */}
+            {!isSignup && (
+              <Box sx={{ textAlign: 'center', mt: { xs: 4, md: 0 } }}>
                 <Link
                   component="button"
                   type="button"
@@ -673,7 +727,6 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup' }) {
                   sx={{
                     textDecoration: 'none',
                     color: 'text.secondary',
-                    mt: 1.5,
                     '&:hover': {
                       textDecoration: 'underline',
                       color: 'primary.main',
@@ -682,12 +735,12 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup' }) {
                 >
                   Need to reset your password?
                 </Link>
-              )}
+              </Box>
+            )}
 
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 3 }}>
-                Protected by enterprise-grade encryption
-              </Typography>
-            </Box>
+            <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', display: 'block', mt: 3 }}>
+              Protected by enterprise-grade encryption
+            </Typography>
           </Box>
         </Box>
       </DialogContent>
@@ -709,4 +762,6 @@ AuthModal2.propTypes = {
   open: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   initialMode: PropTypes.oneOf(['signup', 'signin']),
+  forceOpen: PropTypes.bool,
+  redirectPath: PropTypes.string,
 };

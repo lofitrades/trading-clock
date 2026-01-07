@@ -1,7 +1,7 @@
 # Time 2 Trade - Developer Knowledge Base
 
-**Last Updated:** December 18, 2025  
-**Version:** 2.6.0  
+**Last Updated:** January 6, 2026  
+**Version:** 2.7.0  
 **Maintainer:** Lofi Trades Development Team
 
 ---
@@ -26,6 +26,7 @@
 16. [Security Considerations](#security-considerations)
 17. [Troubleshooting Guide](#troubleshooting-guide)
 18. [Change Log](#change-log)
+19. [TargetAudience.md](TargetAudience.md)
 
 ---
 
@@ -1966,6 +1967,32 @@ whyDidYouRender(React, {
 
 ## 📝 Change Log
 
+### Version 2.7.0 - January 6, 2026
+**Calendar Embed UX Parity**
+
+#### ✨ New Features
+- CalendarEmbed now shows NOW/NEXT badges with live countdowns and opens EventModal on row click/touch.
+- Added notes actions to embed rows with EventNotesDialog wiring for add/remove flows.
+
+#### 🔄 Changes
+- Past events gray out using timezone-aware detection (matches TimezoneSelector selection).
+- Today headers in day groups use primary background for immediate visual emphasis.
+- Favorites and notes controls mirror auth-aware handling used in EventsTable/Timeline components.
+
+### Version 2.6.2 - December 22, 2025
+**Firebase Analytics Initialization**
+
+- Added guarded Firebase Analytics initialization that reuses the existing app instance without touching firebase.js.
+- SPA page views now log on every route change via a router-level initializer.
+- Provides helpers for future event logging with GA4.
+
+### Version 2.6.1 - December 22, 2025
+**Passwordless Magic Link Reliability**
+
+- Magic link continue URLs now resolve to /app across production, dev, and GitHub Pages so callbacks land inside the authenticated shell.
+- EmailLinkHandler runs at the routing layer, ensuring email link sign-in completes even when users open links on marketing routes.
+- Authenticated visitors hitting /login now redirect to /app for a consistent post-auth landing.
+
 ### Version 2.6.0 - December 18, 2025
 **SEO Optimization (SPA-Based, No SSR)**
 
@@ -2026,6 +2053,17 @@ whyDidYouRender(React, {
 - `index.html` - Added SEO meta tags, structured data, fallback content
 - `src/main.jsx` - Changed to render AppRoutes, removes SEO fallback
 - `package.json` - Added postbuild script
+
+### Version 2.5.0 - January 6, 2026
+**Calendar workspace + /calendar route**
+
+#### ✨ New Features
+- Added `/calendar` SSR page with structured data, prerendered SEO copy, and client hydration into the new provider-wrapped CalendarPage.
+- Introduced `CalendarEmbed` with This Week default preset, day-grouped table (shows "No events" on empty days), and reusable two-panel layout built on `EventsFilters3` + `NewsSourceSelector`.
+- Added headless `useCalendarData` hook plus CalendarPage shell for embedding the calendar workspace in other pages (e.g., LandingPage hero slots).
+
+#### 🔄 Changes
+- `EventsFilters3` now accepts an optional `defaultPreset` prop (defaults to Today) so hosts can seed ranges like This Week while keeping existing UX.
 
 ### Version 2.4.6 - December 17, 2025
 **Installable PWA + Chrome install CTA**
@@ -2303,6 +2341,8 @@ For detailed brand guidelines, color palettes, typography, logo usage, and visua
 **Note:** This Knowledge Base focuses on technical implementation. For marketing assets, design specs, and brand consistency rules, refer to the Brand Guide.
 
 ---
+See [TargetAudience.md](TargetAudience.md) for audience definitions, JTBD, UX implications, and terminology guidance.
+Reference kb\TargetAudience.md
 
 **End of Knowledge Base**
 

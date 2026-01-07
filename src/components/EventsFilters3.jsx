@@ -13,6 +13,8 @@
  * - Persistent settings via SettingsContext and parent callbacks
  * 
  * Changelog:
+ * v1.3.8 - 2026-01-06 - Fixed calculateDateRange to use timezone-safe end-of-day calculation (next day start - 1 second) preventing single-day presets from bleeding into the next calendar day.
+ * v1.3.7 - 2026-01-06 - Allow hosts to provide a defaultPreset (defaults to Today) so pages can seed ranges like This Week without altering reset UX.
  * v1.3.6 - 2025-12-18 - When exactly one impact is selected, collapsed impact chip adopts that impact color with contrast-safe text.
  * v1.3.5 - 2025-12-18 - Compute text color via isColorDark for selected impact chips to ensure contrast on all impact backgrounds.
  * v1.3.4 - 2025-12-18 - Use explicit impact hex fills (red/orange/yellow/taupe/gray) so selected chips never fall back to gray; dark text on all fills.
@@ -63,7 +65,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { getEventCurrencies } from '../services/economicEventsService';
 import { getDatePartsInTimezone, getUtcDateForTimezone } from '../utils/dateUtils';
 import { isColorDark } from '../utils/clockUtils';
-import { getCurrencyFlag } from './EventsTimeline2';
+import { getCurrencyFlag } from '../utils/currencyFlags';
 
 // ============================================================================
 // CONSTANTS
@@ -125,7 +127,15 @@ const getImpactSummaryColors = (impacts = []) => {
 
 const calculateDateRange = (preset, timezone) => {
   const { year, month, day, dayOfWeek } = getDatePartsInTimezone(timezone);
-  const createDate = (y, m, d, endOfDay = false) => getUtcDateForTimezone(timezone, y, m, d, { endOfDay });
+  const createDate = (y, m, d, endOfDay = false) => {
+    if (endOfDay) {
+      // Create start of NEXT day, then subtract 1 second to stay within the target day
+      // This ensures we don't bleed into the next calendar day in the target timezone
+      const nextDayStart = getUtcDateForTimezone(timezone, y, m, d + 1, { hour: 0, minute: 0, second: 0, millisecond: 0 });
+      return new Date(nextDayStart.getTime() - 1000); // End at 23:59:59 of target day
+    }
+    return getUtcDateForTimezone(timezone, y, m, d, { endOfDay: false });
+  };
 
   switch (preset) {
     case 'today':
@@ -182,6 +192,7 @@ export default function EventsFilters3({
   timezone = Intl.DateTimeFormat().resolvedOptions().timeZone,
   newsSource = 'mql5',
   actionOffset = 0,
+  defaultPreset = 'today',
 }) {
   const [localFilters, setLocalFilters] = useState({
     startDate: null,
@@ -204,7 +215,7 @@ export default function EventsFilters3({
 
   const anchorOpen = Boolean(anchorDatePos || anchorImpactPos || anchorCurrencyPos);
 
-  const defaultRange = useMemo(() => calculateDateRange('today', timezone), [timezone]);
+  const defaultRange = useMemo(() => calculateDateRange(defaultPreset, timezone), [defaultPreset, timezone]);
 
   useEffect(() => {
     setInitialized(true);
@@ -286,7 +297,7 @@ export default function EventsFilters3({
   }, [applyAndPersist, localFilters.currencies, localFilters.impacts, localFilters.endDate, localFilters.startDate, localFilters.favoritesOnly, localFilters.searchQuery]);
 
   const handleReset = useCallback(() => {
-    const resetRange = calculateDateRange('today', timezone) || defaultRange;
+    const resetRange = calculateDateRange(defaultPreset, timezone) || defaultRange;
     const resetFilters = {
       startDate: resetRange?.startDate || null,
       endDate: resetRange?.endDate || null,
@@ -425,6 +436,8 @@ export default function EventsFilters3({
   const showActions = hasChanges && !anchorOpen;
 
   const dateLabel = activePreset ? `${activePreset.icon} ${activePreset.label}` : 'Date Range';
+
+  const resetLabel = defaultPreset === 'thisWeek' ? 'Reset to This Week and clear filters' : 'Reset to Today and clear filters';
 
   const impactsLabel = useMemo(() => {
     if (!localFilters.impacts?.length) return 'All impacts';
@@ -979,7 +992,7 @@ export default function EventsFilters3({
               </Button>
             </span>
           </Tooltip>
-          <Tooltip title="Reset to Today and clear filters">
+          <Tooltip title={resetLabel}>
             <span style={{ width: '100%', display: 'flex', maxWidth: '100%' }}>
               <Button
                 variant="outlined"
@@ -997,7 +1010,7 @@ export default function EventsFilters3({
                   borderWidth: 2,
                 }}
               >
-                Reset
+                {defaultPreset === 'thisWeek' ? 'Reset to This Week' : 'Reset'}
               </Button>
             </span>
           </Tooltip>
