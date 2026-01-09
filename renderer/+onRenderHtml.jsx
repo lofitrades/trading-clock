@@ -6,6 +6,7 @@
  * while keeping the payload lean for marketing routes.
  * 
  * Changelog:
+ * v1.0.1 - 2026-01-09 - Added robust favicon links (ico + sized PNG) for Google SERP compatibility.
  * v1.0.0 - 2025-12-18 - Initial SSR renderer with structured data support.
  */
 
@@ -148,7 +149,10 @@ export async function onRenderHtml(pageContext) {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="${fontHref}" rel="stylesheet" />
-    <link rel="icon" href="/icons/icon-192.png" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/icons/icon-apple-180.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta property="og:site_name" content="Time 2 Trade" />

@@ -6,6 +6,7 @@
   
   Changelog:
   v1.9.0 - 2026-01-07 - Updated SEO meta to highlight economic calendar, session clock, and Forex Factory source; kept AdSense publisher ID.
+  v1.9.1 - 2026-01-09 - Improved Google site-name and favicon signals (Organization schema, WebSite publisher/alternateName, robust icon links).
   v1.8.0 - 2026-01-07 - Updated AdSense publisher ID to ca-pub-3984565509623618 for time2.trade verification.
   v1.7.0 - 2025-12-22 - Refreshed SEO copy, OG/Twitter images, structured data, and fallback content for trading clock + economic events positioning.
   v1.6.0 - 2025-12-17 - Added PWA manifest, Apple touch icon, and theme color to enable install prompts and Chrome add-to-homescreen.
@@ -23,7 +24,11 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#0f6fec" />
     <link rel="apple-touch-icon" href="/icons/icon-apple-180.png" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" id="t2t-favicon" />
+    <link rel="icon" href="/favicon.ico" sizes="any" id="t2t-favicon" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
     <link rel="canonical" href="https://time2.trade/" />
     <title>Time 2 Trade | Economic Calendar + Session Clock (Forex Factory)</title>
@@ -122,6 +127,7 @@
     <meta name="author" content="Time 2 Trade" />
     <meta name="keywords" content="economic calendar, forex factory calendar, market session clock, today’s economic events, forex news calendar, futures calendar, session overlaps, impact filters, currency filters, countdowns" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Time 2 Trade" />
     <meta property="og:url" content="https://time2.trade/" />
     <meta property="og:title" content="Time 2 Trade | Economic Calendar + Session Clock" />
     <meta property="og:description" content="Forex Factory-powered economic calendar with a live session clock, today’s events overview, impact/currency filters, favorites, notes, and exports in a minimalist, mobile-first experience." />
@@ -142,13 +148,31 @@
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
+        "@id": "https://time2.trade/#website",
         "name": "Time 2 Trade",
+        "alternateName": "T2T",
         "url": "https://time2.trade/",
+        "publisher": {
+          "@id": "https://time2.trade/#organization"
+        },
         "potentialAction": {
           "@type": "SearchAction",
           "target": "https://time2.trade/?q={search_term_string}",
           "query-input": "required name=search_term_string"
         }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "@id": "https://time2.trade/#organization",
+        "name": "Time 2 Trade",
+        "url": "https://time2.trade/",
+        "logo": "https://time2.trade/logos/png/Time2Trade_Logo_Main_Multicolor_Transparent_1080.png",
+        "sameAs": [
+          "https://x.com/time2_trade"
+        ]
       }
     </script>
     <script type="application/ld+json">

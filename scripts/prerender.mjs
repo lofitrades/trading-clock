@@ -9,6 +9,7 @@
  * v1.1.2 - 2025-12-22 - Synced /about prerender metadata with refreshed About copy.
  * v1.1.1 - 2025-12-22 - Updated landing/about prerender metadata to match refreshed positioning.
  * v1.1.0 - 2025-12-18 - Switched to manual HTML generation for reliability.
+ * v1.1.4 - 2026-01-09 - Fixed </head> insertion regex so postbuild prerender runs.
  */
 
 import fs from 'fs/promises';
@@ -30,6 +31,11 @@ const pages = {
     description: 'Lightweight trading clock for futures and forex day traders. Visualize New York, London, and Asia sessions plus an optional economic events workspace with filters, favorites/notes, exports, and fast PWA install. No trading signals.',
     path: 'about/index.html',
   },
+  '/contact': {
+    title: 'Contact | Time 2 Trade',
+    description: 'Contact Time 2 Trade for support, feedback, or questions. Send a message and we’ll follow up by email. Prefer DM? Reach us on X.',
+    path: 'contact/index.html',
+  },
 };
 
 const getOgImage = () => process.env.VITE_OG_IMAGE_URL || DEFAULT_OG_IMAGE;
@@ -45,28 +51,46 @@ const applyOgImage = (html, ogImage) => {
   return replacements.reduce((acc, { pattern, value }) => acc.replace(pattern, value), html);
 };
 
+const replaceMeta = (html, matcher, replacement) => {
+  const re = matcher instanceof RegExp ? matcher : new RegExp(matcher, 'i');
+  return re.test(html) ? html.replace(re, replacement) : html;
+};
+
+const upsertMetaTag = (html, { key, value, by = 'name' }) => {
+  const escapedValue = value.replace(/\$/g, '$$$$');
+  const attr = by === 'property' ? 'property' : 'name';
+  const regex = new RegExp(`<meta\\s+${attr}="${key}"\\s+content="[^"]*"\\s*\\/?>`, 'i');
+  const tag = `<meta ${attr}="${key}" content="${escapedValue}" />`;
+  if (regex.test(html)) return html.replace(regex, tag);
+
+  // Insert before closing head as a fallback.
+  return html.replace(/<\/head>/i, `${tag}\n  </head>`);
+};
+
 async function generateHTML(route, meta) {
   // Read the base index.html template
   const templatePath = path.join(distPath, 'index.html');
   let html = await fs.readFile(templatePath, 'utf-8');
 
-  // Update title and description
-  html = html.replace(
-    /<title>.*?<\/title>/,
-    `<title>${meta.title}</title>`
-  );
-  
-  html = html.replace(
-    /<meta name="description" content=".*?">/,
-    `<meta name="description" content="${meta.description}">`
-  );
+  // Update title and primary meta
+  html = replaceMeta(html, /<title>[^<]*<\/title>/i, `<title>${meta.title}</title>`);
+  html = upsertMetaTag(html, { by: 'name', key: 'title', value: meta.title });
+  html = upsertMetaTag(html, { by: 'name', key: 'description', value: meta.description });
 
   // Update canonical URL
   const canonicalUrl = route === '/' ? 'https://time2.trade/' : `https://time2.trade${route}`;
-  html = html.replace(
-    /<link rel="canonical" href=".*?"(\s*\/>|>)/,
-    `<link rel="canonical" href="${canonicalUrl}" />`
+  html = replaceMeta(
+    html,
+    /<link\s+rel="canonical"\s+href=".*?"(\s*\/?>|>)/i,
+    `<link rel="canonical" href="${canonicalUrl}" />`,
   );
+
+  // Update social meta so crawlers and link previews match the route.
+  html = upsertMetaTag(html, { by: 'property', key: 'og:title', value: meta.title });
+  html = upsertMetaTag(html, { by: 'property', key: 'og:description', value: meta.description });
+  html = upsertMetaTag(html, { by: 'property', key: 'og:url', value: canonicalUrl });
+  html = upsertMetaTag(html, { by: 'name', key: 'twitter:title', value: meta.title });
+  html = upsertMetaTag(html, { by: 'name', key: 'twitter:description', value: meta.description });
 
   const ogImage = getOgImage();
   const withOg = applyOgImage(html, ogImage);

@@ -8,6 +8,7 @@ Allow: /
 # Explicitly allow key landing and calendar surfaces
 Allow: /calendar
 Allow: /about
+Allow: /contact
 
 # Sitemap location
 Sitemap: https://time2.trade/sitemap.xml

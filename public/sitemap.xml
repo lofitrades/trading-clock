@@ -31,9 +31,17 @@
   <!-- About Page -->
   <url>
     <loc>https://time2.trade/about</loc>
-    <lastmod>2026-01-07</lastmod>
+    <lastmod>2026-01-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+  </url>
+
+  <!-- Contact Page -->
+  <url>
+    <loc>https://time2.trade/contact</loc>
+    <lastmod>2026-01-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
 
 </urlset>
