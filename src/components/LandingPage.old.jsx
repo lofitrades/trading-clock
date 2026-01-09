@@ -5,6 +5,8 @@
  * Highlights Time 2 Trade value props with brand-safe visuals and responsive hero layout.
  * 
  * Changelog:
+ * v1.1.2 - 2026-01-07 - Temporarily hide session label display while keeping wiring for future reuse.
+ * v1.1.1 - 2026-01-07 - Align legacy landing clock with shared time engine for accurate second ticks.
  * v1.1.0 - 2025-12-22 - Rewrote landing page copy and sections with enterprise SaaS structure and updated navigation anchors.
  * v1.0.13 - 2025-12-22 - Fix Open app CTA to call isAuthenticated() so guests see AuthModal2 instead of redirecting to /app.
  * v1.0.12 - 2025-12-22 - Open App CTA checks auth status: guests see AuthModal2, authenticated users redirect to /app.
@@ -52,6 +54,7 @@ const AuthModal2 = lazy(() => import('./AuthModal2'));
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useClock } from '../hooks/useClock';
+import { useTimeEngine } from '../hooks/useTimeEngine';
 import { isColorDark } from '../utils/clockUtils';
 import { buildSeoMeta } from '../utils/seoMeta';
 import '../App.css';
@@ -87,6 +90,7 @@ export default function HomePage2() {
         selectedTimezone,
         clockStyle,
         showSessionNamesInCanvas,
+        showPastSessionsGray,
         showClockNumbers,
         showClockHands,
         showEventsOnCanvas,
@@ -97,7 +101,10 @@ export default function HomePage2() {
         backgroundColor,
     } = useSettings();
 
-    const { currentTime, activeSession, timeToEnd, nextSession, timeToStart } = useClock(selectedTimezone, sessions);
+    const timeEngine = useTimeEngine(selectedTimezone);
+    const sessionLabelVisible = false;
+
+    const { currentTime, activeSession, timeToEnd, nextSession, timeToStart } = useClock(selectedTimezone, sessions, timeEngine);
     const handAnglesRef = useRef({ hour: 0, minute: 0, second: 0 });
 
     const [heroClockSize, setHeroClockSize] = useState(320);
@@ -546,6 +553,7 @@ export default function HomePage2() {
                                                         handColor={handColor}
                                                         clockStyle={clockStyle}
                                                         showSessionNamesInCanvas={showSessionNamesInCanvas}
+                                                        showPastSessionsGray={showPastSessionsGray}
                                                         showClockNumbers={showClockNumbers}
                                                         showClockHands={showClockHands}
                                                         activeSession={activeSession}
@@ -553,14 +561,13 @@ export default function HomePage2() {
                                                         renderHandsInCanvas={false}
                                                         handAnglesRef={handAnglesRef}
                                                     />
-                                                    {showClockHands && (
-                                                        <ClockHandsOverlay
-                                                            size={renderedClockSize}
-                                                            handAnglesRef={handAnglesRef}
-                                                            handColor={handColor}
-                                                            time={currentTime}
-                                                        />
-                                                    )}
+                                                    <ClockHandsOverlay
+                                                        size={renderedClockSize}
+                                                        handAnglesRef={handAnglesRef}
+                                                        handColor={handColor}
+                                                        time={currentTime}
+                                                        showSecondsHand={showClockHands}
+                                                    />
                                                     {showOverlay && (
                                                         <Suspense fallback={null}>
                                                             <ClockEventsOverlay
@@ -580,16 +587,19 @@ export default function HomePage2() {
 
                                     <Stack spacing={1} alignItems="center" sx={{ textAlign: 'center' }}>
                                         <DigitalClock time={currentTime} clockSize={heroClockSize} textColor={handColor} />
-                                        <SessionLabel
-                                            activeSession={activeSession}
-                                            showTimeToEnd
-                                            timeToEnd={timeToEnd}
-                                            showTimeToStart
-                                            nextSession={nextSession}
-                                            timeToStart={timeToStart}
-                                            clockSize={heroClockSize}
-                                            contrastTextColor={handColor}
-                                        />
+                                        {sessionLabelVisible && (
+                                            <SessionLabel
+                                                activeSession={activeSession}
+                                                showTimeToEnd
+                                                timeToEnd={timeToEnd}
+                                                showTimeToStart
+                                                nextSession={nextSession}
+                                                timeToStart={timeToStart}
+                                                clockSize={heroClockSize}
+                                                contrastTextColor={handColor}
+                                                backgroundBasedOnSession={backgroundBasedOnSession}
+                                            />
+                                        )}
                                         <Typography variant="caption" sx={{ color: '#a9bccc' }}>
                                             {selectedTimezone?.replace(/_/g, ' ') || 'Your timezone'}
                                         </Typography>

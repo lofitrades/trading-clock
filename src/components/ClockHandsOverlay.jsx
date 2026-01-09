@@ -5,6 +5,8 @@
  * Enables separate z-layer control to keep hands above event markers while retaining smooth animation.
  *
  * Changelog:
+ * v1.0.5 - 2026-01-08 - Add showSecondsHand prop to conditionally render seconds hand; hour/minute always visible (enterprise best practice).
+ * v1.0.4 - 2026-01-07 - Track handColor in ref to stabilize dependencies; minimize animation loop restarts and improve canvas rendering performance.
  * v1.0.3 - 2026-01-06 - Remove sub-second interpolation to reduce render overhead; rely on upstream hand angles for smooth but lightweight motion.
  * v1.0.1 - 2025-12-09 - Stabilized animation by decoupling render loop from per-second time updates (uses refs instead of recreating the loop).
  * v1.0.0 - 2025-12-09 - Initial extraction of hour/minute/second hands to overlay canvas with DPR scaling.
@@ -13,21 +15,36 @@
 import { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 
-export default function ClockHandsOverlay({ size, handAnglesRef, handColor, time }) {
+export default function ClockHandsOverlay({ size, handAnglesRef, handColor, time, showSecondsHand = true }) {
   const canvasRef = useRef(null);
   const timeRef = useRef(time);
+  const handColorRef = useRef(handColor);
+  const showSecondsHandRef = useRef(showSecondsHand);
+  const animationIdRef = useRef(null);
 
-  // Keep latest time without restarting the render loop
+  // Enterprise: track prop changes in refs to avoid restarting animation loop
+  // Only size change triggers canvas rebuild and effect re-run
   useEffect(() => {
     timeRef.current = time;
   }, [time]);
 
+  useEffect(() => {
+    handColorRef.current = handColor;
+  }, [handColor]);
+
+  useEffect(() => {
+    showSecondsHandRef.current = showSecondsHand;
+  }, [showSecondsHand]);
+
+  // Setup canvas and animation loop: only restart on size change (canvas rebuild)
+  // time, handColor, and handAnglesRef tracked via refs to avoid loop restarts
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !size) return;
 
     const dpr = window.devicePixelRatio || 1;
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     const setupCanvas = () => {
       canvas.width = Math.round(size * dpr);
@@ -37,8 +54,6 @@ export default function ClockHandsOverlay({ size, handAnglesRef, handColor, time
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(dpr, dpr);
     };
-
-    let animationId;
 
     const draw = () => {
       ctx.clearRect(0, 0, size, size);
@@ -64,7 +79,7 @@ export default function ClockHandsOverlay({ size, handAnglesRef, handColor, time
           centerX + Math.cos(angle - Math.PI / 2) * length,
           centerY + Math.sin(angle - Math.PI / 2) * length
         );
-        ctx.strokeStyle = handColor;
+        ctx.strokeStyle = handColorRef.current;
         ctx.lineWidth = width;
         ctx.lineCap = 'round';
         ctx.stroke();
@@ -72,24 +87,29 @@ export default function ClockHandsOverlay({ size, handAnglesRef, handColor, time
 
       drawHand(angles.hour, hourLength, 6);
       drawHand(angles.minute, minuteLength, 3);
-      drawHand(angles.second, secondLength, 1);
+      if (showSecondsHandRef.current) {
+        drawHand(angles.second, secondLength, 1);
+      }
 
       // Center pin
       ctx.beginPath();
       ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
-      ctx.fillStyle = handColor;
+      ctx.fillStyle = handColorRef.current;
       ctx.fill();
 
-      animationId = requestAnimationFrame(draw);
+      animationIdRef.current = requestAnimationFrame(draw);
     };
 
     setupCanvas();
     draw();
 
     return () => {
-      cancelAnimationFrame(animationId);
+      if (animationIdRef.current) {
+        cancelAnimationFrame(animationIdRef.current);
+        animationIdRef.current = null;
+      }
     };
-  }, [size, handAnglesRef, handColor]);
+  }, [size]);
 
   return (
     <canvas
@@ -111,4 +131,5 @@ ClockHandsOverlay.propTypes = {
   }),
   handColor: PropTypes.string.isRequired,
   time: PropTypes.instanceOf(Date).isRequired,
+  showSecondsHand: PropTypes.bool,
 };

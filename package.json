@@ -29,6 +29,7 @@
     "@mui/x-date-pickers": "^8.19.0",
     "date-fns": "^4.1.0",
     "firebase": "^11.3.1",
+    "libphonenumber-js": "^1.11.7",
     "flag-icons": "^7.5.0",
     "gsap": "^3.13.0",
     "react": "^19.0.0",

@@ -227,7 +227,6 @@ export const DEFAULT_USER_PROFILE = {
  *     clockSize: number,
  *     sessions: Array,
  *     selectedTimezone: string,
- *     backgroundColor: string,
  *     backgroundBasedOnSession: boolean,
  *     showHandClock: boolean,
  *     showDigitalClock: boolean,

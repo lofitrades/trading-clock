@@ -6,6 +6,7 @@
  * Mobile-first, fully responsive, with verification state management.
  * 
  * Changelog:
+ * v1.1.3 - 2026-01-08 - Reverted to Firebase sendSignInLinkToEmail with custom SMTP; removed SendGrid Cloud Function dependency
  * v1.1.2 - 2025-12-22 - Redirect social login success to /app instead of root for post-auth landing.
  * v1.1.1 - 2025-12-22 - Swapped text avatar with official secondary teal logo asset and aligned with brand hierarchy.
  * v1.1.0 - 2025-12-18 - Removed react-helmet-async in favor of lightweight client title updates for /app.
@@ -82,8 +83,8 @@ export default function LoginPage() {
       window.localStorage.setItem('emailForSignIn', email);
       window.localStorage.setItem('isNewUser', isSignup.toString());
       setSuccessMsg(isSignup
-        ? 'Check your email! We sent you a secure link to create your account.'
-        : 'Check your email! We sent you a secure sign-in link.');
+        ? '✉️ Magic link sent! Check your email to create your account. No password needed—just click the link to sign in instantly.'
+        : '✉️ Magic link sent! Check your email and click the sign-in link. No password required!');
     } catch (error) {
       if (error.code === 'auth/invalid-email') {
         setErrorMsg('Please enter a valid email address.');

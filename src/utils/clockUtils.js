@@ -5,6 +5,11 @@
  * Key responsibility and main functionality: Compute stroke widths and render static/dynamic clock layers with session arcs and labels.
  *
  * Changelog:
+ * v1.1.6 - 2026-01-08 - Add safety checks to prevent negative radius in drawStaticElements when canvas size is too small.
+ * v1.1.5 - 2026-01-08 - Updated clock hands behavior: hour and minute hands always visible, seconds hand controlled by showSecondsHand toggle following enterprise best practices.
+ * v1.1.4 - 2026-01-08 - Gray out session donuts that have already ended for the current day.
+ * v1.1.3 - 2026-01-07 - Ensure number radius updates correctly when toggling session names on/off and align signature with callers.
+ * v1.1.1 - 2026-01-07 - Reduced clock number font size for tighter fit on mobile-first layouts.
  * v1.1.0 - 2025-12-16 - Added file header and removed unused showSessionNamesInCanvas parameter from drawClockNumbers.
  * v1.0.0 - 2025-09-15 - Initial implementation.
  */
@@ -27,10 +32,16 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
     return { lineWidth, hoverLineWidth };
   };
   
-  export const drawStaticElements = (ctx, size, showSessionNamesInCanvas = false, clockStyle = 'normal') => {
+  export const drawStaticElements = (ctx, size, showSessionNamesInCanvas = false, numbersColor = '#333') => {
+    // Safety: Ensure minimum size to prevent negative radius
+    if (size < 20) {
+      console.warn('[clockUtils] Canvas size too small:', size);
+      return;
+    }
+    
     const centerX = size / 2,
           centerY = size / 2;
-    const radius = Math.min(size, size) / 2 - 5;
+    const radius = Math.max(0, Math.min(size, size) / 2 - 5);
   
     // Draw clock face
     ctx.beginPath();
@@ -39,27 +50,19 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
     ctx.fill();
   
     // Draw numbers
-    drawClockNumbers(ctx, centerX, centerY, radius, '#333', clockStyle, showSessionNamesInCanvas);
+    drawClockNumbers(ctx, centerX, centerY, radius, numbersColor, showSessionNamesInCanvas);
   };
   
-  export const drawClockNumbers = (ctx, centerX, centerY, radius, textColor, clockStyle = 'normal', showSessionNamesInCanvas = false) => {
-    ctx.font = `${radius * 0.085}px Poppins`; // change this to make it more aesthetic
+  export const drawClockNumbers = (ctx, centerX, centerY, radius, textColor, showSessionNamesInCanvas = false) => {
+    ctx.font = `${radius * 0.07}px Poppins`; // slightly smaller for tighter fit
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = textColor; // Apply dynamic text color
   
-    // Use larger radius for minimalistic style (0.5)
     // When session names are shown, reduce radius significantly to avoid overlap
-    // Otherwise use default (0.31)
     let numberRadius;
-    if (clockStyle === 'minimalistic') {
-      numberRadius = 0.5;
-    } else if (clockStyle === 'aesthetic') {
-      numberRadius = 0.14; 
-    } else {
-      numberRadius = showSessionNamesInCanvas ? 0.18 : 0.22;
-    }
-  
+    numberRadius = showSessionNamesInCanvas ? 0.198 : 0.25;
+
     for (let num = 1; num <= 12; num++) {
       const angle = ((num * 30) - 90) * (Math.PI / 180);
       const x = centerX + Math.cos(angle) * (radius * numberRadius);
@@ -68,7 +71,7 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
     }
   };
   
-  export const drawDynamicElements = (ctx, size, sessions, time, hoveredSession, handColor, clockStyle = 'normal', animationStates = {}, handAngles = null, showSessionNamesInCanvas = true, activeSession = null, backgroundBasedOnSession = false, drawHands = true) => {
+  export const drawDynamicElements = (ctx, size, sessions, time, hoveredSession, handColor, clockStyle = 'normal', animationStates = {}, handAngles = null, showSessionNamesInCanvas = true, showPastSessionsGray = true, activeSession = null, backgroundBasedOnSession = false, drawHands = true, showSecondsHand = true) => {
     const centerX = size / 2,
           centerY = size / 2;
     const radius = Math.min(size, size) / 2 - 5;
@@ -84,6 +87,12 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
       const totalTime = 12 * 60;
       const { lineWidth, hoverLineWidth } = getLineWidthAndHoverArea(size, clockStyle);
       
+      // Compute once per frame for consistency and performance
+      const nowHours = time.getHours();
+      const nowMinutes = time.getMinutes();
+      const nowSeconds = time.getSeconds();
+      const currentMinutes = nowHours * 60 + nowMinutes + nowSeconds / 60;
+
       sessions.forEach((kz, index) => {
         if (!kz.startNY || !kz.endNY) return;
         
@@ -106,6 +115,19 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
         const innerRadius = radius * 0.47;
         const outerRadius = radius * (isXsViewport ? 0.78 : 0.78);
         const targetRadius = isInnerSession ? innerRadius : outerRadius;
+
+        const startMinutes = startHour * 60 + startMinute;
+        const endMinutes = endHour * 60 + endMinute;
+        const crossesMidnight = startMinutes > endMinutes;
+        const sessionActive = activeSession && kz.name === activeSession.name;
+        const isSessionPast = !showPastSessionsGray
+          ? false
+          : (!sessionActive && (
+            crossesMidnight
+              ? currentMinutes >= endMinutes && currentMinutes < startMinutes
+              : currentMinutes >= endMinutes
+          ));
+        const isSessionPastGray = showPastSessionsGray && isSessionPast;
         
         // Use animated line width with smooth interpolation
         const currentWidth = animState.targetLineWidth || (kz === hoveredSession ? hoverLineWidth : lineWidth);
@@ -126,17 +148,13 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
         // Only draw if the session is long enough to show after compensation
         if (adjustedAngleEnd > adjustedAngleStart) {
           // Check if this is the active session and calculate progress
-          const isActiveSession = activeSession && kz.name === activeSession.name;
+          const isActiveSession = sessionActive;
           let currentAngle = null;
           
           if (isActiveSession) {
             // Calculate current time angle for progress tracking
-            const hours = time.getHours();
-            const minutes = time.getMinutes();
-            const seconds = time.getSeconds();
-            
             // Convert to minutes within the 12-hour cycle (0-719)
-            const currentTimeInMinutes = (hours % 12) * 60 + minutes + seconds / 60;
+            const currentTimeInMinutes = (nowHours % 12) * 60 + nowMinutes + nowSeconds / 60;
             
             // Convert to angle (0 to 2π) matching the session arc calculation
             currentAngle = (currentTimeInMinutes / totalTime) * Math.PI * 2;
@@ -257,7 +275,7 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
             ctx.beginPath();
             ctx.arc(centerX, centerY, targetRadius, compensatedStartAngle - Math.PI / 2, compensatedEndAngle - Math.PI / 2);
             ctx.lineWidth = currentWidth;
-            ctx.strokeStyle = kz.color;
+            ctx.strokeStyle = isSessionPastGray ? '#9e9e9e' : kz.color;
             ctx.lineCap = 'round'; // Round caps with compensation for precise alignment
             ctx.stroke();
             
@@ -276,7 +294,7 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
               ctx.font = `${fontSize}px Poppins`;
               
               // Use donut color for text
-              ctx.fillStyle = kz.color;
+              ctx.fillStyle = isSessionPastGray ? '#9e9e9e' : kz.color;
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
               
@@ -335,6 +353,7 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
     }
     if (drawHands) {
       // Draw clock hands using handColor prop
+      // Hour and minute hands always visible; seconds hand controlled by showSecondsHand
       const hours = time.getHours();
       const isXsViewport = typeof window !== 'undefined' && window.matchMedia('(max-width: 599px)').matches;
       const innerRadius = radius * 0.47;
@@ -364,9 +383,15 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
         const maxHandLength = radius - 4; // keep within canvas bounds
         const minuteLength = Math.min(maxHandLength, outerRadius * 0.95);
         const secondLength = Math.min(maxHandLength, outerRadius + radius);
+        
+        // Always draw hour and minute hands
         drawHand(hourAngle, hourLength, 6, handColor);
         drawHand(minuteAngle, minuteLength, 3, handColor);
-        drawHand(secondAngle, secondLength, 1, handColor);
+        
+        // Only draw seconds hand if enabled
+        if (showSecondsHand) {
+          drawHand(secondAngle, secondLength, 1, handColor);
+        }
       } else {
         // Fallback to instant positioning (for backward compatibility)
         const minutes = time.getMinutes();
@@ -377,11 +402,17 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
         const maxHandLength = radius - 4;
         const minuteLength = Math.min(maxHandLength, outerRadius * 0.95);
         const secondLength = Math.min(maxHandLength, outerRadius + radius * 0.08);
+        
+        // Always draw hour and minute hands
         drawHand(hourAngle, hourLength, 6, handColor);
         const minuteAngle = (minutes * 6) * Math.PI / 180;
         drawHand(minuteAngle, minuteLength, 3, handColor);
-        const secondAngle = (seconds * 6) * Math.PI / 180;
-        drawHand(secondAngle, secondLength, 1, handColor);
+        
+        // Only draw seconds hand if enabled
+        if (showSecondsHand) {
+          const secondAngle = (seconds * 6) * Math.PI / 180;
+          drawHand(secondAngle, secondLength, 1, handColor);
+        }
       }
       
       // Draw center pin/cap that holds the hands

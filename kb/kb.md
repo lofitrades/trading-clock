@@ -484,7 +484,6 @@ systemJobs/                      # Sync tracking
   clockStyle: "modern" | "classic",
   sessions: Session[8],
   selectedTimezone: string,
-  backgroundColor: string,           // Hex color
   backgroundBasedOnSession: boolean,
   showHandClock: boolean,
   showDigitalClock: boolean,
@@ -817,7 +816,6 @@ function Component() {
   sessions: Session[],
   
   // Visual settings
-  backgroundColor: string,
   backgroundBasedOnSession: boolean,
   showHandClock: boolean,
   showDigitalClock: boolean,
@@ -833,7 +831,6 @@ function Component() {
   updateClockStyle: (style) => void,
   updateClockSize: (size) => void,
   updateSessions: (sessions) => void,
-  updateBackgroundColor: (color) => void,
   toggleBackgroundBasedOnSession: () => void,
   toggleShowHandClock: () => void,
   toggleShowDigitalClock: () => void,
@@ -1967,6 +1964,28 @@ whyDidYouRender(React, {
 
 ## 📝 Change Log
 
+### Version 2.7.1 - January 8, 2026
+**Removed Background Color Setting**
+
+#### ✨ Removals
+- Removed standalone "Background Color" setting and picker from entire codebase
+- Removed `backgroundColor` state variable and related functions from `SettingsContext.jsx` and `useSettings.js`
+- Removed `updateBackgroundColor()` method and localStorage sync for backgroundColor
+- Removed backgroundColor from Firestore user settings schema
+- Removed Background Color UI from SettingsModal and SettingsSidebar2 components
+
+#### 🔄 Changes
+- **Session-based Background** is now the ONLY background functionality available
+- Default background is fixed at `#F9F9F9` (light gray)
+- When Session-based Background is enabled, background dynamically shifts to active session color
+- Updated App.jsx to always default to `#F9F9F9` when Session-based Background is disabled
+- Updated kb.md and userTypes.js documentation to remove backgroundColor references
+
+#### 🎯 Rationale
+- Simplifies settings UI and reduces feature complexity
+- Session-based Background provides dynamic background capability for active users
+- Fixed default background provides consistent base for inactive sessions
+
 ### Version 2.7.0 - January 6, 2026
 **Calendar Embed UX Parity**
 
@@ -2053,6 +2072,12 @@ whyDidYouRender(React, {
 - `index.html` - Added SEO meta tags, structured data, fallback content
 - `src/main.jsx` - Changed to render AppRoutes, removes SEO fallback
 - `package.json` - Added postbuild script
+
+### Version 2.5.1 - January 7, 2026
+**Clock events overlay performance**
+
+- Extracted clock overlay data fetching into `useClockEventsData` and marker shaping into `useClockEventMarkers` to cut per-second recompute and allow reuse of preloaded event data.
+- Favorites and notes badges now listen live to preference changes for immediate marker badge updates, keeping the overlay UI purely presentational.
 
 ### Version 2.5.0 - January 6, 2026
 **Calendar workspace + /calendar route**

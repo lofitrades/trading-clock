@@ -10,7 +10,7 @@ import {
   drawClockNumbers
 } from '../utils/clockUtils';
 
-export default function ClockCanvas({ size, time, sessions, handColor, clockStyle = 'normal', showSessionNamesInCanvas = true, showClockNumbers = true, showClockHands = true, activeSession = null, backgroundBasedOnSession = false, renderHandsInCanvas = true, handAnglesRef = null }) {
+export default function ClockCanvas({ size, time, sessions, handColor, clockStyle = 'normal', showSessionNamesInCanvas = true, showPastSessionsGray = true, showClockNumbers = true, showClockHands = true, activeSession = null, backgroundBasedOnSession = false, renderHandsInCanvas = true, handAnglesRef = null }) {
   const canvasRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const [hoveredSession, setHoveredSession] = useState(null);
@@ -64,8 +64,8 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     staticCtx.scale(dpr, dpr);
     staticCtx.imageSmoothingEnabled = true;
     staticCtx.imageSmoothingQuality = 'high';
-    drawStaticElements(staticCtx, size, showSessionNamesInCanvas, clockStyle);
-  }, [size, showSessionNamesInCanvas, clockStyle]);
+    drawStaticElements(staticCtx, size, showSessionNamesInCanvas, handColor);
+  }, [size, showSessionNamesInCanvas, handColor]);
 
   // Animate hover effects
   useEffect(() => {
@@ -183,21 +183,23 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
         animationStates.current,
         handAngles.current,
         showSessionNamesInCanvas,
+        showPastSessionsGray,
         activeSession,
         backgroundBasedOnSession,
+        renderHandsInCanvas,
         renderHandsInCanvas && showClockHands
       );
 
-      // Pass handColor as the text color for the clock numbers and clockStyle
+      // Pass handColor as the text color for the clock numbers and showSessionNamesInCanvas to update immediately on toggle
       if (showClockNumbers) {
-        drawClockNumbers(ctx, size / 2, size / 2, size / 2 - 5, handColor, clockStyle);
+        drawClockNumbers(ctx, size / 2, size / 2, size / 2 - 5, handColor, showSessionNamesInCanvas);
       }
 
       animationId = requestAnimationFrame(animate);
     };
     animationId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationId);
-  }, [size, sessions, hoveredSession, handColor, clockStyle, showSessionNamesInCanvas, activeSession, backgroundBasedOnSession, showClockNumbers, showClockHands, renderHandsInCanvas, time, handAngles]);
+  }, [size, sessions, hoveredSession, handColor, clockStyle, showSessionNamesInCanvas, showPastSessionsGray, activeSession, backgroundBasedOnSession, showClockNumbers, showClockHands, renderHandsInCanvas, time, handAngles]);
 
   const detectHoveredSession = useCallback((canvas, mouseX, mouseY) => {
     const rect = canvas.getBoundingClientRect();
@@ -402,6 +404,7 @@ ClockCanvas.propTypes = {
   handColor: PropTypes.string.isRequired,
   clockStyle: PropTypes.string,
   showSessionNamesInCanvas: PropTypes.bool,
+  showPastSessionsGray: PropTypes.bool,
   showClockNumbers: PropTypes.bool,
   showClockHands: PropTypes.bool,
   activeSession: PropTypes.object,

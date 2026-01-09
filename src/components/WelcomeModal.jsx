@@ -39,8 +39,9 @@ export default function WelcomeModal({ onClose, userEmail }) {
       maxWidth="sm"
       fullWidth
       slotProps={{
-        backdrop: { sx: { zIndex: 1500 } },
-        paper: { sx: { zIndex: 1501, borderRadius: 3 } },
+        // Ensure welcome modal always sits above loaders/overlays
+        backdrop: { sx: { zIndex: 11000 } },
+        paper: { sx: { zIndex: 11001, borderRadius: 3 } },
       }}
     >
       <DialogContent sx={{ p: { xs: 3, sm: 5 } }}>

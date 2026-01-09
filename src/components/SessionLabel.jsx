@@ -5,6 +5,7 @@
  * Minimal chip-based label optimized for the clock overlay.
  *
  * Changelog:
+ * v1.1.2 - 2026-01-08 - Fixed session chip text color: always use dark when backgroundBasedOnSession disabled, dynamic when enabled.
  * v1.1.1 - 2025-12-16 - Apply background-aware text color to inactive/next-session chip via caller-provided contrast color.
  * v1.1.0 - 2025-12-16 - Added PropTypes, removed unused imports/vars, and corrected header path.
  * v1.0.0 - 2025-12-15 - Initial implementation.
@@ -39,6 +40,7 @@ export default function SessionLabel({
   timeToStart,
   clockSize,
   contrastTextColor,
+  backgroundBasedOnSession,
 }) {
   // Responsive scaling based on clock size - clean minimal design
   const baseSize = 375;
@@ -50,7 +52,11 @@ export default function SessionLabel({
 
   // Session color with adaptive text
   const sessionColor = activeSession?.color || '#757575';
-  const sessionTextColor = isColorDark(sessionColor) ? '#fff' : '#000';
+  // When backgroundBasedOnSession is disabled, always use dark text
+  // When enabled, use isColorDark to determine contrast
+  const sessionTextColor = backgroundBasedOnSession
+    ? (isColorDark(sessionColor) ? '#fff' : '#000')
+    : '#0F172A';
   const outlinedColor = contrastTextColor || '#4B4B4B';
   const outlinedBorderColor = `${outlinedColor}66`;
 
@@ -213,6 +219,7 @@ SessionLabel.propTypes = {
   showTimeToStart: PropTypes.bool,
   nextSession: PropTypes.shape({
     name: PropTypes.string,
+    backgroundBasedOnSession: PropTypes.bool,
     color: PropTypes.string,
   }),
   timeToStart: PropTypes.number,

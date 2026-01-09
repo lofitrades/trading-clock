@@ -7,12 +7,16 @@
  * Key Features:
  * - Single-row filter chips with dropdown popovers
  * - Timezone-aware date presets (Today default, Yesterday, Tomorrow, This Week)
- * - Multi-select impacts and currencies with quick clear/apply
+ * - Multi-select impacts and currencies with instant apply on every change
  * - Search functionality with debounced auto-search (400ms)
  * - Expandable search row with accordion-like UX
  * - Persistent settings via SettingsContext and parent callbacks
  * 
  * Changelog:
+ * v1.3.12 - 2026-01-08 - Comprehensive auth gating: all filter actions (date, impact, currency, search, favorites) show AuthModal2 and prevent UI state changes for non-authenticated users.
+ * v1.3.11 - 2026-01-08 - Gate search and favorite filter icons for non-authenticated users: show AuthModal2 on click instead of allowing filter functionality.
+ * v1.3.10 - 2026-01-08 - Fix instant-apply compatibility for all hosts, remove special-cased reset labeling, and satisfy ESLint PropTypes + hook dependency requirements.
+ * v1.3.9 - 2026-01-08 - Auto-apply currency and impact filters immediately on change; removed Apply/Save controls in favor of live filtering aligned with date presets.
  * v1.3.8 - 2026-01-06 - Fixed calculateDateRange to use timezone-safe end-of-day calculation (next day start - 1 second) preventing single-day presets from bleeding into the next calendar day.
  * v1.3.7 - 2026-01-06 - Allow hosts to provide a defaultPreset (defaults to Today) so pages can seed ranges like This Week without altering reset UX.
  * v1.3.6 - 2025-12-18 - When exactly one impact is selected, collapsed impact chip adopts that impact color with contrast-safe text.
@@ -39,7 +43,8 @@
  * v1.0.0 - 2025-12-11 - Initial chip-based dropdown filter bar with mandatory date preset.
  */
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import PropTypes from 'prop-types';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Box,
   Chip,
@@ -56,8 +61,6 @@ import {
   Collapse,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import SearchIcon from '@mui/icons-material/Search';
@@ -66,6 +69,8 @@ import { getEventCurrencies } from '../services/economicEventsService';
 import { getDatePartsInTimezone, getUtcDateForTimezone } from '../utils/dateUtils';
 import { isColorDark } from '../utils/clockUtils';
 import { getCurrencyFlag } from '../utils/currencyFlags';
+import { useAuth } from '../contexts/AuthContext';
+import AuthModal2 from './AuthModal2';
 
 // ============================================================================
 // CONSTANTS
@@ -167,17 +172,60 @@ const detectActivePreset = (startDate, endDate, timezone) => {
   );
 };
 
-const arraysEqual = (arr1 = [], arr2 = []) => {
-  if (arr1.length !== arr2.length) return false;
-  return arr1.every((item) => arr2.includes(item)) && arr2.every((item) => arr1.includes(item));
-};
-
 const getAnchorPosition = (target) => {
   if (typeof window === 'undefined') return null;
   if (!target || !(target instanceof Element)) return null;
   const rect = target.getBoundingClientRect?.();
   if (!rect) return null;
   return { top: rect.bottom + window.scrollY, left: rect.left + window.scrollX };
+};
+
+function ChipButton({ label, onClick, active, colorOverride }) {
+  const customActive = Boolean(active && colorOverride);
+  return (
+    <Chip
+      label={label}
+      onClick={onClick}
+      icon={<ExpandMoreIcon />}
+      variant={active ? 'filled' : 'outlined'}
+      color={customActive ? 'default' : active ? 'primary' : 'default'}
+      sx={{
+        borderRadius: 999,
+        fontWeight: 700,
+        height: 40,
+        px: 0.75,
+        boxShadow: active ? 1 : 0,
+        flexShrink: 0,
+        bgcolor: customActive ? colorOverride.background : undefined,
+        color: customActive ? colorOverride.text : undefined,
+        borderColor: customActive ? colorOverride.background : undefined,
+        '& .MuiChip-icon': { fontSize: 18, color: customActive ? colorOverride.text : undefined },
+        '& .MuiChip-label': { display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' },
+        '&.MuiChip-filled': customActive
+          ? { bgcolor: colorOverride.background, color: colorOverride.text }
+          : undefined,
+        '&.MuiChip-filledDefault': customActive
+          ? { bgcolor: colorOverride.background, color: colorOverride.text }
+          : undefined,
+        '&:hover': customActive ? { bgcolor: colorOverride.background } : undefined,
+      }}
+    />
+  );
+}
+
+ChipButton.propTypes = {
+  label: PropTypes.node.isRequired,
+  onClick: PropTypes.func.isRequired,
+  active: PropTypes.bool,
+  colorOverride: PropTypes.shape({
+    background: PropTypes.string,
+    text: PropTypes.string,
+  }),
+};
+
+ChipButton.defaultProps = {
+  active: false,
+  colorOverride: null,
 };
 
 // ============================================================================
@@ -194,6 +242,8 @@ export default function EventsFilters3({
   actionOffset = 0,
   defaultPreset = 'today',
 }) {
+  const { user } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [localFilters, setLocalFilters] = useState({
     startDate: null,
     endDate: null,
@@ -207,7 +257,6 @@ export default function EventsFilters3({
   const searchDebounceTimerRef = useRef(null);
   const [currencies, setCurrencies] = useState([]);
   const [optionsLoading, setOptionsLoading] = useState(true);
-  const [initialized, setInitialized] = useState(false);
 
   const [anchorDatePos, setAnchorDatePos] = useState(null);
   const [anchorImpactPos, setAnchorImpactPos] = useState(null);
@@ -216,10 +265,6 @@ export default function EventsFilters3({
   const anchorOpen = Boolean(anchorDatePos || anchorImpactPos || anchorCurrencyPos);
 
   const defaultRange = useMemo(() => calculateDateRange(defaultPreset, timezone), [defaultPreset, timezone]);
-
-  useEffect(() => {
-    setInitialized(true);
-  }, []);
 
   useEffect(() => {
     const startDate = filters?.startDate || defaultRange?.startDate || null;
@@ -258,18 +303,6 @@ export default function EventsFilters3({
     fetchOptions();
   }, [newsSource]);
 
-  const hasChanges = useMemo(() => {
-    if (!initialized) return false;
-    const parent = filters || { impacts: [], currencies: [], favoritesOnly: false, searchQuery: '' };
-
-    // Exclude searchQuery from hasChanges since search auto-applies
-    if (!arraysEqual(localFilters.impacts, parent.impacts)) return true;
-    if (!arraysEqual(localFilters.currencies, parent.currencies)) return true;
-    if (Boolean(localFilters.favoritesOnly) !== Boolean(parent.favoritesOnly)) return true;
-    // searchQuery is intentionally excluded - it auto-applies via debounce
-    return false;
-  }, [filters, initialized, localFilters]);
-
   const applyAndPersist = useCallback(
     (nextFilters) => {
       // Defer updates to avoid parent state changes during child render
@@ -280,21 +313,6 @@ export default function EventsFilters3({
     },
     [onApply, onFiltersChange],
   );
-
-  const handleApply = useCallback(() => {
-    // Apply current local filters (date already set via setDatePreset for presets)
-    applyAndPersist({
-      startDate: localFilters.startDate,
-      endDate: localFilters.endDate,
-      impacts: localFilters.impacts,
-      currencies: localFilters.currencies,
-      favoritesOnly: localFilters.favoritesOnly,
-      searchQuery: localFilters.searchQuery,
-    });
-    setAnchorDatePos(null);
-    setAnchorImpactPos(null);
-    setAnchorCurrencyPos(null);
-  }, [applyAndPersist, localFilters.currencies, localFilters.impacts, localFilters.endDate, localFilters.startDate, localFilters.favoritesOnly, localFilters.searchQuery]);
 
   const handleReset = useCallback(() => {
     const resetRange = calculateDateRange(defaultPreset, timezone) || defaultRange;
@@ -312,10 +330,15 @@ export default function EventsFilters3({
     setAnchorCurrencyPos(null);
     setAnchorDatePos(null);
     setSearchExpanded(false);
-  }, [applyAndPersist, defaultRange, timezone]);
+  }, [applyAndPersist, defaultPreset, defaultRange, timezone]);
 
   const setDatePreset = useCallback(
     (presetKey) => {
+      if (!user) {
+        setAnchorDatePos(null);
+        setShowAuthModal(true);
+        return;
+      }
       const range = calculateDateRange(presetKey, timezone) || defaultRange;
       if (!range) return;
 
@@ -330,44 +353,84 @@ export default function EventsFilters3({
       });
       setAnchorDatePos(null);
     },
-    [applyAndPersist, defaultRange, timezone],
+    [applyAndPersist, defaultRange, timezone, user],
   );
 
   const toggleImpact = useCallback((impactValue) => {
+    if (!user) {
+      setAnchorImpactPos(null);
+      setShowAuthModal(true);
+      return;
+    }
     setLocalFilters((prev) => {
       const exists = prev.impacts.includes(impactValue);
       const impacts = exists ? prev.impacts.filter((v) => v !== impactValue) : [...prev.impacts, impactValue];
-      return { ...prev, impacts };
+      const next = { ...prev, impacts };
+      applyAndPersist(next);
+      return next;
     });
-  }, []);
+  }, [applyAndPersist, user]);
 
   const toggleCurrency = useCallback((currency) => {
+    if (!user) {
+      setAnchorCurrencyPos(null);
+      setShowAuthModal(true);
+      return;
+    }
     setLocalFilters((prev) => {
       const exists = prev.currencies.includes(currency);
       const currenciesNext = exists ? prev.currencies.filter((c) => c !== currency) : [...prev.currencies, currency];
-      return { ...prev, currencies: currenciesNext };
+      const next = { ...prev, currencies: currenciesNext };
+      applyAndPersist(next);
+      return next;
     });
-  }, []);
+  }, [applyAndPersist, user]);
 
   const toggleFavoritesOnly = useCallback(() => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     setLocalFilters((prev) => {
       const next = { ...prev, favoritesOnly: !prev.favoritesOnly };
       applyAndPersist(next);
       return next;
     });
-  }, [applyAndPersist]);
+  }, [applyAndPersist, user]);
 
   const clearImpacts = useCallback(() => {
-    setLocalFilters((prev) => ({ ...prev, impacts: [] }));
-  }, []);
+    if (!user) {
+      setAnchorImpactPos(null);
+      setShowAuthModal(true);
+      return;
+    }
+    setLocalFilters((prev) => {
+      const next = { ...prev, impacts: [] };
+      applyAndPersist(next);
+      return next;
+    });
+  }, [applyAndPersist, user]);
 
   const clearCurrencies = useCallback(() => {
-    setLocalFilters((prev) => ({ ...prev, currencies: [] }));
-  }, []);
+    if (!user) {
+      setAnchorCurrencyPos(null);
+      setShowAuthModal(true);
+      return;
+    }
+    setLocalFilters((prev) => {
+      const next = { ...prev, currencies: [] };
+      applyAndPersist(next);
+      return next;
+    });
+  }, [applyAndPersist, user]);
 
   // ========== SEARCH HANDLERS ==========
 
   const toggleSearchExpanded = useCallback(() => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     setSearchExpanded((prev) => {
       const next = !prev;
       if (next) {
@@ -380,7 +443,7 @@ export default function EventsFilters3({
       }
       return next;
     });
-  }, []);
+  }, [user]);
 
   const handleSearchChange = useCallback((event) => {
     const value = event.target.value;
@@ -433,11 +496,23 @@ export default function EventsFilters3({
     [localFilters.startDate, localFilters.endDate, timezone],
   );
 
-  const showActions = hasChanges && !anchorOpen;
+  const activePresetKey = activePreset?.key || null;
+
+  const hasActiveFilters = useMemo(() => {
+    return Boolean(
+      localFilters.impacts.length ||
+      localFilters.currencies.length ||
+      localFilters.favoritesOnly ||
+      localFilters.searchQuery ||
+      (activePresetKey && activePresetKey !== defaultPreset),
+    );
+  }, [activePresetKey, defaultPreset, localFilters.currencies.length, localFilters.favoritesOnly, localFilters.impacts.length, localFilters.searchQuery]);
+
+  const showResetInline = hasActiveFilters && !anchorOpen;
 
   const dateLabel = activePreset ? `${activePreset.icon} ${activePreset.label}` : 'Date Range';
 
-  const resetLabel = defaultPreset === 'thisWeek' ? 'Reset to This Week and clear filters' : 'Reset to Today and clear filters';
+  const resetLabel = 'Reset filters';
 
   const impactsLabel = useMemo(() => {
     if (!localFilters.impacts?.length) return 'All impacts';
@@ -481,39 +556,6 @@ export default function EventsFilters3({
       </Box>
     );
   }, [localFilters.currencies]);
-
-  const ChipButton = ({ label, onClick, active, colorOverride }) => {
-    const customActive = Boolean(active && colorOverride);
-    return (
-      <Chip
-        label={label}
-        onClick={onClick}
-        icon={<ExpandMoreIcon />}
-        variant={active ? 'filled' : 'outlined'}
-        color={customActive ? 'default' : active ? 'primary' : 'default'}
-        sx={{
-          borderRadius: 999,
-          fontWeight: 700,
-          height: 40,
-          px: 0.75,
-          boxShadow: active ? 1 : 0,
-          flexShrink: 0,
-          bgcolor: customActive ? colorOverride.background : undefined,
-          color: customActive ? colorOverride.text : undefined,
-          borderColor: customActive ? colorOverride.background : undefined,
-          '& .MuiChip-icon': { fontSize: 18, color: customActive ? colorOverride.text : undefined },
-          '& .MuiChip-label': { display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' },
-          '&.MuiChip-filled': customActive
-            ? { bgcolor: colorOverride.background, color: colorOverride.text }
-            : undefined,
-          '&.MuiChip-filledDefault': customActive
-            ? { bgcolor: colorOverride.background, color: colorOverride.text }
-            : undefined,
-          '&:hover': customActive ? { bgcolor: colorOverride.background } : undefined,
-        }}
-      />
-    );
-  };
 
   const renderDatePopover = () => (
     <Popover
@@ -678,20 +720,9 @@ export default function EventsFilters3({
           >
             Clear
           </Button>
-          <Stack direction="row" spacing={1}>
-            <Button onClick={() => setAnchorImpactPos(null)} size="small" sx={{ textTransform: 'none' }}>
-              Close
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={handleApply}
-              disabled={loading}
-              sx={{ textTransform: 'none' }}
-            >
-              Apply Now
-            </Button>
-          </Stack>
+          <Button onClick={() => setAnchorImpactPos(null)} size="small" sx={{ textTransform: 'none' }}>
+            Close
+          </Button>
         </Stack>
       </Stack>
     </Popover>
@@ -780,20 +811,9 @@ export default function EventsFilters3({
           >
             Clear
           </Button>
-          <Stack direction="row" spacing={1}>
-            <Button onClick={() => setAnchorCurrencyPos(null)} size="small" sx={{ textTransform: 'none' }}>
-              Close
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={handleApply}
-              disabled={loading}
-              sx={{ textTransform: 'none' }}
-            >
-              Apply Now
-            </Button>
-          </Stack>
+          <Button onClick={() => setAnchorCurrencyPos(null)} size="small" sx={{ textTransform: 'none' }}>
+            Close
+          </Button>
         </Stack>
       </Stack>
     </Popover>
@@ -901,6 +921,54 @@ export default function EventsFilters3({
           active={Boolean(localFilters.impacts.length)}
           colorOverride={impactSummaryColors}
         />
+
+        {showResetInline && (
+          <Tooltip title={resetLabel}>
+            <span>
+              <Box
+                component="button"
+                type="button"
+                onClick={handleReset}
+                disabled={loading}
+                aria-label="Reset filters"
+                sx={{
+                  ml: 0.5,
+                  flexShrink: 0,
+                  appearance: 'none',
+                  border: 'none',
+                  bgcolor: 'transparent',
+                  p: 0,
+                  m: 0,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <Stack
+                  direction="row"
+                  spacing={0.5}
+                  alignItems="center"
+                  sx={{
+                    px: 1,
+                    py: 0.5,
+                    borderRadius: 1,
+                    color: 'text.secondary',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    '&:hover': loading
+                      ? undefined
+                      : {
+                        bgcolor: 'action.hover',
+                        color: 'text.primary',
+                      },
+                  }}
+                >
+                  <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                    Reset
+                  </Typography>
+                </Stack>
+              </Box>
+            </span>
+          </Tooltip>
+        )}
       </Stack>
 
       {/* Expandable Search Row */}
@@ -961,65 +1029,42 @@ export default function EventsFilters3({
         </Box>
       </Collapse>
 
-      {showActions && (
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={1}
-          alignItems={{ xs: 'stretch', sm: 'center' }}
-          justifyContent={{ xs: 'flex-start', sm: 'flex-start' }}
-          sx={{ pt: 0.5, rowGap: 1, columnGap: 1.5, flexWrap: 'wrap' }}
-        >
-          <Tooltip title={hasChanges ? 'Apply pending changes' : 'No changes to apply'}>
-            <span style={{ width: '100%', display: 'flex', maxWidth: '100%' }}>
-              <Button
-                variant="contained"
-                color="warning"
-                size="small"
-                fullWidth
-                onClick={handleApply}
-                disabled={loading || !hasChanges}
-                startIcon={loading ? <CircularProgress size={18} /> : <CheckCircleIcon />}
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 800,
-                  px: { xs: 1.75, sm: 2.25 },
-                  py: { xs: 0.9, sm: 0.75 },
-                  minWidth: { sm: 160 },
-                  boxShadow: 2,
-                }}
-              >
-                {loading ? 'Applying' : 'Apply Changes'}
-              </Button>
-            </span>
-          </Tooltip>
-          <Tooltip title={resetLabel}>
-            <span style={{ width: '100%', display: 'flex', maxWidth: '100%' }}>
-              <Button
-                variant="outlined"
-                color="inherit"
-                fullWidth
-                onClick={handleReset}
-                disabled={loading}
-                startIcon={<RestartAltIcon />}
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 700,
-                  px: { xs: 1.5, sm: 2 },
-                  py: { xs: 0.85, sm: 0.7 },
-                  minWidth: { sm: 140 },
-                  borderWidth: 2,
-                }}
-              >
-                {defaultPreset === 'thisWeek' ? 'Reset to This Week' : 'Reset'}
-              </Button>
-            </span>
-          </Tooltip>
-        </Stack>
-      )}
-
       {renderDatePopover()}
       {renderImpactPopover()}
       {renderCurrencyPopover()}
+
+      <AuthModal2
+        open={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </Box>
   );
 }
+
+EventsFilters3.propTypes = {
+  filters: PropTypes.shape({
+    startDate: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string, PropTypes.number]),
+    endDate: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string, PropTypes.number]),
+    impacts: PropTypes.arrayOf(PropTypes.string),
+    currencies: PropTypes.arrayOf(PropTypes.string),
+    favoritesOnly: PropTypes.bool,
+    searchQuery: PropTypes.string,
+  }),
+  onFiltersChange: PropTypes.func.isRequired,
+  onApply: PropTypes.func,
+  loading: PropTypes.bool,
+  timezone: PropTypes.string,
+  newsSource: PropTypes.string,
+  actionOffset: PropTypes.number,
+  defaultPreset: PropTypes.oneOf(DATE_PRESETS.map((preset) => preset.key)),
+};
+
+EventsFilters3.defaultProps = {
+  filters: null,
+  onApply: null,
+  loading: false,
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  newsSource: 'mql5',
+  actionOffset: 0,
+  defaultPreset: 'today',
+};

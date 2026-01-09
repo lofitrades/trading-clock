@@ -5,6 +5,9 @@
  * Supplies clock visibility, styling, timezone, news source, and economic events overlay controls to the app.
  * 
  * Changelog:
+ * v1.4.7 - 2026-01-08 - Removed standalone "Background Color" setting; only Session-based Background functionality remains.
+ * v1.4.6 - 2026-01-08 - Ensure showClockHands toggle properly propagates to ClockHandsOverlay via prop (seconds hand visibility).
+ * v1.4.5 - 2026-01-08 - Added showPastSessionsGray toggle and Firestore persistence; fixed CalendarEmbed clock gray-out toggle not working.
  * v1.4.4 - 2025-12-18 - Swap NY AM/NY PM default colors (NY AM → teal, NY PM → orange) to match BrandGuide direction.
  * v1.4.3 - 2025-12-18 - Enable session names on canvas by default and during reset to keep labels visible across sessions.
  * v1.4.2 - 2025-12-17 - Remove artificial loading delay to shorten first paint and hand-off to clock UI.
@@ -73,11 +76,10 @@ export function SettingsProvider({ children }) {
   const [clockSize, setClockSize] = useState(375);
   const [sessions, setSessions] = useState([...defaultSessions]);
   const [selectedTimezone, setSelectedTimezone] = useState('America/New_York');
-  const [backgroundColor, setBackgroundColor] = useState("#F9F9F9");
   const [backgroundBasedOnSession, setBackgroundBasedOnSession] = useState(false);
   const [showHandClock, setShowHandClock] = useState(true);
   const [showDigitalClock, setShowDigitalClock] = useState(true);
-  const [showSessionLabel, setShowSessionLabel] = useState(true);
+  const [showSessionLabel, setShowSessionLabel] = useState(false);
   const [showTimezoneLabel, setShowTimezoneLabel] = useState(true);
   const [showTimeToEnd, setShowTimeToEnd] = useState(true);
   const [showTimeToStart, setShowTimeToStart] = useState(true);
@@ -85,6 +87,7 @@ export function SettingsProvider({ children }) {
   const [showEventsOnCanvas, setShowEventsOnCanvas] = useState(true);
   const [showClockNumbers, setShowClockNumbers] = useState(true);
   const [showClockHands, setShowClockHands] = useState(true);
+  const [showPastSessionsGray, setShowPastSessionsGray] = useState(false);
 
   // News source preference (for economic events calendar)
   const [newsSource, setNewsSource] = useState(DEFAULT_NEWS_SOURCE);
@@ -107,7 +110,6 @@ export function SettingsProvider({ children }) {
       const savedSize = localStorage.getItem('clockSize');
       const savedSessions = localStorage.getItem('sessions');
       const savedTimezone = localStorage.getItem('selectedTimezone');
-      const savedBackgroundColor = localStorage.getItem('backgroundColor');
       const savedBackgroundBasedOnSession = localStorage.getItem('backgroundBasedOnSession');
       const savedShowHandClock = localStorage.getItem('showHandClock');
       const savedShowDigitalClock = localStorage.getItem('showDigitalClock');
@@ -119,6 +121,7 @@ export function SettingsProvider({ children }) {
       const savedShowEventsOnCanvas = localStorage.getItem('showEventsOnCanvas');
       const savedShowClockNumbers = localStorage.getItem('showClockNumbers');
       const savedShowClockHands = localStorage.getItem('showClockHands');
+      const savedShowPastSessionsGray = localStorage.getItem('showPastSessionsGray');
       const savedNewsSource = localStorage.getItem('newsSource');
       const savedPreferredSource = localStorage.getItem('preferredSource');
       const savedEventFilters = localStorage.getItem('eventFilters');
@@ -126,7 +129,6 @@ export function SettingsProvider({ children }) {
       if (savedSize) setClockSize(parseInt(savedSize));
       if (savedSessions) setSessions(JSON.parse(savedSessions));
       if (savedTimezone) setSelectedTimezone(savedTimezone);
-      if (savedBackgroundColor) setBackgroundColor(savedBackgroundColor);
       if (savedBackgroundBasedOnSession !== null)
         setBackgroundBasedOnSession(savedBackgroundBasedOnSession === 'true');
       if (savedShowHandClock !== null) setShowHandClock(savedShowHandClock === 'true');
@@ -139,6 +141,7 @@ export function SettingsProvider({ children }) {
       if (savedShowEventsOnCanvas !== null) setShowEventsOnCanvas(savedShowEventsOnCanvas === 'true');
       if (savedShowClockNumbers !== null) setShowClockNumbers(savedShowClockNumbers === 'true');
       if (savedShowClockHands !== null) setShowClockHands(savedShowClockHands === 'true');
+      if (savedShowPastSessionsGray !== null) setShowPastSessionsGray(savedShowPastSessionsGray === 'true');
       if (savedNewsSource) setNewsSource(savedNewsSource);
       if (savedPreferredSource) setPreferredSource(savedPreferredSource);
 
@@ -179,7 +182,6 @@ export function SettingsProvider({ children }) {
             if (data.settings.clockSize) setClockSize(data.settings.clockSize);
             if (data.settings.sessions) setSessions(data.settings.sessions);
             if (data.settings.selectedTimezone) setSelectedTimezone(data.settings.selectedTimezone);
-            if (data.settings.backgroundColor) setBackgroundColor(data.settings.backgroundColor);
             if (data.settings.backgroundBasedOnSession !== undefined)
               setBackgroundBasedOnSession(data.settings.backgroundBasedOnSession);
             if (data.settings.showHandClock !== undefined) setShowHandClock(data.settings.showHandClock);
@@ -192,6 +194,7 @@ export function SettingsProvider({ children }) {
             if (data.settings.showEventsOnCanvas !== undefined) setShowEventsOnCanvas(data.settings.showEventsOnCanvas);
             if (data.settings.showClockNumbers !== undefined) setShowClockNumbers(data.settings.showClockNumbers);
             if (data.settings.showClockHands !== undefined) setShowClockHands(data.settings.showClockHands);
+            if (data.settings.showPastSessionsGray !== undefined) setShowPastSessionsGray(data.settings.showPastSessionsGray);
 
             // Load news source preference
             if (data.settings.newsSource) setNewsSource(data.settings.newsSource);
@@ -233,7 +236,6 @@ export function SettingsProvider({ children }) {
               clockSize,
               sessions,
               selectedTimezone,
-              backgroundColor,
               backgroundBasedOnSession,
               showHandClock,
               showDigitalClock,
@@ -245,6 +247,7 @@ export function SettingsProvider({ children }) {
               showEventsOnCanvas,
               showClockNumbers,
               showClockHands,
+              showPastSessionsGray: false,
               newsSource,
               preferredSource: 'auto',
             },
@@ -288,12 +291,6 @@ export function SettingsProvider({ children }) {
     if (user) {
       saveSettingsToFirestore({ selectedTimezone: timezone });
     }
-  };
-
-  const updateBackgroundColor = (color) => {
-    setBackgroundColor(color);
-    localStorage.setItem('backgroundColor', color);
-    if (user) saveSettingsToFirestore({ backgroundColor: color });
   };
 
   const toggleBackgroundBasedOnSession = () => {
@@ -415,6 +412,15 @@ export function SettingsProvider({ children }) {
     });
   };
 
+  const toggleShowPastSessionsGray = () => {
+    setShowPastSessionsGray(prev => {
+      const newValue = !prev;
+      localStorage.setItem('showPastSessionsGray', newValue);
+      if (user) saveSettingsToFirestore({ showPastSessionsGray: newValue });
+      return newValue;
+    });
+  };
+
   /**
    * Update event filters with persistence
    */
@@ -474,7 +480,6 @@ export function SettingsProvider({ children }) {
     setClockSize(375);
     setSessions(resetSessions);
     setSelectedTimezone('America/New_York');
-    setBackgroundColor("#F9F9F9");
     setBackgroundBasedOnSession(false);
     setShowHandClock(true);
     setShowDigitalClock(true);
@@ -486,6 +491,7 @@ export function SettingsProvider({ children }) {
     setShowEventsOnCanvas(true);
     setShowClockNumbers(true);
     setShowClockHands(true);
+    setShowPastSessionsGray(false);
     setNewsSource(DEFAULT_NEWS_SOURCE);
     setPreferredSource('auto');
     setEventFilters({
@@ -505,16 +511,18 @@ export function SettingsProvider({ children }) {
         clockSize: 375,
         sessions: defaultSessions.map(session => ({ ...session })),
         selectedTimezone: 'America/New_York',
-        backgroundColor: "#F9F9F9",
         backgroundBasedOnSession: false,
         showHandClock: true,
         showDigitalClock: true,
-        showSessionLabel: true,
+        showSessionLabel: false,
         showTimezoneLabel: true,
         showTimeToEnd: true,
         showTimeToStart: true,
         showSessionNamesInCanvas: true,
         showEventsOnCanvas: true,
+        showClockNumbers: true,
+        showClockHands: true,
+        showPastSessionsGray: false,
         newsSource: DEFAULT_NEWS_SOURCE,
         preferredSource: 'auto',
       };
@@ -533,8 +541,6 @@ export function SettingsProvider({ children }) {
     updateSessions,
     updateSelectedTimezone,  // Proper function with Firestore persistence
     setSelectedTimezone,      // Direct setter (for backward compatibility)
-    backgroundColor,
-    updateBackgroundColor,
     backgroundBasedOnSession,
     toggleBackgroundBasedOnSession,
     showHandClock,
@@ -557,6 +563,8 @@ export function SettingsProvider({ children }) {
     toggleShowClockNumbers,
     showClockHands,
     toggleShowClockHands,
+    showPastSessionsGray,
+    toggleShowPastSessionsGray,
     resetSettings,
     eventFilters,
     updateEventFilters,

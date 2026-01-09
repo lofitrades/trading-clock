@@ -1,17 +1,20 @@
 /**
  * src/components/EmailLinkHandler.jsx
  * 
- * Purpose: Enhanced email link authentication handler with proper error handling.
- * Detects email links, handles expired/used links gracefully, and provides clean UX.
+ * Purpose: Enhanced email link authentication handler with enterprise-grade UX.
+ * Intercepts magic link clicks and shows full-screen verification before mounting app.
  * 
  * Features:
+ * - Full-screen verifying modal during authentication
  * - Automatic email detection from localStorage
  * - Graceful handling of expired/used links
- * - Clean dialog for email confirmation (no browser prompts)
- * - Proper error messages for users
- * - "Request New Link" button for expired links
+ * - Success confirmation modal before redirecting
+ * - Clean error handling with "Request New Link" option
+ * - Enterprise-quality copywriting and visual design
  * 
  * Changelog:
+ * v1.7.0 - 2026-01-08 - Extended magicLinkProcessing timeout to 8s to eliminate loading screen during welcome modal display; prevents auto-unmounting per enterprise best practices
+ * v1.6.0 - 2026-01-08 - Added full-screen verifying modal with success confirmation following enterprise magic link UX patterns
  * v1.5.0 - 2025-12-17 - Sign out existing sessions before magic link sign-in and create profiles for new users to prevent cross-account logins
  * v1.4.0 - 2025-12-16 - Added "Request New Link" button and AuthModal integration
  * v1.3.0 - 2025-12-16 - Added proper error handling and clean email confirmation UI
@@ -21,19 +24,30 @@
  */
 
 import { useEffect, useState } from 'react';
-import { isSignInWithEmailLink, signInWithEmailLink, getAdditionalUserInfo, signOut } from 'firebase/auth';
+import { isSignInWithEmailLink, signInWithEmailLink, getAdditionalUserInfo, signOut, sendSignInLinkToEmail } from 'firebase/auth';
 import { auth } from '../firebase';
+import { getMagicLinkActionCodeSettings } from '../utils/authLinkSettings';
 import { Dialog, DialogContent, DialogTitle, TextField, Button, Typography, Alert, CircularProgress, Box } from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AuthModal from './AuthModal';
 import { createUserProfileSafely } from '../utils/userProfileUtils';
 
 export default function EmailLinkHandler() {
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [showVerifyingModal, setShowVerifyingModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [email, setEmail] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
   const [isLinkExpired, setIsLinkExpired] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
+  const [resendSending, setResendSending] = useState(false);
+  const [authComplete, setAuthComplete] = useState(false);
+
+  // Loader is handled independently; modals render above loader using high z-index
 
   useEffect(() => {
     const handleEmailLink = async () => {
@@ -41,14 +55,21 @@ export default function EmailLinkHandler() {
         return;
       }
 
-      // Email link detected
+      // Email link detected - show verifying modal immediately
       const storedEmail = window.localStorage.getItem('emailForSignIn');
 
       if (!storedEmail) {
-        // No email in storage - show dialog instead of browser prompt
+        // No email in storage - show dialog to collect email
         setShowEmailDialog(true);
         return;
       }
+
+      // Show full-screen verifying modal before processing
+      setShowVerifyingModal(true);
+      setUserEmail(storedEmail);
+
+      // Small delay for visual feedback
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       // Email found in storage - proceed with sign-in
       await processSignIn(storedEmail);
@@ -62,38 +83,65 @@ export default function EmailLinkHandler() {
     setError('');
     setIsLinkExpired(false);
 
+    // Timeout guard to prevent infinite verifying state
+    const TIMEOUT_MS = 15000;
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = window.setTimeout(() => reject(new Error('auth/timeout')), TIMEOUT_MS);
+    });
+
     try {
       if (auth.currentUser) {
         await signOut(auth);
       }
 
-      const result = await signInWithEmailLink(auth, emailToUse, window.location.href);
+      // ESSENTIAL: Sign in with email link (the critical auth operation)
+      const result = await Promise.race([
+        signInWithEmailLink(auth, emailToUse, window.location.href),
+        timeoutPromise,
+      ]);
+
+      window.clearTimeout(timeoutId);
+
+      // Validate stored email matches authenticated user to prevent tampering
+      if (result.user.email?.toLowerCase() !== emailToUse.toLowerCase()) {
+        throw new Error('Email mismatch: stored email does not match authenticated user');
+      }
 
       const additionalUserInfo = getAdditionalUserInfo(result);
-      const isNewUser = additionalUserInfo?.isNewUser ?? false;
+      const newUser = additionalUserInfo?.isNewUser ?? false;
+      setIsNewUser(newUser);
 
-      if (isNewUser) {
+      // SHOW SUCCESS IMMEDIATELY - essential auth is complete
+      setShowVerifyingModal(false);
+      setShowSuccessModal(true);
+      setShowEmailDialog(false);
+      setIsProcessing(false);
+      setAuthComplete(true);
+
+      // Keep success modal brief, then clear flags
+      setTimeout(() => {
+        setShowSuccessModal(false);
+        setAuthComplete(false);
+      }, 1500);
+
+      // BACKGROUND: Handle non-essential tasks without blocking UI
+      // Profile creation and cleanup happen asynchronously in the background
+      (async () => {
         try {
-          await createUserProfileSafely(result.user);
+          if (newUser) {
+            await createUserProfileSafely(result.user);
+            window.localStorage.setItem('showWelcomeModal', 'true');
+          }
         } catch (profileError) {
           console.error('[EmailLinkHandler] Profile creation failed:', profileError);
+        } finally {
+          // Clean up email and URL
+          window.localStorage.removeItem('emailForSignIn');
+          const cleanUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
         }
-      }
-
-      // Store isNewUser flag for WelcomeModal (AuthContext will check this)
-      if (isNewUser) {
-        window.localStorage.setItem('showWelcomeModal', 'true');
-      }
-
-      // Clean up email
-      window.localStorage.removeItem('emailForSignIn');
-
-      // Clean URL (remove the oobCode and other params)
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-
-      // Close dialog if open
-      setShowEmailDialog(false);
+      })();
 
       // DON'T navigate - let AuthContext detect the auth state change
       // and handle user creation + welcome modal, then app will load naturally
@@ -101,17 +149,26 @@ export default function EmailLinkHandler() {
     } catch (error) {
       console.error('[EmailLinkHandler] Sign-in failed:', error.code, error.message);
 
+      window.clearTimeout(timeoutId);
+
       // Handle specific error cases with user-friendly messages
       let errorMessage = '';
       let linkExpired = false;
 
-      if (error.code === 'auth/invalid-action-code') {
-        errorMessage = 'This sign-in link has expired or has already been used. Please request a new one.';
+      if (error.code === 'auth/expired-action-code') {
+        errorMessage = 'This sign-in link expired after 60 minutes. Request a new link below to continue.';
+        linkExpired = true;
+      } else if (error.code === 'auth/invalid-action-code') {
+        errorMessage = 'This link was already used. If you\'re already signed in, close this window. Otherwise, request a new link below.';
         linkExpired = true;
       } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'The email address you entered is invalid. Please check and try again.';
-      } else if (error.code === 'auth/expired-action-code') {
-        errorMessage = 'This sign-in link has expired. Please request a new one.';
+        errorMessage = 'The email address is invalid. Please check and try again.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Check your connection and try again.';
+      } else if (error.message === 'auth/timeout') {
+        errorMessage = 'This is taking longer than expected. Please try again.';
+      } else if (error.message === 'Email mismatch: stored email does not match authenticated user') {
+        errorMessage = 'Security check failed. Please request a new sign-in link.';
         linkExpired = true;
       } else {
         errorMessage = `Sign-in failed: ${error.message}. Please request a new link.`;
@@ -121,6 +178,7 @@ export default function EmailLinkHandler() {
       setError(errorMessage);
       setIsLinkExpired(linkExpired);
       setIsProcessing(false);
+      setShowVerifyingModal(false);
     }
   };
 
@@ -131,6 +189,11 @@ export default function EmailLinkHandler() {
       setError('Please enter a valid email address.');
       return;
     }
+
+    // Show verifying modal when email is submitted manually
+    setShowVerifyingModal(true);
+    setUserEmail(email);
+    await new Promise(resolve => setTimeout(resolve, 800));
 
     await processSignIn(email);
   };
@@ -145,19 +208,178 @@ export default function EmailLinkHandler() {
     window.history.replaceState({}, document.title, cleanUrl);
   };
 
-  const handleRequestNewLink = () => {
-    // Close current dialog
-    setShowEmailDialog(false);
+  const handleRequestNewLink = async () => {
     setError('');
-    setIsLinkExpired(false);
+    setResendMessage('');
+    setResendSending(true);
 
-    // Clean URL
-    const cleanUrl = window.location.pathname;
-    window.history.replaceState({}, document.title, cleanUrl);
+    // Prefer known email sources in order of reliability
+    const targetEmail = userEmail || email || window.localStorage.getItem('emailForSignIn');
 
-    // Open AuthModal to request new link
-    setShowAuthModal(true);
+    if (!targetEmail) {
+      setError('Enter your email above to request a new link.');
+      setResendSending(false);
+      setIsLinkExpired(false);
+      return;
+    }
+
+    try {
+      const actionCodeSettings = getMagicLinkActionCodeSettings();
+      await sendSignInLinkToEmail(auth, targetEmail, actionCodeSettings);
+
+      // Persist for subsequent link handling
+      window.localStorage.setItem('emailForSignIn', targetEmail);
+
+      setResendMessage(`✅ New sign-in link sent to ${targetEmail}. Check your inbox and spam folder within 60 minutes.`);
+      setIsLinkExpired(false);
+    } catch (sendError) {
+      console.error('[EmailLinkHandler] Resend failed:', sendError.code, sendError.message);
+      if (sendError.code === 'auth/too-many-requests') {
+        setError('Too many requests. Please wait a minute before trying again.');
+      } else if (sendError.code === 'auth/network-request-failed') {
+        setError('Network error. Check your connection and try again.');
+      } else {
+        setError('Could not resend the magic link. Please try again or contact support.');
+      }
+    } finally {
+      setResendSending(false);
+    }
   };
+
+  // Show full-screen verifying modal during authentication
+  if (showVerifyingModal) {
+    return (
+      <Dialog
+        open={true}
+        maxWidth="sm"
+        fullWidth
+        disableEscapeKeyDown
+        slotProps={{
+          backdrop: { sx: { backgroundColor: 'rgba(0, 0, 0, 0.8)', zIndex: 9998 } },
+          paper: { sx: { zIndex: 9999, borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.3)' } },
+        }}
+      >
+        <DialogContent sx={{ p: 5, textAlign: 'center' }}>
+          <Box
+            sx={{
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              bgcolor: 'primary.main',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto',
+              mb: 3,
+              animation: 'pulse 2s ease-in-out infinite',
+              '@keyframes pulse': {
+                '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                '50%': { opacity: 0.7, transform: 'scale(1.05)' },
+              },
+            }}
+          >
+            <CircularProgress size={40} sx={{ color: 'white' }} />
+          </Box>
+
+          <Typography variant="h5" gutterBottom fontWeight="700">
+            Signing you in...
+          </Typography>
+
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+            Verifying your magic link
+          </Typography>
+
+          <Box
+            sx={{
+              p: 2,
+              mt: 3,
+              bgcolor: 'action.hover',
+              borderRadius: 1,
+              fontFamily: 'monospace',
+              fontSize: '0.875rem',
+              color: 'primary.main',
+              fontWeight: 600,
+            }}
+          >
+            {userEmail}
+          </Box>
+
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 3 }}>
+            Please wait while we securely authenticate your account...
+          </Typography>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Show success confirmation modal
+  if (showSuccessModal) {
+    return (
+      <Dialog
+        open={true}
+        maxWidth="sm"
+        fullWidth
+        disableEscapeKeyDown
+        slotProps={{
+          backdrop: { sx: { backgroundColor: 'rgba(0, 0, 0, 0.8)', zIndex: 9998 } },
+          paper: { sx: { zIndex: 9999, borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.3)' } },
+        }}
+      >
+        <DialogContent sx={{ p: 5, textAlign: 'center' }}>
+          <Box
+            sx={{
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              bgcolor: 'success.main',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto',
+              mb: 3,
+              animation: 'successPop 0.5s ease-out',
+              '@keyframes successPop': {
+                '0%': { transform: 'scale(0)', opacity: 0 },
+                '50%': { transform: 'scale(1.1)' },
+                '100%': { transform: 'scale(1)', opacity: 1 },
+              },
+            }}
+          >
+            <CheckCircleIcon sx={{ fontSize: 48, color: 'white' }} />
+          </Box>
+
+          <Typography variant="h5" gutterBottom fontWeight="700" color="success.main">
+            {isNewUser ? 'Welcome!' : 'Welcome back!'}
+          </Typography>
+
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+            {isNewUser
+              ? 'Your account has been created successfully'
+              : 'You\'re signed in successfully'}
+          </Typography>
+
+          <Box
+            sx={{
+              p: 2,
+              mt: 3,
+              bgcolor: 'rgba(46, 125, 50, 0.08)',
+              borderRadius: 1,
+              fontFamily: 'monospace',
+              fontSize: '0.875rem',
+              color: 'success.main',
+              fontWeight: 600,
+            }}
+          >
+            {userEmail}
+          </Box>
+
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 3 }}>
+            Loading your trading clock...
+          </Typography>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   // Show AuthModal if user needs to request new link
   if (showAuthModal) {
@@ -193,6 +415,12 @@ export default function EmailLinkHandler() {
             </Alert>
           )}
 
+          {resendMessage && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {resendMessage}
+            </Alert>
+          )}
+
           <form onSubmit={handleEmailSubmit}>
             <TextField
               fullWidth
@@ -201,12 +429,22 @@ export default function EmailLinkHandler() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoFocus
-              disabled={isProcessing || isLinkExpired}
+              disabled={isProcessing || isLinkExpired || (resendMessage && !error)}
               sx={{ mb: 3 }}
             />
 
             <Box sx={{ display: 'flex', gap: 2, flexDirection: 'column' }}>
-              {isLinkExpired ? (
+              {resendMessage && !error ? (
+                // Show "Got it" button after successful resend
+                <Button
+                  onClick={handleCancel}
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                >
+                  Got it
+                </Button>
+              ) : isLinkExpired ? (
                 // Show "Request New Link" button for expired links
                 <>
                   <Button
@@ -214,13 +452,15 @@ export default function EmailLinkHandler() {
                     variant="contained"
                     color="primary"
                     fullWidth
+                    disabled={resendSending}
                   >
-                    Request New Link
+                    {resendSending ? 'Sending...' : 'Request New Link'}
                   </Button>
                   <Button
                     onClick={handleCancel}
                     variant="outlined"
                     fullWidth
+                    disabled={resendSending}
                   >
                     Cancel
                   </Button>

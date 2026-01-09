@@ -26,7 +26,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Autocomplete, TextField, Box, Popper, CircularProgress, Paper, Typography } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
-import UnlockModal from './UnlockModal';
+import AuthModal2 from './AuthModal2';
 
 // Popper with embedded search field; forwards ref so parent can inspect clicks to keep open
 const SearchablePopper = React.forwardRef(
@@ -360,12 +360,9 @@ export default function TimezoneSelector({ textColor = 'inherit', onRequestSignU
       </Paper>
 
       {showUnlock && (
-        <UnlockModal
+        <AuthModal2
+          open={showUnlock}
           onClose={() => setShowUnlock(false)}
-          onSignUp={() => {
-            setShowUnlock(false);
-            onRequestSignUp && onRequestSignUp();
-          }}
         />
       )}
     </>

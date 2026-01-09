@@ -17,12 +17,15 @@
  * - Accessibility compliant
  * 
  * Changelog:
-  * v1.9.5 - 2025-12-16 - Always show "Actual: —" when actual values are unavailable.
-  * v1.9.4 - 2025-12-16 - Moved next clock icon to the right of time; added inline metrics summary as secondary text.
- * v1.9.6 - 2025-12-18 - Centralize impact colors (low impact yellow #F2C94C, unknown taupe #C7B8A4) for table chips to avoid collisions with session/NOW palette.
- * v1.9.3 - 2025-12-16 - Removed horizontal overflow; table now fits drawer width with wrapping text and compact spacing.
-  * v1.9.2 - 2025-12-16 - Moved favorite/notes action column to the first position in table rows (mobile layout across all breakpoints).
-  * v1.9.1 - 2025-12-16 - Unified mobile table layout for all breakpoints; horizontal scroll retained for full data access.
+   * v1.9.9 - 2026-01-08 - Render table row skeletons during filter-triggered loading with page-sized (capped) skeleton count for fast, stable UX.
+   * v1.9.8 - 2026-01-08 - Gate row clicks for guests: open AuthModal2 instead of EventModal when unauthenticated.
+   * v1.9.5 - 2025-12-16 - Always show "Actual: —" when actual values are unavailable.
+   * v1.9.4 - 2025-12-16 - Moved next clock icon to the right of time; added inline metrics summary as secondary text.
+    * v1.9.7 - 2026-01-07 - Restore horizontal scrolling and widen table min widths so the grid stays within its Paper on xl after left rail growth.
+   * v1.9.6 - 2025-12-18 - Centralize impact colors (low impact yellow #F2C94C, unknown taupe #C7B8A4) for table chips to avoid collisions with session/NOW palette.
+   * v1.9.3 - 2025-12-16 - Removed horizontal overflow; table now fits drawer width with wrapping text and compact spacing.
+    * v1.9.2 - 2025-12-16 - Moved favorite/notes action column to the first position in table rows (mobile layout across all breakpoints).
+    * v1.9.1 - 2025-12-16 - Unified mobile table layout for all breakpoints; horizontal scroll retained for full data access.
  * v1.9.0 - 2025-12-15 - REFACTOR: Replaced hardcoded NOW/NEXT calculations with global eventTimeEngine utilities (computeNowNextState, getNowEpochMs)
  * v1.8.3 - 2025-12-15 - ENHANCEMENT: NEXT detection now based on filtered displayed events (matching timeline behavior), not contextEvents
  * v1.8.2 - 2025-12-15 - BUGFIX: Fixed NEXT/NOW badge detection - NOW events no longer counted as NEXT, added debug logging
@@ -85,6 +88,8 @@ import {
   NoteAlt as NoteAltIcon,
 } from '@mui/icons-material';
 import EventModal from './EventModal';
+import AuthModal2 from './AuthModal2';
+import { useAuth } from '../contexts/AuthContext';
 import { formatTime, formatDate } from '../utils/dateUtils';
 import {
   NOW_WINDOW_MS,
@@ -421,8 +426,11 @@ export default function EventsTable({
   hasEventNotes = () => false,
   onOpenNotes = null,
   isEventNotesLoading = () => false,
+  onOpenAuth = null,
+  authRedirectPath = null,
 }) {
   const theme = useTheme();
+  const { user } = useAuth();
   // Force the compact mobile layout for all breakpoints
   const isMobile = true;
 
@@ -442,11 +450,23 @@ export default function EventsTable({
   const [orderBy, setOrderBy] = useState('date');
   const [order, setOrder] = useState('asc');
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [showScrollToNext, setShowScrollToNext] = useState(false);
   const [favoriteConfirm, setFavoriteConfirm] = useState({ anchor: null, event: null });
   const [nowTick, setNowTick] = useState(() => getNowEpochMs(timezone));
   const tableContainerRef = useRef(null);
   const lastScrollTokenRef = useRef(null);
+  const computedAuthRedirect = useMemo(() => (
+    authRedirectPath
+      ? authRedirectPath
+      : (typeof window !== 'undefined' ? (window.location.pathname || '/app') : '/app')
+  ), [authRedirectPath]);
+
+  useEffect(() => {
+    if (user && authModalOpen) {
+      setAuthModalOpen(false);
+    }
+  }, [user, authModalOpen]);
 
   // ========== SORTING ==========
   const sortedEvents = useMemo(() => {
@@ -700,6 +720,12 @@ export default function EventsTable({
     }));
   }, [isExpanded]);
 
+  const skeletonRowCount = useMemo(() => {
+    // Match page density without rendering excessive skeleton rows (performance)
+    const resolved = Number.isFinite(rowsPerPage) ? rowsPerPage : 10;
+    return Math.max(5, Math.min(resolved, 25));
+  }, [rowsPerPage]);
+
   // ========== HANDLERS ==========
   const handleSort = useCallback((columnId) => {
     const isAsc = orderBy === columnId && order === 'asc';
@@ -719,8 +745,18 @@ export default function EventsTable({
   }, []);
 
   const handleRowClick = useCallback((event) => {
+    if (!user) {
+      setSelectedEvent(null);
+      if (onOpenAuth) {
+        onOpenAuth();
+      } else {
+        setAuthModalOpen(true);
+      }
+      return;
+    }
+
     setSelectedEvent(event);
-  }, []);
+  }, [onOpenAuth, user]);
 
   const handleOpenNotes = useCallback((event, e) => {
     if (e && e.stopPropagation) {
@@ -733,6 +769,10 @@ export default function EventsTable({
 
   const handleCloseModal = useCallback(() => {
     setSelectedEvent(null);
+  }, []);
+
+  const handleCloseAuthModal = useCallback(() => {
+    setAuthModalOpen(false);
   }, []);
 
   const handleFavoriteToggle = useCallback((event, e) => {
@@ -807,18 +847,28 @@ export default function EventsTable({
   }
 
   return (
-    <Paper sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+    <Paper sx={{ width: '100%', height: '100%', minWidth: 0, maxWidth: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       <TableContainer
         ref={tableContainerRef}
         sx={{
           flex: 1,
-          overflowX: 'hidden',
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
+          overflowX: 'auto',
           overflowY: 'auto',
           // Reserve gutter on scrollbar side only to avoid reducing usable width
           scrollbarGutter: 'stable',
         }}
       >
-        <Table stickyHeader size="small">
+        <Table
+          stickyHeader
+          size="small"
+          sx={{
+            width: '100%',
+            minWidth: { xs: 720, sm: 840, md: 960, lg: 1080, xl: 1200 },
+          }}
+        >
           <TableHead sx={{ display: 'none' }}>
             <TableRow>
               {visibleColumns.map((column) => (
@@ -852,7 +902,7 @@ export default function EventsTable({
           </TableHead>
           <TableBody>
             {loading ? (
-              Array.from({ length: 10 }).map((_, index) => (
+              Array.from({ length: skeletonRowCount }).map((_, index) => (
                 <SkeletonRow key={index} columnsCount={visibleColumns.length} />
               ))
             ) : paginatedEvents.length === 0 ? (
@@ -1260,6 +1310,14 @@ export default function EventsTable({
           isEventNotesLoading={isEventNotesLoading}
         />
       )}
+
+      {!user && (
+        <AuthModal2
+          open={authModalOpen}
+          onClose={handleCloseAuthModal}
+          redirectPath={computedAuthRedirect}
+        />
+      )}
     </Paper>
   );
 }
@@ -1280,4 +1338,6 @@ EventsTable.propTypes = {
   hasEventNotes: PropTypes.func,
   onOpenNotes: PropTypes.func,
   isEventNotesLoading: PropTypes.func,
+  onOpenAuth: PropTypes.func,
+  authRedirectPath: PropTypes.string,
 };

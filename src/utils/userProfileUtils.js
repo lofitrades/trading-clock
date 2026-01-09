@@ -5,6 +5,7 @@
  * Prevents duplicate user documents and handles race conditions.
  * 
  * Changelog:
+ * v1.1.2 - 2026-01-08 - Removed backgroundColor from default user settings (cleanup for removed feature).
  * v1.1.1 - 2025-12-18 - Align default settings to show session names and time-to-end by default for new profiles.
  * v1.1.0 - 2025-12-16 - Backfilled missing role/subscription defaults when profiles already exist.
  * v1.0.1 - 2025-12-16 - Added showTimezoneLabel default setting for new user profiles.
@@ -101,11 +102,10 @@ export async function createUserProfileSafely(user) {
           canvasSize: 100,
           clockSize: 375,
           selectedTimezone: 'America/New_York',
-          backgroundColor: '#F9F9F9',
           backgroundBasedOnSession: false,
           showHandClock: true,
           showDigitalClock: true,
-          showSessionLabel: true,
+          showSessionLabel: false,
           showTimezoneLabel: true,
           showTimeToEnd: true,
           showTimeToStart: true,

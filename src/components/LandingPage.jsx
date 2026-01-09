@@ -5,6 +5,15 @@
  * Highlights Time 2 Trade value props with brand-safe visuals and responsive hero layout.
  * 
  * Changelog:
+ * v1.4.15 - 2026-01-09 - Added Contact nav item linking to /contact.
+ * v1.4.14 - 2026-01-07 - Snap hero clock hands on resume using shared time engine resume tokens for instant recovery after background.
+ * v1.4.13 - 2026-01-07 - Wire landing hero clock to aligned time engine for second-accurate sync with the app.
+ * v1.4.12 - 2026-01-07 - Add ultra-brief initial loader; hide right after first paint so hero copy shows immediately.
+ * v1.4.11 - 2026-01-07 - Removed all scroll reveal animations; sections render statically.
+ * v1.4.10 - 2026-01-07 - Removed the 'Learn more' anchor from landing nav.
+ * v1.4.9 - 2026-01-07 - Removed the landing page ad/banner section entirely.
+ * v1.4.8 - 2026-01-07 - Reduced banner to a small horizontal size (320/468/728 widths) to mimic Google leaderboard formats.
+ * v1.4.7 - 2026-01-07 - Switched hero banner to a simple standalone image (no Paper/Ad overlay), sized like calendar and kept in the same spot.
  * v1.4.6 - 2026-01-07 - Rely on app-level CookiesBanner; removed local render on landing.
  * v1.4.5 - 2026-01-07 - Replaced remaining nav CTAs with calendar icon to clear lint errors.
  * v1.4.4 - 2026-01-07 - Refined Features grid spacing and added sticky back-to-top control after scroll.
@@ -74,11 +83,14 @@ import { siX } from 'simple-icons';
 import ClockCanvas from './ClockCanvas';
 import ClockHandsOverlay from './ClockHandsOverlay';
 const ClockEventsOverlay = lazy(() => import('./ClockEventsOverlay'));
+import LoadingScreen from './LoadingScreen';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClock } from '../hooks/useClock';
+import { useTimeEngine } from '../hooks/useTimeEngine';
+import { useClockVisibilitySnap } from '../hooks/useClockVisibilitySnap';
 import { buildFaqSchema, buildSeoMeta, buildSoftwareApplicationSchema } from '../utils/seoMeta';
 import SEO from './SEO';
-import { hasAdConsent, subscribeConsent } from '../utils/consent';
+// Consent utilities not needed on landing banner image-only version
 import '../App.css';
 
 const heroMeta = buildSeoMeta({
@@ -283,6 +295,7 @@ export default function HomePage2() {
         selectedTimezone,
         clockStyle,
         showSessionNamesInCanvas,
+        showPastSessionsGray,
         showClockNumbers,
         showClockHands,
         showEventsOnCanvas,
@@ -291,89 +304,42 @@ export default function HomePage2() {
         showHandClock,
         backgroundBasedOnSession,
     } = useSettings();
+    const timeEngine = useTimeEngine(selectedTimezone);
 
-    const { currentTime, activeSession } = useClock(selectedTimezone, sessions);
+    const { currentTime, activeSession } = useClock(selectedTimezone, sessions, timeEngine);
     const handAnglesRef = useRef({ hour: 0, minute: 0, second: 0 });
+    useClockVisibilitySnap({ handAnglesRef, currentTime, resumeToken: timeEngine?.resumeToken });
 
     const [heroClockSize, setHeroClockSize] = useState(320);
     const [renderedClockSize, setRenderedClockSize] = useState(320);
     const clockContainerRef = useRef(null);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [showBackToTop, setShowBackToTop] = useState(false);
-    const revealRefs = useRef(new Map());
-    const [revealed, setRevealed] = useState({});
-    const adInitialized = useRef(false);
+    const [showInitialLoader, setShowInitialLoader] = useState(true);
+    // Scroll reveal animations removed; sections render without animated entrance.
+    // No ad overlay on landing; image-only banner
 
-    const addRevealRef = useCallback((id) => (node) => {
-        if (!node) return;
-        const existing = revealRefs.current.get(id);
-        if (existing === node) return;
-        revealRefs.current.set(id, node);
-    }, []);
+
+    // Removed IntersectionObserver-based reveal logic
+
+    const getRevealProps = useCallback(() => ({ ref: undefined, sx: {} }), []);
 
     useEffect(() => {
-        const entries = Array.from(revealRefs.current.entries());
-        if (!entries.length) return undefined;
-
-        const reduceMotionQuery = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
-        const prefersReducedMotion = Boolean(reduceMotionQuery?.matches);
-
-        if (prefersReducedMotion) {
-            setRevealed((prev) => {
-                const next = { ...prev };
-                entries.forEach(([id]) => {
-                    next[id] = true;
-                });
-                return next;
+        // Hide the loader right after first paint so copy appears immediately
+        let raf1;
+        let raf2;
+        if (typeof window !== 'undefined') {
+            raf1 = window.requestAnimationFrame(() => {
+                raf2 = window.requestAnimationFrame(() => setShowInitialLoader(false));
             });
-            return undefined;
+        } else {
+            setShowInitialLoader(false);
         }
-
-        const observer = new IntersectionObserver(
-            (observerEntries) => {
-                observerEntries.forEach((entry) => {
-                    const targetId = entry.target.dataset?.revealId;
-                    if (entry.isIntersecting && targetId) {
-                        setRevealed((prev) => (prev[targetId] ? prev : { ...prev, [targetId]: true }));
-                        observer.unobserve(entry.target);
-                    }
-                });
-            },
-            {
-                threshold: 0.28,
-                rootMargin: '0px 0px -10% 0px',
-            },
-        );
-
-        entries.forEach(([id, node]) => {
-            if (node) {
-                node.dataset.revealId = id;
-                observer.observe(node);
-            }
-        });
-
-        return () => observer.disconnect();
+        return () => {
+            if (raf1) cancelAnimationFrame(raf1);
+            if (raf2) cancelAnimationFrame(raf2);
+        };
     }, []);
-
-    const getRevealProps = useCallback(
-        (id, options = {}) => {
-            const { delay = 0, distance = 22, fadeOnly = false } = options;
-            const isVisible = revealed[id];
-            const translateValue = fadeOnly ? 0 : distance;
-
-            return {
-                ref: addRevealRef(id),
-                sx: {
-                    opacity: isVisible ? 1 : 0,
-                    transform: isVisible ? 'translateY(0)' : `translateY(${translateValue}px)`,
-                    transition: 'opacity 0.85s ease, transform 1s cubic-bezier(0.22, 1, 0.36, 1)',
-                    transitionDelay: isVisible ? `${delay}ms` : '0ms',
-                    willChange: 'opacity, transform',
-                },
-            };
-        },
-        [addRevealRef, revealed],
-    );
 
     useEffect(() => {
         const onScroll = () => {
@@ -388,65 +354,7 @@ export default function HomePage2() {
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
-    useEffect(() => {
-        let removeScript;
-
-        const loadAdScript = () => {
-            const existing = document.querySelector('script[data-t2t-adsense="landing"]');
-            if (existing) return;
-            const script = document.createElement('script');
-            script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3984565509623618';
-            script.async = true;
-            script.crossOrigin = 'anonymous';
-            script.setAttribute('data-t2t-adsense', 'landing');
-            document.head.appendChild(script);
-            removeScript = () => {
-                if (document.head.contains(script)) {
-                    document.head.removeChild(script);
-                }
-            };
-        };
-
-        loadAdScript();
-        const unsubscribe = subscribeConsent(() => {
-            // Ads already loaded; consent changes only affect personalization handled per push.
-        });
-
-        return () => {
-            if (removeScript) removeScript();
-            unsubscribe();
-        };
-    }, []);
-
-    useEffect(() => {
-        let timer;
-
-        const pushAds = () => {
-            if (adInitialized.current || typeof window === 'undefined') return;
-            timer = setTimeout(() => {
-                try {
-                    if (window.adsbygoogle) {
-                        window.adsbygoogle.requestNonPersonalizedAds = hasAdConsent() ? 0 : 1;
-                        window.adsbygoogle.push({});
-                        adInitialized.current = true;
-                    }
-                } catch (err) {
-                    console.error('AdSense error:', err);
-                }
-            }, 300);
-        };
-
-        pushAds();
-        const unsubscribe = subscribeConsent(() => {
-            adInitialized.current = false;
-            pushAds();
-        });
-
-        return () => {
-            if (timer) clearTimeout(timer);
-            unsubscribe();
-        };
-    }, []);
+    // Removed AdSense overlay push on landing: banner is image-only.
 
     useEffect(() => {
         const computeSize = () => {
@@ -508,7 +416,7 @@ export default function HomePage2() {
             { label: 'Use cases', href: '#use-cases' },
             { label: 'FAQ', href: '#faq' },
             { label: 'About', to: '/about' },
-            { label: 'Learn more', href: '#how-it-works' },
+            { label: 'Contact', to: '/contact' },
         ],
         [openApp],
     );
@@ -578,6 +486,7 @@ export default function HomePage2() {
                     scrollBehavior: 'smooth',
                 }}
             >
+                <LoadingScreen isLoading={showInitialLoader} clockSize={96} />
 
                 <Container
                     maxWidth={false}
@@ -757,7 +666,7 @@ export default function HomePage2() {
                         >
                             <Stack spacing={2.5}>
                                 <Chip
-                                    label="Forex Factory data ● Market Sessions"
+                                    label="Forex Factory data"
                                     sx={{
                                         alignSelf: { xs: 'center', md: 'flex-start' },
                                         bgcolor: 'rgba(15, 23, 42, 0.06)',
@@ -831,25 +740,7 @@ export default function HomePage2() {
                                     </Button>
                                 </Stack>
 
-                                <Box
-                                    sx={{
-                                        width: '100%',
-                                        maxWidth: { xs: '100%', sm: '100%', md: '100%' },
-                                        mt: { xs: 2.5, sm: 3 },
-                                        minHeight: { xs: 50, sm: 60 },
-                                        display: 'flex',
-                                        justifyContent: { xs: 'center', md: 'flex-start' },
-                                    }}
-                                >
-                                    <ins
-                                        className="adsbygoogle"
-                                        style={{ display: 'block', width: '100%' }}
-                                        data-ad-client="ca-pub-3984565509623618"
-                                        data-ad-slot="2777285032"
-                                        data-ad-format="auto"
-                                        data-full-width-responsive="true"
-                                    />
-                                </Box>
+                                {/* Ad/banner removed intentionally */}
                             </Stack>
                         </Box>
 
@@ -918,6 +809,7 @@ export default function HomePage2() {
                                                             handColor={handColor}
                                                             clockStyle={clockStyle}
                                                             showSessionNamesInCanvas={showSessionNamesInCanvas}
+                                                            showPastSessionsGray={showPastSessionsGray}
                                                             showClockNumbers={showClockNumbers}
                                                             showClockHands={showClockHands}
                                                             activeSession={activeSession}
@@ -925,14 +817,13 @@ export default function HomePage2() {
                                                             renderHandsInCanvas={false}
                                                             handAnglesRef={handAnglesRef}
                                                         />
-                                                        {showClockHands && (
-                                                            <ClockHandsOverlay
-                                                                size={renderedClockSize}
-                                                                handAnglesRef={handAnglesRef}
-                                                                handColor={handColor}
-                                                                time={currentTime}
-                                                            />
-                                                        )}
+                                                        <ClockHandsOverlay
+                                                            size={renderedClockSize}
+                                                            handAnglesRef={handAnglesRef}
+                                                            handColor={handColor}
+                                                            time={currentTime}
+                                                            showSecondsHand={showClockHands}
+                                                        />
                                                         {showOverlay && (
                                                             <Suspense fallback={null}>
                                                                 <ClockEventsOverlay

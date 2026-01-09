@@ -5,6 +5,11 @@
  * Primarily kept for backward compatibility with older components; mirrors SettingsContext behavior.
  * 
  * Changelog:
+ * v1.1.8 - 2026-01-08 - Removed standalone "Background Color" setting; only Session-based Background functionality remains.
+ * v1.1.7 - 2026-01-08 - Add showClockNumbers and showClockHands to useSettings hook for full parity with SettingsContext.
+ * v1.1.6 - 2026-01-08 - Backfill missing settings (incl. showPastSessionsGray) on snapshot and sync them to Firestore/localStorage.
+ * v1.1.5 - 2026-01-08 - Subscribe to Firestore settings for live preference updates (including showPastSessionsGray) across embeds/tabs.
+ * v1.1.4 - 2026-01-08 - Add toggle to gray out completed session donuts on the analog hand clock.
  * v1.1.3 - 2025-12-18 - Swap NY AM/NY PM default colors (NY AM → teal, NY PM → orange) to stay consistent with SettingsContext and BrandGuide.
  * v1.1.2 - 2025-12-18 - Enable session names on canvas by default and during reset to align with SettingsContext defaults.
  * v1.1.1 - 2025-12-17 - Add default role/subscription when creating user doc to prevent missing role on first login.
@@ -14,7 +19,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { USER_ROLES, SUBSCRIPTION_PLANS, SUBSCRIPTION_STATUS, PLAN_FEATURES } from '../types/userTypes';
 
 // Brand-aligned multicolor defaults (per BrandGuide: Secondary Logo — Multicolor)
@@ -52,7 +57,6 @@ export function useSettings() {
   const [clockSize, setClockSize] = useState(375); // Legacy - kept for backward compatibility
   const [sessions, setSessions] = useState([...defaultSessions]);
   const [selectedTimezone, setSelectedTimezone] = useState('America/New_York');
-  const [backgroundColor, setBackgroundColor] = useState("#F9F9F9");
   const [backgroundBasedOnSession, setBackgroundBasedOnSession] = useState(false);
   const [showHandClock, setShowHandClock] = useState(true);
   const [showDigitalClock, setShowDigitalClock] = useState(true);
@@ -60,6 +64,9 @@ export function useSettings() {
   const [showTimeToEnd, setShowTimeToEnd] = useState(true);
   const [showTimeToStart, setShowTimeToStart] = useState(true);
   const [showSessionNamesInCanvas, setShowSessionNamesInCanvas] = useState(true);
+  const [showClockNumbers, setShowClockNumbers] = useState(true);
+  const [showClockHands, setShowClockHands] = useState(true);
+  const [showPastSessionsGray, setShowPastSessionsGray] = useState(false);
 
   useEffect(() => {
     // Remove reliance on localStorage for default settings.
@@ -68,7 +75,6 @@ export function useSettings() {
     const savedSize = localStorage.getItem('clockSize');
     const savedSessions = localStorage.getItem('sessions');
     const savedTimezone = localStorage.getItem('selectedTimezone');
-    const savedBackgroundColor = localStorage.getItem('backgroundColor');
     const savedBackgroundBasedOnSession = localStorage.getItem('backgroundBasedOnSession');
     const savedShowHandClock = localStorage.getItem('showHandClock');
     const savedShowDigitalClock = localStorage.getItem('showDigitalClock');
@@ -76,11 +82,11 @@ export function useSettings() {
     const savedShowTimeToEnd = localStorage.getItem('showTimeToEnd');
     const savedShowTimeToStart = localStorage.getItem('showTimeToStart');
     const savedShowSessionNamesInCanvas = localStorage.getItem('showSessionNamesInCanvas');
+    const savedShowPastSessionsGray = localStorage.getItem('showPastSessionsGray');
 
     if (savedSize) setClockSize(parseInt(savedSize));
     if (savedSessions) setSessions(JSON.parse(savedSessions));
     if (savedTimezone) setSelectedTimezone(savedTimezone);
-    if (savedBackgroundColor) setBackgroundColor(savedBackgroundColor);
     if (savedBackgroundBasedOnSession !== null)
       setBackgroundBasedOnSession(savedBackgroundBasedOnSession === 'true');
     if (savedShowHandClock !== null) setShowHandClock(savedShowHandClock === 'true');
@@ -89,30 +95,124 @@ export function useSettings() {
     if (savedShowTimeToEnd !== null) setShowTimeToEnd(savedShowTimeToEnd === 'true');
     if (savedShowTimeToStart !== null) setShowTimeToStart(savedShowTimeToStart === 'true');
     if (savedShowSessionNamesInCanvas !== null) setShowSessionNamesInCanvas(savedShowSessionNamesInCanvas === 'true');
+    const savedShowClockNumbers = localStorage.getItem('showClockNumbers');
+    const savedShowClockHands = localStorage.getItem('showClockHands');
+    if (savedShowClockNumbers !== null) setShowClockNumbers(savedShowClockNumbers === 'true');
+    if (savedShowClockHands !== null) setShowClockHands(savedShowClockHands === 'true');
+    if (savedShowPastSessionsGray !== null) setShowPastSessionsGray(savedShowPastSessionsGray === 'true');
   }, []);
 
   useEffect(() => {
-    async function loadUserSettings() {
-      if (!user) return;
-      const userRef = doc(db, 'users', user.uid);
+    if (!user) return undefined;
+
+    const userRef = doc(db, 'users', user.uid);
+    let unsubscribe;
+    let isMounted = true;
+
+    const startListener = () => onSnapshot(userRef, (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      if (!data.settings) return;
+
+      const settings = data.settings;
+      const backfill = {};
+
+      if (settings.clockSize !== undefined) {
+        setClockSize(settings.clockSize);
+        localStorage.setItem('clockSize', settings.clockSize);
+      }
+      if (settings.sessions) {
+        setSessions(settings.sessions);
+        localStorage.setItem('sessions', JSON.stringify(settings.sessions));
+      }
+      if (settings.selectedTimezone) {
+        setSelectedTimezone(settings.selectedTimezone);
+        localStorage.setItem('selectedTimezone', settings.selectedTimezone);
+      }
+      if (settings.backgroundBasedOnSession !== undefined) {
+        setBackgroundBasedOnSession(settings.backgroundBasedOnSession);
+        localStorage.setItem('backgroundBasedOnSession', settings.backgroundBasedOnSession);
+      }
+      if (settings.backgroundBasedOnSession === undefined) {
+        backfill.backgroundBasedOnSession = backgroundBasedOnSession;
+      }
+      if (settings.showHandClock !== undefined) {
+        setShowHandClock(settings.showHandClock);
+        localStorage.setItem('showHandClock', settings.showHandClock);
+      }
+      if (settings.showHandClock === undefined) {
+        backfill.showHandClock = showHandClock;
+      }
+      if (settings.showDigitalClock !== undefined) {
+        setShowDigitalClock(settings.showDigitalClock);
+        localStorage.setItem('showDigitalClock', settings.showDigitalClock);
+      }
+      if (settings.showDigitalClock === undefined) {
+        backfill.showDigitalClock = showDigitalClock;
+      }
+      if (settings.showSessionLabel !== undefined) {
+        setShowSessionLabel(settings.showSessionLabel);
+        localStorage.setItem('showSessionLabel', settings.showSessionLabel);
+      }
+      if (settings.showSessionLabel === undefined) {
+        backfill.showSessionLabel = showSessionLabel;
+      }
+      if (settings.showTimeToEnd !== undefined) {
+        setShowTimeToEnd(settings.showTimeToEnd);
+        localStorage.setItem('showTimeToEnd', settings.showTimeToEnd);
+      }
+      if (settings.showTimeToEnd === undefined) {
+        backfill.showTimeToEnd = showTimeToEnd;
+      }
+      if (settings.showTimeToStart !== undefined) {
+        setShowTimeToStart(settings.showTimeToStart);
+        localStorage.setItem('showTimeToStart', settings.showTimeToStart);
+      }
+      if (settings.showTimeToStart === undefined) {
+        backfill.showTimeToStart = showTimeToStart;
+      }
+      if (settings.showSessionNamesInCanvas !== undefined) {
+        setShowSessionNamesInCanvas(settings.showSessionNamesInCanvas);
+        localStorage.setItem('showSessionNamesInCanvas', settings.showSessionNamesInCanvas);
+      }
+      if (settings.showSessionNamesInCanvas === undefined) {
+        backfill.showSessionNamesInCanvas = showSessionNamesInCanvas;
+      }
+      if (settings.showClockNumbers !== undefined) {
+        setShowClockNumbers(settings.showClockNumbers);
+        localStorage.setItem('showClockNumbers', settings.showClockNumbers);
+      }
+      if (settings.showClockNumbers === undefined) {
+        backfill.showClockNumbers = showClockNumbers;
+      }
+      if (settings.showClockHands !== undefined) {
+        setShowClockHands(settings.showClockHands);
+        localStorage.setItem('showClockHands', settings.showClockHands);
+      }
+      if (settings.showClockHands === undefined) {
+        backfill.showClockHands = showClockHands;
+      }
+      if (settings.showPastSessionsGray !== undefined) {
+        setShowPastSessionsGray(settings.showPastSessionsGray);
+        localStorage.setItem('showPastSessionsGray', settings.showPastSessionsGray);
+      }
+      if (settings.showPastSessionsGray === undefined) {
+        backfill.showPastSessionsGray = showPastSessionsGray;
+      }
+
+      // If any fields were missing, backfill them to Firestore and localStorage for consistency
+      const backfillKeys = Object.keys(backfill);
+      if (backfillKeys.length) {
+        backfillKeys.forEach((key) => {
+          localStorage.setItem(key, backfill[key]);
+        });
+        saveSettingsToFirestore(backfill);
+      }
+    });
+
+    const ensureUserDocAndSubscribe = async () => {
       const snap = await getDoc(userRef);
-      if (snap.exists()) {
-        const data = snap.data();
-        if (data.settings) {
-          if (data.settings.clockSize) setClockSize(data.settings.clockSize);
-          if (data.settings.sessions) setSessions(data.settings.sessions);
-          if (data.settings.selectedTimezone) setSelectedTimezone(data.settings.selectedTimezone);
-          if (data.settings.backgroundColor) setBackgroundColor(data.settings.backgroundColor);
-          if (data.settings.backgroundBasedOnSession !== undefined)
-            setBackgroundBasedOnSession(data.settings.backgroundBasedOnSession);
-          if (data.settings.showHandClock !== undefined) setShowHandClock(data.settings.showHandClock);
-          if (data.settings.showDigitalClock !== undefined) setShowDigitalClock(data.settings.showDigitalClock);
-          if (data.settings.showSessionLabel !== undefined) setShowSessionLabel(data.settings.showSessionLabel);
-          if (data.settings.showTimeToEnd !== undefined) setShowTimeToEnd(data.settings.showTimeToEnd);
-          if (data.settings.showTimeToStart !== undefined) setShowTimeToStart(data.settings.showTimeToStart);
-          if (data.settings.showSessionNamesInCanvas !== undefined) setShowSessionNamesInCanvas(data.settings.showSessionNamesInCanvas);
-        }
-      } else {
+      if (!snap.exists()) {
         const defaultSubscription = {
           plan: SUBSCRIPTION_PLANS.FREE,
           status: SUBSCRIPTION_STATUS.ACTIVE,
@@ -137,7 +237,6 @@ export function useSettings() {
             clockSize,
             sessions,
             selectedTimezone,
-            backgroundColor,
             backgroundBasedOnSession,
             showHandClock,
             showDigitalClock,
@@ -145,11 +244,25 @@ export function useSettings() {
             showTimeToEnd,
             showTimeToStart,
             showSessionNamesInCanvas,
+            showClockNumbers: true,
+            showClockHands: true,
+            showPastSessionsGray: false,
           }
         });
       }
-    }
-    loadUserSettings();
+
+      if (isMounted) {
+        unsubscribe = startListener();
+      }
+    };
+
+    ensureUserDocAndSubscribe();
+
+    return () => {
+      isMounted = false;
+      if (unsubscribe) unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   async function saveSettingsToFirestore(newSettings) {
@@ -168,12 +281,6 @@ export function useSettings() {
     setSessions([...newSessions]);
     localStorage.setItem('sessions', JSON.stringify(newSessions));
     if (user) saveSettingsToFirestore({ sessions: newSessions });
-  };
-
-  const updateBackgroundColor = (color) => {
-    setBackgroundColor(color);
-    localStorage.setItem('backgroundColor', color);
-    if (user) saveSettingsToFirestore({ backgroundColor: color });
   };
 
   const toggleBackgroundBasedOnSession = () => {
@@ -261,6 +368,24 @@ export function useSettings() {
     });
   };
 
+  const toggleShowClockNumbers = () => {
+    setShowClockNumbers(prev => {
+      const newValue = !prev;
+      localStorage.setItem('showClockNumbers', newValue);
+      if (user) saveSettingsToFirestore({ showClockNumbers: newValue });
+      return newValue;
+    });
+  };
+
+  const toggleShowClockHands = () => {
+    setShowClockHands(prev => {
+      const newValue = !prev;
+      localStorage.setItem('showClockHands', newValue);
+      if (user) saveSettingsToFirestore({ showClockHands: newValue });
+      return newValue;
+    });
+  };
+
   // Reset settings: clear localStorage and reinitialize to defaults
   const resetSettings = () => {
     localStorage.clear();
@@ -271,7 +396,6 @@ export function useSettings() {
     setClockSize(375);
     setSessions(resetSessions);
     setSelectedTimezone('America/New_York');
-    setBackgroundColor("#F9F9F9");
     setBackgroundBasedOnSession(false);
     setShowHandClock(true);
     setShowDigitalClock(true);
@@ -279,6 +403,18 @@ export function useSettings() {
     setShowTimeToEnd(true);
     setShowTimeToStart(true);
     setShowSessionNamesInCanvas(true);
+    setShowClockNumbers(true);
+    setShowClockHands(true);
+    setShowPastSessionsGray(false);
+  };
+
+  const toggleShowPastSessionsGray = () => {
+    setShowPastSessionsGray((prev) => {
+      const newValue = !prev;
+      localStorage.setItem('showPastSessionsGray', newValue);
+      if (user) saveSettingsToFirestore({ showPastSessionsGray: newValue });
+      return newValue;
+    });
   };
 
   const returnValue = {
@@ -290,8 +426,6 @@ export function useSettings() {
     updateClockSize,
     updateSessions,
     setSelectedTimezone,
-    backgroundColor,
-    updateBackgroundColor,
     backgroundBasedOnSession,
     toggleBackgroundBasedOnSession,
     showHandClock,
@@ -306,6 +440,12 @@ export function useSettings() {
     toggleShowTimeToStart,
     showSessionNamesInCanvas,
     toggleShowSessionNamesInCanvas,
+    showClockNumbers,
+    toggleShowClockNumbers,
+    showClockHands,
+    toggleShowClockHands,
+    showPastSessionsGray,
+    toggleShowPastSessionsGray,
     resetSettings,
   };
   

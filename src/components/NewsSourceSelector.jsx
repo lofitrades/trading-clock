@@ -3,6 +3,7 @@
  * 
  * Purpose: Informational modal explaining Forex Factory data source
  * Enterprise-grade component for building user trust and confidence in data quality
+ * Supports both standalone and controlled modes for flexible integration
  * 
  * Features:
  * - Clean, compact info button that opens detailed modal
@@ -10,15 +11,16 @@
  * - Mobile-first responsive layout
  * - Enterprise UX patterns (proper spacing, typography, hierarchy)
  * - Trust-building messaging without being salesy
+ * - Controlled mode: open/onOpenChange props for parent component control
+ * - Standalone mode: internal state management (default)
  * 
  * Changelog:
+ * v4.1.0 - 2026-01-07 - Added controlled mode support: accept open, onOpenChange props for parent integration. Added showButton prop to hide button in controlled mode. Maintains backward compatibility with internal state management.
  * v4.0.0 - 2026-01-06 - Converted to informational-only modal. Removed source selection, now displays Forex Factory data provenance and builds user confidence.
- * v3.0.0 - 2025-12-11 - Updated for canonical architecture (NFS + JBlanked); accurate copy with financial disclaimer
- * v2.0.0 - 2025-12-01 - Redesigned with modal selector showing all sources with details (subscription plan UX pattern)
- * v1.0.0 - 2025-12-01 - Initial implementation with enterprise best practices
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
+import PropTypes from 'prop-types';
 import {
   Box,
   Typography,
@@ -36,7 +38,6 @@ import {
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import PublicIcon from '@mui/icons-material/Public';
@@ -45,45 +46,69 @@ import UpdateIcon from '@mui/icons-material/Update';
 /**
  * NewsSourceSelector Component
  * Informational modal about Forex Factory data source
+ * 
+ * Props:
+ *   sx - MUI sx prop for styling the button (default: {})
+ *   open - Controlled modal state (optional)
+ *   onOpenChange - Callback when modal state changes (optional)
+ *   showButton - Whether to show the info button (default: true)
  */
 export default function NewsSourceSelector({
-  sx = {}
+  sx = {},
+  open: controlledOpen = undefined,
+  onOpenChange = undefined,
+  showButton = true
 }) {
-  const [modalOpen, setModalOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use controlled state if provided, otherwise use internal state
+  const isControlled = controlledOpen !== undefined;
+  const modalOpen = isControlled ? controlledOpen : internalOpen;
+
+  const handleOpenChange = (newOpen) => {
+    if (isControlled) {
+      onOpenChange?.(newOpen);
+    } else {
+      setInternalOpen(newOpen);
+    }
+  };
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
     <>
-      {/* Data Source Info Button */}
-      <Button
-        variant="outlined"
-        size="small"
-        onClick={() => setModalOpen(true)}
-        endIcon={<InfoOutlinedIcon sx={{ fontSize: 16 }} />}
-        sx={{
-          textTransform: 'none',
-          fontWeight: 600,
-          fontSize: { xs: '0.8125rem', sm: '0.875rem' },
-          borderColor: 'divider',
-          color: 'text.primary',
-          px: { xs: 1.5, sm: 2 },
-          py: 0.75,
-          whiteSpace: 'nowrap',
-          '&:hover': {
-            borderColor: 'primary.main',
-            bgcolor: 'action.hover',
-          },
-          ...sx,
-        }}
-      >
-        Forex Factory
-      </Button>
+      {/* Data Source Info Button - only show if showButton is true */}
+      {showButton && (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => handleOpenChange(true)}
+          endIcon={<InfoOutlinedIcon sx={{ fontSize: 16 }} />}
+          sx={{
+            textTransform: 'none',
+            fontWeight: 600,
+            fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+            borderColor: 'divider',
+            color: 'text.primary',
+            px: { xs: 1.5, sm: 2 },
+            py: 0.75,
+            whiteSpace: 'nowrap',
+            '&:hover': {
+              borderColor: 'primary.main',
+              bgcolor: 'action.hover',
+            },
+            ...sx,
+          }}
+        >
+          Forex Factory
+        </Button>
+      )}
 
       {/* Data Source Information Modal */}
       <Dialog
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => handleOpenChange(false)}
         maxWidth="sm"
         fullWidth
         fullScreen={isMobile}
@@ -106,14 +131,11 @@ export default function NewsSourceSelector({
         >
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
-              Economic Calendar Data
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
               Powered by Forex Factory
             </Typography>
           </Box>
           <IconButton
-            onClick={() => setModalOpen(false)}
+            onClick={() => handleOpenChange(false)}
             size="small"
             sx={{ ml: 2 }}
           >
@@ -125,13 +147,14 @@ export default function NewsSourceSelector({
           {/* Introduction */}
           <Typography
             variant="body1"
+            fontWeight={600}
             sx={{
               fontSize: '0.9375rem',
               lineHeight: 1.7,
-              mb: 3,
+              my: 3,
             }}
           >
-            Our economic calendar displays the same high-quality data you'll find on Forex Factory,
+            Our economic calendar displays the same high-quality data you&apos;ll find on Forex Factory,
             one of the most trusted and widely-used sources in the trading community.
           </Typography>
 
@@ -247,7 +270,7 @@ export default function NewsSourceSelector({
                 >
                   Forex Factory has been the go-to economic calendar for traders since 2004.
                   Their meticulous data collection and prompt updates have made them the industry
-                  standard. By using their data, you're accessing the same information that millions
+                  standard. By using their data, you&apos;re accessing the same information that millions
                   of professional and retail traders rely on daily.
                 </Typography>
               </Box>
@@ -287,3 +310,10 @@ export default function NewsSourceSelector({
     </>
   );
 }
+
+NewsSourceSelector.propTypes = {
+  sx: PropTypes.object,
+  open: PropTypes.bool,
+  onOpenChange: PropTypes.func,
+  showButton: PropTypes.bool,
+};

@@ -5,6 +5,57 @@
  * and stays embeddable for other pages while keeping Time 2 Trade branding and SEO-friendly copy.
  * 
  * Changelog:
+ * v1.3.101 - 2026-01-08 - Remove the note icon from calendar event rows; keep favorites-only row actions.
+ * v1.3.102 - 2026-01-08 - Normalize Time/Cur/Imp column widths (match Cur) across all breakpoints for consistent table scanability.
+ * v1.3.103 - 2026-01-08 - Show favorites action column on one-column (mobile-first) layout with minimal icon-only width.
+ * v1.3.104 - 2026-01-08 - Shrink favorites action column to minimal width by removing extra cell/button padding.
+ * v1.3.105 - 2026-01-08 - Enable the calendar two-column layout starting at the md breakpoint.
+ * v1.3.106 - 2026-01-08 - Keep md event rows in the compact (xs-style) view by showing A/F/P metric columns only on lg+.
+ * v1.3.100 - 2026-01-08 - Show row skeletons for all fetch-triggering filter changes (date/currency/impact/source) while avoiding skeleton flashing for non-fetch interactions.
+ * v1.3.99 - 2026-01-08 - Ensure EventsFilters3 instant-apply works: forward nextFilters into applyFilters guard so currency/impact changes apply immediately.
+ * v1.3.98 - 2026-01-08 - Gate filter changes for guests: block date/impact/currency tweaks and open AuthModal2.
+ * v1.3.97 - 2026-01-08 - Gate event rows for guests: route clicks to AuthModal2 instead of EventModal while preserving /calendar redirect.
+ * v1.3.96 - 2026-01-08 - Fixed text colors on /calendar: always use dark text/hands when backgroundBasedOnSession disabled, pass backgroundBasedOnSession to SessionLabel.
+ * v1.3.95 - 2026-01-07 - Wired 336x280 single-column banner into render paths and restored overlay scheduling with clock sizing so skeletons clear correctly.
+ * v1.3.94 - 2026-01-07 - On xs, use 336x280 (672x560 2x) banner below clock; retain existing banner sizing for two-column / sm+ layout.
+ * v1.3.93 - 2026-01-07 - Switched top banner to 468x60 (936x120 2x) without stretching; fixed max dimensions inside dark full-width header, mobile-first.
+ * v1.3.92 - 2026-01-07 - Restored full-width dark header banner, centered content per MUI dashboard patterns while keeping top ad non-scrollable.
+ * v1.3.91 - 2026-01-07 - Moved top banner to CalendarEmbedLayout level as topBanner prop to ensure it's always visible and non-scrollable, following MUI dashboard best practices.
+ * v1.3.90 - 2026-01-07 - Constrained top banner to max 70px height on lg+ while keeping mobile-first scaling and aspect ratio.
+ * v1.3.89 - 2026-01-07 - Moved the one-column banner to bottom below the events tables (renders after the calendar Paper).
+ * v1.3.88 - 2026-01-07 - Replaced the inline rectangle with 468x60 banner (936x120 2x) in both placements (below clock in two-column, above calendar in one-column).
+ * v1.3.86 - 2026-01-07 - Updated banner to 728x90 leaderboard (with 1456x180 2x retina) and kept mobile-first responsive sizing.
+ * v1.3.85 - 2026-01-07 - Moved the ad outside both papers and made it full column width on all breakpoints. Removed title and caption to keep the banner minimal and mobile-first.
+ * v1.3.84 - 2026-01-07 - Replaced dummy banner with responsive TradingView referral banner (mobile-first, retina via srcSet) while keeping Google AdSense slot ready for activation.
+ * v1.3.83 - 2026-01-07 - Fixed Forex Factory link to open detailed NewsSourceSelector modal directly instead of wrapper dialog. "Powered by Forex Factory" now opens the full informational modal in one step.
+ * v1.3.82 - 2026-01-07 - Snap clock hands on resume and throttle background ticking via shared time engine resume tokens.
+ * v1.3.80 - 2026-01-07 - Keep timezone label/select button visible even when the digital clock is hidden.
+ * v1.3.79 - 2026-01-07 - Temporarily hide session label display and controls while keeping logic wired for future use.
+ * v1.3.78 - 2026-01-07 - Use shared time engine for clock and countdowns to align second ticks across analog/digital displays.
+ * v1.3.77 - 2026-01-07 - Show LoadingAnimation only before the clock canvas renders; remove marker-dependent spinner so tables and clock appear immediately while markers stream later.
+ * v1.3.76 - 2026-01-07 - Replace clock overlay loading spinner with LoadingAnimation inside the canvas while overlays stream in.
+ * v1.3.75 - 2026-01-07 - Decoupled event tables from overlay marker loading; overlays now load in the background without any gating state.
+ * v1.3.74 - 2026-01-07 - Hid the "Loading event markers…" copy while overlays are loading to reduce visual noise.
+ * v1.3.73 - 2026-01-07 - Removed unused AdSense script attribute constant to satisfy lint.
+ * v1.3.72 - 2026-01-07 - Show back-to-top button on mobile by listening to the scroll container instead of window when single-column.
+ * v1.3.71 - 2026-01-07 - Added extra bottom margin on xs below the mobile stats row (# events / Next in) for clearer separation.
+ * v1.3.70 - 2026-01-07 - Added top margin above the Search & Filters title for better spacing within the sticky header.
+ * v1.3.69 - 2026-01-07 - Added mobile-only breathing room above/below sticky filters when frozen to follow dashboard UI spacing best practices.
+ * v1.3.68 - 2026-01-07 - Removed unsupported data-adsbygoogle-script attr; track AdSense script by id to silence head tag warning.
+ * v1.3.67 - 2026-01-07 - Lightened sponsored banner background and simplified styling (single Paper, no dark well) while keeping the fallback creative responsive.
+ * v1.3.66 - 2026-01-07 - Temporarily replace the visible AdSense slot with a branded fallback banner while keeping AdSense logic active and fully responsive.
+ * v1.3.65 - 2026-01-07 - Aligned right-column calendar paper with left rail top (removed extra top margin) for consistent column start.
+ * v1.3.64 - 2026-01-07 - Rounded sticky filters' top corners to match Paper radii while keeping flat bottom edge and sticky shadow.
+ * v1.3.63 - 2026-01-07 - Removed overflow-constrained root wrapper so sticky filters anchor to the window scroll container on every breakpoint; sticky now works across mobile and desktop.
+ * v1.3.62 - 2026-01-07 - Simplified sticky filters to Airbnb-style approach: single filters Box with position: sticky, top: 0 inside Paper. Removed separate mobile/desktop components. Filters now freeze properly on all breakpoints using negative margins to span full Paper width with border-bottom and shadow when stuck.
+ * v1.3.61 - 2026-01-07 - Fixed sticky positioning by removing overflowY from inner container that was preventing sticky behavior. Outer Box now handles all overflow control (overflowY: 'auto'), allowing sticky filters to work properly at viewport level on single-column layout.
+ * v1.3.60 - 2026-01-07 - Restructured filter positioning: on single-column layout, filters now render outside Paper at page level with sticky viewport positioning (z-index 1100). On two-column layout, filters remain inside sticky Paper. Follows MUI dashboard best practices for mobile-first sticky headers.
+ * v1.3.59 - 2026-01-07 - Fixed filter sticky positioning on single-column layout by ensuring filters Box stays sticky at viewport top (top: 0 on all breakpoints). Added negative horizontal margins with compensating padding to extend sticky background full-width across Paper container, following MUI dashboard best practices.
+ * v1.3.58 - 2026-01-07 - Changed scrollEventIntoView to center events in viewport (block: 'center') on all breakpoints instead of positioning at top for better UX consistency.
+ * v1.3.57 - 2026-01-07 - Fixed AdSense error "No slot size for availableWidth=0" by: 1) checking container width before pushing ad, 2) using ResizeObserver to wait for container to have proper dimensions, 3) adding 100ms delay after script load, 4) ensuring ad container has minWidth constraints and proper padding on xs layout. Enterprise AdSense best practices implementation.
+ * v1.3.56 - 2026-01-07 - Fixed skeleton flashing during scroll by only showing skeletons when actively loading (loading && isLoadingNewRange). Added mobile-aware sticky header offset to scrollEventIntoView to prevent "Next" badge from scrolling behind sticky filters on xs breakpoint.
+ * v1.3.55 - 2026-01-07 - Moved event stats chips (event count, next countdown, events in progress) from header row to below filters on single-column layout (xs) using responsive display rules.
+ * v1.3.54 - 2026-01-07 - Fixed skeleton display on filter updates and reload by tracking date range changes separately from loading state. 'No events' message now only appears after loading completes, following MUI enterprise loading patterns with proper state detection.
  * v1.3.53 - 2026-01-07 - Keep the Sponsored ad visible on single-column layout above the calendar surface.
  * v1.3.52 - 2026-01-07 - Hide Today's Trading Clock panel on single-column layout; show only in two-column (lg+) view.
  * v1.3.51 - 2026-01-07 - Added responsive ad Paper beneath Today's Trading Clock using Google AdSense enterprise loading pattern.
@@ -76,7 +127,6 @@ import {
     Box,
     Button,
     Chip,
-    CircularProgress,
     Dialog,
     DialogContent,
     DialogTitle,
@@ -100,21 +150,23 @@ import { alpha, useTheme } from '@mui/material/styles';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
-import NoteAltIcon from '@mui/icons-material/NoteAlt';
-import NoteAltOutlinedIcon from '@mui/icons-material/NoteAltOutlined';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import CloseIcon from '@mui/icons-material/Close';
 import ClockCanvas from './ClockCanvas';
 import ClockHandsOverlay from './ClockHandsOverlay';
 const ClockEventsOverlay = lazy(() => import('./ClockEventsOverlay'));
+import LoadingAnimation from './LoadingAnimation';
 import EventsFilters3 from './EventsFilters3';
 import NewsSourceSelector from './NewsSourceSelector';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import useCalendarData from '../hooks/useCalendarData';
 import { useClock } from '../hooks/useClock';
+import { useTimeEngine } from '../hooks/useTimeEngine';
+import { useClockVisibilitySnap } from '../hooks/useClockVisibilitySnap';
 import { useEventNotes } from '../hooks/useEventNotes';
+import CalendarEmbedLayout from './CalendarEmbedLayout';
 import EventModal from './EventModal';
 import EventNotesDialog from './EventNotesDialog';
 import DigitalClock from './DigitalClock';
@@ -190,9 +242,6 @@ const isSpeechLikeEvent = (event) => {
 };
 
 const formatMetricValue = (value, isSpeechEvent) => {
-    const isEmpty = value === null || value === undefined;
-    if (isEmpty) return '—';
-
     const trimmed = typeof value === 'string' ? value.trim() : value;
     const isZeroish = trimmed === '' || trimmed === 0 || trimmed === '0' || trimmed === '0.0' || trimmed === 0.0;
 
@@ -341,21 +390,19 @@ ImpactBadge.propTypes = {
 };
 
 const TABLE_COLUMNS = [
-    { id: 'action', label: '', align: 'center', width: { xs: 0, sm: 64 }, hideBelow: 'md' },
-    { id: 'time', label: 'Time', align: 'center', width: { xs: 64, sm: 92 } },
+    { id: 'action', label: '', align: 'center', width: { xs: 36, sm: 40 } },
+    { id: 'time', label: 'Time', align: 'center', width: { xs: 52, sm: 68 } },
     { id: 'currency', label: 'Cur', align: 'center', width: { xs: 52, sm: 68 } },
     { id: 'impact', label: 'Imp', align: 'center', width: { xs: 52, sm: 68 } },
     { id: 'name', label: 'Event', align: 'left' },
-    { id: 'actual', label: 'A', align: 'center', width: 82, hideBelow: 'md' },
-    { id: 'forecast', label: 'F', align: 'center', width: 82, hideBelow: 'md' },
-    { id: 'previous', label: 'P', align: 'center', width: 82, hideBelow: 'md' },
+    { id: 'actual', label: 'A', align: 'center', width: 64, hideBelow: 'lg' },
+    { id: 'forecast', label: 'F', align: 'center', width: 64, hideBelow: 'lg' },
+    { id: 'previous', label: 'P', align: 'center', width: 64, hideBelow: 'lg' },
 ];
 
-const metricCellDisplay = { xs: 'none', md: 'table-cell' };
+const metricCellDisplay = { xs: 'none', lg: 'table-cell' };
 
 const ADS_CLIENT_ID = 'ca-pub-3984565509623618';
-const ADS_SLOT_ID = '4350738073';
-const ADS_SCRIPT_ATTR = 'data-adsbygoogle-script';
 
 const EventRow = memo(({
     event,
@@ -363,9 +410,6 @@ const EventRow = memo(({
     onToggleFavorite,
     isFavorite,
     isFavoritePending,
-    onOpenNotes,
-    hasEventNotes,
-    isEventNotesLoading,
     onOpenEvent,
     isNow = false,
     isNext = false,
@@ -384,8 +428,6 @@ const EventRow = memo(({
     const nextTooltip = eventEpochMs ? formatRelativeLabel({ eventEpochMs, nowEpochMs }) : 'Upcoming event';
     const favorite = isFavorite ? isFavorite(event) : false;
     const favoritePending = isFavoritePending ? isFavoritePending(event) : false;
-    const hasNotes = hasEventNotes ? hasEventNotes(event) : false;
-    const notesLoading = isEventNotesLoading ? isEventNotesLoading(event) : false;
 
     const handleOpenEvent = () => {
         if (onOpenEvent) onOpenEvent(event);
@@ -401,11 +443,6 @@ const EventRow = memo(({
     const handleFavoriteClick = (e) => {
         e.stopPropagation();
         if (onToggleFavorite) onToggleFavorite(event);
-    };
-
-    const handleOpenNotes = (e) => {
-        e.stopPropagation();
-        if (onOpenNotes) onOpenNotes(event);
     };
 
     return (
@@ -440,48 +477,22 @@ const EventRow = memo(({
                 align="center"
                 sx={{
                     borderColor: 'divider',
-                    width: { xs: 0, sm: 72 },
-                    minWidth: { xs: 0, sm: 64 },
-                    px: { xs: 0, sm: 0.6 },
-                    display: { xs: 'none', md: 'table-cell' },
+                    width: { xs: 36, sm: 40 },
+                    minWidth: { xs: 36, sm: 40 },
+                    px: 0,
                 }}
-                padding="checkbox"
+                padding="none"
             >
-                <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center" sx={{ minWidth: 0, flexWrap: 'nowrap' }}>
-                    {onOpenNotes ? (
-                        <Tooltip title={notesLoading ? 'Loading notes...' : hasNotes ? 'View notes' : 'Add note'}>
-                            <span>
-                                <IconButton
-                                    size="small"
-                                    onClick={handleOpenNotes}
-                                    disabled={notesLoading}
-                                    sx={{
-                                        p: 0.35,
-                                        color: hasNotes ? 'primary.main' : 'text.secondary',
-                                        '&:hover': {
-                                            color: 'primary.main',
-                                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                                        },
-                                        '&.Mui-disabled': {
-                                            color: 'text.disabled',
-                                        },
-                                    }}
-                                >
-                                    {notesLoading ? (
-                                        <CircularProgress size={14} thickness={5} />
-                                    ) : hasNotes ? (
-                                        <NoteAltIcon fontSize="small" />
-                                    ) : (
-                                        <NoteAltOutlinedIcon fontSize="small" />
-                                    )}
-                                </IconButton>
-                            </span>
-                        </Tooltip>
-                    ) : null}
+                <Stack direction="row" spacing={0} alignItems="center" justifyContent="center" sx={{ minWidth: 0, flexWrap: 'nowrap' }}>
                     {onToggleFavorite ? (
                         <Tooltip title={favorite ? 'Remove favorite' : 'Add to favorites'}>
                             <span>
-                                <IconButton size="small" onClick={handleFavoriteClick} disabled={favoritePending} sx={{ p: 0.35 }}>
+                                <IconButton
+                                    size="small"
+                                    onClick={handleFavoriteClick}
+                                    disabled={favoritePending}
+                                    sx={{ p: 0.25, m: 0 }}
+                                >
                                     {favorite ? <FavoriteIcon color="error" fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
                                 </IconButton>
                             </span>
@@ -490,18 +501,20 @@ const EventRow = memo(({
                 </Stack>
             </TableCell>
 
-            <TableCell align="center" sx={{ borderColor: 'divider', whiteSpace: { xs: 'normal', sm: 'nowrap' }, minWidth: { xs: 60, sm: 86 }, px: { xs: 0, sm: 1 } }}>
-                <Stack direction="row" spacing={{ xs: 0.05, sm: 0.5 }} alignItems="center" justifyContent="center" sx={{ flexWrap: 'wrap', rowGap: 0.05, width: '100%' }}>
-                    <Typography variant="body2" fontWeight={800} sx={{ minWidth: 48, fontFamily: 'monospace', textAlign: 'center', width: '100%' }}>
+            <TableCell
+                align="center"
+                sx={{
+                    borderColor: 'divider',
+                    width: { xs: 52, sm: 68 },
+                    minWidth: { xs: 52, sm: 64 },
+                    px: { xs: 0, sm: 0.85 },
+                    whiteSpace: { xs: 'normal', sm: 'nowrap' },
+                }}
+            >
+                <Stack direction="column" spacing={0.3} alignItems="center" justifyContent="center" sx={{ width: '100%' }}>
+                    <Typography variant="body2" fontWeight={800} sx={{ fontFamily: 'monospace', textAlign: 'center', width: '100%' }}>
                         {formatTime(event.time || event.date || event.Date, timezone)}
                     </Typography>
-                    {isNext ? (
-                        <Box sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
-                            <Tooltip title={nextCountdownLabel ? nextTooltip : 'Upcoming event'}>
-                                <AccessTimeIcon sx={{ fontSize: 18, color: 'success.main' }} />
-                            </Tooltip>
-                        </Box>
-                    ) : null}
                     {isNow ? (
                         <Chip
                             label="NOW"
@@ -522,52 +535,74 @@ const EventRow = memo(({
             </TableCell>
 
             <TableCell sx={{ borderColor: 'divider', minWidth: { xs: 0, sm: 180 }, px: { xs: 0.6, sm: 1 }, width: '100%', maxWidth: '100%' }}>
-                <Typography
-                    variant="body2"
-                    sx={{
-                        fontWeight: 700,
-                        color: isPast ? 'text.secondary' : 'text.primary',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: { xs: 'normal', sm: 'nowrap' },
-                        wordBreak: 'break-word',
-                        minWidth: 0,
-                        maxWidth: '100%',
-                        width: '100%',
-                    }}
-                    title={name}
-                >
-                    {name}
-                </Typography>
-                {/* Metrics are displayed in dedicated columns; keep name clean on all breakpoints */}
-                {description ? (
-                    <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ display: 'block', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', wordBreak: 'break-word', maxWidth: '100%' }}
-                    >
-                        {description}
-                    </Typography>
-                ) : null}
+                <Stack direction="row" spacing={{ xs: 0.5, sm: 0.75 }} alignItems="center" sx={{ minWidth: 0, maxWidth: '100%' }}>
+                    <Box sx={{ flex: '1 1 auto', minWidth: 0, maxWidth: '100%' }}>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                fontWeight: 700,
+                                color: isPast ? 'text.secondary' : 'text.primary',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: { xs: 'normal', sm: 'nowrap' },
+                                wordBreak: 'break-word',
+                                minWidth: 0,
+                                maxWidth: '100%',
+                            }}
+                            title={name}
+                        >
+                            {name}
+                        </Typography>
+                        {description ? (
+                            <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ display: 'block', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', wordBreak: 'break-word', maxWidth: '100%' }}
+                            >
+                                {description}
+                            </Typography>
+                        ) : null}
+                    </Box>
+                    {isNext ? (
+                        <Tooltip title={`In: ${nextCountdownLabel || nextTooltip}`}>
+                            <Chip
+                                label="NEXT"
+                                size="small"
+                                sx={{
+                                    bgcolor: (theme) => alpha(theme.palette.success.main, 0.12),
+                                    color: 'success.main',
+                                    fontWeight: 800,
+                                    height: 20,
+                                    fontSize: '0.65rem',
+                                    minWidth: { xs: 42, sm: 48 },
+                                    flex: '0 0 auto',
+                                    '& .MuiChip-label': {
+                                        px: { xs: 0.5, sm: 0.75 },
+                                    },
+                                }}
+                            />
+                        </Tooltip>
+                    ) : null}
+                </Stack>
             </TableCell>
 
-            <TableCell align="center" sx={{ borderColor: 'divider', display: metricCellDisplay, minWidth: 86, px: { xs: 0.5, sm: 1 } }}>
+            <TableCell align="center" sx={{ borderColor: 'divider', display: metricCellDisplay, minWidth: 64, maxWidth: 64, px: { xs: 0.25, sm: 0.5 } }}>
                 <Typography
-                    variant="body2"
+                    variant="caption"
                     fontWeight={600}
                     color={actualValue !== '—' ? 'primary.main' : 'text.secondary'}
-                    sx={{ fontFamily: 'monospace' }}
+                    sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
                 >
                     {actualValue}
                 </Typography>
             </TableCell>
-            <TableCell align="center" sx={{ borderColor: 'divider', display: metricCellDisplay, minWidth: 86, px: { xs: 0.5, sm: 1 } }}>
-                <Typography variant="body2" fontWeight={600} sx={{ fontFamily: 'monospace' }}>
+            <TableCell align="center" sx={{ borderColor: 'divider', display: metricCellDisplay, minWidth: 64, maxWidth: 64, px: { xs: 0.25, sm: 0.5 } }}>
+                <Typography variant="caption" fontWeight={600} sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
                     {forecast}
                 </Typography>
             </TableCell>
-            <TableCell align="center" sx={{ borderColor: 'divider', display: metricCellDisplay, minWidth: 86, px: { xs: 0.5, sm: 1 } }}>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+            <TableCell align="center" sx={{ borderColor: 'divider', display: metricCellDisplay, minWidth: 64, maxWidth: 64, px: { xs: 0.25, sm: 0.5 } }}>
+                <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
                     {previous}
                 </Typography>
             </TableCell>
@@ -581,9 +616,6 @@ EventRow.propTypes = {
     onToggleFavorite: PropTypes.func,
     isFavorite: PropTypes.func,
     isFavoritePending: PropTypes.func,
-    onOpenNotes: PropTypes.func,
-    hasEventNotes: PropTypes.func,
-    isEventNotesLoading: PropTypes.func,
     onOpenEvent: PropTypes.func,
     isNow: PropTypes.bool,
     isNext: PropTypes.bool,
@@ -605,9 +637,6 @@ const DaySection = memo(({
     isFavorite,
     isFavoritePending,
     onOpenEvent,
-    onOpenNotes,
-    hasEventNotes,
-    isEventNotesLoading,
     isToday,
     isLoading = false,
 }) => {
@@ -636,7 +665,7 @@ const DaySection = memo(({
                 borderRadius: 2,
                 borderColor: 'divider',
                 bgcolor: 'background.paper',
-                overflow: 'hidden',
+                overflow: 'auto',
                 width: '100%',
                 maxWidth: '100%',
             }}
@@ -645,7 +674,7 @@ const DaySection = memo(({
                 size="small"
                 stickyHeader
                 aria-label={`Events on ${displayDate}`}
-                sx={{ tableLayout: 'auto', width: '100%', maxWidth: '100%' }}
+                sx={{ width: '100%' }}
             >
                 <TableHead>
                     <TableRow>
@@ -709,10 +738,10 @@ const DaySection = memo(({
                             <TableRow key={`skeleton-${idx}`}>
                                 <TableCell colSpan={TABLE_COLUMNS.length} sx={{ borderColor: 'divider', py: 1.5 }}>
                                     <Stack direction="row" spacing={1.25} alignItems="center" sx={{ width: '100%', minWidth: 0 }}>
-                                        <Box sx={{ display: { xs: 'none', md: 'flex' }, width: { md: 64 }, justifyContent: 'center' }}>
-                                            <Skeleton variant="circular" width={22} height={22} />
+                                        <Box sx={{ display: 'flex', width: { xs: 36, sm: 40 }, justifyContent: 'center' }}>
+                                            <Skeleton variant="circular" width={20} height={20} />
                                         </Box>
-                                        <Skeleton variant="rounded" width={{ xs: 64, sm: 92 }} height={18} />
+                                        <Skeleton variant="rounded" width={{ xs: 52, sm: 68 }} height={18} />
                                         <Skeleton variant="rounded" width={{ xs: 52, sm: 68 }} height={18} />
                                         <Skeleton variant="rounded" width={{ xs: 52, sm: 68 }} height={18} />
                                         <Stack spacing={0.4} sx={{ flex: 1, minWidth: 0 }}>
@@ -720,9 +749,9 @@ const DaySection = memo(({
                                             <Skeleton variant="text" width="54%" />
                                         </Stack>
                                         <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 0.75 }}>
-                                            <Skeleton variant="text" width={86} />
-                                            <Skeleton variant="text" width={86} />
-                                            <Skeleton variant="text" width={86} />
+                                            <Skeleton variant="text" width={64} />
+                                            <Skeleton variant="text" width={64} />
+                                            <Skeleton variant="text" width={64} />
                                         </Box>
                                     </Stack>
                                 </TableCell>
@@ -751,9 +780,6 @@ const DaySection = memo(({
                                     onToggleFavorite={onToggleFavorite}
                                     isFavorite={isFavorite}
                                     isFavoritePending={isFavoritePending}
-                                    onOpenNotes={onOpenNotes}
-                                    hasEventNotes={hasEventNotes}
-                                    isEventNotesLoading={isEventNotesLoading}
                                     onOpenEvent={onOpenEvent}
                                     isNow={activeNow}
                                     isNext={activeNext}
@@ -782,9 +808,6 @@ DaySection.propTypes = {
     isFavorite: PropTypes.func,
     isFavoritePending: PropTypes.func,
     onOpenEvent: PropTypes.func,
-    onOpenNotes: PropTypes.func,
-    hasEventNotes: PropTypes.func,
-    isEventNotesLoading: PropTypes.func,
     isToday: PropTypes.bool,
     isLoading: PropTypes.bool,
 };
@@ -796,7 +819,7 @@ export default function CalendarEmbed({
     showSeoCopy = true,
 }) {
     const theme = useTheme();
-    const isTwoColumn = useMediaQuery(theme.breakpoints.up('lg'));
+    const isTwoColumn = useMediaQuery(theme.breakpoints.up('md'));
     const { user } = useAuth();
     const {
         filters,
@@ -820,6 +843,7 @@ export default function CalendarEmbed({
         selectedTimezone,
         clockStyle,
         showSessionNamesInCanvas,
+        showPastSessionsGray,
         showClockNumbers,
         showClockHands,
         showHandClock,
@@ -831,31 +855,52 @@ export default function CalendarEmbed({
         eventFilters: settingsEventFilters,
         newsSource: settingsNewsSource,
         backgroundBasedOnSession,
-        backgroundColor,
     } = useSettings();
 
     const clockTimezone = selectedTimezone || timezone;
-    const { currentTime, activeSession, nextSession, timeToEnd, timeToStart } = useClock(clockTimezone, sessions);
+    const timeEngine = useTimeEngine(clockTimezone);
+    const { currentTime, activeSession, nextSession, timeToEnd, timeToStart } = useClock(clockTimezone, sessions, timeEngine);
     const handAnglesRef = useRef({ hour: 0, minute: 0, second: 0 });
+    useClockVisibilitySnap({ handAnglesRef, currentTime, resumeToken: timeEngine?.resumeToken });
 
-    const [workspaceClockBaseSize, setWorkspaceClockBaseSize] = useState(260);
     const [workspaceClockSize, setWorkspaceClockSize] = useState(260);
     const [workspaceHasSize, setWorkspaceHasSize] = useState(false);
     const [shouldRenderEventsOverlay, setShouldRenderEventsOverlay] = useState(false);
-    const [workspaceOverlayLoading, setWorkspaceOverlayLoading] = useState(false);
     const workspaceClockContainerRef = useRef(null);
     const adRef = useRef(null);
     const adInitializedRef = useRef(false);
-    const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+    const [prevDateRangeKey, setPrevDateRangeKey] = useState(null);
+    const [isLoadingNewRange, setIsLoadingNewRange] = useState(false);
 
-    // Only show skeletons during initial load, not on subsequent fetches
-    const showSkeletons = loading && !initialLoadComplete;
+    // Detect fetch-triggering filter changes (NOT local-only filters like search/favorites)
+    const fetchKey = useMemo(() => {
+        const startEpoch = filters.startDate ? new Date(filters.startDate).getTime() : 'na';
+        const endEpoch = filters.endDate ? new Date(filters.endDate).getTime() : 'na';
+        const impactsKey = (filters.impacts || []).slice().sort().join('|');
+        const currenciesKey = (filters.currencies || []).slice().sort().join('|');
+        const sourceKey = newsSource || 'auto';
+        return `${sourceKey}-${startEpoch}-${endEpoch}-${impactsKey}-${currenciesKey}`;
+    }, [filters.currencies, filters.endDate, filters.impacts, filters.startDate, newsSource]);
 
+    const dateRangeChanged = prevDateRangeKey !== fetchKey;
+
+    // When fetch-triggering filters change, flag that we're loading a new dataset
     useEffect(() => {
-        if (!loading && events.length >= 0) {
-            setInitialLoadComplete(true);
+        if (dateRangeChanged) {
+            setIsLoadingNewRange(true);
+            setPrevDateRangeKey(fetchKey);
         }
-    }, [loading, events.length]);
+    }, [dateRangeChanged, fetchKey]);
+
+    // Once loading completes after a range change, stop showing skeletons
+    useEffect(() => {
+        if (isLoadingNewRange && !loading) {
+            setIsLoadingNewRange(false);
+        }
+    }, [loading, isLoadingNewRange]);
+
+    // Show skeletons ONLY when actively loading, not during scroll or re-renders
+    const showSkeletons = loading && isLoadingNewRange;
 
     const {
         notesError,
@@ -868,17 +913,21 @@ export default function CalendarEmbed({
         isEventNotesLoading,
     } = useEventNotes();
 
-    const [nowEpochMs, setNowEpochMs] = useState(() => getNowEpochMs(timezone));
+    const [nowEpochMs, setNowEpochMs] = useState(() => timeEngine?.nowEpochMs ?? getNowEpochMs(clockTimezone));
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [noteTarget, setNoteTarget] = useState(null);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [timezoneModalOpen, setTimezoneModalOpen] = useState(false);
     const [newsSourceModalOpen, setNewsSourceModalOpen] = useState(false);
+    const [forexFactoryModalOpen, setForexFactoryModalOpen] = useState(false);
     const [isFiltersStuck, setIsFiltersStuck] = useState(false);
+    const isMobileFiltersStuck = !isTwoColumn && isFiltersStuck;
 
     useEffect(() => {
-        setNowEpochMs(getNowEpochMs(timezone));
-    }, [timezone]);
+        if (timeEngine?.nowEpochMs) {
+            setNowEpochMs(timeEngine.nowEpochMs);
+        }
+    }, [timeEngine?.nowEpochMs]);
 
     useEffect(() => {
         const computeBaseSize = () => {
@@ -895,7 +944,8 @@ export default function CalendarEmbed({
             const maxWidthSize = vw - horizontalMargin;
             next = Math.min(next, maxWidthSize, 440);
 
-            setWorkspaceClockBaseSize((prev) => (prev === next ? prev : next));
+            setWorkspaceClockSize((prev) => (prev === next ? prev : next));
+            setWorkspaceHasSize(true);
         };
 
         computeBaseSize();
@@ -905,40 +955,13 @@ export default function CalendarEmbed({
     }, []);
 
     useEffect(() => {
-        const measure = () => {
-            const node = workspaceClockContainerRef.current;
-            if (!node) return;
-            const rect = node.getBoundingClientRect();
-            const gutter = 12; // Keep breathing room so canvas text and arcs stay inside the paper
-            const availableWidth = Math.max(0, rect.width - gutter);
-            const next = Math.max(180, Math.min(availableWidth, workspaceClockBaseSize));
-            if (Number.isFinite(next) && next > 0) {
-                setWorkspaceClockSize((prev) => (prev === next ? prev : next));
-                setWorkspaceHasSize(true);
-            }
-        };
-
-        measure();
-
-        if (typeof ResizeObserver !== 'undefined') {
-            const observer = new ResizeObserver(measure);
-            if (workspaceClockContainerRef.current) {
-                observer.observe(workspaceClockContainerRef.current);
-            }
-            return () => observer.disconnect();
-        }
-
-        window.addEventListener('resize', measure);
-        return () => window.removeEventListener('resize', measure);
-    }, [workspaceClockBaseSize]);
-
-    useEffect(() => {
         if (!showEventsOnCanvas) {
             setShouldRenderEventsOverlay(false);
-            return undefined;
+            return () => { };
         }
 
         let cancelled = false;
+
         const scheduleOverlay = (cb) => {
             if (typeof window === 'undefined') return 0;
             if ('requestIdleCallback' in window) {
@@ -968,30 +991,21 @@ export default function CalendarEmbed({
         };
     }, [showEventsOnCanvas]);
 
-    useEffect(() => {
-        const id = setInterval(() => {
-            setNowEpochMs(getNowEpochMs(timezone));
-        }, 1000);
-        return () => clearInterval(id);
-    }, [timezone]);
-
-    useEffect(() => {
-        if (!showEventsOnCanvas) {
-            setWorkspaceOverlayLoading(false);
-        }
-    }, [showEventsOnCanvas]);
-
-    const clockSurfaceColor = backgroundBasedOnSession && activeSession?.color ? activeSession.color : backgroundColor || '#0f1f2f';
+    const clockSurfaceColor = backgroundBasedOnSession && activeSession?.color ? activeSession.color : '#ffffff';
     const clockSurfaceIsDark = useMemo(() => isColorDark(clockSurfaceColor), [clockSurfaceColor]);
     const handColor = useMemo(() => (clockSurfaceIsDark ? '#F6F9FB' : '#0F172A'), [clockSurfaceIsDark]);
     const overlayEventFilters = useMemo(() => filters || settingsEventFilters, [filters, settingsEventFilters]);
     const overlayNewsSource = newsSource || settingsNewsSource;
 
     const clockPaperBg = useMemo(() => (backgroundBasedOnSession && activeSession?.color ? activeSession.color : '#ffffff'), [activeSession?.color, backgroundBasedOnSession]);
-    const clockPaperTextColor = useMemo(() => (clockPaperBg && isColorDark(clockPaperBg) ? '#F6F9FB' : theme.palette.text.primary), [clockPaperBg, theme.palette.text.primary]);
+    const clockPaperTextColor = useMemo(() => {
+        if (!backgroundBasedOnSession) return '#0F172A';
+        return isColorDark(clockPaperBg) ? '#F6F9FB' : theme.palette.text.primary;
+    }, [backgroundBasedOnSession, clockPaperBg, theme.palette.text.primary]);
 
     const shouldShowDigitalClock = showDigitalClock !== false;
-    const shouldShowSessionLabel = showSessionLabel !== false;
+    const sessionLabelVisible = false;
+    const shouldShowSessionLabel = sessionLabelVisible && showSessionLabel !== false;
 
     const dayKeys = useMemo(
         () => buildDaySequence(filters.startDate, filters.endDate, timezone),
@@ -1037,6 +1051,9 @@ export default function CalendarEmbed({
     const prevNowEventIdsRef = useRef(new Set());
     const prevNextEventIdsRef = useRef(new Set());
     const filtersBoxRef = useRef(null);
+    const rightScrollRef = useRef(null);
+    const leftScrollRef = useRef(null);
+    const [showBackToTop, setShowBackToTop] = useState(false);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -1059,18 +1076,70 @@ export default function CalendarEmbed({
     }, []);
 
     useEffect(() => {
+        const target = rightScrollRef.current || window;
+        if (!target) return undefined;
+
+        const handleScroll = () => {
+            const viewportHeight = target === window
+                ? (document.documentElement?.clientHeight || window.innerHeight || 0)
+                : (target?.clientHeight || 0);
+            const scrolled = target === window
+                ? (window.scrollY || document.documentElement.scrollTop || 0)
+                : (target?.scrollTop || 0);
+            const threshold = viewportHeight * 0.3;
+            setShowBackToTop(scrolled > threshold);
+        };
+
+        const options = { passive: true };
+        target.addEventListener('scroll', handleScroll, options);
+        handleScroll();
+
+        return () => target.removeEventListener('scroll', handleScroll, options);
+    }, [isTwoColumn]);
+
+    useEffect(() => {
         if (typeof window === 'undefined') return undefined;
         const adSlot = adRef.current;
         if (!adSlot) return undefined;
 
         let cleanupScript;
+        let resizeObserver;
 
         const loadScriptAndPush = () => {
             if (adInitializedRef.current) return;
-            let script = document.querySelector(`script[${ADS_SCRIPT_ATTR}="t2t-adsense"]`);
+            let script = document.querySelector('script#t2t-adsense');
 
             const pushAd = () => {
                 if (!adRef.current || adInitializedRef.current) return;
+
+                // Ensure the ad container has proper width before pushing
+                const container = adRef.current.parentElement;
+                if (!container) return;
+
+                const rect = container.getBoundingClientRect();
+                const width = rect.width || container.offsetWidth;
+
+                // Don't push if container has no width
+                if (width <= 0) {
+                    // Wait for container to have proper width
+                    if (!resizeObserver) {
+                        resizeObserver = new ResizeObserver((entries) => {
+                            for (const entry of entries) {
+                                const entryWidth = entry.contentRect.width || entry.target.offsetWidth;
+                                if (entryWidth > 0 && !adInitializedRef.current) {
+                                    pushAd();
+                                    if (resizeObserver) {
+                                        resizeObserver.disconnect();
+                                        resizeObserver = null;
+                                    }
+                                }
+                            }
+                        });
+                        resizeObserver.observe(container);
+                    }
+                    return;
+                }
+
                 adInitializedRef.current = true;
                 try {
                     window.adsbygoogle = window.adsbygoogle || [];
@@ -1085,12 +1154,13 @@ export default function CalendarEmbed({
                 if (script) {
                     script.setAttribute('data-loaded', 'true');
                 }
-                pushAd();
+                // Add small delay to ensure container is rendered
+                setTimeout(pushAd, 100);
             };
 
             if (!script) {
                 script = document.createElement('script');
-                script.setAttribute(ADS_SCRIPT_ATTR, 't2t-adsense');
+                script.id = 't2t-adsense';
                 script.async = true;
                 script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADS_CLIENT_ID}`;
                 script.crossOrigin = 'anonymous';
@@ -1100,7 +1170,7 @@ export default function CalendarEmbed({
                     script.removeEventListener('load', handleScriptLoad);
                 };
             } else if (script.getAttribute('data-loaded') === 'true' || script.readyState === 'complete') {
-                pushAd();
+                setTimeout(pushAd, 100);
             } else {
                 script.addEventListener('load', handleScriptLoad);
                 cleanupScript = () => script.removeEventListener('load', handleScriptLoad);
@@ -1110,11 +1180,18 @@ export default function CalendarEmbed({
         loadScriptAndPush();
         const unsubscribe = subscribeConsent(() => {
             adInitializedRef.current = false;
+            if (resizeObserver) {
+                resizeObserver.disconnect();
+                resizeObserver = null;
+            }
             loadScriptAndPush();
         });
 
         return () => {
             if (cleanupScript) cleanupScript();
+            if (resizeObserver) {
+                resizeObserver.disconnect();
+            }
             unsubscribe();
         };
     }, []);
@@ -1148,9 +1225,36 @@ export default function CalendarEmbed({
         const escapedKey = typeof window !== 'undefined' && window.CSS?.escape ? window.CSS.escape(eventKey) : eventKey.replace(/[^a-zA-Z0-9_-]/g, '_');
         const target = document.querySelector(`[data-t2t-event-row-key="${escapedKey}"]`);
         if (target) {
+            // Center the event in the viewport on all breakpoints
             target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
         }
     }, []);
+
+    const scrollToNextEvent = useCallback(() => {
+        if (nextEventIds.size === 0 || events.length === 0) return;
+
+        // Find the first next event in the events array
+        const firstNextEvent = events.find((event) => {
+            const eventKey = buildEventKey(event);
+            return nextEventIds.has(eventKey);
+        });
+
+        if (firstNextEvent) {
+            scrollEventIntoView(firstNextEvent);
+        }
+    }, [nextEventIds, events, scrollEventIntoView]);
+
+    const handleBackToTop = useCallback(() => {
+        const scrollTarget = rightScrollRef.current || window;
+        if (scrollTarget && scrollTarget.scrollTo) {
+            scrollTarget.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (typeof window !== 'undefined') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        if (isTwoColumn && leftScrollRef.current && leftScrollRef.current.scrollTo) {
+            leftScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, [isTwoColumn]);
 
     const handleToggleFavorite = useCallback(async (event) => {
         const result = await toggleFavorite(event);
@@ -1159,12 +1263,40 @@ export default function CalendarEmbed({
         }
     }, [toggleFavorite, onOpenAuth]);
 
+    const handleFiltersChangeGuard = useCallback((nextFilters, meta) => {
+        if (!user) {
+            if (onOpenAuth) {
+                onOpenAuth();
+            }
+            return;
+        }
+        handleFiltersChange(nextFilters, meta);
+    }, [handleFiltersChange, onOpenAuth, user]);
+
+    const handleApplyFiltersGuard = useCallback((nextFilters) => {
+        if (!user) {
+            if (onOpenAuth) {
+                onOpenAuth();
+            }
+            return;
+        }
+        applyFilters(nextFilters);
+    }, [applyFilters, onOpenAuth, user]);
+
     const handleOpenEvent = useCallback((event, meta) => {
+        if (!user) {
+            if (onOpenAuth) {
+                onOpenAuth();
+            }
+            setSelectedEvent(null);
+            return;
+        }
+
         if (meta?.source === 'canvas-tooltip') {
             scrollEventIntoView(event);
         }
         setSelectedEvent(event);
-    }, [scrollEventIntoView]);
+    }, [onOpenAuth, scrollEventIntoView, user]);
 
     const handleCloseEvent = useCallback(() => {
         setSelectedEvent(null);
@@ -1207,500 +1339,613 @@ export default function CalendarEmbed({
     }, [noteTarget, onOpenAuth, removeNote]);
 
     const renderWorkspaceSkeleton = !workspaceHasSize;
+    const shouldShowTimezoneButton = !renderWorkspaceSkeleton;
     const lastUpdatedLabel = useMemo(() => (lastUpdated ? lastUpdated.toLocaleTimeString() : null), [lastUpdated]);
 
-    const sponsoredAdPaper = (
-        <Paper
-            elevation={0}
+    const sponsoredBanner = (
+        <Box
             sx={{
-                borderRadius: 3,
-                border: '1px solid',
-                borderColor: alpha(theme.palette.text.primary, 0.12),
-                bgcolor: '#ffffff',
-                color: theme.palette.text.primary,
-                p: { xs: 1.25, sm: 1.5 },
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1,
-                minWidth: 0,
                 width: '100%',
-                maxWidth: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                px: { xs: 1.5, sm: 2 },
+                py: { xs: 1.75, sm: 2 },
+                bgcolor: '#0f172a',
+                color: '#e2e8f0',
             }}
         >
-            <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between" spacing={0.5}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, letterSpacing: 0.25 }}>
-                    Sponsored
-                </Typography>
-                <Typography variant="caption" sx={{ color: alpha(theme.palette.text.primary, 0.72) }}>
-                    Keeping the calendar free.
-                </Typography>
-            </Stack>
             <Box
+                component="a"
+                href="https://www.tradingview.com/chart/?aff_id=143157&utm_source=creative&utm_lang=EN"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open TradingView chart (referral)"
                 sx={{
-                    width: '100%',
-                    display: 'flex',
-                    justifyContent: 'center',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    minHeight: 120,
-                    px: { xs: 0, sm: 0.5 },
+                    justifyContent: 'center',
+                    width: '100%',
+                    maxWidth: 468,
+                    borderRadius: 2,
+                    overflow: 'hidden',
                 }}
             >
                 <Box
-                    component="ins"
-                    ref={adRef}
-                    className="adsbygoogle"
-                    data-ad-client={ADS_CLIENT_ID}
-                    data-ad-slot={ADS_SLOT_ID}
-                    data-ad-format="auto"
-                    data-full-width-responsive="true"
+                    component="img"
+                    src="https://s3.tradingview.com/pub/referrals/creatives/WT/EN/468x60Banner.jpg"
+                    srcSet="https://s3.tradingview.com/pub/referrals/creatives/WT/EN/936x120Banner.jpg 2x"
+                    alt="TradingView referral banner"
+                    loading="lazy"
                     sx={{
-                        display: 'block',
                         width: '100%',
+                        maxWidth: 468,
+                        height: 'auto',
+                        maxHeight: 60,
+                        display: 'block',
+                        borderRadius: 2,
                     }}
                 />
             </Box>
-        </Paper>
+        </Box>
     );
-
-    return (
+    const rectangleBannerTwoColumn = (
         <Box
             sx={{
-                backgroundColor: '#f5f7fb',
-                color: theme.palette.text.primary,
-                py: { xs: 3, md: 4 },
-                minHeight: { xs: '100dvh', lg: 'auto' },
-                height: { lg: '100dvh' },
-                overflowX: 'hidden',
-                overflowY: { xs: 'auto', lg: 'auto' },
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                px: { xs: 0.75, sm: 1 },
+                py: { xs: 1, sm: 1.25 },
             }}
         >
             <Box
+                component="a"
+                href="https://www.tradingview.com/chart/?aff_id=143157&utm_source=creative&utm_lang=EN"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open TradingView chart (referral)"
                 sx={{
+                    display: 'block',
                     width: '100%',
-                    maxWidth: { xs: '100%', xl: 1400 },
-                    mx: 'auto',
-                    px: { xs: 2, sm: 2.75, md: 3.5 },
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: { xs: 2, md: 2.5 },
-                    overflowX: 'hidden',
-                    overflowY: { lg: 'auto' },
-                    height: { lg: '100%' },
+                    maxWidth: { xs: 360, sm: 468 },
+                    borderRadius: 2,
+                    overflow: 'hidden',
                 }}
             >
                 <Box
+                    component="img"
+                    src="https://s3.tradingview.com/pub/referrals/creatives/WT/EN/468x60Banner.jpg"
+                    srcSet="https://s3.tradingview.com/pub/referrals/creatives/WT/EN/936x120Banner.jpg 2x"
+                    alt="TradingView referral banner"
+                    loading="lazy"
                     sx={{
-                        display: 'grid',
-                        gridTemplateColumns: isTwoColumn ? 'minmax(360px, 420px) 1fr' : 'minmax(0, 1fr)',
-                        gap: { xs: 2, md: 2.5 },
-                        alignItems: 'start',
-                        minWidth: 0,
+                        width: '100%',
+                        height: 'auto',
+                        maxWidth: 468,
+                        display: 'block',
+                        borderRadius: 2,
                     }}
-                >
-                    {isTwoColumn && (
+                />
+            </Box>
+        </Box>
+    );
+
+    const rectangleBannerSingleColumn = (
+        <Box
+            sx={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                px: { xs: 0.75, sm: 1 },
+                py: { xs: 1, sm: 1.25 },
+            }}
+        >
+            <Box
+                component="a"
+                href="https://www.tradingview.com/chart/?aff_id=143157&utm_source=creative&utm_lang=EN"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open TradingView chart (referral)"
+                sx={{
+                    display: 'block',
+                    width: '100%',
+                    maxWidth: { xs: 336, sm: 360 },
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                }}
+            >
+                <Box
+                    component="img"
+                    src="https://s3.tradingview.com/pub/referrals/creatives/WT/EN/336x280LargeRectangle.jpg"
+                    srcSet="https://s3.tradingview.com/pub/referrals/creatives/WT/EN/672x560LargeRectangle.jpg 2x"
+                    alt="TradingView referral banner"
+                    loading="lazy"
+                    sx={{
+                        width: '100%',
+                        height: 'auto',
+                        maxWidth: 336,
+                        display: 'block',
+                        borderRadius: 2,
+                    }}
+                />
+            </Box>
+        </Box>
+    );
+
+    const leftRailContent = isTwoColumn ? (
+        <>
+            <Paper
+                elevation={0}
+                sx={{
+                    position: 'relative',
+                    borderRadius: 3,
+                    border: '1px solid',
+                    borderColor: alpha(clockPaperTextColor, 0.18),
+                    bgcolor: clockPaperBg,
+                    color: clockPaperTextColor,
+                    p: { xs: 1.25, sm: 1.5, md: 1.75 },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1.25,
+                    minWidth: 0,
+                    maxWidth: '100%',
+                    width: '100%',
+                }}
+            >
+                <Stack spacing={0.75} sx={{ mb: 0.5, position: 'relative' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
+                        Time 2 Trade
+                    </Typography>
+                    <Tooltip title="Open settings" placement="left">
+                        <IconButton
+                            size="medium"
+                            onClick={() => setSettingsOpen(true)}
+                            sx={{
+                                position: 'absolute',
+                                top: -2,
+                                right: 0,
+                                color: alpha(clockPaperTextColor, 0.9),
+                                p: 0.75,
+                            }}
+                            aria-label="Open settings"
+                        >
+                            <SettingsRoundedIcon fontSize="medium" />
+                        </IconButton>
+                    </Tooltip>
+                    <Typography variant="body2" sx={{ color: alpha(clockPaperTextColor, 0.72) }}>
+                        Today&apos;s market sessions and economic events in one place.
+                    </Typography>
+                    <Divider sx={{ borderColor: alpha(clockPaperTextColor, 0.2) }} />
+                </Stack>
+
+                <Stack spacing={0} alignItems="center" sx={{ p: 0, width: '100%', maxWidth: '100%' }}>
+                    {showHandClock ? (
                         <Box
                             sx={{
+                                width: '100%',
+                                maxWidth: { xs: 420, sm: 520, md: 560 },
+                                mx: 'auto',
                                 display: 'flex',
-                                flexDirection: 'column',
-                                gap: { xs: 2, md: 2.5 },
-                                minWidth: 0,
-                                position: { xs: 'relative', lg: 'sticky' },
-                                top: { lg: 16 },
-                                alignSelf: { lg: 'start' },
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                p: 0,
+                                boxSizing: 'border-box',
                             }}
                         >
-                            <Paper
-                                elevation={0}
+                            <Box
+                                ref={workspaceClockContainerRef}
                                 sx={{
-                                    position: 'relative',
-                                    borderRadius: 3,
-                                    border: '1px solid',
-                                    borderColor: alpha(clockPaperTextColor, 0.18),
-                                    bgcolor: clockPaperBg,
-                                    color: clockPaperTextColor,
-                                    p: { xs: 1.5, sm: 1.75 },
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: 1.25,
-                                    minWidth: 0,
-                                    maxWidth: '100%',
                                     width: '100%',
+                                    aspectRatio: '1 / 1',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    p: 0,
                                 }}
                             >
-                                <Stack spacing={0.75} sx={{ mb: 0.5, position: 'relative' }}>
-                                    <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
-                                        Today&apos;s Trading Clock
-                                    </Typography>
-                                    <Tooltip title="Open settings" placement="left">
-                                        <IconButton
-                                            size="medium"
-                                            onClick={() => setSettingsOpen(true)}
-                                            sx={{
-                                                position: 'absolute',
-                                                top: -2,
-                                                right: 0,
-                                                color: alpha(clockPaperTextColor, 0.9),
-                                                p: 0.75,
-                                            }}
-                                            aria-label="Open settings"
-                                        >
-                                            <SettingsRoundedIcon fontSize="medium" />
-                                        </IconButton>
-                                    </Tooltip>
-                                    <Typography variant="body2" sx={{ color: alpha(clockPaperTextColor, 0.72) }}>
-                                        Market sessions and economic events in one place.
-                                    </Typography>
-                                    <Divider sx={{ borderColor: alpha(clockPaperTextColor, 0.2) }} />
-                                </Stack>
-
-                                <Stack spacing={1.25} alignItems="center" sx={{ p: { xs: 0.75, sm: 1 }, width: '100%', maxWidth: '100%' }}>
-                                    {showHandClock ? (
+                                <Box className="hand-clock-wrapper" sx={{ position: 'relative', width: workspaceClockSize, height: workspaceClockSize, maxWidth: '100%' }}>
+                                    {renderWorkspaceSkeleton ? (
                                         <Box
                                             sx={{
-                                                width: '100%',
-                                                maxWidth: { xs: 420, sm: 520, md: 560 },
-                                                mx: 'auto',
+                                                position: 'absolute',
+                                                inset: 0,
                                                 display: 'flex',
-                                                justifyContent: 'center',
                                                 alignItems: 'center',
-                                                p: { xs: 0.75, sm: 1 },
-                                                boxSizing: 'border-box',
+                                                justifyContent: 'center',
+                                                bgcolor: 'rgba(255,255,255,0.6)',
+                                                borderRadius: '50%',
                                             }}
                                         >
-                                            <Box
-                                                ref={workspaceClockContainerRef}
-                                                sx={{
-                                                    width: '100%',
-                                                    aspectRatio: '1 / 1',
-                                                    display: 'flex',
-                                                    justifyContent: 'center',
-                                                    alignItems: 'center',
-                                                }}
-                                            >
-                                                {renderWorkspaceSkeleton ? (
-                                                    <Box sx={{ width: workspaceClockSize, height: workspaceClockSize }} />
-                                                ) : (
-                                                    <Box className="hand-clock-wrapper" sx={{ position: 'relative', width: workspaceClockSize, height: workspaceClockSize, maxWidth: '100%' }}>
-                                                        <ClockCanvas
-                                                            size={workspaceClockSize}
-                                                            time={currentTime}
-                                                            sessions={sessions}
-                                                            handColor={handColor}
-                                                            clockStyle={clockStyle}
-                                                            showSessionNamesInCanvas={showSessionNamesInCanvas}
-                                                            showClockNumbers={showClockNumbers}
-                                                            showClockHands={showClockHands}
-                                                            activeSession={activeSession}
-                                                            backgroundBasedOnSession={backgroundBasedOnSession}
-                                                            renderHandsInCanvas={false}
-                                                            handAnglesRef={handAnglesRef}
-                                                        />
-                                                        {showClockHands ? (
-                                                            <ClockHandsOverlay
-                                                                size={workspaceClockSize}
-                                                                handAnglesRef={handAnglesRef}
-                                                                handColor={handColor}
-                                                                time={currentTime}
-                                                            />
-                                                        ) : null}
-                                                        {showEventsOnCanvas && shouldRenderEventsOverlay ? (
-                                                            <Suspense
-                                                                fallback={(
-                                                                    <Box
-                                                                        sx={{
-                                                                            position: 'absolute',
-                                                                            inset: 0,
-                                                                            display: 'flex',
-                                                                            alignItems: 'center',
-                                                                            justifyContent: 'center',
-                                                                        }}
-                                                                    >
-                                                                        <CircularProgress size={18} thickness={5} />
-                                                                    </Box>
-                                                                )}
-                                                            >
-                                                                <ClockEventsOverlay
-                                                                    size={workspaceClockSize}
-                                                                    timezone={clockTimezone}
-                                                                    eventFilters={overlayEventFilters}
-                                                                    newsSource={overlayNewsSource}
-                                                                    onEventClick={handleOpenEvent || undefined}
-                                                                    onLoadingStateChange={showHandClock ? setWorkspaceOverlayLoading : undefined}
-                                                                    suppressTooltipAutoscroll
-                                                                />
-                                                            </Suspense>
-                                                        ) : null}
-                                                    </Box>
-                                                )}
-                                            </Box>
+                                            <LoadingAnimation
+                                                clockSize={Math.min(workspaceClockSize, 220)}
+                                                isLoading
+                                            />
                                         </Box>
-                                    ) : (
-                                        <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center', width: '100%' }}>
-                                            Clock hidden in settings.
-                                        </Typography>
-                                    )}
-                                    {shouldShowDigitalClock && !renderWorkspaceSkeleton ? (
-                                        <DigitalClock
-                                            time={currentTime}
-                                            clockSize={Math.min(workspaceClockSize, 360)}
-                                            textColor={handColor}
-                                        />
                                     ) : null}
-                                    {shouldShowDigitalClock && !renderWorkspaceSkeleton ? (
-                                        <Button
-                                            variant="text"
-                                            size="small"
-                                            onClick={() => setTimezoneModalOpen(true)}
-                                            sx={{
-                                                textTransform: 'none',
-                                                color: alpha(handColor, 0.7),
-                                                fontSize: '0.75rem',
-                                                fontWeight: 600,
-                                                minWidth: 'auto',
-                                                px: 1,
-                                                py: 0.5,
-                                                mt: -0.5,
-                                                '&:hover': {
-                                                    bgcolor: alpha(handColor, 0.08),
-                                                    color: handColor,
-                                                },
-                                            }}
-                                        >
-                                            {selectedTimezone?.replace(/_/g, ' ') || 'Select Timezone'}
-                                        </Button>
-                                    ) : null}
-                                    {shouldShowSessionLabel && !renderWorkspaceSkeleton ? (
-                                        <SessionLabel
-                                            activeSession={activeSession}
-                                            showTimeToEnd={showTimeToEnd}
-                                            timeToEnd={timeToEnd}
-                                            showTimeToStart={showTimeToStart}
-                                            nextSession={nextSession}
-                                            timeToStart={timeToStart}
-                                            clockSize={workspaceClockSize}
-                                            contrastTextColor={handColor}
-                                        />
-                                    ) : null}
-                                    {workspaceOverlayLoading ? (
-                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                            Loading event markers…
-                                        </Typography>
-                                    ) : null}
-                                </Stack>
 
-                            </Paper>
-
-                            {sponsoredAdPaper}
-
+                                    {!renderWorkspaceSkeleton ? (
+                                        <>
+                                            <ClockCanvas
+                                                size={workspaceClockSize}
+                                                time={currentTime}
+                                                sessions={sessions}
+                                                handColor={handColor}
+                                                clockStyle={clockStyle}
+                                                showSessionNamesInCanvas={showSessionNamesInCanvas}
+                                                showPastSessionsGray={showPastSessionsGray}
+                                                showClockNumbers={showClockNumbers}
+                                                showClockHands={showClockHands}
+                                                activeSession={activeSession}
+                                                backgroundBasedOnSession={backgroundBasedOnSession}
+                                                renderHandsInCanvas={false}
+                                                handAnglesRef={handAnglesRef}
+                                            />
+                                            <ClockHandsOverlay
+                                                size={workspaceClockSize}
+                                                handAnglesRef={handAnglesRef}
+                                                handColor={handColor}
+                                                time={currentTime}
+                                                showSecondsHand={showClockHands}
+                                            />
+                                            {showEventsOnCanvas && shouldRenderEventsOverlay ? (
+                                                <Suspense fallback={null}>
+                                                    <ClockEventsOverlay
+                                                        size={workspaceClockSize}
+                                                        timezone={clockTimezone}
+                                                        eventFilters={overlayEventFilters}
+                                                        newsSource={overlayNewsSource}
+                                                        onEventClick={handleOpenEvent || undefined}
+                                                        suppressTooltipAutoscroll
+                                                    />
+                                                </Suspense>
+                                            ) : null}
+                                        </>
+                                    ) : null}
+                                </Box>
+                            </Box>
                         </Box>
+                    ) : (
+                        <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center', width: '100%' }}>
+                            Clock hidden in settings.
+                        </Typography>
                     )}
-
-                    {!isTwoColumn && sponsoredAdPaper}
-
-                    <Paper
-                        elevation={0}
-                        sx={{
-                            flex: 1,
-                            position: { xs: 'relative', lg: 'sticky' },
-                            top: { lg: 16 },
-                            alignSelf: 'flex-start',
-                            mt: 2,
-                            borderRadius: 3,
-                            border: '1px solid',
-                            borderColor: alpha('#3c4d63', 0.12),
-                            bgcolor: '#ffffff',
-                            color: theme.palette.text.primary,
-                            p: { xs: 1.25, sm: 1.5, md: 1.75 },
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 1.25,
-                            width: '100%',
-                            minWidth: 0,
-                            maxWidth: '100%',
-                        }}
-                    >
-                        {showSeoCopy && (
-                            <Stack spacing={0.75} sx={{ mb: 0.5, position: 'relative' }}>
-                                <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
-                                    {title}
-                                </Typography>
-                                {!user && onOpenAuth && (
-                                    <Button
-                                        variant="contained"
-                                        color="primary"
-                                        size="small"
-                                        startIcon={<LockOpenIcon />}
-                                        onClick={onOpenAuth}
-                                        sx={{
-                                            position: 'absolute',
-                                            top: { xs: -4, sm: -2 },
-                                            right: 0,
-                                            textTransform: 'none',
-                                            fontWeight: 700,
-                                            fontSize: { xs: '0.75rem', sm: '0.8125rem' },
-                                            px: { xs: 1.25, sm: 1.5 },
-                                            py: { xs: 0.5, sm: 0.625 },
-                                            borderRadius: 2,
-                                            boxShadow: '0 2px 8px rgba(15, 111, 236, 0.2)',
-                                            '&:hover': {
-                                                boxShadow: '0 4px 12px rgba(15, 111, 236, 0.3)',
-                                            },
-                                        }}
-                                    >
-                                        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                                            Unlock all features
-                                        </Box>
-                                        <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
-                                            Unlock
-                                        </Box>
-                                    </Button>
-                                )}
-                                <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.72) }}>
-                                    Powered by{' '}
-                                    <Link
-                                        component="button"
-                                        onClick={() => setNewsSourceModalOpen(true)}
-                                        sx={{
-                                            color: 'inherit',
-                                            textDecorationLine: 'underline',
-                                            textDecorationColor: alpha(theme.palette.text.primary, 0.4),
-                                            cursor: 'pointer',
-                                            fontWeight: 600,
-                                            '&:hover': {
-                                                textDecorationColor: 'inherit',
-                                            },
-                                        }}
-                                    >
-                                        Forex Factory
-                                    </Link>
-                                </Typography>
-                                <Divider sx={{ borderColor: alpha('#3c4d63', 0.12) }} />
-                            </Stack>
-                        )}
-
-                        <Box
-                            ref={filtersBoxRef}
+                    {shouldShowDigitalClock && !renderWorkspaceSkeleton ? (
+                        <DigitalClock
+                            time={currentTime}
+                            clockSize={Math.min(workspaceClockSize, 360)}
+                            textColor={handColor}
+                        />
+                    ) : null}
+                    {shouldShowTimezoneButton ? (
+                        <Button
+                            variant="text"
+                            size="small"
+                            onClick={() => setTimezoneModalOpen(true)}
                             sx={{
-                                position: 'sticky',
-                                top: 0,
-                                zIndex: 10,
-                                bgcolor: 'background.paper',
-                                p: { xs: 1, sm: 0 },
-                                borderRadius: 0,
-                                boxShadow: isFiltersStuck ? '0 2px 4px -1px rgba(0, 0, 0, 0.1)' : 'none',
+                                textTransform: 'none',
+                                color: alpha(handColor, 0.7),
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                minWidth: 'auto',
+                                px: 1,
+                                py: 0.5,
+                                mt: shouldShowDigitalClock ? -0.75 : 0.25,
+                                '&:hover': {
+                                    bgcolor: alpha(handColor, 0.08),
+                                    color: handColor,
+                                },
                             }}
                         >
-                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between" sx={{ mb: 0, mt: 1 }}>
-                                <Box>
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                                        Search & Filters
-                                    </Typography>
+                            {selectedTimezone?.replace(/_/g, ' ') || 'Select Timezone'}
+                        </Button>
+                    ) : null}
+                    {shouldShowSessionLabel && !renderWorkspaceSkeleton ? (
+                        <SessionLabel
+                            activeSession={activeSession}
+                            showTimeToEnd={showTimeToEnd}
+                            timeToEnd={timeToEnd}
+                            showTimeToStart={showTimeToStart}
+                            nextSession={nextSession}
+                            timeToStart={timeToStart}
+                            clockSize={workspaceClockSize}
+                            contrastTextColor={handColor}
+                            backgroundBasedOnSession={backgroundBasedOnSession}
+                        />
+                    ) : null}
+                </Stack>
+
+            </Paper>
+            {rectangleBannerTwoColumn}
+
+        </>
+    ) : null;
+
+    const calendarContent = (
+        <>
+
+            <Paper
+                elevation={0}
+                sx={{
+                    flex: 1,
+                    position: 'relative',
+                    mt: 0,
+                    borderRadius: 3,
+                    border: '1px solid',
+                    borderColor: alpha('#3c4d63', 0.12),
+                    bgcolor: '#ffffff',
+                    color: theme.palette.text.primary,
+                    p: { xs: 1.25, sm: 1.5, md: 1.75 },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1.25,
+                    width: '100%',
+                    minWidth: 0,
+                    maxWidth: '100%',
+                }}
+            >
+                {showSeoCopy && (
+                    <Stack spacing={0.75} sx={{ mb: 0.5, position: 'relative' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
+                            {title}
+                        </Typography>
+                        {!user && onOpenAuth && (
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                size="small"
+                                startIcon={<LockOpenIcon />}
+                                onClick={onOpenAuth}
+                                sx={{
+                                    position: 'absolute',
+                                    top: { xs: -4, sm: -2 },
+                                    right: 0,
+                                    textTransform: 'none',
+                                    fontWeight: 700,
+                                    fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                                    px: { xs: 1.25, sm: 1.5 },
+                                    py: { xs: 0.5, sm: 0.625 },
+                                    borderRadius: 2,
+                                    boxShadow: '0 2px 8px rgba(15, 111, 236, 0.2)',
+                                    '&:hover': {
+                                        boxShadow: '0 4px 12px rgba(15, 111, 236, 0.3)',
+                                    },
+                                }}
+                            >
+                                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                                    Unlock all features
                                 </Box>
-                                <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" sx={{ gap: 1 }}>
-                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                                        {visibleCount.toLocaleString()} events
-                                    </Typography>
-                                    {nextCountdownLabel ? (
-                                        <Stack direction="row" spacing={0.5} alignItems="center">
-                                            <AccessTimeIcon sx={{ fontSize: 14, color: 'success.main' }} />
-                                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.main' }}>
-                                                Next in {nextCountdownLabel}
-                                            </Typography>
-                                        </Stack>
-                                    ) : nowEventIds.size ? (
-                                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main' }}>
-                                            Events in progress
-                                        </Typography>
-                                    ) : null}
-                                </Stack>
-                            </Stack>
-                            <EventsFilters3
-                                filters={filters}
-                                onFiltersChange={handleFiltersChange}
-                                onApply={applyFilters}
-                                loading={loading}
-                                timezone={timezone}
-                                newsSource={newsSource}
-                                actionOffset={0}
-                                defaultPreset="thisWeek"
-                            />
-                        </Box>
-
-                        {error ? (
-                            <Alert severity="error" sx={{ borderRadius: 2 }}>
-                                {error}
-                            </Alert>
-                        ) : null}
-
-                        {favoritesLoading && (
-                            <Alert severity="info" sx={{ borderRadius: 2 }}>
-                                Loading favorites…
-                            </Alert>
+                                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                                    Unlock
+                                </Box>
+                            </Button>
                         )}
-
-                        {notesError ? (
-                            <Alert severity="error" sx={{ borderRadius: 2 }}>
-                                {notesError}
-                            </Alert>
-                        ) : null}
-
-                        <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0 }}>
-                            {visibleDayKeys.length === 0 ? (
-                                <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                        Select a date range to view events.
-                                    </Typography>
-                                </Paper>
-                            ) : (
-                                visibleDayKeys.map((dayKey) => (
-                                    <DaySection
-                                        key={dayKey}
-                                        dayKey={dayKey}
-                                        timezone={timezone}
-                                        events={eventsByDay.get(dayKey) || []}
-                                        nowEventIds={nowEventIds}
-                                        nextEventIds={nextEventIds}
-                                        nextCountdownLabel={nextCountdownLabel}
-                                        nowEpochMs={nowEpochMs}
-                                        onToggleFavorite={handleToggleFavorite}
-                                        isFavorite={isFavorite}
-                                        isFavoritePending={isFavoritePending}
-                                        onOpenEvent={handleOpenEvent}
-                                        onOpenNotes={handleOpenNotes}
-                                        hasEventNotes={hasNotes}
-                                        isEventNotesLoading={isEventNotesLoading}
-                                        isLoading={showSkeletons}
-                                        isToday={dayKey === todayKey}
-                                    />
-                                ))
-                            )}
-                        </Stack>
-
-                        <Divider sx={{ borderColor: alpha('#3c4d63', 0.12), mt: 1, mb: 0.5 }} />
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center" justifyContent="space-between">
-                            <Typography
-                                variant="caption"
+                        <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.72) }}>
+                            Powered by{' '}
+                            <Link
+                                component="button"
+                                onClick={() => setForexFactoryModalOpen(true)}
                                 sx={{
-                                    color: 'text.secondary',
-                                    fontSize: '0.75rem',
-                                }}
-                            >
-                                © {new Date().getFullYear()} Time 2 Trade. All rights reserved.
-                            </Typography>
-                            <Typography
-                                variant="caption"
-                                sx={{
+                                    color: 'inherit',
+                                    textDecorationLine: 'underline',
+                                    textDecorationColor: alpha(theme.palette.text.primary, 0.4),
+                                    cursor: 'pointer',
                                     fontWeight: 600,
-                                    color: 'text.secondary',
-                                    fontSize: '0.75rem',
+                                    '&:hover': {
+                                        textDecorationColor: 'inherit',
+                                    },
                                 }}
                             >
-                                {lastUpdatedLabel ? `Updated ${lastUpdatedLabel}` : 'Awaiting first sync'}
+                                Forex Factory
+                            </Link>
+                        </Typography>
+                        <Divider sx={{ borderColor: alpha('#3c4d63', 0.12) }} />
+                    </Stack>
+                )}
+
+                {/* Simple sticky filters - works on all breakpoints */}
+                <Box
+                    ref={filtersBoxRef}
+                    sx={{
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 1000,
+                        bgcolor: '#ffffff',
+                        mx: { xs: -1.25, sm: -1.5, md: -1.75 },
+                        px: { xs: 1.25, sm: 1.5, md: 1.75 },
+                        pt: { xs: isMobileFiltersStuck ? 1 : 0, sm: isMobileFiltersStuck ? 1 : 0.25, md: 0 },
+                        pb: { xs: isMobileFiltersStuck ? 1 : 0, sm: isMobileFiltersStuck ? 1 : 0.25, md: 0 },
+                        borderBottom: '1px solid',
+                        borderColor: alpha('#3c4d63', 0.12),
+                        borderTopLeftRadius: 12,
+                        borderTopRightRadius: 12,
+                        borderBottomLeftRadius: 0,
+                        borderBottomRightRadius: 0,
+                        boxShadow: isFiltersStuck ? '0 2px 4px -1px rgba(0, 0, 0, 0.1)' : 'none',
+                    }}
+                >
+                    <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={1}
+                        alignItems={{ xs: 'flex-start', sm: 'center' }}
+                        justifyContent="space-between"
+                        sx={{ mb: 0, mt: { xs: 1, sm: 1, md: 1 } }}
+                    >
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                            Search & Filters
+                        </Typography>
+                        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" sx={{ gap: 1, display: { xs: 'none', lg: 'flex' } }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                                {visibleCount.toLocaleString()} events
                             </Typography>
+                            {nextCountdownLabel ? (
+                                <Stack
+                                    direction="row"
+                                    spacing={0.5}
+                                    alignItems="center"
+                                    onClick={scrollToNextEvent}
+                                    sx={{
+                                        cursor: 'pointer',
+                                        px: 1,
+                                        py: 0.5,
+                                        borderRadius: 1,
+                                        transition: 'background-color 0.2s',
+                                        '&:hover': {
+                                            bgcolor: alpha('#4caf50', 0.1),
+                                        },
+                                    }}
+                                >
+                                    <AccessTimeIcon sx={{ fontSize: 14, color: 'success.main' }} />
+                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.main' }}>
+                                        Next in {nextCountdownLabel}
+                                    </Typography>
+                                </Stack>
+                            ) : nowEventIds.size ? (
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main' }}>
+                                    Events in progress
+                                </Typography>
+                            ) : null}
                         </Stack>
-                    </Paper>
+                    </Stack>
+                    <EventsFilters3
+                        filters={filters}
+                        onFiltersChange={handleFiltersChangeGuard}
+                        onApply={handleApplyFiltersGuard}
+                        loading={loading}
+                        timezone={timezone}
+                        newsSource={newsSource}
+                        actionOffset={0}
+                        defaultPreset="thisWeek"
+                    />
+                    {/* Mobile: show chips below filters */}
+                    <Stack
+                        direction="row"
+                        spacing={1.5}
+                        alignItems="center"
+                        flexWrap="wrap"
+                        sx={{ gap: 1, display: { xs: 'flex', lg: 'none' }, mt: 0, mb: { xs: 1, sm: 0 } }}
+                    >
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                            {visibleCount.toLocaleString()} events
+                        </Typography>
+                        {nextCountdownLabel ? (
+                            <Stack
+                                direction="row"
+                                spacing={0.5}
+                                alignItems="center"
+                                onClick={scrollToNextEvent}
+                                sx={{
+                                    cursor: 'pointer',
+                                    px: 1,
+                                    py: 0.5,
+                                    borderRadius: 1,
+                                    transition: 'background-color 0.2s',
+                                    '&:hover': {
+                                        bgcolor: alpha('#4caf50', 0.1),
+                                    },
+                                }}
+                            >
+                                <AccessTimeIcon sx={{ fontSize: 14, color: 'success.main' }} />
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.main' }}>
+                                    Next in {nextCountdownLabel}
+                                </Typography>
+                            </Stack>
+                        ) : nowEventIds.size ? (
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main' }}>
+                                Events in progress
+                            </Typography>
+                        ) : null}
+                    </Stack>
                 </Box>
-            </Box>
+
+                {error ? (
+                    <Alert severity="error" sx={{ borderRadius: 2 }}>
+                        {error}
+                    </Alert>
+                ) : null}
+
+                {favoritesLoading && (
+                    <Alert severity="info" sx={{ borderRadius: 2 }}>
+                        Loading favorites…
+                    </Alert>
+                )}
+
+                {notesError ? (
+                    <Alert severity="error" sx={{ borderRadius: 2 }}>
+                        {notesError}
+                    </Alert>
+                ) : null}
+
+                <Stack spacing={1.25} sx={{ flex: 1, minHeight: 0 }}>
+                    {visibleDayKeys.length === 0 ? (
+                        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                                Select a date range to view events.
+                            </Typography>
+                        </Paper>
+                    ) : (
+                        visibleDayKeys.map((dayKey) => (
+                            <DaySection
+                                key={dayKey}
+                                dayKey={dayKey}
+                                timezone={timezone}
+                                events={eventsByDay.get(dayKey) || []}
+                                nowEventIds={nowEventIds}
+                                nextEventIds={nextEventIds}
+                                nextCountdownLabel={nextCountdownLabel}
+                                nowEpochMs={nowEpochMs}
+                                onToggleFavorite={handleToggleFavorite}
+                                isFavorite={isFavorite}
+                                isFavoritePending={isFavoritePending}
+                                onOpenEvent={handleOpenEvent}
+                                isLoading={showSkeletons}
+                                isToday={dayKey === todayKey}
+                            />
+                        ))
+                    )}
+                </Stack>
+
+                <Divider sx={{ borderColor: alpha('#3c4d63', 0.12), mt: 1, mb: 0.5 }} />
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center" justifyContent="space-between">
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            color: 'text.secondary',
+                            fontSize: '0.75rem',
+                        }}
+                    >
+                        © {new Date().getFullYear()} Time 2 Trade. All rights reserved.
+                    </Typography>
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            fontWeight: 600,
+                            color: 'text.secondary',
+                            fontSize: '0.75rem',
+                        }}
+                    >
+                        {lastUpdatedLabel ? `Updated ${lastUpdatedLabel}` : 'Awaiting first sync'}
+                    </Typography>
+                </Stack>
+            </Paper>
+            {!isTwoColumn && rectangleBannerSingleColumn}
+        </>
+    );
+
+    return (
+        <>
+            <CalendarEmbedLayout
+                isTwoColumn={isTwoColumn}
+                leftContent={leftRailContent}
+                rightContent={calendarContent}
+                leftScrollRef={leftScrollRef}
+                rightScrollRef={rightScrollRef}
+                showBackToTop={showBackToTop}
+                onBackToTop={handleBackToTop}
+                topBanner={sponsoredBanner}
+            />
 
             <EventModal
                 open={Boolean(selectedEvent)}
@@ -1813,7 +2058,14 @@ export default function CalendarEmbed({
                     <NewsSourceSelector />
                 </DialogContent>
             </Dialog>
-        </Box>
+
+            {/* Forex Factory Detailed Modal - Controlled NewsSourceSelector */}
+            <NewsSourceSelector
+                open={forexFactoryModalOpen}
+                onOpenChange={setForexFactoryModalOpen}
+                showButton={false}
+            />
+        </>
     );
 }
 

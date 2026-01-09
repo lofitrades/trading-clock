@@ -801,6 +801,7 @@ export default function EconomicEvents3({ open, onClose, autoScrollRequest = nul
 										hasEventNotes={hasNotes}
 										onOpenNotes={handleOpenNotes}
 										isEventNotesLoading={isEventNotesLoading}
+										onOpenAuth={onOpenAuth}
 									/>
 								</Box>
 

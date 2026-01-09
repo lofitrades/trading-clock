@@ -5,6 +5,10 @@
 User-agent: *
 Allow: /
 
+# Explicitly allow key landing and calendar surfaces
+Allow: /calendar
+Allow: /about
+
 # Sitemap location
 Sitemap: https://time2.trade/sitemap.xml
 

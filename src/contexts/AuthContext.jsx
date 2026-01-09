@@ -48,16 +48,15 @@ export const AuthProvider = ({ children }) => {
   const createUserProfile = async (user) => {
     try {
       const profile = await createUserProfileSafely(user);
-      
+
       // Check if we should show welcome modal (only for genuinely new users)
       const shouldShowWelcome = window.localStorage.getItem('showWelcomeModal');
       if (shouldShowWelcome === 'true') {
         window.localStorage.removeItem('showWelcomeModal');
-        // Show welcome modal immediately after profile creation
-        // No delay needed - profile is created, user is ready
+        // Show welcome modal; user dismisses it manually
         setShowWelcomeModal(true);
       }
-      
+
       return profile;
     } catch (error) {
       console.error('[Auth] Error creating/retrieving user profile:', error.code, error.message);
@@ -86,10 +85,10 @@ export const AuthProvider = ({ children }) => {
 
         try {
           const userDocRef = doc(db, 'users', currentUser.uid);
-          
+
           // First, check if profile exists
           const userDocSnapshot = await getDoc(userDocRef);
-          
+
           if (!userDocSnapshot.exists()) {
             // Profile doesn't exist - create it for new user
             try {
@@ -116,10 +115,10 @@ export const AuthProvider = ({ children }) => {
             }
             return;
           }
-          
+
           // Profile exists - update last login and set up real-time listener
           await updateLastLogin(currentUser.uid);
-          
+
           // Real-time listener for user profile changes
           const unsubscribeProfile = onSnapshot(
             userDocRef,
@@ -245,19 +244,18 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {/* Show WelcomeModal for new users BEFORE app loads */}
+      {/* Show WelcomeModal for new users; app renders underneath */}
       {showWelcomeModal && (
-        <WelcomeModal 
+        <WelcomeModal
           onClose={() => {
             setShowWelcomeModal(false);
-            // WelcomeModal closed - now app will render below
           }}
           userEmail={user?.email}
         />
       )}
-      
-      {/* Only render app after loading complete AND welcome modal dismissed */}
-      {!loading && !showWelcomeModal && children}
+
+      {/* Render app after loading; welcome modal overlays when present */}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

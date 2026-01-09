@@ -7,7 +7,7 @@
   <!-- Landing Page -->
   <url>
     <loc>https://time2.trade/</loc>
-    <lastmod>2025-12-22</lastmod>
+    <lastmod>2026-01-07</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
@@ -15,15 +15,23 @@
   <!-- App Workspace -->
   <url>
     <loc>https://time2.trade/app</loc>
-    <lastmod>2025-12-22</lastmod>
+    <lastmod>2026-01-07</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   
+  <!-- Economic Calendar -->
+  <url>
+    <loc>https://time2.trade/calendar</loc>
+    <lastmod>2026-01-07</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
   <!-- About Page -->
   <url>
     <loc>https://time2.trade/about</loc>
-    <lastmod>2025-12-22</lastmod>
+    <lastmod>2026-01-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>

@@ -5,6 +5,9 @@
  * Inspired by modern app shells (Airbnb/ChatGPT) with quick toggles, sectional pills, and responsive cards that mirror existing settings logic.
  * 
  * Changelog:
+ * v1.3.3 - 2026-01-08 - Updated "Clock Hands" toggle label to "Seconds Hand" to clarify that only the seconds hand is toggled; hour and minute hands always visible (enterprise best practice).
+ * v1.3.2 - 2026-01-08 - Allow guest/local toggling of gray past sessions and session name visibility; no auth gate for these canvas appearance toggles.
+ * v1.3.1 - 2026-01-07 - Temporarily hide session label toggles while keeping underlying setting wiring intact for future use.
  * v1.3.0 - 2026-01-06 - Remove timezone visibility toggle; timezone label is always shown.
  * v1.2.9 - 2025-12-17 - Refactored About tab to use shared aboutContent module and added "Read Full About Page" link for SEO route.
  * v1.2.8 - 2025-12-17 - Added Show Numbers and Show Clock Hands child settings under Analog Hand Clock for granular canvas customization.
@@ -55,7 +58,7 @@ import { auth } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import AccountModal from './AccountModal';
-import UnlockModal from './UnlockModal';
+import AuthModal2 from './AuthModal2';
 import ConfirmModal from './ConfirmModal';
 import SwitchComponent from './Switch';
 import useFullscreen from '../hooks/useFullscreen';
@@ -135,8 +138,6 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 	const {
 		sessions,
 		updateSessions,
-		backgroundColor,
-		updateBackgroundColor,
 		backgroundBasedOnSession,
 		toggleBackgroundBasedOnSession,
 		showHandClock,
@@ -151,6 +152,8 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 		toggleShowTimeToStart,
 		showSessionNamesInCanvas,
 		toggleShowSessionNamesInCanvas,
+		showPastSessionsGray,
+		toggleShowPastSessionsGray,
 		showEventsOnCanvas,
 		toggleShowEventsOnCanvas,
 		showClockNumbers,
@@ -159,6 +162,8 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 		toggleShowClockHands,
 		resetSettings,
 	} = useSettings();
+
+	const sessionLabelControlsVisible = false;
 
 	const [activeSection, setActiveSection] = useState('general');
 	const [showAccountModal, setShowAccountModal] = useState(false);
@@ -221,11 +226,13 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 	};
 
 	const handleToggleShowSessionNamesInCanvas = () => {
-		if (!user) {
-			setShowUnlockModal(true);
-			return;
-		}
+		// Canvas appearance should work for guests; persistence handled by useSettings
 		toggleShowSessionNamesInCanvas();
+	};
+
+	const handleToggleShowPastSessionsGray = () => {
+		// Allow guests to control gray-out locally; Firestore persistence handled when authenticated
+		toggleShowPastSessionsGray();
 	};
 
 	const handleRequestClearSession = (index) => {
@@ -423,6 +430,32 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 						>
 							<Box sx={{ flex: 1, minWidth: 0 }}>
 								<Typography variant="body2" sx={{ fontWeight: 600 }}>
+									Gray past sessions
+								</Typography>
+								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+									Dim session donuts that have already ended today
+								</Typography>
+							</Box>
+							<SwitchComponent
+								checked={showPastSessionsGray}
+								onChange={handleToggleShowPastSessionsGray}
+							/>
+						</Box>
+
+						<Box
+							sx={{
+								display: 'flex',
+								gap: 1.5,
+								alignItems: 'center',
+								borderLeft: '1px solid',
+								borderColor: 'divider',
+								pl: 1.5,
+								minHeight: 44,
+								flexWrap: 'wrap',
+							}}
+						>
+							<Box sx={{ flex: 1, minWidth: 0 }}>
+								<Typography variant="body2" sx={{ fontWeight: 600 }}>
 									Numbers
 								</Typography>
 								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
@@ -449,10 +482,10 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 						>
 							<Box sx={{ flex: 1, minWidth: 0 }}>
 								<Typography variant="body2" sx={{ fontWeight: 600 }}>
-									Clock Hands
+									Seconds Hand
 								</Typography>
 								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-									Display hour, minute, and second hands on the clock
+									Display seconds hand on the clock (hour and minute hands always visible)
 								</Typography>
 							</Box>
 							<SwitchComponent
@@ -487,33 +520,35 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 
 				<Divider sx={{ width: '100%', mx: 'auto', borderColor: 'divider' }} />
 
-				<Box
-					sx={{
-						display: 'flex',
-						alignItems: 'center',
-						gap: 1.5,
-						px: 1.75,
-						py: 1.25,
-						bgcolor: 'background.paper',
-						borderColor: 'divider',
-					}}
-				>
-					<Box sx={{ flex: 1, minWidth: 0 }}>
-						<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
-							Session Label
-						</Typography>
-						<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-							Current session tag
-						</Typography>
+				{sessionLabelControlsVisible && (
+					<Box
+						sx={{
+							display: 'flex',
+							alignItems: 'center',
+							gap: 1.5,
+							px: 1.75,
+							py: 1.25,
+							bgcolor: 'background.paper',
+							borderColor: 'divider',
+						}}
+					>
+						<Box sx={{ flex: 1, minWidth: 0 }}>
+							<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+								Session Label
+							</Typography>
+							<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+								Current session tag
+							</Typography>
+						</Box>
+						<SwitchComponent checked={showSessionLabel} onChange={() => handleToggle(toggleShowSessionLabel)} />
 					</Box>
-					<SwitchComponent checked={showSessionLabel} onChange={() => handleToggle(toggleShowSessionLabel)} />
-				</Box>
+				)}
 
-				{showSessionLabel && (
+				{sessionLabelControlsVisible && showSessionLabel && (
 					<Divider sx={{ width: '93%', mx: 'auto', borderColor: 'divider' }} />
 				)}
 
-				{showSessionLabel && (
+				{sessionLabelControlsVisible && showSessionLabel && (
 					<Box
 						sx={{
 							display: 'flex',
@@ -600,20 +635,8 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 						borderColor: 'divider',
 						borderRadius: 3,
 						overflow: 'hidden',
-						mb: 2,
 					}}
 				>
-					<Box sx={{ px: 1.75, py: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
-						<SettingRow label="Background Color" description="Pick a custom background to match your workspace">
-							<TextField
-								type="color"
-								value={backgroundColor}
-								onChange={(event) => updateBackgroundColor(event.target.value)}
-								size="small"
-								sx={{ width: { xs: '100%', sm: 90 } }}
-							/>
-						</SettingRow>
-					</Box>
 					<Box sx={{ px: 1.75, py: 1.25 }}>
 						<SettingRow
 							label="Session-based Background"
@@ -626,18 +649,18 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 						</SettingRow>
 					</Box>
 				</Paper>
-
-				<Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-					<Button
-						variant="outlined"
-						color="error"
-						onClick={() => setShowResetConfirmModal(true)}
-						sx={{ textTransform: 'none', borderRadius: 2, px: 2.5, py: 1 }}
-					>
-						Reset to Default Settings
-					</Button>
-				</Box>
 			</SectionCard>
+
+			<Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, mb: 2 }}>
+				<Button
+					variant="outlined"
+					color="error"
+					onClick={() => setShowResetConfirmModal(true)}
+					sx={{ textTransform: 'none', borderRadius: 2, px: 3, py: 1.25 }}
+				>
+					Reset to Default Settings
+				</Button>
+			</Box>
 		</>
 	);
 
@@ -1045,7 +1068,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 							color="text.secondary"
 							sx={{ textAlign: 'center', display: 'block' }}
 						>
-							Create a free account to unlock Pro★ Features.
+							Create a free account to unlock all Features.
 						</Typography>
 					</Box>
 				)}
@@ -1059,12 +1082,9 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 				/>
 			)}
 			{showUnlockModal && (
-				<UnlockModal
+				<AuthModal2
+					open={showUnlockModal}
 					onClose={() => setShowUnlockModal(false)}
-					onSignUp={() => {
-						setShowUnlockModal(false);
-						if (onOpenAuth) onOpenAuth();
-					}}
 				/>
 			)}
 			{showResetConfirmModal && (

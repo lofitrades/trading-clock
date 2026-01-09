@@ -6,6 +6,14 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
+ * v2.6.33 - 2026-01-08 - Pass backgroundBasedOnSession to SessionLabel so chip text is always dark when session-based bg is disabled.
+ * v2.6.32 - 2026-01-08 - Unified text color to #0F172A (dark navy) when Session-based Background is disabled for consistent contrast across all UI elements and canvas components.
+ * v2.6.31 - 2026-01-08 - Fixed isColorDark contrast issue: separated canvasHandColor (always dark #0F172A) from effectiveTextColor for proper readability on white canvas when Session-based Background is disabled.
+ * v2.6.30 - 2026-01-08 - Removed standalone "Background Color" setting; only Session-based Background functionality remains. Default background fixed at #F9F9F9.
+ * v2.6.29 - 2026-01-07 - Stabilize clock resume after background inactivity with snap-to-time hand angles and shared time engine resume tokens.
+ * v2.6.28 - 2026-01-07 - Keep timezone label visible even when the digital clock is hidden.
+ * v2.6.27 - 2026-01-07 - Temporarily hide session label surface and related UI while keeping the feature wired for future releases.
+ * v2.6.26 - 2026-01-07 - Use shared time engine to align clock ticks across analog/digital surfaces for second-level sync.
  * v2.6.25 - 2025-12-22 - Centralize email link handling in AppRoutes so the app shell no longer mounts a redundant handler.
  * v2.6.24 - 2025-12-20 - Sync PWA status/navigation bars to user background color at runtime for installed/standalone mode
  * v2.6.23 - 2025-12-20 - Keep loader visible until events overlay finishes loading so clock hands/donuts and markers are ready before reveal
@@ -47,6 +55,8 @@ import { Alert, Box, Button, IconButton, Tooltip, Typography } from '@mui/materi
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import { useSettings } from './contexts/SettingsContext';
 import { useClock } from './hooks/useClock';
+import { useTimeEngine } from './hooks/useTimeEngine';
+import { useClockVisibilitySnap } from './hooks/useClockVisibilitySnap';
 import useFullscreen from './hooks/useFullscreen';
 import { useAuth } from './contexts/AuthContext';
 import ClockCanvas from './components/ClockCanvas';
@@ -73,7 +83,6 @@ export default function App() {
     clockSize,
     sessions,
     selectedTimezone,
-    backgroundColor,
     backgroundBasedOnSession,
     showHandClock,
     showDigitalClock,
@@ -82,6 +91,7 @@ export default function App() {
     showTimeToEnd,
     showTimeToStart,
     showSessionNamesInCanvas,
+    showPastSessionsGray,
     showEventsOnCanvas,
     showClockNumbers,
     showClockHands,
@@ -91,8 +101,13 @@ export default function App() {
 
   const { isAuthenticated, loading: authLoading, profileLoading } = useAuth();
 
+  const sessionLabelVisible = false;
+  const timezoneLabelActive = showTimezoneLabel || !showDigitalClock;
+
+  const timeEngine = useTimeEngine(selectedTimezone);
+
   const { currentTime, activeSession, timeToEnd, nextSession, timeToStart } =
-    useClock(selectedTimezone, sessions);
+    useClock(selectedTimezone, sessions, timeEngine);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [eventsOpen, setEventsOpen] = useState(false);
@@ -108,6 +123,7 @@ export default function App() {
   const { isFullscreen } = useFullscreen(appContainerRef);
   const [autoScrollRequest, setAutoScrollRequest] = useState(null);
   const handAnglesRef = useRef({ hour: 0, minute: 0, second: 0 });
+  useClockVisibilitySnap({ handAnglesRef, currentTime, resumeToken: timeEngine?.resumeToken });
   const [overlayLoading, setOverlayLoading] = useState(false);
   const [dismissedDateBanner, setDismissedDateBanner] = useState(false);
 
@@ -126,7 +142,8 @@ export default function App() {
   }, []);
 
   const renderSkeleton = !hasCalculatedClockSize;
-  const showLoadingScreen = isLoading || overlayLoading || !minLoaderElapsed || !hasCalculatedClockSize;
+  // Loader shows during initialization; auth modals render above via higher z-index
+  const showLoadingScreen = (isLoading || overlayLoading || !minLoaderElapsed || !hasCalculatedClockSize);
   const suppressInstallPrompt = showLoadingScreen || authModalOpen || settingsOpen || eventsOpen;
 
   const showAuthCta = useMemo(
@@ -153,6 +170,8 @@ export default function App() {
     setAuthModalOpen(true);
   }, []);
 
+  const sessionLabelActive = sessionLabelVisible && showSessionLabel;
+
   // Calculate the actual clock size based on viewport height and percentage
   useEffect(() => {
     const calculateSize = () => {
@@ -167,8 +186,8 @@ export default function App() {
 
       // Element height ratios relative to canvas size (based on 375px reference)
       const digitalClockRatio = showDigitalClock ? 0.133 : 0; // ~50px / 375px
-      const timezoneLabelRatio = showTimezoneLabel ? 0.07 : 0; // ~26px / 375px
-      const sessionLabelRatio = showSessionLabel ? 0.213 : 0; // ~80px / 375px
+      const timezoneLabelRatio = timezoneLabelActive ? 0.07 : 0; // ~26px / 375px
+      const sessionLabelRatio = sessionLabelActive ? 0.213 : 0; // ~80px / 375px
 
       // Total ratio: canvas + digital clock + session label
       const totalRatio = 1 + digitalClockRatio + timezoneLabelRatio + sessionLabelRatio;
@@ -189,8 +208,8 @@ export default function App() {
 
       // Verify everything fits with actual scaled sizes
       const actualDigitalHeight = showDigitalClock ? Math.round(60 * (calculatedSize / baseSize)) : 0;
-      const actualTimezoneLabelHeight = showTimezoneLabel ? Math.round(28 * (calculatedSize / baseSize)) : 0;
-      const actualLabelHeight = showSessionLabel ? Math.round(100 * (calculatedSize / baseSize)) : 0;
+      const actualTimezoneLabelHeight = timezoneLabelActive ? Math.round(28 * (calculatedSize / baseSize)) : 0;
+      const actualLabelHeight = sessionLabelActive ? Math.round(100 * (calculatedSize / baseSize)) : 0;
       const totalHeightNeeded = calculatedSize + actualDigitalHeight + actualTimezoneLabelHeight + actualLabelHeight + settingsButtonHeight + 20;
 
       // If we exceed viewport at 100%, adjust down
@@ -207,22 +226,29 @@ export default function App() {
     window.addEventListener('resize', calculateSize);
 
     return () => window.removeEventListener('resize', calculateSize);
-  }, [canvasSize, showDigitalClock, showSessionLabel, showTimezoneLabel]);
+  }, [canvasSize, sessionLabelActive, showDigitalClock, timezoneLabelActive]);
 
   // Reset date banner dismissal when date filters change
   useEffect(() => {
     setDismissedDateBanner(false);
   }, [eventFilters?.startDate, eventFilters?.endDate]);
 
-  // If background toggle is on, use the active session color.
+  // If background toggle is on, use the active session color. Otherwise, use default background.
   const effectiveBackground =
     backgroundBasedOnSession && activeSession
       ? activeSession.color
-      : backgroundColor;
+      : '#F9F9F9';
 
-  const effectiveTextColor = isColorDark(effectiveBackground)
-    ? "#fff"
-    : "#4B4B4B";
+  // Text color logic: 
+  // - When Session-based Background is DISABLED: always use dark text on fixed light background
+  // - When Session-based Background is ENABLED: use isColorDark to determine contrast based on active session color
+  const effectiveTextColor = backgroundBasedOnSession && activeSession
+    ? (isColorDark(activeSession.color) ? "#fff" : "#4B4B4B")
+    : "#0F172A"; // Always dark when session-based background is disabled
+
+  // Canvas elements (clock numbers, hands, markers) are drawn ON the white canvas face
+  // So they always need dark color for contrast against white background
+  const canvasHandColor = "#0F172A"; // Always dark for white canvas
 
   useEffect(() => {
     document.body.style.backgroundColor = effectiveBackground;
@@ -546,9 +572,10 @@ export default function App() {
                     size={calculatedClockSize}
                     time={currentTime}
                     sessions={sessions}
-                    handColor={effectiveTextColor}
+                    handColor={canvasHandColor}
                     clockStyle={clockStyle}
                     showSessionNamesInCanvas={showSessionNamesInCanvas}
+                    showPastSessionsGray={showPastSessionsGray}
                     showClockNumbers={showClockNumbers}
                     showClockHands={showClockHands}
                     activeSession={activeSession}
@@ -556,14 +583,13 @@ export default function App() {
                     renderHandsInCanvas={false}
                     handAnglesRef={handAnglesRef}
                   />
-                  {showClockHands && (
-                    <ClockHandsOverlay
-                      size={calculatedClockSize}
-                      handAnglesRef={handAnglesRef}
-                      handColor={effectiveTextColor}
-                      time={currentTime}
-                    />
-                  )}
+                  <ClockHandsOverlay
+                    size={calculatedClockSize}
+                    handAnglesRef={handAnglesRef}
+                    handColor={canvasHandColor}
+                    time={currentTime}
+                    showSecondsHand={showClockHands}
+                  />
                   {showEventsOnCanvas && shouldRenderEventsOverlay ? (
                     <Suspense fallback={null}>
                       <ClockEventsOverlay
@@ -592,11 +618,11 @@ export default function App() {
               <DigitalClock
                 time={currentTime}
                 clockSize={calculatedClockSize}
-                textColor={effectiveTextColor}
+                textColor={canvasHandColor}
               />
             </Box>
           )}
-          {showTimezoneLabel && !renderSkeleton && timezoneLabelText && (
+          {timezoneLabelActive && !renderSkeleton && timezoneLabelText && (
             <Box
               sx={{
                 textAlign: 'center',
@@ -622,7 +648,7 @@ export default function App() {
               </Typography>
             </Box>
           )}
-          {showSessionLabel && !renderSkeleton && (
+          {sessionLabelActive && !renderSkeleton && (
             <SessionLabel
               activeSession={activeSession}
               showTimeToEnd={showTimeToEnd}
@@ -632,6 +658,7 @@ export default function App() {
               timeToStart={timeToStart}
               clockSize={calculatedClockSize}
               contrastTextColor={effectiveTextColor}
+              backgroundBasedOnSession={backgroundBasedOnSession}
             />
           )}
         </div>

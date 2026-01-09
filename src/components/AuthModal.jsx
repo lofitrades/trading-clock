@@ -15,6 +15,7 @@
  * Note: AuthModal2.jsx offers a more CTA-driven, benefit-focused design variant.
  * 
  * Changelog:
+ * v2.0.8 - 2026-01-08 - Reverted to Firebase sendSignInLinkToEmail with custom SMTP; removed SendGrid Cloud Function dependency
  * v2.0.7 - 2025-12-17 - Allow magic link to auto-link with existing Google accounts instead of blocking cross-provider emails
  * v2.0.6 - 2025-12-17 - Centralized magic link continue URL to production https://time2.trade/ with secure dev fallback
  * v2.0.5 - 2025-12-17 - Enhanced UX: improved spacing, visual hierarchy, and button styling
@@ -55,7 +56,7 @@ import { getFriendlyErrorMessage, getSuccessMessage } from '../utils/messages';
 import { getMagicLinkActionCodeSettings } from '../utils/authLinkSettings';
 import ForgotPasswordModal from './ForgotPasswordModal';
 
-function EmailSentModal({ email, isNewUser, onClose }) {
+function EmailSentModal({ email, onClose }) {
   return (
     <Dialog
       open={true}
@@ -73,59 +74,62 @@ function EmailSentModal({ email, isNewUser, onClose }) {
             width: 64,
             height: 64,
             borderRadius: '50%',
-            bgcolor: 'success.light',
+            bgcolor: 'success.main',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto',
-            mb: 2,
+            mb: 3,
           }}
         >
-          <Typography variant="h4">✉️</Typography>
+          <Typography variant="h3" sx={{ filter: 'grayscale(1) brightness(2)' }}>✉️</Typography>
         </Box>
-        <Typography variant="h6" gutterBottom fontWeight="600">
+
+        <Typography variant="h5" gutterBottom fontWeight="700">
           Check your email
         </Typography>
-        <Typography variant="body2" color="text.secondary" paragraph>
-          We sent a secure sign-in link to:
-        </Typography>
-        <Typography variant="body1" fontWeight="600" color="primary.main" paragraph>
+
+        <Box
+          sx={{
+            p: 2,
+            mt: 2,
+            mb: 3,
+            bgcolor: 'action.hover',
+            borderRadius: 1,
+            fontFamily: 'monospace',
+            fontSize: '0.875rem',
+          }}
+        >
           {email}
-        </Typography>
+        </Box>
 
-        {isNewUser && (
-          <Alert severity="info" sx={{ mb: 2, textAlign: 'left' }}>
+        <Stack spacing={2} sx={{ textAlign: 'left', mb: 3 }}>
+          <Box>
             <Typography variant="body2" fontWeight="600" gutterBottom>
-              First time here? Here&apos;s how it works:
+              Click the link in the email to sign in.
             </Typography>
-            <Typography variant="body2" component="div">
-              1. Check your inbox for our email<br />
-              2. Click the &quot;Sign in to Time 2 Trade&quot; link<br />
-              3. You&apos;ll be automatically signed in<br />
-              4. No password needed! 🎉
+            <Typography variant="body2" color="text.secondary">
+              Subject: <strong>Sign in to Time 2 Trade</strong>
             </Typography>
-          </Alert>
-        )}
+          </Box>
 
-        <Typography variant="body2" color="text.secondary" paragraph>
-          Click the link in the email to {isNewUser ? 'create your account and sign in' : 'sign in'}.
-          {' '}The link will expire in 60 minutes.
-        </Typography>
+          <Divider />
 
-        <Alert severity="warning" sx={{ mb: 2, textAlign: 'left' }}>
-          <Typography variant="body2" fontWeight="600" gutterBottom>
-            📬 Not seeing the email?
+          <Box>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              📬 Not in your inbox? Check your <strong>spam folder</strong>.
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block">
+              Look for emails from noreply@time2.trade
+            </Typography>
+          </Box>
+
+          <Divider />
+
+          <Typography variant="caption" color="text.secondary">
+            ⏱️ This link expires in <strong>60 minutes</strong> and can only be used once.
           </Typography>
-          <Typography variant="body2" component="div">
-            • Check your <strong>spam or junk folder</strong><br />
-            • Look for an email from &quot;noreply@time2trade-app.firebaseapp.com&quot;<br />
-            • If it&apos;s in spam, mark it as &quot;Not Spam&quot; to ensure future emails arrive in your inbox
-          </Typography>
-        </Alert>
-
-        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-          💡 Tip: No password needed! This secure link works only once and only for you.
-        </Typography>
+        </Stack>
 
         <Button
           onClick={onClose}
@@ -137,7 +141,7 @@ function EmailSentModal({ email, isNewUser, onClose }) {
           Got it
         </Button>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 }
 
@@ -289,7 +293,7 @@ export default function AuthModal({ open, onClose }) {
   }
 
   if (showEmailSentModal) {
-    return <EmailSentModal email={email} isNewUser={isSignup} onClose={() => { setShowEmailSentModal(false); onClose(); }} />;
+    return <EmailSentModal email={email} onClose={() => { setShowEmailSentModal(false); onClose(); }} />;
   }
 
   if (showVerifyingModal) {
@@ -587,7 +591,6 @@ export default function AuthModal({ open, onClose }) {
 
 EmailSentModal.propTypes = {
   email: PropTypes.string.isRequired,
-  isNewUser: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
 };
 

@@ -12,6 +12,7 @@
  * - Premium Routes: Require specific subscription plans
  * 
  * Changelog:
+ * v1.1.7 - 2026-01-09 - Added /contact route using ContactPage component.
  * v1.1.6 - 2026-01-07 - Added /privacy route using shared PrivacyPage component.
  * v1.1.5 - 2026-01-07 - Mount CookiesBanner globally so consent prompt appears on all SPA routes.
  * v1.1.4 - 2025-12-22 - Initialize Firebase Analytics with SPA page view logging across route changes.
@@ -44,6 +45,7 @@ const EventsPage = lazy(() => import('../components/EventsPage'));
 const CalendarPage = lazy(() => import('../components/CalendarPage'));
 const PrivacyPage = lazy(() => import('../components/PrivacyPage'));
 const TermsPage = lazy(() => import('../components/TermsPage'));
+const ContactPage = lazy(() => import('../components/ContactPage'));
 
 /**
  * Loading Component
@@ -169,6 +171,16 @@ export default function AppRoutes() {
             element={
               <PublicRoute>
                 <TermsPage />
+              </PublicRoute>
+            }
+          />
+
+          {/* Contact Page - Accessible to everyone */}
+          <Route
+            path="/contact"
+            element={
+              <PublicRoute>
+                <ContactPage />
               </PublicRoute>
             }
           />

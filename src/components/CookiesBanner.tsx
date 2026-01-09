@@ -5,6 +5,7 @@
  * Presents a light, mobile-first surface with a primary CTA to allow ads or keep essential-only cookies.
  * 
  * Changelog:
+ * v1.1.0 - 2026-01-07 - Add 5s delay before showing banner and skip entirely if consent already stored.
  * v1.0.1 - 2026-01-07 - Removed primary CTA glow to simplify banner styling.
  * v1.0.0 - 2026-01-07 - Created shared consent banner with responsive bottom-right layout and primary CTA.
  */
@@ -32,13 +33,30 @@ type CookiesBannerProps = {
 export default function CookiesBanner({ className }: CookiesBannerProps) {
     const theme = useTheme();
     const [consent, setConsent] = useState<ConsentValue>(CONSENT_UNKNOWN);
+    const [readyToShow, setReadyToShow] = useState<boolean>(false);
 
     useEffect(() => {
-        setConsent(readConsentStatus());
+        // Read existing consent immediately and set delayed show only if unknown
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const initial = readConsentStatus();
+        setConsent(initial);
+        if (initial === CONSENT_UNKNOWN) {
+            timer = setTimeout(() => setReadyToShow(true), 5000);
+        } else {
+            setReadyToShow(false);
+        }
+        return () => {
+            if (timer) clearTimeout(timer);
+        };
     }, []);
 
     useEffect(() => {
-        const unsubscribe = subscribeConsent((value: ConsentValue) => setConsent(value));
+        const unsubscribe = subscribeConsent((value: ConsentValue) => {
+            setConsent(value);
+            if (value !== CONSENT_UNKNOWN) {
+                setReadyToShow(false);
+            }
+        });
         return unsubscribe;
     }, []);
 
@@ -47,7 +65,8 @@ export default function CookiesBanner({ className }: CookiesBannerProps) {
         setConsentStatus(value);
     }, []);
 
-    if (consent !== CONSENT_UNKNOWN) return null;
+    // Do not render if consent is already set or delay hasn't elapsed
+    if (consent !== CONSENT_UNKNOWN || !readyToShow) return null;
 
     const primaryColor = theme?.palette?.primary?.main || '#2563eb';
 

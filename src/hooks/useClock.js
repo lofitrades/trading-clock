@@ -1,31 +1,36 @@
-// src/hooks/useClock.js
+/**
+ * src/hooks/useClock.js
+ * 
+ * Purpose: Calculate active session metadata for the trading clock using a timezone-aware time source.
+ * Key responsibility and main functionality: Derive active/next sessions and countdowns from a provided or internal clock tick.
+ * 
+ * Changelog:
+ * v1.1.0 - 2026-01-07 - Added optional external time engine and aligned fallback tick to second boundaries for tighter sync.
+ * v1.0.0 - 2025-09-15 - Initial implementation
+ */
+
 import { useState, useEffect, useMemo } from 'react';
 
-export const useClock = (timezone, sessions) => {
-  const getTimezoneTime = () => {
-    const now = new Date();
-    return new Date(now.toLocaleString('en-US', { timeZone: timezone }));
-  };
+export const useClock = (timezone, sessions, timeEngine = null) => {
+  const getTimezoneTime = () => new Date(new Date().toLocaleString('en-US', { timeZone: timezone }));
 
-  const [currentTime, setCurrentTime] = useState(getTimezoneTime());
+  const [currentTime, setCurrentTime] = useState(() => (timeEngine?.nowTime ? new Date(timeEngine.nowTime) : getTimezoneTime()));
 
   const calculateSessionTimes = () => {
     const now = currentTime;
     let activeZones = [];
     let upcomingZones = [];
 
-    sessions.forEach(kz => {
+    sessions.forEach((kz) => {
       if (!kz.startNY || !kz.endNY) return;
       const [sHour, sMin] = kz.startNY.split(':').map(Number);
       const [eHour, eMin] = kz.endNY.split(':').map(Number);
 
-      // Create Date objects for start and end times (using today's date)
       let startDate = new Date(now);
       startDate.setHours(sHour, sMin, 0, 0);
       let endDate = new Date(now);
       endDate.setHours(eHour, eMin, 0, 0);
 
-      // Adjust for sessions that span midnight
       if (endDate <= startDate) {
         endDate.setDate(endDate.getDate() + 1);
       }
@@ -33,7 +38,6 @@ export const useClock = (timezone, sessions) => {
       if (now >= startDate && now < endDate) {
         activeZones.push({ session: kz, startDate, endDate });
       } else {
-        // If start time already passed, consider the next occurrence (tomorrow)
         if (now >= startDate) {
           startDate.setDate(startDate.getDate() + 1);
         }
@@ -41,9 +45,7 @@ export const useClock = (timezone, sessions) => {
       }
     });
 
-    // Sort active zones: the one that started most recently (least time ago) is “on top.”
     activeZones.sort((a, b) => (now - a.startDate) - (now - b.startDate));
-    // Sort upcoming zones by soonest start time
     upcomingZones.sort((a, b) => a.startDate - b.startDate);
 
     const activeSession = activeZones.length > 0 ? activeZones[0].session : null;
@@ -54,18 +56,42 @@ export const useClock = (timezone, sessions) => {
     return { activeSession, timeToEnd, nextSession, timeToStart };
   };
 
-  const { activeSession, timeToEnd, nextSession, timeToStart } = useMemo(
-    () => calculateSessionTimes(),
-    [currentTime, sessions]
-  );
+  const { activeSession, timeToEnd, nextSession, timeToStart } = useMemo(() => calculateSessionTimes(), [currentTime, sessions]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(getTimezoneTime());
-    }, 1000);
+    if (timeEngine?.nowTime) {
+      setCurrentTime(new Date(timeEngine.nowTime));
+    }
+  }, [timeEngine?.nowTime, timezone]);
 
-    return () => clearInterval(timer);
-  }, [timezone]);
+  useEffect(() => {
+    if (timeEngine) return undefined;
+
+    let timeoutId;
+    let intervalId;
+
+    const tick = () => {
+      setCurrentTime(getTimezoneTime());
+    };
+
+    tick();
+
+    const startAlignedInterval = () => {
+      const now = Date.now();
+      const delay = 1000 - (now % 1000);
+      timeoutId = setTimeout(() => {
+        tick();
+        intervalId = setInterval(tick, 1000);
+      }, delay);
+    };
+
+    startAlignedInterval();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [timezone, timeEngine]);
 
   return { currentTime, activeSession, timeToEnd, nextSession, timeToStart };
 };

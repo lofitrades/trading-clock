@@ -5,11 +5,16 @@
  * Renders impact-based icons on AM (inner) and PM (outer) rings using current filters and news source.
  *
  * Changelog:
+ * v1.14.4 - 2026-01-08 - Auto-refreshes markers when the day rolls over by reloading today's events for the active timezone.
+ * v1.14.3 - 2026-01-07 - Refactor marker lifecycle to ref-based exit handling, eliminating render-loop risk and reducing overlay tick work while keeping animations.
+ * v1.14.2 - 2026-01-07 - Group markers in 30-minute windows (07:46-08:15 → 08:00, 08:16-08:45 → 08:30) to show all events per window in one tooltip.
+ * v1.14.1 - 2026-01-07 - Marker priority updated: favorites > notes > NOW > NEXT > impact > upcoming with non-passed preference; badges gray when the driving favorite/note has passed.
  * v1.13.4 - 2026-01-06 - Keep marker currency flags visible for passed events and gray them out to match tooltip behavior.
  * v1.13.3 - 2026-01-06 - Remove legacy allowedEventKeys hook dependency so overlay runs standalone without ReferenceError.
  * v1.13.2 - 2026-01-06 - Overlay always shows today's events (timezone-aware) regardless of date range filters; impact/currency filters still apply for performance.
  * v1.13.1 - 2026-01-06 - Honor allowedEventKeys so filtered-out events never render markers or tooltips.
  * v1.13.0 - 2026-01-06 - Refine hover detection so tooltips show on hybrid devices; add embed-ready parity for non-autoscrolling marker clicks.
+ * v1.14.0 - 2026-01-07 - Extract data + marker logic into reusable hooks, cut per-tick recompute, and keep badges live with favorites/notes subscriptions.
  * v1.12.9 - 2025-12-22 - Add disableTooltips option so landing hero preview can show markers without opening marker tooltips.
  * v1.12.8 - 2025-12-22 - Add suppressTooltipAutoscroll to tooltip close listener deps to satisfy lint and keep effect in sync.
  * v1.12.7 - 2025-12-22 - Measure overlay bounds and fill parent to keep markers centered when containers add padding/margins (e.g., Paper hero card).
@@ -58,8 +63,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Box, Tooltip, Typography, Stack, alpha, Divider, Chip } from '@mui/material';
-import { getEventsByDateRange } from '../services/economicEventsService';
-import { sortEventsByTime } from '../utils/newsApi';
 import { formatTime } from '../utils/dateUtils';
 import { getCurrencyFlag } from '../utils/currencyFlags';
 import { useFavorites } from '../hooks/useFavorites';
@@ -72,42 +75,13 @@ import {
   getEventEpochMs,
   formatRelativeLabel,
 } from '../utils/eventTimeEngine';
+import useClockEventsData from '../hooks/useClockEventsData';
+import useClockEventMarkers from '../hooks/useClockEventMarkers';
 
 const MARKER_ANIM_MS = 1500; // Enterprise-grade marker motion duration
 const MARKER_EXIT_GRACE_MS = MARKER_ANIM_MS + 120; // Keep exiting markers long enough to finish
 
 const getImpactMeta = (impact) => resolveImpactMeta(impact);
-
-/**
- * Get today's date range in specified timezone
- * Uses Intl.DateTimeFormat for accurate timezone conversion
- * @param {string} timezone - IANA timezone
- * @returns {{ start: Date, end: Date }} - Start and end of today in timezone
- */
-const getTodayRangeInTimezone = (timezone) => {
-  const now = new Date();
-
-  // Use Intl to get today's date parts in the target timezone
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-
-  const parts = formatter.formatToParts(now);
-  const year = parts.find(p => p.type === 'year').value;
-  const month = parts.find(p => p.type === 'month').value;
-  const day = parts.find(p => p.type === 'day').value;
-
-  // Create Date objects for start and end of day (in UTC, adjusted for timezone offset)
-  // These will be used for Firestore queries
-  const dateStr = `${year}-${month}-${day}`;
-  const start = new Date(`${dateStr}T00:00:00`);
-  const end = new Date(`${dateStr}T23:59:59.999`);
-
-  return { start, end };
-};
 
 /**
  * Format time-to-event countdown for tooltip display
@@ -132,41 +106,20 @@ const makeEventKey = (evt) => {
   return `${identifier}-${epoch ?? 'na'}`;
 };
 
-const useTimeParts = (timezone) => {
-  const formatter = useMemo(
-    () =>
-      new Intl.DateTimeFormat('en-US', {
-        timeZone: timezone,
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: false,
-      }),
-    [timezone]
-  );
-
-  return (date) => {
-    if (!date) return null;
-    const parts = formatter.formatToParts(date instanceof Date ? date : new Date(date));
-    const hour = Number(parts.find((p) => p.type === 'hour')?.value);
-    const minute = Number(parts.find((p) => p.type === 'minute')?.value);
-    if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
-    return { hour, minute };
-  };
-};
-
-function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventClick, onLoadingStateChange, suppressTooltipAutoscroll = false, disableTooltips = false }) {
-  const [events, setEvents] = useState([]);
+function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: providedEvents, onEventClick, onLoadingStateChange, suppressTooltipAutoscroll = false, disableTooltips = false }) {
   const [nowTick, setNowTick] = useState(Date.now());
   const [openMarkerKey, setOpenMarkerKey] = useState(null);
   const [pinnedMarkerKey, setPinnedMarkerKey] = useState(null);
-  const [renderedMarkers, setRenderedMarkers] = useState([]);
   const closeTimerRef = useRef(null);
-  const exitCleanupRef = useRef(null);
   const lastAutoScrollKeyRef = useRef(null);
   const overlayRef = useRef(null);
   const [measuredSize, setMeasuredSize] = useState(size);
   const { isFavorite } = useFavorites();
   const { hasNotes } = useEventNotes();
+  const appearedAtRef = useRef(new Map());
+  const exitingMarkersRef = useRef(new Map());
+  const prevMarkersRef = useRef(new Map());
+  const nowEpochMs = nowTick; // CRITICAL: Use absolute epoch milliseconds - timezone only affects display
 
   const isTouchDevice = useMemo(() => {
     if (typeof window === 'undefined') return false;
@@ -175,10 +128,6 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
     const touchCapable = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
     return !supportsHover && hasCoarsePointer && touchCapable;
   }, []);
-
-  const impactsKey = useMemo(() => (eventFilters?.impacts ? eventFilters.impacts.join('|') : ''), [eventFilters?.impacts]);
-  const eventTypesKey = useMemo(() => (eventFilters?.eventTypes ? eventFilters.eventTypes.join('|') : ''), [eventFilters?.eventTypes]);
-  const currenciesKey = useMemo(() => (eventFilters?.currencies ? eventFilters.currencies.join('|') : ''), [eventFilters?.currencies]);
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current) {
@@ -331,257 +280,80 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
     closeTooltip();
   }, [closeTooltip, onEventClick]);
 
-  const getTimeParts = useTimeParts(timezone);
+  const { events: sourceEvents, loading: eventsLoading } = useClockEventsData({
+    events: providedEvents,
+    timezone,
+    eventFilters,
+    newsSource,
+    nowEpochMs,
+  });
 
-  // Fetch events based on eventFilters date range (defaults to today if not specified)
   useEffect(() => {
-    let cancelled = false;
-    onLoadingStateChange?.(true);
-
-    const load = async () => {
-      try {
-        const todayRange = getTodayRangeInTimezone(timezone);
-        const start = todayRange.start;
-        const end = todayRange.end;
-
-        const result = await getEventsByDateRange(start, end, {
-          source: newsSource,
-          impacts: eventFilters?.impacts || [],
-          eventTypes: eventFilters?.eventTypes || [],
-          currencies: eventFilters?.currencies || [],
-        });
-
-        if (cancelled) return;
-        if (result.success) {
-          const withDates = (result.data || []).filter((evt) => evt.date || evt.dateTime || evt.Date);
-          setEvents(sortEventsByTime(withDates));
-        } else {
-          setEvents([]);
-        }
-      } finally {
-        if (!cancelled) {
-          onLoadingStateChange?.(false);
-        }
-      }
-    };
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [timezone, newsSource, impactsKey, eventTypesKey, currenciesKey, onLoadingStateChange, eventFilters?.impacts, eventFilters?.eventTypes, eventFilters?.currencies]);
-
-  // CRITICAL: Use absolute epoch milliseconds - timezone only affects display
-  const nowEpochMs = nowTick;
+    onLoadingStateChange?.(eventsLoading);
+  }, [eventsLoading, onLoadingStateChange]);
 
   useEffect(() => {
     const id = setInterval(() => setNowTick(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  const filteredEvents = useMemo(() => {
-    let result = events;
+  const { markers, hasNowEvent, earliestFuture } = useClockEventMarkers({
+    events: sourceEvents,
+    timezone,
+    eventFilters,
+    nowEpochMs,
+    isFavorite,
+    hasNotes,
+  });
 
-    if (eventFilters?.favoritesOnly) {
-      result = result.filter((evt) => isFavorite(evt));
-    }
-
-    return result;
-  }, [eventFilters?.favoritesOnly, events, isFavorite]);
-
-  const earliestFuture = useMemo(() => {
-    let min = null;
-    filteredEvents.forEach((evt) => {
-      const eventEpochMs = getEventEpochMs(evt);
-      if (eventEpochMs === null) return;
-
-      if (eventEpochMs > nowEpochMs) {
-        if (min === null || eventEpochMs < min) {
-          min = eventEpochMs;
-        }
-      }
-    });
-    return min;
-  }, [filteredEvents, nowEpochMs]);
-
-  // Check if any NOW event exists to disable NEXT animation
-  const hasNowEvent = useMemo(() => {
-    return filteredEvents.some((evt) => {
-      const eventEpochMs = getEventEpochMs(evt);
-      if (eventEpochMs === null) return false;
-      const diff = eventEpochMs - nowEpochMs;
-      return diff <= 0 && Math.abs(diff) < NOW_WINDOW_MS;
-    });
-  }, [filteredEvents, nowEpochMs]);
-
-  const markers = useMemo(() => {
-    const grouped = new Map();
-
-    const getBucket = (hour, minute) => {
-      const totalMinutes = hour * 60 + minute;
-      const bucketStart = Math.floor(totalMinutes / 10) * 10;
-      return {
-        bucketHour: Math.floor(bucketStart / 60),
-        bucketMinute: bucketStart % 60,
-      };
-    };
-
-    filteredEvents.forEach((evt) => {
-      const date = evt.date || evt.dateTime || evt.Date;
-      const parts = getTimeParts(date);
-      if (!parts) return;
-      const { hour, minute } = parts;
-      const { bucketHour, bucketMinute } = getBucket(hour, minute);
-      const impactMeta = getImpactMeta(evt.impact || evt.strength || evt.Strength);
-      const impactKey = (impactMeta.key || impactMeta.label || impactMeta.level || impactMeta.color || 'impact').toString().toLowerCase();
-      const key = `${bucketHour}-${bucketMinute}::${impactKey}`;
-      const list = grouped.get(key) || [];
-      list.push(evt);
-      grouped.set(key, list);
-    });
-
-    const unsorted = Array.from(grouped.entries()).map(([key, list]) => {
-      const [timePart] = key.split('::');
-      const [hourStr, minuteStr] = timePart.split('-');
-      const hour = Number(hourStr);
-      const minute = Number(minuteStr);
-
-      const enriched = list
-        .map((evt) => {
-          const eventEpochMs = getEventEpochMs(evt);
-          if (eventEpochMs === null) return null;
-          const diff = eventEpochMs - nowEpochMs;
-          const isNow = diff <= 0 && Math.abs(diff) < NOW_WINDOW_MS;
-          const isPassed = eventEpochMs < nowEpochMs && !isNow;
-          const impactMeta = getImpactMeta(evt.impact || evt.strength || evt.Strength);
-          return {
-            evt,
-            eventEpochMs,
-            isNow,
-            isPassed,
-            isNextEvent: !isNow && earliestFuture !== null && eventEpochMs === earliestFuture,
-            isFavoriteEvent: isFavorite(evt),
-            hasNoteEvent: hasNotes(evt),
-            impactMeta,
-          };
-        })
-        .filter(Boolean);
-
-      if (enriched.length === 0) return null;
-
-      const upcomingOrNow = enriched.filter((e) => !e.isPassed);
-      const isFavoriteMarkerAny = list.some((evt) => isFavorite(evt));
-      const hasNoteMarkerAny = list.some((evt) => hasNotes(evt));
-      const isFavoriteMarker = upcomingOrNow.length > 0 && upcomingOrNow.some((e) => isFavorite(e.evt));
-      const hasNoteMarker = upcomingOrNow.length > 0 && upcomingOrNow.some((e) => hasNotes(e.evt));
-
-      // Marker state rules (enterprise UX):
-      // - NOW if ANY event in this marker group is NOW
-      // - NEXT if ANY event in this marker group is the global earliestFuture (and no NOW exists)
-      // - Gray-out ONLY if ALL events in the marker group have passed
-      const hasNowInGroup = enriched.some((e) => e.isNow);
-      const hasNextInGroup = !hasNowInGroup && earliestFuture !== null && enriched.some((e) => e.eventEpochMs === earliestFuture);
-      const isAllPast = enriched.every((e) => e.isPassed);
-
-      // Choose representative by enterprise priority: NOW > NEXT > favorite > note > impact (high→low) > upcoming.
-      const scoreEvent = (item) => [
-        Number(item.isNow),
-        Number(item.isNextEvent),
-        Number(item.isFavoriteEvent),
-        Number(item.hasNoteEvent),
-        item.impactMeta.priority || 0,
-        Number(!item.isPassed),
-      ];
-
-      const betterOf = (a, b) => {
-        const sa = scoreEvent(a);
-        const sb = scoreEvent(b);
-        for (let i = 0; i < sa.length; i += 1) {
-          if (sa[i] !== sb[i]) return sa[i] > sb[i] ? a : b;
-        }
-        // Tiebreaker: earliest upcoming event
-        if (!a.isPassed || !b.isPassed) {
-          return (a.eventEpochMs || Infinity) <= (b.eventEpochMs || Infinity) ? a : b;
-        }
-        return a;
-      };
-
-      const representative = enriched.reduce((best, current) => betterOf(best, current), enriched[0]);
-
-      const meta = representative.impactMeta;
-      const currency = representative.evt.currency || representative.evt.Currency;
-      const countryCode = currency ? getCurrencyFlag(currency) : null;
-
-      return {
-        hour,
-        minute,
-        events: list,
-        meta,
-        isNow: hasNowInGroup,
-        isNext: hasNextInGroup,
-        currency,
-        countryCode,
-        isTodayPast: isAllPast,
-        // Active badges (only if there's at least one upcoming/NOW event that has the badge)
-        isFavoriteMarker,
-        hasNoteMarker,
-        // Any badges (includes past events; used for rendering a gray badge, but NOT for z-index)
-        isFavoriteMarkerAny,
-        hasNoteMarkerAny,
-        key,
-      };
-    }).filter(Boolean); // Remove null entries
-
-    // Render markers clockwise starting at 00:00 inner ring then continuing through 23:59 outer ring
-    return unsorted.sort((a, b) => {
-      const aVal = a.hour * 60 + a.minute;
-      const bVal = b.hour * 60 + b.minute;
-      return aVal - bVal;
-    });
-  }, [filteredEvents, getTimeParts, earliestFuture, nowEpochMs, hasNotes, isFavorite]);
-
-  // Maintain exiting markers long enough to animate out without causing render loops
+  // Track marker lifecycle in refs to avoid setState render loops
   useEffect(() => {
-    setRenderedMarkers((prev) => {
-      const nextKeys = new Set(markers.map((m) => m.key));
-      const exiting = prev
-        .filter((m) => !nextKeys.has(m.key))
-        .map((m) => ({ ...m, exiting: true, exitAt: Date.now() }));
-      const staying = markers.map((m) => {
-        const prevMatch = prev.find((p) => p.key === m.key && !p.exiting);
-        return { ...m, exiting: false, appeared: prevMatch ? prevMatch.appeared : Date.now() };
-      });
-      const nextRendered = [...staying, ...exiting];
+    const currentKeys = new Set(markers.map((m) => m.key));
 
-      // Avoid state churn if nothing effectively changed
-      const isSameLength = nextRendered.length === prev.length;
-      const isShallowEqual = isSameLength && nextRendered.every((item, idx) => {
-        const prevItem = prev[idx];
-        if (!prevItem) return false;
-        return prevItem.key === item.key && prevItem.exiting === item.exiting && prevItem.appeared === item.appeared;
-      });
-
-      return isShallowEqual ? prev : nextRendered;
+    // Mark exiting markers for keys that disappeared
+    prevMarkersRef.current.forEach((prevMarker, key) => {
+      if (!currentKeys.has(key) && !exitingMarkersRef.current.has(key)) {
+        exitingMarkersRef.current.set(key, {
+          ...prevMarker,
+          exiting: true,
+          exitAt: nowEpochMs,
+        });
+      }
     });
 
-    if (exitCleanupRef.current) {
-      window.clearTimeout(exitCleanupRef.current);
-    }
-
-    const hasExiting = renderedMarkers.some((m) => m.exiting);
-    if (hasExiting) {
-      exitCleanupRef.current = window.setTimeout(() => {
-        setRenderedMarkers((prev) => prev.filter((m) => !m.exiting || Date.now() - (m.exitAt || 0) < MARKER_EXIT_GRACE_MS));
-      }, MARKER_EXIT_GRACE_MS);
-    }
-
-    return () => {
-      if (exitCleanupRef.current) {
-        window.clearTimeout(exitCleanupRef.current);
-        exitCleanupRef.current = null;
+    // Update appearance timestamps and clear exits for active markers
+    markers.forEach((marker) => {
+      if (!appearedAtRef.current.has(marker.key)) {
+        appearedAtRef.current.set(marker.key, nowEpochMs);
       }
-    };
-  }, [markers, renderedMarkers]);
+      exitingMarkersRef.current.delete(marker.key);
+    });
+
+    // Prune stale exiting markers
+    exitingMarkersRef.current.forEach((marker, key) => {
+      if (nowEpochMs - (marker.exitAt || 0) >= MARKER_EXIT_GRACE_MS) {
+        exitingMarkersRef.current.delete(key);
+        appearedAtRef.current.delete(key);
+      }
+    });
+
+    // Snapshot current markers for the next tick
+    const nextPrev = new Map();
+    markers.forEach((marker) => {
+      nextPrev.set(marker.key, marker);
+    });
+    prevMarkersRef.current = nextPrev;
+  }, [markers, nowEpochMs]);
+
+  const renderedMarkers = useMemo(() => {
+    const exiting = Array.from(exitingMarkersRef.current.values());
+    const staying = markers.map((marker) => ({
+      ...marker,
+      exiting: false,
+      appeared: appearedAtRef.current.get(marker.key) || nowEpochMs,
+    }));
+    return [...staying, ...exiting];
+  }, [markers, nowEpochMs]);
 
   const effectiveSize = measuredSize || size;
   const center = effectiveSize / 2;
@@ -697,8 +469,9 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, onEventC
 
         let tooltipContent = null;
         if (!disableTooltips) {
+          const markerEvents = marker.events.map((item) => item.evt);
           // Group events by day for dividers
-          const eventsByDay = marker.events.reduce((acc, evt) => {
+          const eventsByDay = markerEvents.reduce((acc, evt) => {
             const eventDate = new Date(evt.date || evt.dateTime || evt.Date);
             const dayKey = eventDate.toLocaleDateString('en-US', {
               timeZone: timezone,
@@ -1173,6 +946,7 @@ MemoClockEventsOverlay.displayName = 'ClockEventsOverlay';
 ClockEventsOverlay.propTypes = {
   size: PropTypes.number.isRequired,
   timezone: PropTypes.string.isRequired,
+  events: PropTypes.arrayOf(PropTypes.object),
   eventFilters: PropTypes.shape({
     startDate: PropTypes.oneOfType([
       PropTypes.string,

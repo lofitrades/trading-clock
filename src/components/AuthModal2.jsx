@@ -13,6 +13,7 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v1.2.2 - 2026-01-08 - Reverted to Firebase sendSignInLinkToEmail with custom SMTP; removed SendGrid Cloud Function dependency
  * v1.2.1 - 2026-01-07 - Add redirectPath support so calendar embeds keep users on /calendar after auth; reuse same path for magic link continue URLs.
  * v1.2.0 - 2025-12-22 - Show welcome modal for new Google signups and centralize welcome copy.
  * v1.1.8 - 2025-12-22 - Swap logo to main multicolor transparent PNG to match brand kit.
@@ -46,7 +47,6 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Paper,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import GoogleIcon from '@mui/icons-material/Google';
@@ -64,12 +64,11 @@ import {
 import { auth } from '../firebase';
 import { getFriendlyErrorMessage, getSuccessMessage } from '../utils/messages';
 import { getMagicLinkActionCodeSettings } from '../utils/authLinkSettings';
-import { WELCOME_COPY } from '../utils/welcomeCopy';
 import ForgotPasswordModal from './ForgotPasswordModal';
 
 const LOGO_SECONDARY_WHITE_TRANSPARENT = `${import.meta.env.BASE_URL}logos/png/Time2Trade_Logo_Main_Multicolor_Transparent_1080.png`;
 
-function EmailSentModal({ email, isNewUser, onClose }) {
+function EmailSentModal({ email, onClose }) {
   return (
     <Dialog
       open={true}
@@ -84,8 +83,8 @@ function EmailSentModal({ email, isNewUser, onClose }) {
       <DialogContent sx={{ p: 4, textAlign: 'center' }}>
         <Box
           sx={{
-            width: 80,
-            height: 80,
+            width: 72,
+            height: 72,
             borderRadius: '50%',
             bgcolor: '#018786',
             display: 'flex',
@@ -93,63 +92,60 @@ function EmailSentModal({ email, isNewUser, onClose }) {
             justifyContent: 'center',
             margin: '0 auto',
             mb: 3,
-            boxShadow: '0 8px 24px rgba(1, 135, 134, 0.3)',
+            boxShadow: '0 4px 16px rgba(1, 135, 134, 0.25)',
           }}
         >
-          <Typography variant="h3">✉️</Typography>
+          <Typography variant="h2" sx={{ filter: 'brightness(2)' }}>✉️</Typography>
         </Box>
-        <Typography variant="h5" gutterBottom fontWeight="700">
+
+        <Typography variant="h4" gutterBottom fontWeight="700">
           Check your email
         </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
-          We sent a secure sign-in link to:
-        </Typography>
-        <Paper
-          elevation={0}
+
+        <Box
           sx={{
-            p: 2,
+            p: 2.5,
+            mt: 2,
             mb: 3,
-            bgcolor: 'primary.main',
-            color: 'white',
-            borderRadius: 2,
+            bgcolor: 'rgba(1, 135, 134, 0.08)',
+            borderRadius: 1.5,
+            fontFamily: 'monospace',
+            fontSize: '0.95rem',
+            color: '#018786',
+            fontWeight: 600,
           }}
         >
-          <Typography variant="body1" fontWeight="600">
-            {email}
-          </Typography>
-        </Paper>
+          {email}
+        </Box>
 
-        {isNewUser && (
-          <Alert severity="info" sx={{ mb: 3, textAlign: 'left', borderRadius: 2 }}>
-            <Typography variant="body2" fontWeight="600" gutterBottom>
-              🎉 {WELCOME_COPY.headline}
+        <Stack spacing={2.5} sx={{ textAlign: 'left', mb: 3 }}>
+          <Box>
+            <Typography variant="body1" fontWeight="600" gutterBottom>
+              Click the link in the email to sign in.
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {WELCOME_COPY.multiProvider}
+              Subject: <strong>Sign in to Time 2 Trade</strong>
             </Typography>
-            <Typography variant="body2" component="div" sx={{ mt: 1 }}>
-              1. Check your inbox for our email<br />
-              2. Click the sign-in link<br />
-              3. You&apos;re in! No password needed 🚀
+          </Box>
+
+
+          <Divider />
+
+          <Box>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              📬 Not in your inbox? Check your <strong>spam folder</strong>.
             </Typography>
-          </Alert>
-        )}
+            <Typography variant="caption" color="text.secondary" display="block">
+              Look for emails from noreply@time2.trade
+            </Typography>
+          </Box>
 
-        <Typography variant="body2" color="text.secondary" paragraph>
-          Click the link in the email to {isNewUser ? 'activate your account and sign in' : 'sign in'}.
-          {' '}The link expires in 60 minutes.
-        </Typography>
+          <Divider />
 
-        <Alert severity="warning" sx={{ mb: 3, textAlign: 'left', borderRadius: 2 }}>
-          <Typography variant="body2" fontWeight="600" gutterBottom>
-            📬 Not seeing the email?
+          <Typography variant="caption" color="text.secondary">
+            ⏱️ This link expires in <strong>60 minutes</strong> and can only be used once.
           </Typography>
-          <Typography variant="body2" component="div">
-            • Check your <strong>spam or junk folder</strong><br />
-            • Look for &quot;noreply@time2trade-app.firebaseapp.com&quot;<br />
-            • Mark as &quot;Not Spam&quot; for future emails
-          </Typography>
-        </Alert>
+        </Stack>
 
         <Button
           onClick={onClose}
@@ -215,7 +211,7 @@ function VerifyingModal({ onClose }) {
   );
 }
 
-export default function AuthModal2({ open, onClose, initialMode = 'signup', forceOpen = false, redirectPath = '/app' }) {
+export default function AuthModal2({ open, onClose, initialMode = 'signup', forceOpen = false, redirectPath = '/calendar' }) {
   const [email, setEmail] = useState('');
   const [isSignup, setIsSignup] = useState(initialMode === 'signup');
   const [errorMsg, setErrorMsg] = useState('');
@@ -225,6 +221,7 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
   const [showVerifyingModal, setShowVerifyingModal] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [lastSentEmail, setLastSentEmail] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const navigate = useNavigate();
 
   // Rate limiting: Check for existing cooldown on mount and when modal opens
@@ -278,6 +275,8 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
       return;
     }
 
+    setIsSendingEmail(true);
+
     try {
       const actionCodeSettings = getMagicLinkActionCodeSettings(redirectPath);
 
@@ -303,6 +302,8 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
       } else {
         setErrorMsg(getFriendlyErrorMessage(error.code) + ` (${error.code})`);
       }
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -343,7 +344,7 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
   }
 
   if (showEmailSentModal) {
-    return <EmailSentModal email={email} isNewUser={isSignup} onClose={() => { setShowEmailSentModal(false); onClose(); }} />;
+    return <EmailSentModal email={email} onClose={() => { setShowEmailSentModal(false); onClose(); }} />;
   }
 
   if (showVerifyingModal) {
@@ -643,7 +644,7 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
                     color="primary"
                     fullWidth
                     size="large"
-                    disabled={cooldownSeconds > 0}
+                    disabled={cooldownSeconds > 0 || isSendingEmail}
                     sx={{
                       py: 1.75,
                       textTransform: 'none',
@@ -664,9 +665,11 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
                       transition: 'all 0.2s ease-in-out',
                     }}
                   >
-                    {cooldownSeconds > 0
-                      ? `Resend in ${cooldownSeconds}s`
-                      : isSignup ? 'Get Free Access Now →' : '✉️ Send Sign-In Link'
+                    {isSendingEmail
+                      ? 'Sending...'
+                      : cooldownSeconds > 0
+                        ? `Resend in ${cooldownSeconds}s`
+                        : isSignup ? 'Get Free Access Now →' : '✉️ Send Sign-In Link'
                     }
                   </Button>
 
@@ -750,7 +753,6 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
 
 EmailSentModal.propTypes = {
   email: PropTypes.string.isRequired,
-  isNewUser: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
 };
 

@@ -12,13 +12,18 @@
 const PROD_BASE_URL = 'https://time2.trade';
 const DEV_BASE_URL = 'http://localhost:5173';
 const GH_PAGES_BASE_URL = 'https://lofitrades.github.io/trading-clock';
+const ALLOWED_PATHS = ['/', '/calendar', '/app', '/events', '/about'];
 
 const buildUrl = (base, path) => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return `${base}${normalizedPath}`;
 };
 
-export function getMagicLinkActionCodeSettings(path = '/app') {
+export function getMagicLinkActionCodeSettings(path = '/calendar') {
+  // Guard against open-redirect paths
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const safePath = ALLOWED_PATHS.includes(normalizedPath) ? normalizedPath : '/calendar';
+
   const { hostname, origin } = window.location;
   const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
   const isProdHost = hostname === 'time2.trade' || hostname?.endsWith('.time2.trade');
@@ -26,28 +31,28 @@ export function getMagicLinkActionCodeSettings(path = '/app') {
 
   if (isLocalhost) {
     return {
-      url: buildUrl(DEV_BASE_URL, path),
+      url: buildUrl(DEV_BASE_URL, safePath),
       handleCodeInApp: true,
     };
   }
 
   if (isProdHost) {
     return {
-      url: buildUrl(PROD_BASE_URL, path),
+      url: buildUrl(PROD_BASE_URL, safePath),
       handleCodeInApp: true,
     };
   }
 
   if (isGithubHost) {
     return {
-      url: buildUrl(GH_PAGES_BASE_URL, path),
+      url: buildUrl(GH_PAGES_BASE_URL, safePath),
       handleCodeInApp: true,
     };
   }
 
   // Fallback to current origin for any staged/custom domains while avoiding localhost misuse
   return {
-    url: buildUrl(origin, path),
+    url: buildUrl(origin, safePath),
     handleCodeInApp: true,
   };
 }
