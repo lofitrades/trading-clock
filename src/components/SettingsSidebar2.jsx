@@ -5,6 +5,11 @@
  * Inspired by modern app shells (Airbnb/ChatGPT) with quick toggles, sectional pills, and responsive cards that mirror existing settings logic.
  * 
  * Changelog:
+ * v1.3.8 - 2026-01-13 - Updated footer: removed auth-gated copy 'Create a free account' and replaced with always-visible 'Have questions? Contact us' link that opens ContactModal for both authenticated and non-authenticated users.
+ * v1.3.7 - 2026-01-13 - Add NFS and JBlanked sync buttons to header for superadmin users; visible left of fullscreen toggle.
+ * v1.3.4 - 2026-01-09 - Add Contact us button in About tab for quick support access.
+ * v1.3.5 - 2026-01-09 - Wire Contact us button to open ContactModal when handler is provided.
+ * v1.3.6 - 2026-01-12 - Raise settings drawer z-index above top chrome (banner + app bar).
  * v1.3.3 - 2026-01-08 - Updated "Clock Hands" toggle label to "Seconds Hand" to clarify that only the seconds hand is toggled; hour and minute hands always visible (enterprise best practice).
  * v1.3.2 - 2026-01-08 - Allow guest/local toggling of gray past sessions and session name visibility; no auth gate for these canvas appearance toggles.
  * v1.3.1 - 2026-01-07 - Temporarily hide session label toggles while keeping underlying setting wiring intact for future use.
@@ -53,16 +58,20 @@ import LockOpenIcon from '@mui/icons-material/LockOpen';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
+import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { triggerNfsWeekSync, triggerJblankedActualsSync } from '../services/economicEventsService';
 import AccountModal from './AccountModal';
 import AuthModal2 from './AuthModal2';
 import ConfirmModal from './ConfirmModal';
 import SwitchComponent from './Switch';
 import useFullscreen from '../hooks/useFullscreen';
 import TimezoneSelector from './TimezoneSelector';
+import { useCallback } from 'react';
 import { aboutContent } from '../content/aboutContent';
 
 const navItems = [
@@ -133,8 +142,8 @@ function SettingRow({ label, description, children, helperText, dense }) {
 	);
 }
 
-export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
-	const { user } = useAuth();
+export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenContact }) {
+	const { user, hasRole } = useAuth();
 	const {
 		sessions,
 		updateSessions,
@@ -173,10 +182,55 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 	const [clearSessionIndex, setClearSessionIndex] = useState(null);
 	const [userMenuAnchor, setUserMenuAnchor] = useState(null);
 	const [toggleError, setToggleError] = useState('');
+	const [syncingWeek, setSyncingWeek] = useState(false);
+	const [syncingActuals, setSyncingActuals] = useState(false);
+	const [syncSuccess, setSyncSuccess] = useState(null);
 
 	const { isFullscreen, canFullscreen, toggleFullscreen } = useFullscreen();
 
 	const handleUserMenuClose = () => setUserMenuAnchor(null);
+
+	const handleSyncWeek = useCallback(async () => {
+		if (syncingWeek) return;
+		const confirmed = window.confirm('Sync this week from NFS now? This may take a few seconds.');
+		if (!confirmed) return;
+		setSyncingWeek(true);
+		setSyncSuccess(null);
+		try {
+			const result = await triggerNfsWeekSync();
+			if (result.success) {
+				setSyncSuccess('Synced NFS weekly schedule.');
+			} else {
+				setSyncSuccess(result.error || 'Failed to sync NFS week.');
+			}
+		} catch {
+			setSyncSuccess('Failed to sync NFS week.');
+		} finally {
+			setTimeout(() => setSyncSuccess(null), 4000);
+			setSyncingWeek(false);
+		}
+	}, [syncingWeek]);
+
+	const handleSyncActuals = useCallback(async () => {
+		if (syncingActuals) return;
+		const confirmed = window.confirm('Sync today\'s actuals from JBlanked (all sources)? This may take a few seconds.');
+		if (!confirmed) return;
+		setSyncingActuals(true);
+		setSyncSuccess(null);
+		try {
+			const result = await triggerJblankedActualsSync();
+			if (result.success) {
+				setSyncSuccess('Synced JBlanked actuals.');
+			} else {
+				setSyncSuccess(result.error || 'Failed to sync JBlanked actuals.');
+			}
+		} catch {
+			setSyncSuccess('Failed to sync JBlanked actuals.');
+		} finally {
+			setTimeout(() => setSyncSuccess(null), 4000);
+			setSyncingActuals(false);
+		}
+	}, [syncingActuals]);
 
 	const handleLogout = async () => {
 		try {
@@ -852,6 +906,19 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 				>
 					Read Full About Page
 				</Button>
+				<Button
+					variant="contained"
+					fullWidth
+					{...(onOpenContact ? { onClick: onOpenContact } : { href: '/contact' })}
+					sx={{
+						textTransform: 'none',
+						borderRadius: 2,
+						py: 1.25,
+						mt: 1.5,
+					}}
+				>
+					Contact us
+				</Button>
 			</Box>
 		</SectionCard>
 	);
@@ -870,7 +937,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 				onClose={onClose}
 				variant="temporary"
 				ModalProps={{ keepMounted: true }}
-				sx={{ zIndex: 1355, '& .MuiDrawer-paper': { boxSizing: 'border-box' } }}
+				sx={{ zIndex: 1600, '& .MuiDrawer-paper': { boxSizing: 'border-box' } }}
 				PaperProps={{
 					sx: {
 						width: { xs: '100%', sm: '100%', md: 520, lg: 560 },
@@ -906,6 +973,46 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 						</Typography>
 					</Box>
 					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+						{user && hasRole && hasRole('superadmin') && (
+							<>
+								<Tooltip title="Sync week (NFS)" arrow>
+									<span>
+										<IconButton
+											size="small"
+											onClick={handleSyncWeek}
+											disabled={syncingWeek}
+											sx={{ '&:hover': { bgcolor: 'action.hover' } }}
+											aria-label="Sync week"
+										>
+											<CalendarViewWeekIcon
+												sx={{
+													animation: syncingWeek ? 'spin 1s linear infinite' : 'none',
+													'@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } },
+												}}
+											/>
+										</IconButton>
+									</span>
+								</Tooltip>
+								<Tooltip title="Sync today's actuals (JBlanked)" arrow>
+									<span>
+										<IconButton
+											size="small"
+											onClick={handleSyncActuals}
+											disabled={syncingActuals}
+											sx={{ '&:hover': { bgcolor: 'action.hover' } }}
+											aria-label="Sync actuals"
+										>
+											<FactCheckIcon
+												sx={{
+													animation: syncingActuals ? 'spin 1s linear infinite' : 'none',
+													'@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } },
+												}}
+											/>
+										</IconButton>
+									</span>
+								</Tooltip>
+							</>
+						)}
 						<Tooltip title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} arrow>
 							<span>
 								<IconButton
@@ -930,6 +1037,14 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 						</IconButton>
 					</Box>
 				</Box>
+
+				{syncSuccess && (
+					<Box sx={{ px: { xs: 1.5, sm: 2 }, py: 1, bgcolor: 'background.paper' }}>
+						<Alert severity={syncSuccess.includes('Failed') ? 'error' : 'success'} sx={{ py: 0.5 }}>
+							{syncSuccess}
+						</Alert>
+					</Box>
+				)}
 
 				<Box sx={{ p: { xs: 2, sm: 2.5 }, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
 					{user ? (
@@ -1034,7 +1149,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 								},
 							}}
 						>
-							Unlock all settings
+							Unlock all features
 						</Button>
 					)}
 				</Box>
@@ -1068,7 +1183,67 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth }) {
 							color="text.secondary"
 							sx={{ textAlign: 'center', display: 'block' }}
 						>
-							Create a free account to unlock all Features.
+							Have questions?{' '}
+							<Button
+								component="button"
+								onClick={onOpenContact}
+								sx={{
+									p: 0,
+									minWidth: 'auto',
+									textTransform: 'none',
+									fontSize: 'inherit',
+									fontWeight: 600,
+									color: 'primary.main',
+									textDecoration: 'underline',
+									textDecorationColor: 'rgba(25, 118, 210, 0.4)',
+									'&:hover': {
+										textDecorationColor: 'primary.main',
+										bgcolor: 'transparent',
+									},
+								}}
+							>
+								Contact us
+							</Button>
+						</Typography>
+					</Box>
+				)}
+
+				{user && (
+					<Box
+						sx={{
+							p: { xs: 2, sm: 2.5 },
+							borderTop: 1,
+							borderColor: 'divider',
+							flexShrink: 0,
+							bgcolor: 'background.paper',
+						}}
+					>
+						<Typography
+							variant="caption"
+							color="text.secondary"
+							sx={{ textAlign: 'center', display: 'block' }}
+						>
+							Have questions?{' '}
+							<Button
+								component="button"
+								onClick={onOpenContact}
+								sx={{
+									p: 0,
+									minWidth: 'auto',
+									textTransform: 'none',
+									fontSize: 'inherit',
+									fontWeight: 600,
+									color: 'primary.main',
+									textDecoration: 'underline',
+									textDecorationColor: 'rgba(25, 118, 210, 0.4)',
+									'&:hover': {
+										textDecorationColor: 'primary.main',
+										bgcolor: 'transparent',
+									},
+								}}
+							>
+								Contact us
+							</Button>
 						</Typography>
 					</Box>
 				)}
@@ -1132,4 +1307,5 @@ SettingsSidebar2.propTypes = {
 	open: PropTypes.bool.isRequired,
 	onClose: PropTypes.func.isRequired,
 	onOpenAuth: PropTypes.func,
+	onOpenContact: PropTypes.func,
 };

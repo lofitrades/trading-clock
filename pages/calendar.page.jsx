@@ -5,12 +5,22 @@
  * interactive CalendarPage (EventsFilters3 + day-grouped table) on the client.
  * 
  * Changelog:
+ * v1.1.0 - 2026-01-11 - Prefetch CalendarPage module to reduce TTI and reuse a shared loader for hydration.
  * v1.0.2 - 2026-01-07 - Added sticky back-to-top control for the prerendered calendar route fallback.
  * v1.0.1 - 2026-01-07 - Added dynamic copyright year to prerendered calendar content.
  * v1.0.0 - 2026-01-06 - Added calendar route with structured data and client-loaded calendar workspace.
  */
 
 import { useEffect, useMemo, useState } from 'react';
+
+let calendarPageModulePromise;
+
+const loadCalendarPageModule = () => {
+    if (!calendarPageModulePromise) {
+        calendarPageModulePromise = import('../src/components/CalendarPage');
+    }
+    return calendarPageModulePromise;
+};
 
 const siteUrl = 'https://time2.trade';
 const currentYear = new Date().getFullYear();
@@ -58,7 +68,7 @@ const calendarSchema = {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const documentProps = {
-    title: 'Time 2 Trade | Economic Calendar + Session Clock (Forex Factory)',
+    title: 'Economic Calendar + Session Clock | Time 2 Trade',
     description:
         'Trading economic calendar built on the trusted Forex Factory source with today\'s session clock context, This Week default, impact/currency filters, favorites, notes, exports, and an embeddable day-grouped table.',
     canonical: `${siteUrl}/calendar`,
@@ -81,11 +91,21 @@ export default function Page() {
         let cancelled = false;
 
         const load = async () => {
-            const module = await import('../src/components/CalendarPage');
+            const module = await loadCalendarPageModule();
             if (!cancelled) {
                 setClientPage(() => module.default);
             }
         };
+
+        // Kick off a prefetch as soon as possible without blocking paint
+        if (typeof window !== 'undefined') {
+            const prefetch = () => loadCalendarPageModule().catch(() => null);
+            if ('requestIdleCallback' in window) {
+                window.requestIdleCallback(prefetch, { timeout: 1200 });
+            } else {
+                window.setTimeout(prefetch, 120);
+            }
+        }
 
         load();
         return () => {

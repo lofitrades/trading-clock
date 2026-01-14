@@ -5,6 +5,7 @@
  * Provides smooth fade transitions and consistent UX across app entry points.
  * 
  * Changelog:
+ * v1.4.0 - 2026-01-14 - GLOBAL BACKGROUND FIX: Changed backgroundColor from hardcoded #F9F9F9 to 'inherit' so session-based background colors from App.jsx (via document.body) properly propagate to the loading screen. This enables the 'Session-based Background' setting to affect all UI elements.
  * v1.3.0 - 2025-12-20 - Added responsive brand line below loader for clearer progress feedback
  * v1.2.0 - 2025-12-09 - Reduced loader size to compact, CircularProgress-like footprint
  * v1.1.0 - 2025-12-09 - Lengthened fade, keep-mounted transitions for smoother handoff
@@ -28,7 +29,7 @@ const LoadingScreen = ({ isLoading, clockSize = 375 }) => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: '#F9F9F9',
+          backgroundColor: 'inherit',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

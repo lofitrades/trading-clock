@@ -5,6 +5,8 @@
  * Key responsibility: Persist user timezone selection to Firestore via SettingsContext while gating guest edits.
  * 
  * Changelog:
+ * v1.4.0 - 2026-01-14 - Added onTimezoneChange callback prop to notify parent when timezone is selected; enables auto-close of containing modals after selection.
+ * v1.3.9 - 2026-01-14 - RAISED Z-INDEX: Changed dropdown popper z-index from 1500 to 1700 so timezone selector dropdown renders above SettingsSidebar2 (z-index 1600) following enterprise modal stacking best practices.
  * v1.3.8 - 2025-12-16 - Added optional children slot to render related timezone settings inside the same card.
  * v1.3.7 - 2025-12-11 - Enter in search forwards to Autocomplete to select highlighted option
  * v1.3.6 - 2025-12-11 - Forward arrow keys for keyboard navigation through results
@@ -89,7 +91,7 @@ const SearchablePopper = React.forwardRef(
 );
 SearchablePopper.displayName = 'SearchablePopper';
 
-export default function TimezoneSelector({ textColor = 'inherit', onRequestSignUp, children }) {
+export default function TimezoneSelector({ textColor = 'inherit', onRequestSignUp, onTimezoneChange, children }) {
   const { user } = useAuth();
   const { selectedTimezone, updateSelectedTimezone } = useSettings();
   const [showUnlock, setShowUnlock] = useState(false);
@@ -175,6 +177,9 @@ export default function TimezoneSelector({ textColor = 'inherit', onRequestSignU
 
     if (newValue) {
       updateSelectedTimezone(newValue.timezone);
+      if (onTimezoneChange) {
+        onTimezoneChange(newValue.timezone);
+      }
     }
     setOpen(false);
   };
@@ -283,7 +288,7 @@ export default function TimezoneSelector({ textColor = 'inherit', onRequestSignU
                 mainInputRef,
                 ref: popperRef,
                 placement: 'bottom-start',
-                sx: { zIndex: 1500 },
+                sx: { zIndex: 1700 },
               },
               listbox: {
                 sx: {

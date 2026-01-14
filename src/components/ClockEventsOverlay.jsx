@@ -5,6 +5,8 @@
  * Renders impact-based icons on AM (inner) and PM (outer) rings using current filters and news source.
  *
  * Changelog:
+ * v1.15.1 - 2026-01-14 - CRITICAL FIX: Fixed React duplicate key warning for multiple events at same time. Fallback markerKey now includes array index to ensure uniqueness: `${hour}-${minute}-${idx}`.
+ * v1.15.0 - 2026-01-13 - Lock markers to today-only display: date range filters (startDate/endDate) from EventsFilters3 are completely ignored. Only impact and currency filters apply to markers. "Showing events..." banner removed from App.
  * v1.14.4 - 2026-01-08 - Auto-refreshes markers when the day rolls over by reloading today's events for the active timezone.
  * v1.14.3 - 2026-01-07 - Refactor marker lifecycle to ref-based exit handling, eliminating render-loop risk and reducing overlay tick work while keeping animations.
  * v1.14.2 - 2026-01-07 - Group markers in 30-minute windows (07:46-08:15 → 08:00, 08:16-08:45 → 08:30) to show all events per window in one tooltip.
@@ -98,12 +100,6 @@ const formatTimeToEvent = (dateLike, _timezone, nowEpochMs) => {
   if (eventEpochMs === null) return '';
 
   return formatRelativeLabel({ eventEpochMs, nowEpochMs, nowWindowMs: NOW_WINDOW_MS });
-};
-
-const makeEventKey = (evt) => {
-  const epoch = getEventEpochMs(evt);
-  const identifier = evt?.id || evt?.Event_ID || evt?.name || evt?.Name || 'event';
-  return `${identifier}-${epoch ?? 'na'}`;
 };
 
 function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: providedEvents, onEventClick, onLoadingStateChange, suppressTooltipAutoscroll = false, disableTooltips = false }) {
@@ -376,9 +372,9 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
       ref={overlayRef}
       sx={{ position: 'absolute', inset: 0, pointerEvents: 'none', width: '100%', height: '100%', zIndex: 2 }}
     >
-      {renderedMarkers.map((marker) => {
+      {renderedMarkers.map((marker, idx) => {
         const isAm = marker.hour < 12;
-        const markerKey = marker.key || `${marker.hour}-${marker.minute}`;
+        const markerKey = marker.key || `${marker.hour}-${marker.minute}-${idx}`;
         const isMarkerOpen = openMarkerKey === markerKey;
         const { x, y } = getPosition(marker.hour, marker.minute, isAm);
 

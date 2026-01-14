@@ -5,6 +5,7 @@
  * Optimizes mobile viewport behavior for fullscreen-like experiences.
  * 
  * Changelog:
+ * v1.2.2 - 2026-01-12 - Remove redundant min-heights/padding on the in-app shell and center the clock column to avoid scrollbars on /app while keeping safe-area support.
  * v1.2.1 - 2025-12-17 - Removed duplicated stylesheet block to reduce CSS payload and speed up first paint.
  * v1.2.0 - 2025-12-16 - Added visualViewport-driven safe inset vars to prevent mobile browser UI overlap (Android bottom bar) and standardized safe viewport min-heights.
  * v1.1.0 - 2025-12-09 - Adopted dynamic viewport units and enabled mobile scrolling for fullscreen
@@ -48,13 +49,12 @@ li {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 100vh;
-  min-height: 100svh;
-  min-height: 100dvh;
-  min-height: var(--t2t-vv-height, 100dvh);
+  min-height: auto;
   box-sizing: border-box;
-  overflow: visible;
-  padding-bottom: calc(12px + var(--t2t-safe-bottom, 0px));
+  overflow: hidden;
+  padding-bottom: 0;
+  width: 100%;
+  flex: 1;
 }
 
 /* Settings button is now handled by MUI IconButton */
@@ -64,13 +64,14 @@ li {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  flex-grow: 1;
+  justify-content: flex-start;
+  flex: 1 1 auto;
   width: 100%;
+  /*padding-top: 50px;*/
   box-sizing: border-box;
   text-align: center;
   height: auto;
-  min-height: 60vh;
+  min-height: 0;
   overflow: visible;
 }
 
@@ -170,7 +171,7 @@ canvas {
 @media (max-width: 600px) and (orientation: portrait) {
   .clock-elements-container {
     flex-direction: column;
-    padding-bottom: 60px;
+    padding-bottom: var(--t2t-safe-bottom, 0px);
   }
   
   .digital-clock {
@@ -197,8 +198,8 @@ canvas {
     grid-gap: 10px;
     align-items: center;
     justify-items: center;
-    min-height: var(--t2t-vv-height, 100dvh);
-    padding-bottom: 60px;
+    min-height: 0;
+    padding-bottom: var(--t2t-safe-bottom, 0px);
   }
   
   .hand-clock {
@@ -220,6 +221,17 @@ canvas {
   .timezone-selector select {
     font-size: 0.6rem;
     padding: 2px 5px;
+  }
+}
+
+@media (max-width: 600px) {
+  .clock-elements-container {
+    padding-top: 150px;
+  }
+}
+@media (min-width: 601px) and (max-width: 900px) {
+  .clock-elements-container {
+    padding-top: 100px;
   }
 }
 

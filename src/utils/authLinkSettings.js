@@ -12,7 +12,7 @@
 const PROD_BASE_URL = 'https://time2.trade';
 const DEV_BASE_URL = 'http://localhost:5173';
 const GH_PAGES_BASE_URL = 'https://lofitrades.github.io/trading-clock';
-const ALLOWED_PATHS = ['/', '/calendar', '/app', '/events', '/about'];
+const ALLOWED_PATHS = ['/', '/calendar', '/app', '/about'];
 
 const buildUrl = (base, path) => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;

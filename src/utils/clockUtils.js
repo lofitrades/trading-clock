@@ -5,6 +5,7 @@
  * Key responsibility and main functionality: Compute stroke widths and render static/dynamic clock layers with session arcs and labels.
  *
  * Changelog:
+ * v1.1.7 - 2026-01-13 - Add normalizeClockSize helper to keep canvas dimensions square-friendly and clamped before rendering.
  * v1.1.6 - 2026-01-08 - Add safety checks to prevent negative radius in drawStaticElements when canvas size is too small.
  * v1.1.5 - 2026-01-08 - Updated clock hands behavior: hour and minute hands always visible, seconds hand controlled by showSecondsHand toggle following enterprise best practices.
  * v1.1.4 - 2026-01-08 - Gray out session donuts that have already ended for the current day.
@@ -30,6 +31,11 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
     const hoverLineWidth = Math.round(lineWidth * 1.13); // 13% increase on hover
     
     return { lineWidth, hoverLineWidth };
+  };
+
+  export const normalizeClockSize = (size) => {
+    if (!Number.isFinite(size)) return 0;
+    return Math.max(0, Math.round(size));
   };
   
   export const drawStaticElements = (ctx, size, showSessionNamesInCanvas = false, numbersColor = '#333') => {
@@ -462,10 +468,12 @@ export const darkenColor = (color, percent = 40) => {
   const newB = Math.round(b * (1 - percent / 100));
   
   return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
-};  export const formatTime = (seconds) => {
-    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-    return `${h}h:${m}m:${s}s`;
-  };
+};
+
+export const formatTime = (seconds) => {
+  const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+  const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+  const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+  return `${h}h:${m}m:${s}s`;
+};
   

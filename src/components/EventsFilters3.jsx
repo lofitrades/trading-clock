@@ -11,8 +11,22 @@
  * - Search functionality with debounced auto-search (400ms)
  * - Expandable search row with accordion-like UX
  * - Persistent settings via SettingsContext and parent callbacks
+ * - Filter changes sync to /app clock canvas (impacts, currencies, favorites)
+ * - Fully responsive: wraps on xs/sm, single-row on md+
  * 
  * Changelog:
+ * v1.3.24 - 2026-01-14 - CONTRAST-AWARE RESET: Add textColor prop to apply session-based background contrast color to Reset button; when textColor is provided, Reset button uses it instead of default text.secondary for proper visibility on dark session backgrounds.
+ * v1.3.23 - 2026-01-14 - CENTER FILTERS ON XS: Simplify justifyContent to always use 'center' when centerFilters={true} across all breakpoints (xs, sm, md+). Remove responsive breakpoints to center filter elements horizontally on extra-small screens as well.
+ * v1.3.22 - 2026-01-14 - CENTER FILTERS ON SM: Update justifyContent to center filter elements horizontally on sm breakpoint when centerFilters={true}; now { xs: 'flex-start', sm: 'center', md: 'center' } for responsive centering on tablets and above.
+ * v1.3.21 - 2026-01-14 - ENTERPRISE LAYOUT AUDIT FIX: Simplify width calculation to width: 100% + box-sizing: border-box instead of calc-based widths. Padding now handled entirely by parent container on xs/sm; component only pads on md+. This follows enterprise fixed-positioning best practices where parent uses left/right for viewport spanning with box-sizing: border-box.
+ * v1.3.20 - 2026-01-14 - ENTERPRISE MOBILE-FIRST WIDTH FIX: Reduce padding on xs/sm (0.75/1 → 0.5/0.75) and use calc-based width to prevent overflow when rendered in fixed-position containers. Use minWidth:0 on outer Stack to prevent flex children from overflowing. Responsive gap reduction (0.75/1 → 0.5/0.75) for tighter mobile layout. Full viewport responsiveness following enterprise best practices.
+ * v1.3.19 - 2026-01-14 - LAYOUT FIX: Restructure filter Stack with nested inner container so Reset button is included in centering calculations. Outer Stack handles mobile scrolling; inner Stack (all chips + Reset) treated as single unit for width and centering, ensuring proper alignment on md+ with centerFilters=true.
+ * v1.3.18 - 2026-01-13 - IMPROVED CHIP STYLING: Update ChipButton so active filter chips display primary.main background with white text; inactive chips remain white with divider border; better visual feedback when filters are applied.
+ * v1.3.17 - 2026-01-13 - Add optional showSearchFilter prop (defaults to true) and centerFilters prop (defaults to false) to customize filter bar; showSearchFilter hides search icon/button; centerFilters centers chips horizontally on md+ (flex-start on xs/sm for scroll); update inactive chip styling to white background for better visibility.
+ * v1.3.16 - 2026-01-13 - Add optional showDateFilter prop (defaults to true) to conditionally hide date chip; allows /app page to hide date range filter while keeping impact/currency/search/favorites filters visible.
+ * v1.3.15 - 2026-01-13 - RESPONSIVE: Add responsive flexWrap (wrap on xs/sm, nowrap on md+), responsive gap/spacing, responsive padding for full-width support on all breakpoints; prevent horizontal scroll via overflowX visibility control.
+ * v1.3.14 - 2026-01-13 - Document cross-page filter sync: filter changes persist to SettingsContext and apply to both /calendar table and /app clock canvas (impacts, currencies, favorites).
+ * v1.3.13 - 2026-01-13 - BUGFIX: Added z-index 1700 to filter popovers so they render above drawer (z-index 1600) for proper layering.
  * v1.3.12 - 2026-01-08 - Comprehensive auth gating: all filter actions (date, impact, currency, search, favorites) show AuthModal2 and prevent UI state changes for non-authenticated users.
  * v1.3.11 - 2026-01-08 - Gate search and favorite filter icons for non-authenticated users: show AuthModal2 on click instead of allowing filter functionality.
  * v1.3.10 - 2026-01-08 - Fix instant-apply compatibility for all hosts, remove special-cased reset labeling, and satisfy ESLint PropTypes + hook dependency requirements.
@@ -194,20 +208,19 @@ function ChipButton({ label, onClick, active, colorOverride }) {
         fontWeight: 700,
         height: 40,
         px: 0.75,
-        boxShadow: active ? 1 : 0,
         flexShrink: 0,
-        bgcolor: customActive ? colorOverride.background : undefined,
-        color: customActive ? colorOverride.text : undefined,
-        borderColor: customActive ? colorOverride.background : undefined,
-        '& .MuiChip-icon': { fontSize: 18, color: customActive ? colorOverride.text : undefined },
+        bgcolor: customActive ? colorOverride.background : (active ? 'primary.main' : '#fff'),
+        color: customActive ? colorOverride.text : (active ? '#fff' : 'text.primary'),
+        borderColor: customActive ? colorOverride.background : (active ? 'primary.main' : 'divider'),
+        '& .MuiChip-icon': { fontSize: 18, color: customActive ? colorOverride.text : (active ? '#fff' : undefined) },
         '& .MuiChip-label': { display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' },
         '&.MuiChip-filled': customActive
           ? { bgcolor: colorOverride.background, color: colorOverride.text }
-          : undefined,
+          : (active ? { bgcolor: 'primary.main', color: '#fff' } : undefined),
         '&.MuiChip-filledDefault': customActive
           ? { bgcolor: colorOverride.background, color: colorOverride.text }
-          : undefined,
-        '&:hover': customActive ? { bgcolor: colorOverride.background } : undefined,
+          : (active ? { bgcolor: 'primary.main', color: '#fff' } : undefined),
+        '&:hover': customActive ? { bgcolor: colorOverride.background } : (active ? { bgcolor: 'primary.dark' } : undefined),
       }}
     />
   );
@@ -241,6 +254,10 @@ export default function EventsFilters3({
   newsSource = 'mql5',
   actionOffset = 0,
   defaultPreset = 'today',
+  showDateFilter = true,
+  showSearchFilter = true,
+  centerFilters = false,
+  textColor = null,
 }) {
   const { user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -565,6 +582,9 @@ export default function EventsFilters3({
       anchorEl={null}
       onClose={() => setAnchorDatePos(null)}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      slotProps={{
+        root: { sx: { zIndex: 1700 } },
+      }}
       PaperProps={{
         sx: {
           p: 2,
@@ -616,6 +636,9 @@ export default function EventsFilters3({
       anchorEl={null}
       onClose={() => setAnchorImpactPos(null)}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      slotProps={{
+        root: { sx: { zIndex: 1700 } },
+      }}
       PaperProps={{
         sx: {
           p: 2,
@@ -736,6 +759,9 @@ export default function EventsFilters3({
       anchorEl={null}
       onClose={() => setAnchorCurrencyPos(null)}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      slotProps={{
+        root: { sx: { zIndex: 1700 } },
+      }}
       PaperProps={{
         sx: {
           p: 2,
@@ -822,29 +848,34 @@ export default function EventsFilters3({
   return (
     <Box
       sx={{
-        p: { xs: 1.25, sm: 1.75 },
+        // Mobile-first: parent fixed container handles padding on xs/sm, component pads on md+
+        p: { xs: 1, sm: 1, md: 1.75 },
         mb: actionOffset ? actionOffset / 2 : 0,
         display: 'flex',
         flexDirection: 'column',
-        gap: 1,
+        gap: { xs: 0.5, sm: 0.75, md: 1.25 },
         position: 'relative',
         borderRadius: 0,
         border: 'none',
         borderColor: 'transparent',
         bgcolor: 'transparent',
         boxShadow: 'none',
+        // Enterprise: width 100% with box-sizing border-box respects parent constraints
+        width: '100%',
+        boxSizing: 'border-box',
       }}
     >
+      {/* Outer container for scrolling on mobile */}
       <Stack
         direction="row"
-        spacing={1}
         sx={{
-          overflowX: 'auto',
+          overflowX: { xs: 'auto', md: 'visible' },
           overflowY: 'hidden',
-          flexWrap: 'nowrap',
           alignItems: 'center',
-          justifyContent: 'flex-start',
-          pb: 0.5,
+          justifyContent: centerFilters ? 'center' : 'flex-start',
+          pb: { xs: 0.25, md: 0 },
+          width: '100%',
+          minWidth: 0,
           '&::-webkit-scrollbar': {
             height: 6,
           },
@@ -863,126 +894,141 @@ export default function EventsFilters3({
           scrollbarColor: 'rgba(0,0,0,0.2) transparent',
         }}
       >
-        <Tooltip title={searchExpanded ? 'Close search' : 'Search events'}>
-          <span>
-            <IconButton
-              onClick={toggleSearchExpanded}
-              size="small"
-              color={searchExpanded || localFilters.searchQuery ? 'primary' : 'default'}
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                border: '1px solid',
-                borderColor: searchExpanded || localFilters.searchQuery ? 'primary.main' : 'divider',
-                bgcolor: searchExpanded || localFilters.searchQuery ? 'primary.lighter' : 'background.paper',
-                boxShadow: searchExpanded || localFilters.searchQuery ? 1 : 0,
-                flexShrink: 0,
-              }}
-            >
-              <SearchIcon fontSize="small" />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title={localFilters.favoritesOnly ? 'Showing favorites only' : 'Show favorites only'}>
-          <span>
-            <IconButton
-              onClick={toggleFavoritesOnly}
-              size="small"
-              color={localFilters.favoritesOnly ? 'primary' : 'default'}
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                border: '1px solid',
-                borderColor: localFilters.favoritesOnly ? 'primary.main' : 'divider',
-                bgcolor: localFilters.favoritesOnly ? 'primary.lighter' : 'background.paper',
-                boxShadow: localFilters.favoritesOnly ? 1 : 0,
-                flexShrink: 0,
-              }}
-            >
-              {localFilters.favoritesOnly ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
-            </IconButton>
-          </span>
-        </Tooltip>
-        <ChipButton
-          label={dateLabel}
-          onClick={(event) => setAnchorDatePos(getAnchorPosition(event.currentTarget))}
-          active={Boolean(activePreset)}
-        />
-        <ChipButton
-          label={currencyLabel}
-          onClick={(event) => setAnchorCurrencyPos(getAnchorPosition(event.currentTarget))}
-          active={Boolean(localFilters.currencies.length)}
-        />
-        <ChipButton
-          label={impactsLabel}
-          onClick={(event) => setAnchorImpactPos(getAnchorPosition(event.currentTarget))}
-          active={Boolean(localFilters.impacts.length)}
-          colorOverride={impactSummaryColors}
-        />
-
-        {showResetInline && (
-          <Tooltip title={resetLabel}>
-            <span>
-              <Box
-                component="button"
-                type="button"
-                onClick={handleReset}
-                disabled={loading}
-                aria-label="Reset filters"
-                sx={{
-                  ml: 0.5,
-                  flexShrink: 0,
-                  appearance: 'none',
-                  border: 'none',
-                  bgcolor: 'transparent',
-                  p: 0,
-                  m: 0,
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                }}
-              >
-                <Stack
-                  direction="row"
-                  spacing={0.5}
-                  alignItems="center"
+        {/* Inner container: all filter controls treated as a single unit for centering and scroll width */}
+        <Stack
+          direction="row"
+          spacing={{ xs: 0.5, sm: 0.75, md: 1 }}
+          sx={{
+            flexWrap: { xs: 'nowrap', md: 'wrap' },
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            width: 'auto',
+          }}
+        >
+          {showSearchFilter && (
+            <Tooltip title={searchExpanded ? 'Close search' : 'Search events'}>
+              <span>
+                <IconButton
+                  onClick={toggleSearchExpanded}
+                  size="small"
+                  color={searchExpanded || localFilters.searchQuery ? 'primary' : 'default'}
                   sx={{
-                    px: 1,
-                    py: 0.5,
-                    borderRadius: 1,
-                    color: 'text.secondary',
-                    fontWeight: 700,
-                    whiteSpace: 'nowrap',
-                    '&:hover': loading
-                      ? undefined
-                      : {
-                        bgcolor: 'action.hover',
-                        color: 'text.primary',
-                      },
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    border: '1px solid',
+                    borderColor: searchExpanded || localFilters.searchQuery ? 'primary.main' : 'divider',
+                    bgcolor: searchExpanded || localFilters.searchQuery ? 'primary.lighter' : 'background.paper',
+                    flexShrink: 0,
                   }}
                 >
-                  <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                    Reset
-                  </Typography>
-                </Stack>
-              </Box>
+                  <SearchIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
+          <Tooltip title={localFilters.favoritesOnly ? 'Showing favorites only' : 'Show favorites only'}>
+            <span>
+              <IconButton
+                onClick={toggleFavoritesOnly}
+                size="small"
+                color={localFilters.favoritesOnly ? 'primary' : 'default'}
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  border: '1px solid',
+                  borderColor: localFilters.favoritesOnly ? 'primary.main' : 'divider',
+                  bgcolor: localFilters.favoritesOnly ? 'primary.lighter' : 'background.paper',
+                  flexShrink: 0,
+                }}
+              >
+                {localFilters.favoritesOnly ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
+              </IconButton>
             </span>
           </Tooltip>
-        )}
+          {showDateFilter && (
+            <ChipButton
+              label={dateLabel}
+              onClick={(event) => setAnchorDatePos(getAnchorPosition(event.currentTarget))}
+              active={Boolean(activePreset)}
+            />
+          )}
+          <ChipButton
+            label={currencyLabel}
+            onClick={(event) => setAnchorCurrencyPos(getAnchorPosition(event.currentTarget))}
+            active={Boolean(localFilters.currencies.length)}
+          />
+          <ChipButton
+            label={impactsLabel}
+            onClick={(event) => setAnchorImpactPos(getAnchorPosition(event.currentTarget))}
+            active={Boolean(localFilters.impacts.length)}
+            colorOverride={impactSummaryColors}
+          />
+
+          {showResetInline && (
+            <Tooltip title={resetLabel}>
+              <span>
+                <Box
+                  component="button"
+                  type="button"
+                  onClick={handleReset}
+                  disabled={loading}
+                  aria-label="Reset filters"
+                  sx={{
+                    ml: 0.5,
+                    flexShrink: 0,
+                    appearance: 'none',
+                    border: 'none',
+                    bgcolor: 'transparent',
+                    p: 0,
+                    m: 0,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    alignItems="center"
+                    sx={{
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      color: textColor || 'text.secondary',
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                      '&:hover': loading
+                        ? undefined
+                        : {
+                          bgcolor: 'action.hover',
+                          color: textColor || 'text.primary',
+                        },
+                    }}
+                  >
+                    <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                      Reset
+                    </Typography>
+                  </Stack>
+                </Box>
+              </span>
+            </Tooltip>
+          )}
+        </Stack>
       </Stack>
 
       {/* Expandable Search Row */}
       <Collapse in={searchExpanded} timeout="auto" unmountOnExit>
         <Box
           sx={{
-            pt: 1,
-            pb: 0.5,
-            px: { xs: 0.5, sm: 1 },
+            pt: { xs: 0.75, sm: 1 },
+            pb: { xs: 0.5, sm: 0.75 },
+            px: { xs: 0.25, sm: 0.75, md: 1 },
             borderRadius: 2,
             bgcolor: 'background.paper',
             border: '1px solid',
             borderColor: 'divider',
             boxShadow: 1,
+            width: '100%',
           }}
         >
           <TextField
@@ -1021,7 +1067,7 @@ export default function EventsFilters3({
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ display: 'block', mt: 0.75, ml: 0.5 }}
+              sx={{ display: 'block', mt: { xs: 0.5, sm: 0.75 }, ml: { xs: 0.25, sm: 0.5 } }}
             >
               Searching within filtered events...
             </Typography>
@@ -1057,6 +1103,10 @@ EventsFilters3.propTypes = {
   newsSource: PropTypes.string,
   actionOffset: PropTypes.number,
   defaultPreset: PropTypes.oneOf(DATE_PRESETS.map((preset) => preset.key)),
+  showDateFilter: PropTypes.bool,
+  showSearchFilter: PropTypes.bool,
+  centerFilters: PropTypes.bool,
+  textColor: PropTypes.string,
 };
 
 EventsFilters3.defaultProps = {
@@ -1067,4 +1117,8 @@ EventsFilters3.defaultProps = {
   newsSource: 'mql5',
   actionOffset: 0,
   defaultPreset: 'today',
+  showDateFilter: true,
+  showSearchFilter: true,
+  centerFilters: false,
+  textColor: null,
 };

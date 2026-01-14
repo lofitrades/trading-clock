@@ -5,8 +5,31 @@
  * and stays embeddable for other pages while keeping Time 2 Trade branding and SEO-friendly copy.
  * 
  * Changelog:
+ * v1.5.2 - 2026-01-14 - NOW BADGE & JUMP: Moved NOW badge from TIME column to event name column (same position as NEXT badge). Added Jump to Now functionality with blue icon (priority over NEXT). Added flash effect to NOW rows. Made 'Events in progress' clickable with blue UI matching 'Next in' button pattern. Mobile-first responsive design.
+ * v1.5.1 - 2026-01-14 - TIMEZONE MODAL AUTO-CLOSE: Pass onTimezoneChange callback to TimezoneSelector to automatically close the modal after a timezone is selected and confirmed.
+ * v1.5.0 - 2026-01-13 - Removed referral banner placements; calendar layout now renders banner-free across all breakpoints.
+ * v1.4.9 - 2026-01-13 - Added xs/sm top margin for the Economic Calendar paper on /calendar route to clear sticky chrome on mobile.
+ * v1.4.8 - 2026-01-13 - Matched top banner background to main app background color for consistent chrome when embedded.
+ * v1.4.7 - 2026-01-13 - Added banner toggle so parent layouts can own the sticky referral placement without double-rendering.
+ * v1.4.6 - 2026-01-13 - Hide the Trading Clock paper on single-column layout so /calendar mobile view focuses on the calendar table.
+ * v1.4.5 - 2026-01-13 - Added optional appBar slot for sticky navigation chrome integration from parent shells (e.g., /calendar).
+ * v1.4.4 - 2026-01-11 - Remove the gap between sticky filters and sticky day/table headers so headers sit flush on all breakpoints (mobile-first, enterprise patterns).
+ * v1.4.3 - 2026-01-11 - Deferred AdSense load until the slot is visible and scheduled via idle callback to reduce main-thread blocking (Lighthouse TBT/TTI).
+ * v1.4.2 - 2026-01-11 - Lazy-loaded modal/select components to trim initial JS and main-thread work per Lighthouse guidance.
+ * v1.4.1 - 2026-01-11 - Track time engine snapshots via ref to satisfy lint without increasing table tick cadence.
+ * v1.4.0 - 2026-01-11 - Isolated clock rendering, throttled table time updates, deferred search, and reused fetch cache for leaner renders.
+ * v1.3.117 - 2026-01-11 - Flash all NEXT event rows when using Jump to Next auto-scroll control.
+ * v1.3.116 - 2026-01-11 - Refactor day sections into Papers with sticky day + column headers under sticky filters.
+ * v1.3.115 - 2026-01-11 - Align Today date left and move digital clock into the same header row (right-aligned), mobile-first.
+ * v1.3.114 - 2026-01-11 - Resync today date label immediately on timezone changes (TimezoneSelector integration).
+ * v1.3.113 - 2026-01-11 - Show today's full date under the Trading Clock header divider on /calendar (timezone-aware, mobile-first).
+ * v1.3.112 - 2026-01-11 - Add momentary row highlight when auto-scrolling from clock tooltip clicks (touch-friendly).
+ * v1.3.111 - 2026-01-11 - When clicking events from clock tooltip list, only scroll to the calendar row (do not open EventModal).
+ * v1.3.110 - 2026-01-11 - Replace /calendar back-to-top control with Jump to Next visibility-based control.
+ * v1.3.109 - 2026-01-11 - Fix xs clock sizing/centering so canvas stays responsive and session labels remain visible.
+ * v1.3.108 - 2026-01-11 - Show clock Paper on top in single-column layout (xs/sm) with mobile-first responsive design following enterprise MUI dashboard best practices.
+ * v1.3.107 - 2026-01-09 - Wire About tab Contact us button to open ContactModal instead of redirecting to /contact.
  * v1.3.101 - 2026-01-08 - Remove the note icon from calendar event rows; keep favorites-only row actions.
- * v1.3.102 - 2026-01-08 - Normalize Time/Cur/Imp column widths (match Cur) across all breakpoints for consistent table scanability.
  * v1.3.103 - 2026-01-08 - Show favorites action column on one-column (mobile-first) layout with minimal icon-only width.
  * v1.3.104 - 2026-01-08 - Shrink favorites action column to minimal width by removing extra cell/button padding.
  * v1.3.105 - 2026-01-08 - Enable the calendar two-column layout starting at the md breakpoint.
@@ -26,7 +49,7 @@
  * v1.3.88 - 2026-01-07 - Replaced the inline rectangle with 468x60 banner (936x120 2x) in both placements (below clock in two-column, above calendar in one-column).
  * v1.3.86 - 2026-01-07 - Updated banner to 728x90 leaderboard (with 1456x180 2x retina) and kept mobile-first responsive sizing.
  * v1.3.85 - 2026-01-07 - Moved the ad outside both papers and made it full column width on all breakpoints. Removed title and caption to keep the banner minimal and mobile-first.
- * v1.3.84 - 2026-01-07 - Replaced dummy banner with responsive TradingView referral banner (mobile-first, retina via srcSet) while keeping Google AdSense slot ready for activation.
+ * v1.3.84 - 2026-01-07 - Replaced dummy banner with responsive referral banner (mobile-first, retina via srcSet) while keeping Google AdSense slot ready for activation.
  * v1.3.83 - 2026-01-07 - Fixed Forex Factory link to open detailed NewsSourceSelector modal directly instead of wrapper dialog. "Powered by Forex Factory" now opens the full informational modal in one step.
  * v1.3.82 - 2026-01-07 - Snap clock hands on resume and throttle background ticking via shared time engine resume tokens.
  * v1.3.80 - 2026-01-07 - Keep timezone label/select button visible even when the digital clock is hidden.
@@ -54,6 +77,8 @@
  * v1.3.58 - 2026-01-07 - Changed scrollEventIntoView to center events in viewport (block: 'center') on all breakpoints instead of positioning at top for better UX consistency.
  * v1.3.57 - 2026-01-07 - Fixed AdSense error "No slot size for availableWidth=0" by: 1) checking container width before pushing ad, 2) using ResizeObserver to wait for container to have proper dimensions, 3) adding 100ms delay after script load, 4) ensuring ad container has minWidth constraints and proper padding on xs layout. Enterprise AdSense best practices implementation.
  * v1.3.56 - 2026-01-07 - Fixed skeleton flashing during scroll by only showing skeletons when actively loading (loading && isLoadingNewRange). Added mobile-aware sticky header offset to scrollEventIntoView to prevent "Next" badge from scrolling behind sticky filters on xs breakpoint.
+ * v1.3.57 - 2026-01-13 - Removed settings button from Economic Calendar header; settings now centralized in AppBar for all users (authenticated and non-authenticated). Cleaned up unused icon imports.
+ * v1.3.56 - 2026-01-13 - Added always-visible settings button in Economic Calendar header (positioned absolutely top-right with responsive offset). Settings gear icon accessible to all users (auth and non-auth) with tooltip. Removed unused LockOpenIcon import.
  * v1.3.55 - 2026-01-07 - Moved event stats chips (event count, next countdown, events in progress) from header row to below filters on single-column layout (xs) using responsive display rules.
  * v1.3.54 - 2026-01-07 - Fixed skeleton display on filter updates and reload by tracking date range changes separately from loading state. 'No events' message now only appears after loading completes, following MUI enterprise loading patterns with proper state detection.
  * v1.3.53 - 2026-01-07 - Keep the Sponsored ad visible on single-column layout above the calendar surface.
@@ -119,7 +144,6 @@
  * v1.0.1 - 2026-01-06 - Added PropTypes coverage and lint cleanups (React import, unused values).
  * v1.0.0 - 2026-01-06 - Initial implementation with This Week default preset, day grouping (including empty days), and embed-ready layout.
  */
-
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import PropTypes from 'prop-types';
 import {
@@ -151,14 +175,13 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
 import CloseIcon from '@mui/icons-material/Close';
 import ClockCanvas from './ClockCanvas';
 import ClockHandsOverlay from './ClockHandsOverlay';
 const ClockEventsOverlay = lazy(() => import('./ClockEventsOverlay'));
 import LoadingAnimation from './LoadingAnimation';
 import EventsFilters3 from './EventsFilters3';
-import NewsSourceSelector from './NewsSourceSelector';
+const NewsSourceSelector = lazy(() => import('./NewsSourceSelector'));
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import useCalendarData from '../hooks/useCalendarData';
@@ -167,12 +190,11 @@ import { useTimeEngine } from '../hooks/useTimeEngine';
 import { useClockVisibilitySnap } from '../hooks/useClockVisibilitySnap';
 import { useEventNotes } from '../hooks/useEventNotes';
 import CalendarEmbedLayout from './CalendarEmbedLayout';
-import EventModal from './EventModal';
-import EventNotesDialog from './EventNotesDialog';
-import DigitalClock from './DigitalClock';
+const EventModal = lazy(() => import('./EventModal'));
+const EventNotesDialog = lazy(() => import('./EventNotesDialog'));
 import SessionLabel from './SessionLabel';
-import TimezoneSelector from './TimezoneSelector';
-import SettingsSidebar2 from './SettingsSidebar2';
+const TimezoneSelector = lazy(() => import('./TimezoneSelector'));
+const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
 import '../App.css';
 import { DATE_FORMAT_OPTIONS, formatDate, formatTime } from '../utils/dateUtils';
 import { isColorDark } from '../utils/clockUtils';
@@ -188,6 +210,7 @@ import {
     getNowEpochMs,
     isPastToday,
 } from '../utils/eventTimeEngine';
+const ContactModal = lazy(() => import('./ContactModal'));
 
 const eventShape = PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -452,6 +475,8 @@ const EventRow = memo(({
             onClick={handleOpenEvent}
             onKeyDown={handleKeyDown}
             data-t2t-event-row-key={buildEventKey(event)}
+            data-t2t-now-event-row={isNow ? 'true' : undefined}
+            data-t2t-next-event-row={isNext ? 'true' : undefined}
             sx={{
                 cursor: 'pointer',
                 backgroundColor: (theme) => {
@@ -464,6 +489,30 @@ const EventRow = memo(({
                     if (isNow) return `3px solid ${theme.palette.info.main}`;
                     if (isNext) return `3px solid ${theme.palette.success.main}`;
                     return 'none';
+                },
+                '&[data-t2t-scroll-flash="true"]': {
+                    position: 'relative',
+                    animation: 't2tScrollFlash 1400ms ease-out',
+                },
+                '@keyframes t2tScrollFlash': {
+                    '0%': {
+                        backgroundColor: 'rgba(25, 118, 210, 0.16)',
+                        boxShadow: '0 0 0 0 rgba(25, 118, 210, 0.0)',
+                    },
+                    '20%': {
+                        backgroundColor: 'rgba(25, 118, 210, 0.20)',
+                        boxShadow: '0 0 0 6px rgba(25, 118, 210, 0.18)',
+                    },
+                    '100%': {
+                        backgroundColor: 'transparent',
+                        boxShadow: '0 0 0 0 rgba(25, 118, 210, 0.0)',
+                    },
+                },
+                '@media (prefers-reduced-motion: reduce)': {
+                    '&[data-t2t-scroll-flash="true"]': {
+                        animation: 'none',
+                        backgroundColor: 'rgba(25, 118, 210, 0.14)',
+                    },
                 },
                 '&:focus-visible': {
                     outline: '2px solid',
@@ -511,19 +560,9 @@ const EventRow = memo(({
                     whiteSpace: { xs: 'normal', sm: 'nowrap' },
                 }}
             >
-                <Stack direction="column" spacing={0.3} alignItems="center" justifyContent="center" sx={{ width: '100%' }}>
-                    <Typography variant="body2" fontWeight={800} sx={{ fontFamily: 'monospace', textAlign: 'center', width: '100%' }}>
-                        {formatTime(event.time || event.date || event.Date, timezone)}
-                    </Typography>
-                    {isNow ? (
-                        <Chip
-                            label="NOW"
-                            size="small"
-                            color="info"
-                            sx={{ fontWeight: 800, height: 22, fontSize: '0.7rem' }}
-                        />
-                    ) : null}
-                </Stack>
+                <Typography variant="body2" fontWeight={800} sx={{ fontFamily: 'monospace', textAlign: 'center', width: '100%' }}>
+                    {formatTime(event.time || event.date || event.Date, timezone)}
+                </Typography>
             </TableCell>
 
             <TableCell align="center" sx={{ borderColor: 'divider', width: { xs: 52, sm: 68 }, minWidth: { xs: 52, sm: 64 }, px: { xs: 0, sm: 0.85 } }}>
@@ -542,9 +581,9 @@ const EventRow = memo(({
                             sx={{
                                 fontWeight: 700,
                                 color: isPast ? 'text.secondary' : 'text.primary',
+                                // Prefer wrapping the event name (mobile-style) before requiring horizontal scroll.
                                 overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: { xs: 'normal', sm: 'nowrap' },
+                                whiteSpace: 'normal',
                                 wordBreak: 'break-word',
                                 minWidth: 0,
                                 maxWidth: '100%',
@@ -563,6 +602,26 @@ const EventRow = memo(({
                             </Typography>
                         ) : null}
                     </Box>
+                    {isNow ? (
+                        <Tooltip title="Event in progress">
+                            <Chip
+                                label="NOW"
+                                size="small"
+                                sx={{
+                                    bgcolor: (theme) => alpha(theme.palette.info.main, 0.12),
+                                    color: 'info.main',
+                                    fontWeight: 800,
+                                    height: 20,
+                                    fontSize: '0.65rem',
+                                    minWidth: { xs: 42, sm: 48 },
+                                    flex: '0 0 auto',
+                                    '& .MuiChip-label': {
+                                        px: { xs: 0.5, sm: 0.75 },
+                                    },
+                                }}
+                            />
+                        </Tooltip>
+                    ) : null}
                     {isNext ? (
                         <Tooltip title={`In: ${nextCountdownLabel || nextTooltip}`}>
                             <Chip
@@ -639,7 +698,9 @@ const DaySection = memo(({
     onOpenEvent,
     isToday,
     isLoading = false,
+    stickyOffsetTop = 0,
 }) => {
+    const DAY_HEADER_HEIGHT_PX = 44;
     const displayDate = useMemo(() => {
         const parts = dayKey.split('-');
         const date = parts.length === 3 ? new Date(`${parts[0]}-${parts[1]}-${parts[2]}T12:00:00Z`) : null;
@@ -657,142 +718,174 @@ const DaySection = memo(({
     const showSkeletonRows = isLoading;
     const showEmptyState = !isLoading && events.length === 0;
 
+    const safeStickyOffsetTop = Number.isFinite(stickyOffsetTop) ? Math.max(0, stickyOffsetTop) : 0;
+
     return (
-        <TableContainer
-            component={Paper}
+        <Paper
             variant="outlined"
             sx={{
                 borderRadius: 2,
                 borderColor: 'divider',
                 bgcolor: 'background.paper',
-                overflow: 'auto',
                 width: '100%',
                 maxWidth: '100%',
+                overflow: 'visible',
             }}
         >
-            <Table
-                size="small"
-                stickyHeader
-                aria-label={`Events on ${displayDate}`}
-                sx={{ width: '100%' }}
+            <Box
+                sx={{
+                    position: 'sticky',
+                    top: `${safeStickyOffsetTop}px`,
+                    zIndex: 900,
+                    borderTopLeftRadius: 7,
+                    borderTopRightRadius: 7,
+                    bgcolor: isToday ? 'primary.main' : 'background.paper',
+                    color: isToday ? 'primary.contrastText' : 'text.primary',
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    px: 1.25,
+                    minHeight: DAY_HEADER_HEIGHT_PX,
+                    display: 'flex',
+                    alignItems: 'center',
+                }}
             >
-                <TableHead>
-                    <TableRow>
-                        <TableCell
-                            colSpan={TABLE_COLUMNS.length}
+                <Stack
+                    direction="row"
+                    spacing={{ xs: 0.75, sm: 1.25 }}
+                    alignItems="center"
+                    justifyContent="space-between"
+                    flexWrap="nowrap"
+                    sx={{ width: '100%', minWidth: 0 }}
+                >
+                    <Typography
+                        variant="subtitle2"
+                        sx={{
+                            fontWeight: 800,
+                            flex: '1 1 auto',
+                            minWidth: 0,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                        }}
+                    >
+                        {displayDateElement}
+                    </Typography>
+                    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ ml: 'auto', flex: '0 0 auto', flexShrink: 0 }}>
+                        <Chip
+                            label={headerChipLabel}
+                            size="small"
                             sx={{
-                                borderColor: 'divider',
-                                bgcolor: isToday ? 'primary.main' : 'background.default',
-                                color: isToday ? 'primary.contrastText' : 'text.primary',
-                                py: 1,
+                                fontWeight: 800,
+                                bgcolor: alpha(isToday ? '#ffffff' : '#3c4d63', 0.12),
+                                color: isToday ? 'primary.contrastText' : 'inherit',
                             }}
-                        >
-                            <Stack
-                                direction="row"
-                                spacing={{ xs: 0.75, sm: 1.25 }}
-                                alignItems="center"
-                                justifyContent="space-between"
-                                flexWrap="nowrap"
-                                sx={{ width: '100%', minWidth: 0 }}
-                            >
-                                <Typography variant="subtitle2" sx={{ fontWeight: 800, flex: '1 1 auto', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {displayDateElement}
-                                </Typography>
-                                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ ml: 'auto', flex: '0 0 auto', flexShrink: 0 }}>
-                                    <Chip
-                                        label={headerChipLabel}
-                                        size="small"
-                                        sx={{ fontWeight: 800, bgcolor: alpha(isToday ? '#ffffff' : '#3c4d63', 0.12), color: isToday ? 'primary.contrastText' : 'inherit' }}
-                                    />
-                                </Stack>
-                            </Stack>
-                        </TableCell>
-                    </TableRow>
-                    {!showEmptyState && (
-                        <TableRow>
-                            {TABLE_COLUMNS.map((column) => (
-                                <TableCell
-                                    key={column.id}
-                                    align={column.align}
-                                    sx={{
-                                        borderColor: 'divider',
-                                        width: column.width,
-                                        minWidth: column.width,
-                                        display: column.hideBelow ? { xs: 'none', [column.hideBelow]: 'table-cell' } : 'table-cell',
-                                        fontWeight: 800,
-                                        fontSize: '0.75rem',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: 0.2,
-                                        bgcolor: 'background.default',
-                                    }}
-                                >
-                                    {column.label}
-                                </TableCell>
-                            ))}
-                        </TableRow>
-                    )}
-                </TableHead>
-                <TableBody>
-                    {showSkeletonRows ? (
-                        Array.from({ length: 3 }).map((_, idx) => (
-                            <TableRow key={`skeleton-${idx}`}>
-                                <TableCell colSpan={TABLE_COLUMNS.length} sx={{ borderColor: 'divider', py: 1.5 }}>
-                                    <Stack direction="row" spacing={1.25} alignItems="center" sx={{ width: '100%', minWidth: 0 }}>
-                                        <Box sx={{ display: 'flex', width: { xs: 36, sm: 40 }, justifyContent: 'center' }}>
-                                            <Skeleton variant="circular" width={20} height={20} />
-                                        </Box>
-                                        <Skeleton variant="rounded" width={{ xs: 52, sm: 68 }} height={18} />
-                                        <Skeleton variant="rounded" width={{ xs: 52, sm: 68 }} height={18} />
-                                        <Skeleton variant="rounded" width={{ xs: 52, sm: 68 }} height={18} />
-                                        <Stack spacing={0.4} sx={{ flex: 1, minWidth: 0 }}>
-                                            <Skeleton variant="text" width="72%" />
-                                            <Skeleton variant="text" width="54%" />
+                        />
+                    </Stack>
+                </Stack>
+            </Box>
+
+            <TableContainer sx={{ overflow: 'visible' }}>
+                <Table
+                    size="small"
+                    stickyHeader
+                    aria-label={`Events on ${displayDate}`}
+                    sx={{
+                        width: '100%',
+                        '& .MuiTableBody-root .MuiTableRow-root:last-of-type .MuiTableCell-root': {
+                            borderBottom: 0,
+                        },
+                    }}
+                >
+                    <TableHead>
+                        {!showEmptyState && (
+                            <TableRow>
+                                {TABLE_COLUMNS.map((column) => (
+                                    <TableCell
+                                        key={column.id}
+                                        align={column.align}
+                                        sx={{
+                                            borderColor: 'divider',
+                                            width: column.width,
+                                            minWidth: column.width,
+                                            display: column.hideBelow ? { xs: 'none', [column.hideBelow]: 'table-cell' } : 'table-cell',
+                                            fontWeight: 800,
+                                            fontSize: '0.75rem',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: 0.2,
+                                            bgcolor: 'background.paper',
+                                            top: `${safeStickyOffsetTop + DAY_HEADER_HEIGHT_PX}px`,
+                                            zIndex: 899,
+                                        }}
+                                    >
+                                        {column.label}
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        )}
+                    </TableHead>
+                    <TableBody>
+                        {showSkeletonRows ? (
+                            Array.from({ length: 3 }).map((_, idx) => (
+                                <TableRow key={`skeleton-${idx}`}>
+                                    <TableCell colSpan={TABLE_COLUMNS.length} sx={{ borderColor: 'divider', py: 1.5 }}>
+                                        <Stack direction="row" spacing={1.25} alignItems="center" sx={{ width: '100%', minWidth: 0 }}>
+                                            <Box sx={{ display: 'flex', width: { xs: 36, sm: 40 }, justifyContent: 'center' }}>
+                                                <Skeleton variant="circular" width={20} height={20} />
+                                            </Box>
+                                            <Skeleton variant="rounded" width={{ xs: 52, sm: 68 }} height={18} />
+                                            <Skeleton variant="rounded" width={{ xs: 52, sm: 68 }} height={18} />
+                                            <Skeleton variant="rounded" width={{ xs: 52, sm: 68 }} height={18} />
+                                            <Stack spacing={0.4} sx={{ flex: 1, minWidth: 0 }}>
+                                                <Skeleton variant="text" width="72%" />
+                                                <Skeleton variant="text" width="54%" />
+                                            </Stack>
+                                            <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 0.75 }}>
+                                                <Skeleton variant="text" width={64} />
+                                                <Skeleton variant="text" width={64} />
+                                                <Skeleton variant="text" width={64} />
+                                            </Box>
                                         </Stack>
-                                        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 0.75 }}>
-                                            <Skeleton variant="text" width={64} />
-                                            <Skeleton variant="text" width={64} />
-                                            <Skeleton variant="text" width={64} />
-                                        </Box>
-                                    </Stack>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        ) : showEmptyState ? (
+                            <TableRow>
+                                <TableCell colSpan={TABLE_COLUMNS.length} sx={{ borderColor: 'divider', py: 2 }}>
+                                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                                        No events for this day.
+                                    </Typography>
                                 </TableCell>
                             </TableRow>
-                        ))
-                    ) : showEmptyState ? (
-                        <TableRow>
-                            <TableCell colSpan={TABLE_COLUMNS.length} sx={{ borderColor: 'divider', py: 2 }}>
-                                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                    No events for this day.
-                                </Typography>
-                            </TableCell>
-                        </TableRow>
-                    ) : (
-                        events.map((event) => {
-                            const eventKey = buildEventKey(event);
-                            const eventEpochMs = getEventEpochMs(event);
-                            const pastToday = isPastToday({ eventEpochMs, nowEpochMs, timezone });
-                            const activeNow = nowEventIds.has(eventKey);
-                            const activeNext = nextEventIds.has(eventKey);
-                            return (
-                                <EventRow
-                                    key={event.id || `${event.name}-${event.date}`}
-                                    event={event}
-                                    timezone={timezone}
-                                    onToggleFavorite={onToggleFavorite}
-                                    isFavorite={isFavorite}
-                                    isFavoritePending={isFavoritePending}
-                                    onOpenEvent={onOpenEvent}
-                                    isNow={activeNow}
-                                    isNext={activeNext}
-                                    nextCountdownLabel={activeNext ? nextCountdownLabel : null}
-                                    isPast={pastToday}
-                                    nowEpochMs={nowEpochMs}
-                                />
-                            );
-                        })
-                    )}
-                </TableBody>
-            </Table>
-        </TableContainer>
+                        ) : (
+                            events.map((event) => {
+                                const eventKey = buildEventKey(event);
+                                const eventEpochMs = getEventEpochMs(event);
+                                const pastToday = isPastToday({ eventEpochMs, nowEpochMs, timezone });
+                                const activeNow = nowEventIds.has(eventKey);
+                                const activeNext = nextEventIds.has(eventKey);
+                                return (
+                                    <EventRow
+                                        key={event.id || `${event.name}-${event.date}`}
+                                        event={event}
+                                        timezone={timezone}
+                                        onToggleFavorite={onToggleFavorite}
+                                        isFavorite={isFavorite}
+                                        isFavoritePending={isFavoritePending}
+                                        onOpenEvent={onOpenEvent}
+                                        isNow={activeNow}
+                                        isNext={activeNext}
+                                        nextCountdownLabel={activeNext ? nextCountdownLabel : null}
+                                        isPast={pastToday}
+                                        nowEpochMs={nowEpochMs}
+                                    />
+                                );
+                            })
+
+                        )}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </Paper>
     );
 });
 
@@ -810,15 +903,418 @@ DaySection.propTypes = {
     onOpenEvent: PropTypes.func,
     isToday: PropTypes.bool,
     isLoading: PropTypes.bool,
+    stickyOffsetTop: PropTypes.number,
 };
 DaySection.displayName = 'DaySection';
+
+const ClockPanel = memo(function ClockPanel({
+    timeEngine,
+    clockTimezone,
+    sessions,
+    clockStyle,
+    showSessionNamesInCanvas,
+    showPastSessionsGray,
+    showClockNumbers,
+    showClockHands,
+    showHandClock,
+    showDigitalClock,
+    showSessionLabel,
+    showTimeToEnd,
+    showTimeToStart,
+    showEventsOnCanvas,
+    eventFilters,
+    newsSource,
+    backgroundBasedOnSession,
+    selectedTimezone,
+    onOpenSettings,
+    onOpenTimezone,
+    onOpenEvent,
+}) {
+    const theme = useTheme();
+    const isXs = useMediaQuery(theme.breakpoints.only('xs'));
+    const { currentTime, activeSession, nextSession, timeToEnd, timeToStart } = useClock(clockTimezone, sessions, timeEngine);
+    const handAnglesRef = useRef({ hour: 0, minute: 0, second: 0 });
+    useClockVisibilitySnap({ handAnglesRef, currentTime, resumeToken: timeEngine?.resumeToken });
+
+    const workspaceClockContainerRef = useRef(null);
+    const [workspaceClockSize, setWorkspaceClockSize] = useState(260);
+    const [workspaceHasSize, setWorkspaceHasSize] = useState(false);
+    const [shouldRenderEventsOverlay, setShouldRenderEventsOverlay] = useState(false);
+
+    useEffect(() => {
+        const computeBaseSize = () => {
+            const vw = typeof window !== 'undefined' ? window.innerWidth : 1024;
+            const vh = typeof window !== 'undefined' ? window.innerHeight : 768;
+
+            const settingsButtonHeight = 48;
+            const totalRatio = 1;
+            const availableHeight = vh - settingsButtonHeight - 10;
+            let next = Math.floor((availableHeight / totalRatio) * 1);
+            next = Math.max(180, next);
+
+            const containerWidth = workspaceClockContainerRef.current?.getBoundingClientRect?.().width || 0;
+            const viewportGutter = vw < 600 ? 32 : 96;
+            const baseWidthBudget = containerWidth > 0 ? containerWidth : (vw - viewportGutter);
+            const labelSafeInset = isXs ? 20 : 8;
+            const widthBudget = Math.max(180, Math.floor(baseWidthBudget - labelSafeInset));
+
+            next = Math.min(next, widthBudget, 440);
+            if (isXs) {
+                next = Math.max(180, next - 8);
+            }
+
+            setWorkspaceClockSize((prev) => (prev === next ? prev : next));
+            setWorkspaceHasSize(true);
+        };
+
+        computeBaseSize();
+        const onResize = () => window.requestAnimationFrame(computeBaseSize);
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, [isXs]);
+
+    useEffect(() => {
+        if (!showEventsOnCanvas) {
+            setShouldRenderEventsOverlay(false);
+            return undefined;
+        }
+
+        let cancelled = false;
+
+        const scheduleOverlay = (cb) => {
+            if (typeof window === 'undefined') return 0;
+            if ('requestIdleCallback' in window) {
+                return window.requestIdleCallback(cb, { timeout: 1200 });
+            }
+            return window.setTimeout(cb, 550);
+        };
+
+        const cancelOverlay = (id) => {
+            if (typeof window === 'undefined') return;
+            if (typeof window.cancelIdleCallback === 'function') {
+                window.cancelIdleCallback(id);
+            } else {
+                window.clearTimeout(id);
+            }
+        };
+
+        const handle = scheduleOverlay(() => {
+            if (!cancelled) {
+                setShouldRenderEventsOverlay(true);
+            }
+        });
+
+        return () => {
+            cancelled = true;
+            cancelOverlay(handle);
+        };
+    }, [showEventsOnCanvas]);
+
+    const clockSurfaceColor = backgroundBasedOnSession && activeSession?.color ? activeSession.color : '#ffffff';
+    const clockSurfaceIsDark = useMemo(() => isColorDark(clockSurfaceColor), [clockSurfaceColor]);
+    const handColor = useMemo(() => (clockSurfaceIsDark ? '#F6F9FB' : '#0F172A'), [clockSurfaceIsDark]);
+    const clockPaperBg = useMemo(
+        () => (backgroundBasedOnSession && activeSession?.color ? activeSession.color : '#ffffff'),
+        [activeSession?.color, backgroundBasedOnSession],
+    );
+    const clockPaperTextColor = useMemo(() => {
+        if (!backgroundBasedOnSession) return '#0F172A';
+        return isColorDark(clockPaperBg) ? '#F6F9FB' : theme.palette.text.primary;
+    }, [backgroundBasedOnSession, clockPaperBg, theme.palette.text.primary]);
+
+    const todayFullDateLabel = useMemo(() => {
+        const date = new Date(timeEngine?.nowEpochMs || Date.now());
+        const baseOptions = {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        };
+
+        try {
+            return new Intl.DateTimeFormat(undefined, { ...baseOptions, timeZone: clockTimezone }).format(date);
+        } catch {
+            return new Intl.DateTimeFormat(undefined, baseOptions).format(date);
+        }
+    }, [clockTimezone, timeEngine?.nowEpochMs]);
+
+    const headerDigitalClockLabel = useMemo(() => {
+        if (!showDigitalClock || !currentTime) return null;
+
+        const hours = currentTime.getHours();
+        const minutes = currentTime.getMinutes().toString().padStart(2, '0');
+        const seconds = currentTime.getSeconds().toString().padStart(2, '0');
+
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        return `${displayHours}:${minutes}:${seconds} ${ampm}`;
+    }, [currentTime, showDigitalClock]);
+
+    const shouldShowSessionLabel = Boolean(showSessionLabel && workspaceHasSize);
+
+    return (
+        <Paper
+            elevation={0}
+            sx={{
+                position: 'relative',
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: alpha(clockPaperTextColor, 0.18),
+                bgcolor: clockPaperBg,
+                color: clockPaperTextColor,
+                p: { xs: 1.25, sm: 1.5, md: 1.75 },
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1.25,
+                minWidth: 0,
+                maxWidth: '100%',
+                width: '100%',
+            }}
+        >
+            <Stack spacing={0.75} sx={{ mb: 0.5, position: 'relative' }}>
+                <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
+                    Time 2 Trade
+                </Typography>
+                <Tooltip title="Open settings" placement="left">
+                    <IconButton
+                        size="medium"
+                        onClick={onOpenSettings}
+                        sx={{
+                            position: 'absolute',
+                            top: -2,
+                            right: 0,
+                            color: alpha(clockPaperTextColor, 0.9),
+                            p: 0.75,
+                        }}
+                        aria-label="Open settings"
+                    >
+                        <SettingsRoundedIcon fontSize="medium" />
+                    </IconButton>
+                </Tooltip>
+                <Typography variant="body2" sx={{ color: alpha(clockPaperTextColor, 0.72) }}>
+                    Today&apos;s market sessions and economic events.
+                </Typography>
+                <Divider sx={{ borderColor: alpha(clockPaperTextColor, 0.2) }} />
+                <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    sx={{
+                        mt: 0.25,
+                        gap: 1,
+                        width: '100%',
+                        minWidth: 0,
+                        flexWrap: 'wrap',
+                    }}
+                >
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                            fontWeight: 700,
+                            letterSpacing: 0.15,
+                            textAlign: 'left',
+                            color: alpha(clockPaperTextColor, 0.8),
+                            minWidth: 0,
+                            flex: '1 1 auto',
+                        }}
+                    >
+                        {todayFullDateLabel}
+                    </Typography>
+                    {headerDigitalClockLabel ? (
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                                fontWeight: 700,
+                                letterSpacing: 0.15,
+                                textAlign: 'right',
+                                color: alpha(clockPaperTextColor, 0.8),
+                                flex: '0 0 auto',
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {headerDigitalClockLabel}
+                        </Typography>
+                    ) : null}
+                </Stack>
+            </Stack>
+
+            <Stack spacing={0} alignItems="center" sx={{ p: 0, width: '100%', maxWidth: '100%' }}>
+                {showHandClock ? (
+                    <Box
+                        sx={{
+                            width: '100%',
+                            maxWidth: { xs: 420, sm: 520, md: 560 },
+                            mx: 'auto',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            p: 0,
+                            boxSizing: 'border-box',
+                        }}
+                    >
+                        <Box
+                            ref={workspaceClockContainerRef}
+                            sx={{
+                                width: '100%',
+                                aspectRatio: '1 / 1',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                p: 0,
+                            }}
+                        >
+                            <Box
+                                className="hand-clock-wrapper"
+                                sx={{
+                                    position: 'relative',
+                                    width: '100%',
+                                    maxWidth: workspaceClockSize,
+                                    aspectRatio: '1 / 1',
+                                    mx: 'auto',
+                                }}
+                            >
+                                {workspaceHasSize ? null : (
+                                    <Box
+                                        sx={{
+                                            position: 'absolute',
+                                            inset: 0,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            bgcolor: 'rgba(255,255,255,0.6)',
+                                            borderRadius: '50%',
+                                        }}
+                                    >
+                                        <LoadingAnimation
+                                            clockSize={Math.min(workspaceClockSize, 220)}
+                                            isLoading
+                                        />
+                                    </Box>
+                                )}
+
+                                {workspaceHasSize ? (
+                                    <>
+                                        <ClockCanvas
+                                            size={workspaceClockSize}
+                                            time={currentTime}
+                                            sessions={sessions}
+                                            handColor={handColor}
+                                            clockStyle={clockStyle}
+                                            showSessionNamesInCanvas={showSessionNamesInCanvas}
+                                            showPastSessionsGray={showPastSessionsGray}
+                                            showClockNumbers={showClockNumbers}
+                                            showClockHands={showClockHands}
+                                            activeSession={activeSession}
+                                            backgroundBasedOnSession={backgroundBasedOnSession}
+                                            renderHandsInCanvas={false}
+                                            handAnglesRef={handAnglesRef}
+                                        />
+                                        <ClockHandsOverlay
+                                            size={workspaceClockSize}
+                                            handAnglesRef={handAnglesRef}
+                                            handColor={handColor}
+                                            time={currentTime}
+                                            showSecondsHand={showClockHands}
+                                        />
+                                        {showEventsOnCanvas && shouldRenderEventsOverlay ? (
+                                            <Suspense fallback={null}>
+                                                <ClockEventsOverlay
+                                                    size={workspaceClockSize}
+                                                    timezone={clockTimezone}
+                                                    eventFilters={eventFilters}
+                                                    newsSource={newsSource}
+                                                    onEventClick={onOpenEvent || undefined}
+                                                    suppressTooltipAutoscroll
+                                                />
+                                            </Suspense>
+                                        ) : null}
+                                    </>
+                                ) : null}
+                            </Box>
+                        </Box>
+                    </Box>
+                ) : (
+                    <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center', width: '100%' }}>
+                        Clock hidden in settings.
+                    </Typography>
+                )}
+                {workspaceHasSize ? (
+                    <Button
+                        variant="text"
+                        size="small"
+                        onClick={onOpenTimezone}
+                        sx={{
+                            textTransform: 'none',
+                            color: alpha(handColor, 0.7),
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            minWidth: 'auto',
+                            px: 1,
+                            py: 0.5,
+                            mt: 0.25,
+                            '&:hover': {
+                                bgcolor: alpha(handColor, 0.08),
+                                color: handColor,
+                            },
+                        }}
+                    >
+                        {selectedTimezone?.replace(/_/g, ' ') || 'Select Timezone'}
+                    </Button>
+                ) : null}
+                {shouldShowSessionLabel && workspaceHasSize ? (
+                    <SessionLabel
+                        activeSession={activeSession}
+                        showTimeToEnd={showTimeToEnd}
+                        timeToEnd={timeToEnd}
+                        showTimeToStart={showTimeToStart}
+                        nextSession={nextSession}
+                        timeToStart={timeToStart}
+                        clockSize={workspaceClockSize}
+                        contrastTextColor={handColor}
+                        backgroundBasedOnSession={backgroundBasedOnSession}
+                    />
+                ) : null}
+            </Stack>
+        </Paper>
+    );
+});
+
+ClockPanel.propTypes = {
+    timeEngine: PropTypes.object,
+    clockTimezone: PropTypes.string.isRequired,
+    sessions: PropTypes.arrayOf(PropTypes.object).isRequired,
+    clockStyle: PropTypes.string,
+    showSessionNamesInCanvas: PropTypes.bool,
+    showPastSessionsGray: PropTypes.bool,
+    showClockNumbers: PropTypes.bool,
+    showClockHands: PropTypes.bool,
+    showHandClock: PropTypes.bool,
+    showDigitalClock: PropTypes.bool,
+    showSessionLabel: PropTypes.bool,
+    showTimeToEnd: PropTypes.bool,
+    showTimeToStart: PropTypes.bool,
+    showEventsOnCanvas: PropTypes.bool,
+    eventFilters: PropTypes.object,
+    newsSource: PropTypes.string,
+    backgroundBasedOnSession: PropTypes.bool,
+    selectedTimezone: PropTypes.string,
+    onOpenSettings: PropTypes.func,
+    onOpenTimezone: PropTypes.func,
+    onOpenEvent: PropTypes.func,
+};
+ClockPanel.displayName = 'ClockPanel';
 
 export default function CalendarEmbed({
     title = 'Economic Calendar',
     onOpenAuth = null,
     showSeoCopy = true,
+    appBar = null,
+    isCalendarRoute = false,
 }) {
     const theme = useTheme();
+    const isXs = useMediaQuery(theme.breakpoints.only('xs'));
     const isTwoColumn = useMediaQuery(theme.breakpoints.up('md'));
     const { user } = useAuth();
     const {
@@ -859,18 +1355,48 @@ export default function CalendarEmbed({
 
     const clockTimezone = selectedTimezone || timezone;
     const timeEngine = useTimeEngine(clockTimezone);
-    const { currentTime, activeSession, nextSession, timeToEnd, timeToStart } = useClock(clockTimezone, sessions, timeEngine);
-    const handAnglesRef = useRef({ hour: 0, minute: 0, second: 0 });
-    useClockVisibilitySnap({ handAnglesRef, currentTime, resumeToken: timeEngine?.resumeToken });
-
-    const [workspaceClockSize, setWorkspaceClockSize] = useState(260);
-    const [workspaceHasSize, setWorkspaceHasSize] = useState(false);
-    const [shouldRenderEventsOverlay, setShouldRenderEventsOverlay] = useState(false);
-    const workspaceClockContainerRef = useRef(null);
     const adRef = useRef(null);
     const adInitializedRef = useRef(false);
     const [prevDateRangeKey, setPrevDateRangeKey] = useState(null);
     const [isLoadingNewRange, setIsLoadingNewRange] = useState(false);
+    const [tableNowEpochMs, setTableNowEpochMs] = useState(() => timeEngine?.nowEpochMs ?? getNowEpochMs(clockTimezone));
+    const tableNowRef = useRef(tableNowEpochMs);
+    const timeEngineNowRef = useRef(timeEngine?.nowEpochMs ?? null);
+
+    useEffect(() => {
+        timeEngineNowRef.current = timeEngine?.nowEpochMs ?? null;
+    }, [timeEngine?.nowEpochMs]);
+
+    useEffect(() => {
+        const next = timeEngineNowRef.current ?? getNowEpochMs(clockTimezone);
+        tableNowRef.current = next;
+        setTableNowEpochMs(next);
+    }, [clockTimezone, timeEngine?.resumeToken]);
+
+    useEffect(() => {
+        let cancelled = false;
+        let timerId = null;
+
+        const tick = () => {
+            const next = timeEngineNowRef.current ?? getNowEpochMs(clockTimezone);
+            if (Math.abs(next - tableNowRef.current) >= 900) {
+                tableNowRef.current = next;
+                setTableNowEpochMs(next);
+            }
+            if (!cancelled) {
+                timerId = window.setTimeout(tick, 1500);
+            }
+        };
+
+        timerId = window.setTimeout(tick, 1500);
+
+        return () => {
+            cancelled = true;
+            if (timerId) {
+                window.clearTimeout(timerId);
+            }
+        };
+    }, [clockTimezone, timeEngine?.resumeToken]);
 
     // Detect fetch-triggering filter changes (NOT local-only filters like search/favorites)
     const fetchKey = useMemo(() => {
@@ -913,99 +1439,17 @@ export default function CalendarEmbed({
         isEventNotesLoading,
     } = useEventNotes();
 
-    const [nowEpochMs, setNowEpochMs] = useState(() => timeEngine?.nowEpochMs ?? getNowEpochMs(clockTimezone));
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [noteTarget, setNoteTarget] = useState(null);
     const [settingsOpen, setSettingsOpen] = useState(false);
+    const [contactModalOpen, setContactModalOpen] = useState(false);
     const [timezoneModalOpen, setTimezoneModalOpen] = useState(false);
     const [newsSourceModalOpen, setNewsSourceModalOpen] = useState(false);
     const [forexFactoryModalOpen, setForexFactoryModalOpen] = useState(false);
     const [isFiltersStuck, setIsFiltersStuck] = useState(false);
     const isMobileFiltersStuck = !isTwoColumn && isFiltersStuck;
-
-    useEffect(() => {
-        if (timeEngine?.nowEpochMs) {
-            setNowEpochMs(timeEngine.nowEpochMs);
-        }
-    }, [timeEngine?.nowEpochMs]);
-
-    useEffect(() => {
-        const computeBaseSize = () => {
-            const vw = typeof window !== 'undefined' ? window.innerWidth : 1024;
-            const vh = typeof window !== 'undefined' ? window.innerHeight : 768;
-
-            // Mirror /app sizing heuristics: prioritize height, clamp by width, ensure mobile margins.
-            const settingsButtonHeight = 48;
-            const totalRatio = 1; // Only analog clock in this panel.
-            const availableHeight = vh - settingsButtonHeight - 10;
-            let next = Math.floor((availableHeight / totalRatio) * 1);
-            next = Math.max(180, next);
-            const horizontalMargin = vw < 600 ? 16 : 48;
-            const maxWidthSize = vw - horizontalMargin;
-            next = Math.min(next, maxWidthSize, 440);
-
-            setWorkspaceClockSize((prev) => (prev === next ? prev : next));
-            setWorkspaceHasSize(true);
-        };
-
-        computeBaseSize();
-        const onResize = () => window.requestAnimationFrame(computeBaseSize);
-        window.addEventListener('resize', onResize);
-        return () => window.removeEventListener('resize', onResize);
-    }, []);
-
-    useEffect(() => {
-        if (!showEventsOnCanvas) {
-            setShouldRenderEventsOverlay(false);
-            return () => { };
-        }
-
-        let cancelled = false;
-
-        const scheduleOverlay = (cb) => {
-            if (typeof window === 'undefined') return 0;
-            if ('requestIdleCallback' in window) {
-                return window.requestIdleCallback(cb, { timeout: 1200 });
-            }
-            return window.setTimeout(cb, 550);
-        };
-
-        const cancelOverlay = (id) => {
-            if (typeof window === 'undefined') return;
-            if (typeof window.cancelIdleCallback === 'function') {
-                window.cancelIdleCallback(id);
-            } else {
-                window.clearTimeout(id);
-            }
-        };
-
-        const handle = scheduleOverlay(() => {
-            if (!cancelled) {
-                setShouldRenderEventsOverlay(true);
-            }
-        });
-
-        return () => {
-            cancelled = true;
-            cancelOverlay(handle);
-        };
-    }, [showEventsOnCanvas]);
-
-    const clockSurfaceColor = backgroundBasedOnSession && activeSession?.color ? activeSession.color : '#ffffff';
-    const clockSurfaceIsDark = useMemo(() => isColorDark(clockSurfaceColor), [clockSurfaceColor]);
-    const handColor = useMemo(() => (clockSurfaceIsDark ? '#F6F9FB' : '#0F172A'), [clockSurfaceIsDark]);
     const overlayEventFilters = useMemo(() => filters || settingsEventFilters, [filters, settingsEventFilters]);
     const overlayNewsSource = newsSource || settingsNewsSource;
-
-    const clockPaperBg = useMemo(() => (backgroundBasedOnSession && activeSession?.color ? activeSession.color : '#ffffff'), [activeSession?.color, backgroundBasedOnSession]);
-    const clockPaperTextColor = useMemo(() => {
-        if (!backgroundBasedOnSession) return '#0F172A';
-        return isColorDark(clockPaperBg) ? '#F6F9FB' : theme.palette.text.primary;
-    }, [backgroundBasedOnSession, clockPaperBg, theme.palette.text.primary]);
-
-    const shouldShowDigitalClock = showDigitalClock !== false;
-    const sessionLabelVisible = false;
-    const shouldShowSessionLabel = sessionLabelVisible && showSessionLabel !== false;
 
     const dayKeys = useMemo(
         () => buildDaySequence(filters.startDate, filters.endDate, timezone),
@@ -1044,8 +1488,8 @@ export default function CalendarEmbed({
     const todayKey = useMemo(() => getDayKey(new Date(), timezone), [timezone]);
 
     const nowNextState = useMemo(
-        () => computeNowNextState({ events, nowEpochMs, nowWindowMs: NOW_WINDOW_MS, buildKey: buildEventKey }),
-        [events, nowEpochMs],
+        () => computeNowNextState({ events, nowEpochMs: tableNowEpochMs, nowWindowMs: NOW_WINDOW_MS, buildKey: buildEventKey }),
+        [events, tableNowEpochMs],
     );
 
     const prevNowEventIdsRef = useRef(new Set());
@@ -1053,7 +1497,11 @@ export default function CalendarEmbed({
     const filtersBoxRef = useRef(null);
     const rightScrollRef = useRef(null);
     const leftScrollRef = useRef(null);
-    const [showBackToTop, setShowBackToTop] = useState(false);
+    const [showJumpToNext, setShowJumpToNext] = useState(false);
+    const [showJumpToNow, setShowJumpToNow] = useState(false);
+    const [jumpToNextDirection, setJumpToNextDirection] = useState('down');
+    const [jumpToNowDirection, setJumpToNowDirection] = useState('down');
+    const [filtersStickyHeight, setFiltersStickyHeight] = useState(0);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -1075,27 +1523,33 @@ export default function CalendarEmbed({
         };
     }, []);
 
+    // Measure the sticky filters height so day headers can pin directly beneath it.
     useEffect(() => {
-        const target = rightScrollRef.current || window;
-        if (!target) return undefined;
+        if (typeof window === 'undefined') return undefined;
+        const el = filtersBoxRef.current;
+        if (!el || typeof ResizeObserver === 'undefined') return undefined;
 
-        const handleScroll = () => {
-            const viewportHeight = target === window
-                ? (document.documentElement?.clientHeight || window.innerHeight || 0)
-                : (target?.clientHeight || 0);
-            const scrolled = target === window
-                ? (window.scrollY || document.documentElement.scrollTop || 0)
-                : (target?.scrollTop || 0);
-            const threshold = viewportHeight * 0.3;
-            setShowBackToTop(scrolled > threshold);
+        const measure = () => {
+            const rect = el.getBoundingClientRect();
+            const next = Math.max(0, Math.round(rect.height));
+            setFiltersStickyHeight((prev) => (prev === next ? prev : next));
         };
 
-        const options = { passive: true };
-        target.addEventListener('scroll', handleScroll, options);
-        handleScroll();
+        measure();
+        const ro = new ResizeObserver(() => measure());
+        ro.observe(el);
+        window.addEventListener('resize', measure);
 
-        return () => target.removeEventListener('scroll', handleScroll, options);
-    }, [isTwoColumn]);
+        return () => {
+            ro.disconnect();
+            window.removeEventListener('resize', measure);
+        };
+    }, []);
+
+    const daySectionStickyOffsetTop = useMemo(
+        () => Math.max(0, filtersStickyHeight - (isXs ? 1 : 0)),
+        [filtersStickyHeight, isXs],
+    );
 
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;
@@ -1104,58 +1558,72 @@ export default function CalendarEmbed({
 
         let cleanupScript;
         let resizeObserver;
+        let visibilityObserver;
+        let idleHandle;
+
+        const schedule = (cb) => {
+            if (typeof window.requestIdleCallback === 'function') {
+                return window.requestIdleCallback(cb, { timeout: 1800 });
+            }
+            return window.setTimeout(cb, 1200);
+        };
+
+        const cancelSchedule = (handle) => {
+            if (!handle) return;
+            if (typeof window.cancelIdleCallback === 'function') {
+                window.cancelIdleCallback(handle);
+            } else {
+                window.clearTimeout(handle);
+            }
+        };
+
+        const pushAd = () => {
+            if (!adRef.current || adInitializedRef.current) return;
+
+            const container = adRef.current.parentElement;
+            if (!container) return;
+
+            const rect = container.getBoundingClientRect();
+            const width = rect.width || container.offsetWidth;
+
+            if (width <= 0) {
+                if (!resizeObserver) {
+                    resizeObserver = new ResizeObserver((entries) => {
+                        for (const entry of entries) {
+                            const entryWidth = entry.contentRect.width || entry.target.offsetWidth;
+                            if (entryWidth > 0 && !adInitializedRef.current) {
+                                pushAd();
+                                if (resizeObserver) {
+                                    resizeObserver.disconnect();
+                                    resizeObserver = null;
+                                }
+                            }
+                        }
+                    });
+                    resizeObserver.observe(container);
+                }
+                return;
+            }
+
+            adInitializedRef.current = true;
+            try {
+                window.adsbygoogle = window.adsbygoogle || [];
+                window.adsbygoogle.requestNonPersonalizedAds = hasAdConsent() ? 0 : 1;
+                window.adsbygoogle.push({});
+            } catch {
+                adInitializedRef.current = false;
+            }
+        };
 
         const loadScriptAndPush = () => {
             if (adInitializedRef.current) return;
             let script = document.querySelector('script#t2t-adsense');
 
-            const pushAd = () => {
-                if (!adRef.current || adInitializedRef.current) return;
-
-                // Ensure the ad container has proper width before pushing
-                const container = adRef.current.parentElement;
-                if (!container) return;
-
-                const rect = container.getBoundingClientRect();
-                const width = rect.width || container.offsetWidth;
-
-                // Don't push if container has no width
-                if (width <= 0) {
-                    // Wait for container to have proper width
-                    if (!resizeObserver) {
-                        resizeObserver = new ResizeObserver((entries) => {
-                            for (const entry of entries) {
-                                const entryWidth = entry.contentRect.width || entry.target.offsetWidth;
-                                if (entryWidth > 0 && !adInitializedRef.current) {
-                                    pushAd();
-                                    if (resizeObserver) {
-                                        resizeObserver.disconnect();
-                                        resizeObserver = null;
-                                    }
-                                }
-                            }
-                        });
-                        resizeObserver.observe(container);
-                    }
-                    return;
-                }
-
-                adInitializedRef.current = true;
-                try {
-                    window.adsbygoogle = window.adsbygoogle || [];
-                    window.adsbygoogle.requestNonPersonalizedAds = hasAdConsent() ? 0 : 1;
-                    window.adsbygoogle.push({});
-                } catch {
-                    adInitializedRef.current = false;
-                }
-            };
-
             const handleScriptLoad = () => {
                 if (script) {
                     script.setAttribute('data-loaded', 'true');
                 }
-                // Add small delay to ensure container is rendered
-                setTimeout(pushAd, 100);
+                window.setTimeout(pushAd, 120);
             };
 
             if (!script) {
@@ -1170,27 +1638,52 @@ export default function CalendarEmbed({
                     script.removeEventListener('load', handleScriptLoad);
                 };
             } else if (script.getAttribute('data-loaded') === 'true' || script.readyState === 'complete') {
-                setTimeout(pushAd, 100);
+                window.setTimeout(pushAd, 120);
             } else {
                 script.addEventListener('load', handleScriptLoad);
                 cleanupScript = () => script.removeEventListener('load', handleScriptLoad);
             }
         };
 
-        loadScriptAndPush();
+        const triggerLoad = () => {
+            if (adInitializedRef.current) return;
+            cancelSchedule(idleHandle);
+            idleHandle = schedule(loadScriptAndPush);
+        };
+
+        visibilityObserver = new IntersectionObserver(
+            ([entry]) => {
+                if (entry?.isIntersecting) {
+                    triggerLoad();
+                    if (visibilityObserver) {
+                        visibilityObserver.disconnect();
+                        visibilityObserver = null;
+                    }
+                }
+            },
+            { rootMargin: '128px' },
+        );
+
+        visibilityObserver.observe(adSlot);
+
         const unsubscribe = subscribeConsent(() => {
             adInitializedRef.current = false;
+            cancelSchedule(idleHandle);
             if (resizeObserver) {
                 resizeObserver.disconnect();
                 resizeObserver = null;
             }
-            loadScriptAndPush();
+            triggerLoad();
         });
 
         return () => {
+            cancelSchedule(idleHandle);
             if (cleanupScript) cleanupScript();
             if (resizeObserver) {
                 resizeObserver.disconnect();
+            }
+            if (visibilityObserver) {
+                visibilityObserver.disconnect();
             }
             unsubscribe();
         };
@@ -1213,11 +1706,72 @@ export default function CalendarEmbed({
     const nextEventEpochMs = nowNextState.nextEventEpochMs;
 
     const nextCountdownLabel = useMemo(
-        () => (nextEventEpochMs ? formatCountdownHMS(Math.max(0, nextEventEpochMs - nowEpochMs)) : null),
-        [nextEventEpochMs, nowEpochMs],
+        () => (nextEventEpochMs ? formatCountdownHMS(Math.max(0, nextEventEpochMs - tableNowEpochMs)) : null),
+        [nextEventEpochMs, tableNowEpochMs],
     );
 
-    const scrollEventIntoView = useCallback((event) => {
+    const scrollFlashRef = useRef({ timerId: null, els: new Set() });
+
+    const clearScrollFlash = useCallback(() => {
+        if (typeof window === 'undefined') return;
+        if (scrollFlashRef.current.timerId) {
+            window.clearTimeout(scrollFlashRef.current.timerId);
+            scrollFlashRef.current.timerId = null;
+        }
+
+        if (scrollFlashRef.current.els?.size) {
+            for (const el of scrollFlashRef.current.els) {
+                el.removeAttribute('data-t2t-scroll-flash');
+            }
+            scrollFlashRef.current.els.clear();
+        }
+    }, []);
+
+    const flashAllNextRows = useCallback(() => {
+        if (typeof document === 'undefined') return;
+
+        const scrollRoot = rightScrollRef.current
+            || document.querySelector('[data-t2t-calendar-scroll-root="true"]')
+            || document;
+
+        const nextRows = scrollRoot.querySelectorAll('[data-t2t-next-event-row="true"]');
+        if (!nextRows.length) return;
+
+        clearScrollFlash();
+
+        nextRows.forEach((row) => {
+            row.setAttribute('data-t2t-scroll-flash', 'true');
+            scrollFlashRef.current.els.add(row);
+        });
+
+        scrollFlashRef.current.timerId = window.setTimeout(() => {
+            clearScrollFlash();
+        }, 1500);
+    }, [clearScrollFlash]);
+
+    const flashAllNowRows = useCallback(() => {
+        if (typeof document === 'undefined') return;
+
+        const scrollRoot = rightScrollRef.current
+            || document.querySelector('[data-t2t-calendar-scroll-root="true"]')
+            || document;
+
+        const nowRows = scrollRoot.querySelectorAll('[data-t2t-now-event-row="true"]');
+        if (!nowRows.length) return;
+
+        clearScrollFlash();
+
+        nowRows.forEach((row) => {
+            row.setAttribute('data-t2t-scroll-flash', 'true');
+            scrollFlashRef.current.els.add(row);
+        });
+
+        scrollFlashRef.current.timerId = window.setTimeout(() => {
+            clearScrollFlash();
+        }, 1500);
+    }, [clearScrollFlash]);
+
+    const scrollEventIntoView = useCallback((event, options = {}) => {
         if (!event || typeof document === 'undefined') return;
         const eventKey = buildEventKey(event);
         if (!eventKey) return;
@@ -1227,8 +1781,18 @@ export default function CalendarEmbed({
         if (target) {
             // Center the event in the viewport on all breakpoints
             target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+
+            if (options.flash) {
+                clearScrollFlash();
+                target.setAttribute('data-t2t-scroll-flash', 'true');
+                scrollFlashRef.current.els.add(target);
+
+                scrollFlashRef.current.timerId = window.setTimeout(() => {
+                    clearScrollFlash();
+                }, 1500);
+            }
         }
-    }, []);
+    }, [clearScrollFlash]);
 
     const scrollToNextEvent = useCallback(() => {
         if (nextEventIds.size === 0 || events.length === 0) return;
@@ -1240,21 +1804,193 @@ export default function CalendarEmbed({
         });
 
         if (firstNextEvent) {
+            // When the user explicitly jumps back to the NEXT event, highlight all NEXT rows
+            // so it's easy to spot additional upcoming items in the same window.
+            flashAllNextRows();
             scrollEventIntoView(firstNextEvent);
         }
-    }, [nextEventIds, events, scrollEventIntoView]);
+    }, [events, flashAllNextRows, nextEventIds, scrollEventIntoView]);
 
-    const handleBackToTop = useCallback(() => {
-        const scrollTarget = rightScrollRef.current || window;
-        if (scrollTarget && scrollTarget.scrollTo) {
-            scrollTarget.scrollTo({ top: 0, behavior: 'smooth' });
-        } else if (typeof window !== 'undefined') {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+    const scrollToNowEvent = useCallback(() => {
+        if (nowEventIds.size === 0 || events.length === 0) return;
+
+        // Find the first NOW event in the events array
+        const firstNowEvent = events.find((event) => {
+            const eventKey = buildEventKey(event);
+            return nowEventIds.has(eventKey);
+        });
+
+        if (firstNowEvent) {
+            // When the user explicitly jumps to a NOW event, highlight all NOW rows
+            // so it's easy to spot all in-progress events.
+            flashAllNowRows();
+            scrollEventIntoView(firstNowEvent);
         }
-        if (isTwoColumn && leftScrollRef.current && leftScrollRef.current.scrollTo) {
-            leftScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [events, flashAllNowRows, nowEventIds, scrollEventIntoView]);
+
+    const nowEventKey = useMemo(() => {
+        if (nowEventIds.size === 0 || events.length === 0) return null;
+
+        const firstNowEvent = events.find((event) => {
+            const eventKey = buildEventKey(event);
+            return nowEventIds.has(eventKey);
+        });
+
+        return firstNowEvent ? buildEventKey(firstNowEvent) : null;
+    }, [events, nowEventIds]);
+
+    const nextEventKey = useMemo(() => {
+        if (nextEventIds.size === 0 || events.length === 0) return null;
+
+        const firstNextEvent = events.find((event) => {
+            const eventKey = buildEventKey(event);
+            return nextEventIds.has(eventKey);
+        });
+
+        return firstNextEvent ? buildEventKey(firstNextEvent) : null;
+    }, [events, nextEventIds]);
+
+    useEffect(() => {
+        if (typeof document === 'undefined') return undefined;
+        if (!nextEventKey) {
+            setShowJumpToNext(false);
+            setJumpToNextDirection('down');
+            return undefined;
         }
-    }, [isTwoColumn]);
+
+        const scrollRoot = rightScrollRef.current || document.querySelector('[data-t2t-calendar-scroll-root="true"]');
+        if (!scrollRoot) {
+            setShowJumpToNext(false);
+            return undefined;
+        }
+
+        const escapedKey = typeof window !== 'undefined' && window.CSS?.escape
+            ? window.CSS.escape(nextEventKey)
+            : nextEventKey.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+        const nextRow = scrollRoot.querySelector(`[data-t2t-event-row-key="${escapedKey}"]`);
+        if (!nextRow) {
+            setShowJumpToNext(false);
+            return undefined;
+        }
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                // Show the CTA only when a NEXT event exists but is not currently visible.
+                const shouldShow = !entry.isIntersecting;
+                setShowJumpToNext(shouldShow);
+
+                if (!shouldShow) return;
+
+                const rootBounds = entry.rootBounds;
+                const itemRect = entry.boundingClientRect;
+
+                if (rootBounds) {
+                    // If the top of the NEXT row is above the viewport, it's "above".
+                    setJumpToNextDirection(itemRect.top < rootBounds.top ? 'up' : 'down');
+                    return;
+                }
+
+                // Fallback for environments without rootBounds.
+                const rootRect = scrollRoot.getBoundingClientRect?.();
+                if (rootRect) {
+                    setJumpToNextDirection(itemRect.top < rootRect.top ? 'up' : 'down');
+                } else {
+                    setJumpToNextDirection('down');
+                }
+            },
+            {
+                root: scrollRoot,
+                threshold: 0.15,
+            }
+        );
+
+        observer.observe(nextRow);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [nextEventKey, visibleDayKeys.length, showSkeletons, isTwoColumn]);
+
+    // NOW event visibility detection - NOW takes priority over NEXT for the jump button
+    useEffect(() => {
+        if (typeof document === 'undefined') return undefined;
+        if (!nowEventKey) {
+            setShowJumpToNow(false);
+            setJumpToNowDirection('down');
+            return undefined;
+        }
+
+        const scrollRoot = rightScrollRef.current || document.querySelector('[data-t2t-calendar-scroll-root="true"]');
+        if (!scrollRoot) {
+            setShowJumpToNow(false);
+            return undefined;
+        }
+
+        const escapedKey = typeof window !== 'undefined' && window.CSS?.escape
+            ? window.CSS.escape(nowEventKey)
+            : nowEventKey.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+        // Retry finding the DOM element if not immediately available (DOM might not be ready yet)
+        let nowRow = scrollRoot.querySelector(`[data-t2t-event-row-key="${escapedKey}"]`);
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        const trySetupObserver = () => {
+            if (!nowRow && retryCount < maxRetries) {
+                retryCount += 1;
+                setTimeout(() => {
+                    nowRow = scrollRoot.querySelector(`[data-t2t-event-row-key="${escapedKey}"]`);
+                    trySetupObserver();
+                }, 50 * retryCount);
+                return;
+            }
+
+            if (!nowRow) {
+                setShowJumpToNow(false);
+                return;
+            }
+
+            const observer = new IntersectionObserver(
+                ([entry]) => {
+                    // Show the CTA only when a NOW event exists but is not currently visible.
+                    const shouldShow = !entry.isIntersecting;
+                    setShowJumpToNow(shouldShow);
+
+                    if (!shouldShow) return;
+
+                    const rootBounds = entry.rootBounds;
+                    const itemRect = entry.boundingClientRect;
+
+                    if (rootBounds) {
+                        // If the top of the NOW row is above the viewport, it's "above".
+                        setJumpToNowDirection(itemRect.top < rootBounds.top ? 'up' : 'down');
+                        return;
+                    }
+
+                    // Fallback for environments without rootBounds.
+                    const rootRect = scrollRoot.getBoundingClientRect?.();
+                    if (rootRect) {
+                        setJumpToNowDirection(itemRect.top < rootRect.top ? 'up' : 'down');
+                    } else {
+                        setJumpToNowDirection('down');
+                    }
+                },
+                {
+                    root: scrollRoot,
+                    threshold: 0.15,
+                }
+            );
+
+            observer.observe(nowRow);
+
+            return () => {
+                observer.disconnect();
+            };
+        };
+
+        return trySetupObserver();
+    }, [nowEventKey, nowEventIds, events, visibleDayKeys.length, showSkeletons, isTwoColumn]);
 
     const handleToggleFavorite = useCallback(async (event) => {
         const result = await toggleFavorite(event);
@@ -1293,7 +2029,11 @@ export default function CalendarEmbed({
         }
 
         if (meta?.source === 'canvas-tooltip') {
-            scrollEventIntoView(event);
+            // Clock tooltip rows should scroll to the corresponding table row only.
+            // EventModal must only open from the Economic Calendar table click path.
+            setSelectedEvent(null);
+            scrollEventIntoView(event, { flash: true });
+            return;
         }
         setSelectedEvent(event);
     }, [onOpenAuth, scrollEventIntoView, user]);
@@ -1338,340 +2078,46 @@ export default function CalendarEmbed({
         return result;
     }, [noteTarget, onOpenAuth, removeNote]);
 
-    const renderWorkspaceSkeleton = !workspaceHasSize;
-    const shouldShowTimezoneButton = !renderWorkspaceSkeleton;
     const lastUpdatedLabel = useMemo(() => (lastUpdated ? lastUpdated.toLocaleTimeString() : null), [lastUpdated]);
 
-    const sponsoredBanner = (
-        <Box
-            sx={{
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                px: { xs: 1.5, sm: 2 },
-                py: { xs: 1.75, sm: 2 },
-                bgcolor: '#0f172a',
-                color: '#e2e8f0',
-            }}
-        >
-            <Box
-                component="a"
-                href="https://www.tradingview.com/chart/?aff_id=143157&utm_source=creative&utm_lang=EN"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Open TradingView chart (referral)"
-                sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '100%',
-                    maxWidth: 468,
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                }}
-            >
-                <Box
-                    component="img"
-                    src="https://s3.tradingview.com/pub/referrals/creatives/WT/EN/468x60Banner.jpg"
-                    srcSet="https://s3.tradingview.com/pub/referrals/creatives/WT/EN/936x120Banner.jpg 2x"
-                    alt="TradingView referral banner"
-                    loading="lazy"
-                    sx={{
-                        width: '100%',
-                        maxWidth: 468,
-                        height: 'auto',
-                        maxHeight: 60,
-                        display: 'block',
-                        borderRadius: 2,
-                    }}
-                />
-            </Box>
-        </Box>
-    );
-    const rectangleBannerTwoColumn = (
-        <Box
-            sx={{
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                px: { xs: 0.75, sm: 1 },
-                py: { xs: 1, sm: 1.25 },
-            }}
-        >
-            <Box
-                component="a"
-                href="https://www.tradingview.com/chart/?aff_id=143157&utm_source=creative&utm_lang=EN"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Open TradingView chart (referral)"
-                sx={{
-                    display: 'block',
-                    width: '100%',
-                    maxWidth: { xs: 360, sm: 468 },
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                }}
-            >
-                <Box
-                    component="img"
-                    src="https://s3.tradingview.com/pub/referrals/creatives/WT/EN/468x60Banner.jpg"
-                    srcSet="https://s3.tradingview.com/pub/referrals/creatives/WT/EN/936x120Banner.jpg 2x"
-                    alt="TradingView referral banner"
-                    loading="lazy"
-                    sx={{
-                        width: '100%',
-                        height: 'auto',
-                        maxWidth: 468,
-                        display: 'block',
-                        borderRadius: 2,
-                    }}
-                />
-            </Box>
-        </Box>
+    const clockPanel = (
+        <ClockPanel
+            timeEngine={timeEngine}
+            clockTimezone={clockTimezone}
+            sessions={sessions}
+            clockStyle={clockStyle}
+            showSessionNamesInCanvas={showSessionNamesInCanvas}
+            showPastSessionsGray={showPastSessionsGray}
+            showClockNumbers={showClockNumbers}
+            showClockHands={showClockHands}
+            showHandClock={showHandClock}
+            showDigitalClock={showDigitalClock}
+            showSessionLabel={showSessionLabel}
+            showTimeToEnd={showTimeToEnd}
+            showTimeToStart={showTimeToStart}
+            showEventsOnCanvas={showEventsOnCanvas}
+            eventFilters={overlayEventFilters}
+            newsSource={overlayNewsSource}
+            backgroundBasedOnSession={backgroundBasedOnSession}
+            selectedTimezone={selectedTimezone}
+            onOpenSettings={() => setSettingsOpen(true)}
+            onOpenTimezone={() => setTimezoneModalOpen(true)}
+            onOpenEvent={handleOpenEvent}
+        />
     );
 
-    const rectangleBannerSingleColumn = (
-        <Box
-            sx={{
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                px: { xs: 0.75, sm: 1 },
-                py: { xs: 1, sm: 1.25 },
-            }}
-        >
-            <Box
-                component="a"
-                href="https://www.tradingview.com/chart/?aff_id=143157&utm_source=creative&utm_lang=EN"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Open TradingView chart (referral)"
-                sx={{
-                    display: 'block',
-                    width: '100%',
-                    maxWidth: { xs: 336, sm: 360 },
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                }}
-            >
-                <Box
-                    component="img"
-                    src="https://s3.tradingview.com/pub/referrals/creatives/WT/EN/336x280LargeRectangle.jpg"
-                    srcSet="https://s3.tradingview.com/pub/referrals/creatives/WT/EN/672x560LargeRectangle.jpg 2x"
-                    alt="TradingView referral banner"
-                    loading="lazy"
-                    sx={{
-                        width: '100%',
-                        height: 'auto',
-                        maxWidth: 336,
-                        display: 'block',
-                        borderRadius: 2,
-                    }}
-                />
-            </Box>
-        </Box>
-    );
+    const leftRailContent = isTwoColumn ? clockPanel : null;
 
-    const leftRailContent = isTwoColumn ? (
-        <>
-            <Paper
-                elevation={0}
-                sx={{
-                    position: 'relative',
-                    borderRadius: 3,
-                    border: '1px solid',
-                    borderColor: alpha(clockPaperTextColor, 0.18),
-                    bgcolor: clockPaperBg,
-                    color: clockPaperTextColor,
-                    p: { xs: 1.25, sm: 1.5, md: 1.75 },
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 1.25,
-                    minWidth: 0,
-                    maxWidth: '100%',
-                    width: '100%',
-                }}
-            >
-                <Stack spacing={0.75} sx={{ mb: 0.5, position: 'relative' }}>
-                    <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
-                        Time 2 Trade
-                    </Typography>
-                    <Tooltip title="Open settings" placement="left">
-                        <IconButton
-                            size="medium"
-                            onClick={() => setSettingsOpen(true)}
-                            sx={{
-                                position: 'absolute',
-                                top: -2,
-                                right: 0,
-                                color: alpha(clockPaperTextColor, 0.9),
-                                p: 0.75,
-                            }}
-                            aria-label="Open settings"
-                        >
-                            <SettingsRoundedIcon fontSize="medium" />
-                        </IconButton>
-                    </Tooltip>
-                    <Typography variant="body2" sx={{ color: alpha(clockPaperTextColor, 0.72) }}>
-                        Today&apos;s market sessions and economic events in one place.
-                    </Typography>
-                    <Divider sx={{ borderColor: alpha(clockPaperTextColor, 0.2) }} />
-                </Stack>
-
-                <Stack spacing={0} alignItems="center" sx={{ p: 0, width: '100%', maxWidth: '100%' }}>
-                    {showHandClock ? (
-                        <Box
-                            sx={{
-                                width: '100%',
-                                maxWidth: { xs: 420, sm: 520, md: 560 },
-                                mx: 'auto',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                p: 0,
-                                boxSizing: 'border-box',
-                            }}
-                        >
-                            <Box
-                                ref={workspaceClockContainerRef}
-                                sx={{
-                                    width: '100%',
-                                    aspectRatio: '1 / 1',
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    p: 0,
-                                }}
-                            >
-                                <Box className="hand-clock-wrapper" sx={{ position: 'relative', width: workspaceClockSize, height: workspaceClockSize, maxWidth: '100%' }}>
-                                    {renderWorkspaceSkeleton ? (
-                                        <Box
-                                            sx={{
-                                                position: 'absolute',
-                                                inset: 0,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                bgcolor: 'rgba(255,255,255,0.6)',
-                                                borderRadius: '50%',
-                                            }}
-                                        >
-                                            <LoadingAnimation
-                                                clockSize={Math.min(workspaceClockSize, 220)}
-                                                isLoading
-                                            />
-                                        </Box>
-                                    ) : null}
-
-                                    {!renderWorkspaceSkeleton ? (
-                                        <>
-                                            <ClockCanvas
-                                                size={workspaceClockSize}
-                                                time={currentTime}
-                                                sessions={sessions}
-                                                handColor={handColor}
-                                                clockStyle={clockStyle}
-                                                showSessionNamesInCanvas={showSessionNamesInCanvas}
-                                                showPastSessionsGray={showPastSessionsGray}
-                                                showClockNumbers={showClockNumbers}
-                                                showClockHands={showClockHands}
-                                                activeSession={activeSession}
-                                                backgroundBasedOnSession={backgroundBasedOnSession}
-                                                renderHandsInCanvas={false}
-                                                handAnglesRef={handAnglesRef}
-                                            />
-                                            <ClockHandsOverlay
-                                                size={workspaceClockSize}
-                                                handAnglesRef={handAnglesRef}
-                                                handColor={handColor}
-                                                time={currentTime}
-                                                showSecondsHand={showClockHands}
-                                            />
-                                            {showEventsOnCanvas && shouldRenderEventsOverlay ? (
-                                                <Suspense fallback={null}>
-                                                    <ClockEventsOverlay
-                                                        size={workspaceClockSize}
-                                                        timezone={clockTimezone}
-                                                        eventFilters={overlayEventFilters}
-                                                        newsSource={overlayNewsSource}
-                                                        onEventClick={handleOpenEvent || undefined}
-                                                        suppressTooltipAutoscroll
-                                                    />
-                                                </Suspense>
-                                            ) : null}
-                                        </>
-                                    ) : null}
-                                </Box>
-                            </Box>
-                        </Box>
-                    ) : (
-                        <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center', width: '100%' }}>
-                            Clock hidden in settings.
-                        </Typography>
-                    )}
-                    {shouldShowDigitalClock && !renderWorkspaceSkeleton ? (
-                        <DigitalClock
-                            time={currentTime}
-                            clockSize={Math.min(workspaceClockSize, 360)}
-                            textColor={handColor}
-                        />
-                    ) : null}
-                    {shouldShowTimezoneButton ? (
-                        <Button
-                            variant="text"
-                            size="small"
-                            onClick={() => setTimezoneModalOpen(true)}
-                            sx={{
-                                textTransform: 'none',
-                                color: alpha(handColor, 0.7),
-                                fontSize: '0.75rem',
-                                fontWeight: 600,
-                                minWidth: 'auto',
-                                px: 1,
-                                py: 0.5,
-                                mt: shouldShowDigitalClock ? -0.75 : 0.25,
-                                '&:hover': {
-                                    bgcolor: alpha(handColor, 0.08),
-                                    color: handColor,
-                                },
-                            }}
-                        >
-                            {selectedTimezone?.replace(/_/g, ' ') || 'Select Timezone'}
-                        </Button>
-                    ) : null}
-                    {shouldShowSessionLabel && !renderWorkspaceSkeleton ? (
-                        <SessionLabel
-                            activeSession={activeSession}
-                            showTimeToEnd={showTimeToEnd}
-                            timeToEnd={timeToEnd}
-                            showTimeToStart={showTimeToStart}
-                            nextSession={nextSession}
-                            timeToStart={timeToStart}
-                            clockSize={workspaceClockSize}
-                            contrastTextColor={handColor}
-                            backgroundBasedOnSession={backgroundBasedOnSession}
-                        />
-                    ) : null}
-                </Stack>
-
-            </Paper>
-            {rectangleBannerTwoColumn}
-
-        </>
-    ) : null;
+    const calendarPaperMarginTop = isCalendarRoute ? { xs: 2, sm: 3, md: 0 } : 0;
 
     const calendarContent = (
         <>
-
             <Paper
                 elevation={0}
                 sx={{
                     flex: 1,
                     position: 'relative',
-                    mt: 0,
+                    mt: calendarPaperMarginTop,
                     borderRadius: 3,
                     border: '1px solid',
                     borderColor: alpha('#3c4d63', 0.12),
@@ -1680,7 +2126,7 @@ export default function CalendarEmbed({
                     p: { xs: 1.25, sm: 1.5, md: 1.75 },
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 1.25,
+                    gap: isFiltersStuck ? 0 : 1.25,
                     width: '100%',
                     minWidth: 0,
                     maxWidth: '100%',
@@ -1691,37 +2137,6 @@ export default function CalendarEmbed({
                         <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
                             {title}
                         </Typography>
-                        {!user && onOpenAuth && (
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                size="small"
-                                startIcon={<LockOpenIcon />}
-                                onClick={onOpenAuth}
-                                sx={{
-                                    position: 'absolute',
-                                    top: { xs: -4, sm: -2 },
-                                    right: 0,
-                                    textTransform: 'none',
-                                    fontWeight: 700,
-                                    fontSize: { xs: '0.75rem', sm: '0.8125rem' },
-                                    px: { xs: 1.25, sm: 1.5 },
-                                    py: { xs: 0.5, sm: 0.625 },
-                                    borderRadius: 2,
-                                    boxShadow: '0 2px 8px rgba(15, 111, 236, 0.2)',
-                                    '&:hover': {
-                                        boxShadow: '0 4px 12px rgba(15, 111, 236, 0.3)',
-                                    },
-                                }}
-                            >
-                                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                                    Unlock all features
-                                </Box>
-                                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
-                                    Unlock
-                                </Box>
-                            </Button>
-                        )}
                         <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.72) }}>
                             Powered by{' '}
                             <Link
@@ -1752,17 +2167,18 @@ export default function CalendarEmbed({
                         position: 'sticky',
                         top: 0,
                         zIndex: 1000,
-                        bgcolor: '#ffffff',
-                        mx: { xs: -1.25, sm: -1.5, md: -1.75 },
-                        px: { xs: 1.25, sm: 1.5, md: 1.75 },
+                        bgcolor: 'background.paper',
+                        mx: { xs: -1, sm: -1.25, md: -1.5 },
+                        px: { xs: 1, sm: 1.25, md: 1.5 },
                         pt: { xs: isMobileFiltersStuck ? 1 : 0, sm: isMobileFiltersStuck ? 1 : 0.25, md: 0 },
                         pb: { xs: isMobileFiltersStuck ? 1 : 0, sm: isMobileFiltersStuck ? 1 : 0.25, md: 0 },
                         borderBottom: '1px solid',
                         borderColor: alpha('#3c4d63', 0.12),
-                        borderTopLeftRadius: 12,
-                        borderTopRightRadius: 12,
+                        borderTopLeftRadius: 7,
+                        borderTopRightRadius: 7,
                         borderBottomLeftRadius: 0,
                         borderBottomRightRadius: 0,
+                        overflow: 'hidden',
                         boxShadow: isFiltersStuck ? '0 2px 4px -1px rgba(0, 0, 0, 0.1)' : 'none',
                     }}
                 >
@@ -1803,9 +2219,27 @@ export default function CalendarEmbed({
                                     </Typography>
                                 </Stack>
                             ) : nowEventIds.size ? (
-                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main' }}>
-                                    Events in progress
-                                </Typography>
+                                <Stack
+                                    direction="row"
+                                    spacing={0.5}
+                                    alignItems="center"
+                                    onClick={scrollToNowEvent}
+                                    sx={{
+                                        cursor: 'pointer',
+                                        px: 1,
+                                        py: 0.5,
+                                        borderRadius: 1,
+                                        transition: 'background-color 0.2s',
+                                        '&:hover': {
+                                            bgcolor: alpha('#2196f3', 0.1),
+                                        },
+                                    }}
+                                >
+                                    <AccessTimeIcon sx={{ fontSize: 14, color: 'info.main' }} />
+                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main' }}>
+                                        Events in progress
+                                    </Typography>
+                                </Stack>
                             ) : null}
                         </Stack>
                     </Stack>
@@ -1853,9 +2287,27 @@ export default function CalendarEmbed({
                                 </Typography>
                             </Stack>
                         ) : nowEventIds.size ? (
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main' }}>
-                                Events in progress
-                            </Typography>
+                            <Stack
+                                direction="row"
+                                spacing={0.5}
+                                alignItems="center"
+                                onClick={scrollToNowEvent}
+                                sx={{
+                                    cursor: 'pointer',
+                                    px: 1,
+                                    py: 0.5,
+                                    borderRadius: 1,
+                                    transition: 'background-color 0.2s',
+                                    '&:hover': {
+                                        bgcolor: alpha('#2196f3', 0.1),
+                                    },
+                                }}
+                            >
+                                <AccessTimeIcon sx={{ fontSize: 14, color: 'info.main' }} />
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main' }}>
+                                    Events in progress
+                                </Typography>
+                            </Stack>
                         ) : null}
                     </Stack>
                 </Box>
@@ -1895,13 +2347,14 @@ export default function CalendarEmbed({
                                 nowEventIds={nowEventIds}
                                 nextEventIds={nextEventIds}
                                 nextCountdownLabel={nextCountdownLabel}
-                                nowEpochMs={nowEpochMs}
+                                nowEpochMs={tableNowEpochMs}
                                 onToggleFavorite={handleToggleFavorite}
                                 isFavorite={isFavorite}
                                 isFavoritePending={isFavoritePending}
                                 onOpenEvent={handleOpenEvent}
                                 isLoading={showSkeletons}
                                 isToday={dayKey === todayKey}
+                                stickyOffsetTop={daySectionStickyOffsetTop}
                             />
                         ))
                     )}
@@ -1930,7 +2383,6 @@ export default function CalendarEmbed({
                     </Typography>
                 </Stack>
             </Paper>
-            {!isTwoColumn && rectangleBannerSingleColumn}
         </>
     );
 
@@ -1942,42 +2394,62 @@ export default function CalendarEmbed({
                 rightContent={calendarContent}
                 leftScrollRef={leftScrollRef}
                 rightScrollRef={rightScrollRef}
-                showBackToTop={showBackToTop}
-                onBackToTop={handleBackToTop}
-                topBanner={sponsoredBanner}
+                showJumpToNext={showJumpToNext && !showJumpToNow}
+                onJumpToNext={scrollToNextEvent}
+                jumpToNextDirection={jumpToNextDirection}
+                showJumpToNow={showJumpToNow}
+                onJumpToNow={scrollToNowEvent}
+                jumpToNowDirection={jumpToNowDirection}
+                appBar={appBar}
             />
 
-            <EventModal
-                open={Boolean(selectedEvent)}
-                onClose={handleCloseEvent}
-                event={selectedEvent}
-                timezone={timezone}
-                isFavoriteEvent={isFavorite}
-                onToggleFavorite={handleToggleFavorite}
-                isFavoritePending={isFavoritePending}
-                favoritesLoading={favoritesLoading}
-                hasEventNotes={hasNotes}
-                onOpenNotes={handleOpenNotes}
-                isEventNotesLoading={isEventNotesLoading}
-            />
+            <Suspense fallback={null}>
+                <EventModal
+                    open={Boolean(selectedEvent)}
+                    onClose={handleCloseEvent}
+                    event={selectedEvent}
+                    timezone={timezone}
+                    isFavoriteEvent={isFavorite}
+                    onToggleFavorite={handleToggleFavorite}
+                    isFavoritePending={isFavoritePending}
+                    favoritesLoading={favoritesLoading}
+                    hasEventNotes={hasNotes}
+                    onOpenNotes={handleOpenNotes}
+                    isEventNotesLoading={isEventNotesLoading}
+                />
+            </Suspense>
 
-            <SettingsSidebar2
-                open={settingsOpen}
-                onClose={() => setSettingsOpen(false)}
-                onOpenAuth={onOpenAuth}
-            />
+            <Suspense fallback={null}>
+                <SettingsSidebar2
+                    open={settingsOpen}
+                    onClose={() => setSettingsOpen(false)}
+                    onOpenAuth={onOpenAuth}
+                    onOpenContact={() => {
+                        setSettingsOpen(false);
+                        setContactModalOpen(true);
+                    }}
+                />
+            </Suspense>
 
-            <EventNotesDialog
-                open={Boolean(noteTarget)}
-                onClose={handleCloseNotes}
-                event={noteTarget?.event || null}
-                timezone={timezone}
-                notes={noteTarget ? getNotesForEvent(noteTarget.event) : []}
-                loading={noteTarget ? isEventNotesLoading(noteTarget.event) : false}
-                onAddNote={handleAddNote}
-                onRemoveNote={handleRemoveNote}
-                error={notesError}
-            />
+            {contactModalOpen ? (
+                <Suspense fallback={null}>
+                    <ContactModal open={contactModalOpen} onClose={() => setContactModalOpen(false)} />
+                </Suspense>
+            ) : null}
+
+            <Suspense fallback={null}>
+                <EventNotesDialog
+                    open={Boolean(noteTarget)}
+                    onClose={handleCloseNotes}
+                    event={noteTarget?.event || null}
+                    timezone={timezone}
+                    notes={noteTarget ? getNotesForEvent(noteTarget.event) : []}
+                    loading={noteTarget ? isEventNotesLoading(noteTarget.event) : false}
+                    onAddNote={handleAddNote}
+                    onRemoveNote={handleRemoveNote}
+                    error={notesError}
+                />
+            </Suspense>
 
             <Dialog
                 open={timezoneModalOpen}
@@ -2008,16 +2480,22 @@ export default function CalendarEmbed({
                         edge="end"
                         onClick={() => setTimezoneModalOpen(false)}
                         aria-label="close"
-                        sx={{ ml: 1 }}
+                        sx={{
+                            ml: 1,
+                            p: { xs: 1, sm: 1.25, md: 1.5 },
+                        }}
                     >
                         <CloseIcon />
                     </IconButton>
                 </DialogTitle>
                 <DialogContent sx={{ pt: 1, pb: 3 }}>
-                    <TimezoneSelector
-                        textColor={theme.palette.text.primary}
-                        onRequestSignUp={onOpenAuth}
-                    />
+                    <Suspense fallback={null}>
+                        <TimezoneSelector
+                            textColor={theme.palette.text.primary}
+                            onRequestSignUp={onOpenAuth}
+                            onTimezoneChange={() => setTimezoneModalOpen(false)}
+                        />
+                    </Suspense>
                 </DialogContent>
             </Dialog>
 
@@ -2055,16 +2533,20 @@ export default function CalendarEmbed({
                     </IconButton>
                 </DialogTitle>
                 <DialogContent sx={{ pt: 1, pb: 3 }}>
-                    <NewsSourceSelector />
+                    <Suspense fallback={null}>
+                        <NewsSourceSelector />
+                    </Suspense>
                 </DialogContent>
             </Dialog>
 
             {/* Forex Factory Detailed Modal - Controlled NewsSourceSelector */}
-            <NewsSourceSelector
-                open={forexFactoryModalOpen}
-                onOpenChange={setForexFactoryModalOpen}
-                showButton={false}
-            />
+            <Suspense fallback={null}>
+                <NewsSourceSelector
+                    open={forexFactoryModalOpen}
+                    onOpenChange={setForexFactoryModalOpen}
+                    showButton={false}
+                />
+            </Suspense>
         </>
     );
 }
@@ -2074,4 +2556,6 @@ CalendarEmbed.propTypes = {
     subtitle: PropTypes.string,
     onOpenAuth: PropTypes.func,
     showSeoCopy: PropTypes.bool,
+    appBar: PropTypes.node,
+    isCalendarRoute: PropTypes.bool,
 };

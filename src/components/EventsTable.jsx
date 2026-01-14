@@ -419,6 +419,7 @@ export default function EventsTable({
   onRefresh,
   autoScrollToNextKey = null,
   searchQuery = '',
+  disableMinWidth = false,
   isFavoriteEvent = () => false,
   onToggleFavorite = null,
   isFavoritePending = () => false,
@@ -855,7 +856,7 @@ export default function EventsTable({
           width: '100%',
           maxWidth: '100%',
           minWidth: 0,
-          overflowX: 'auto',
+          overflowX: disableMinWidth ? 'hidden' : 'auto',
           overflowY: 'auto',
           // Reserve gutter on scrollbar side only to avoid reducing usable width
           scrollbarGutter: 'stable',
@@ -866,7 +867,8 @@ export default function EventsTable({
           size="small"
           sx={{
             width: '100%',
-            minWidth: { xs: 720, sm: 840, md: 960, lg: 1080, xl: 1200 },
+            minWidth: disableMinWidth ? 0 : { xs: 720, sm: 840, md: 960, lg: 1080, xl: 1200 },
+            tableLayout: disableMinWidth ? 'fixed' : 'auto',
           }}
         >
           <TableHead sx={{ display: 'none' }}>

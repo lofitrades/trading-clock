@@ -5,6 +5,13 @@
  * Highlights Time 2 Trade value props with brand-safe visuals and responsive hero layout.
  * 
  * Changelog:
+ * v1.5.5 - 2026-01-14 - SCROLLBAR STYLING: Applied minimal scrollbar UI from CalendarEmbedLayout to main Box container. Thin 6px width, semi-transparent rgba(60,77,99,0.32) thumb that darkens on hover, transparent track. Provides subtle, professional scrollbar appearance consistent with /calendar page.
+ * v1.5.4 - 2026-01-14 - RESPONSIVE PADDING: Added mobile-first px padding to main Box (xs:0.5, sm:0.5, md:0) to ensure content doesn't touch viewport edges on mobile while PublicLayout provides outer centering container padding. Small internal padding on xs/sm prevents edge-touching, md+ relies on outer container padding only.
+ * v1.5.0 - 2026-01-14 - REFACTOR: Notion-style minimal design. Removed all Papers/Boxes/containers/shadows/gradients, kept only simple copy with clean typography, fully responsive mobile-first layout, maintaining SEO best practices.
+ * v1.4.20 - 2026-01-14 - REFACTOR: Improved UI integration with PublicLayout. Single scrollable main content area with proper height constraints, removed nested Box layers, centralized SEO outside PublicLayout, improved mobile scroll experience.
+ * v1.4.17 - 2026-01-12 - Refactor: Extract landing navigation into shared NavigationMenu component.
+ * v1.4.18 - 2026-01-12 - UI: Reduce top padding above navigation for a tighter hero header.
+ * v1.4.16 - 2026-01-09 - Open ContactModal from nav instead of routing to /contact.
  * v1.4.15 - 2026-01-09 - Added Contact nav item linking to /contact.
  * v1.4.14 - 2026-01-07 - Snap hero clock hands on resume using shared time engine resume tokens for instant recovery after background.
  * v1.4.13 - 2026-01-07 - Wire landing hero clock to aligned time engine for second-accurate sync with the app.
@@ -59,11 +66,7 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
     Box,
     Button,
-    Card,
-    CardContent,
     Chip,
-    Container,
-    Drawer,
     IconButton,
     SvgIcon,
     Stack,
@@ -76,14 +79,16 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import BoltIcon from '@mui/icons-material/Bolt';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
-import MenuIcon from '@mui/icons-material/Menu';
-import CloseIcon from '@mui/icons-material/Close';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import InfoIcon from '@mui/icons-material/Info';
 import { siX } from 'simple-icons';
 import ClockCanvas from './ClockCanvas';
 import ClockHandsOverlay from './ClockHandsOverlay';
 const ClockEventsOverlay = lazy(() => import('./ClockEventsOverlay'));
 import LoadingScreen from './LoadingScreen';
+import ContactModal from './ContactModal';
+import AuthModal2 from './AuthModal2';
+import PublicLayout from './PublicLayout';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClock } from '../hooks/useClock';
 import { useTimeEngine } from '../hooks/useTimeEngine';
@@ -101,8 +106,6 @@ const heroMeta = buildSeoMeta({
     keywords:
         'economic calendar, forex factory calendar, trading sessions clock, market session times, today\'s economic events, forex news calendar, futures economic calendar, impact filters, currency filters, session overlaps',
 });
-
-const brandLogoSrc = '/logos/svg/Time2Trade_Logo_Main_Multicolor_Transparent_1080.svg';
 
 const XIcon = (props) => (
     <SvgIcon viewBox="0 0 24 24" {...props}>
@@ -313,16 +316,15 @@ export default function HomePage2() {
     const [heroClockSize, setHeroClockSize] = useState(320);
     const [renderedClockSize, setRenderedClockSize] = useState(320);
     const clockContainerRef = useRef(null);
-    const [mobileNavOpen, setMobileNavOpen] = useState(false);
+    const [contactModalOpen, setContactModalOpen] = useState(false);
     const [showBackToTop, setShowBackToTop] = useState(false);
     const [showInitialLoader, setShowInitialLoader] = useState(true);
+    const [authModalOpen, setAuthModalOpen] = useState(false);
     // Scroll reveal animations removed; sections render without animated entrance.
     // No ad overlay on landing; image-only banner
 
 
-    // Removed IntersectionObserver-based reveal logic
-
-    const getRevealProps = useCallback(() => ({ ref: undefined, sx: {} }), []);
+    // Removed IntersectionObserver-based reveal logic and getRevealProps function
 
     useEffect(() => {
         // Hide the loader right after first paint so copy appears immediately
@@ -391,7 +393,6 @@ export default function HomePage2() {
             if (clockContainerRef.current) observer.observe(clockContainerRef.current);
             return () => observer.disconnect();
         }
-
         window.addEventListener('resize', measure);
         return () => window.removeEventListener('resize', measure);
     }, [heroClockSize]);
@@ -402,72 +403,20 @@ export default function HomePage2() {
     const showOverlay = (showEventsOnCanvas ?? true) && (showHandClock ?? true);
 
     const openApp = useCallback(() => {
-        navigate('/calendar');
+        navigate('/app');
     }, [navigate]);
 
-    const openMobileNav = () => setMobileNavOpen(true);
-    const closeMobileNav = () => setMobileNavOpen(false);
+    const openAuthModal = useCallback(() => setAuthModalOpen(true), []);
+    const closeAuthModal = useCallback(() => setAuthModalOpen(false), []);
 
-    const navLinks = useMemo(
-        () => [
-            { label: 'Go to Calendar', onClick: openApp },
-            { label: 'How it works', href: '#how-it-works' },
-            { label: 'Features', href: '#features' },
-            { label: 'Use cases', href: '#use-cases' },
-            { label: 'FAQ', href: '#faq' },
-            { label: 'About', to: '/about' },
-            { label: 'Contact', to: '/contact' },
-        ],
-        [openApp],
-    );
+    const openContactModal = useCallback(() => setContactModalOpen(true), []);
+    const closeContactModal = useCallback(() => setContactModalOpen(false), []);
 
-    const sectionCardSx = {
-        position: 'relative',
-        overflow: 'hidden',
-        borderRadius: '24px',
-        bgcolor: 'rgba(255,255,255,0.92)',
-        backgroundImage: 'linear-gradient(160deg, rgba(255,255,255,0.98), rgba(242,246,255,0.9))',
-        boxShadow: '0 26px 78px rgba(15,23,42,0.08), 0 4px 18px rgba(15,23,42,0.05)',
-        border: '1px solid rgba(255,255,255,0.7)',
-        outline: '1px solid rgba(15,23,42,0.04)',
-        backdropFilter: 'blur(16px)',
-        px: { xs: 2.6, sm: 3.1 },
-        py: { xs: 2.9, sm: 3.3 },
-        '&::before': {
-            content: '""',
-            position: 'absolute',
-            inset: 0,
-            background: 'radial-gradient(120% 80% at 18% 0%, rgba(255,255,255,0.36), transparent 55%), linear-gradient(120deg, rgba(255,255,255,0.18), transparent 38%)',
-            opacity: 0.9,
-            pointerEvents: 'none',
-            mixBlendMode: 'screen',
-        },
-        '&::after': {
-            content: '""',
-            position: 'absolute',
-            inset: 1,
-            borderRadius: '22px',
-            border: '1px solid rgba(255,255,255,0.55)',
-            pointerEvents: 'none',
-        },
-    };
-
-    const heroClockReveal = getRevealProps('hero-clock', { delay: 70, distance: 12 });
-    const problemReveal = getRevealProps('problem', { distance: 22 });
-    const solutionReveal = getRevealProps('solution', { distance: 22, delay: 60 });
-    const benefitsReveal = getRevealProps('benefits', { distance: 22, delay: 90 });
-    const featuresReveal = getRevealProps('features', { distance: 22 });
-    const useCasesReveal = getRevealProps('use-cases', { distance: 22, delay: 60 });
-    const howItWorksReveal = getRevealProps('how-it-works', { distance: 22, delay: 90 });
-    const comparisonReveal = getRevealProps('comparison', { distance: 22 });
-    const faqReveal = getRevealProps('faq', { distance: 22, delay: 60 });
-    const finalCtaReveal = getRevealProps('final-cta', { distance: 18 });
     const sectionHeadingSx = {
-        fontWeight: 800,
+        fontWeight: 700,
         color: theme.palette.text.primary,
-        letterSpacing: '-0.01em',
-        fontSize: { xs: '1.38rem', sm: '1.46rem', md: '1.62rem' },
-        lineHeight: 1.3,
+        fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
+        lineHeight: 1.4,
     };
     const prefersReducedMotion = useMemo(() => {
         if (typeof window === 'undefined' || !window.matchMedia) return false;
@@ -476,786 +425,648 @@ export default function HomePage2() {
 
     return (
         <>
+            {/* SEO metadata and modals rendered outside PublicLayout */}
             <SEO {...heroMeta} structuredData={landingStructuredData} />
-            <Box
-                component="main"
-                sx={{
-                    overflow: 'hidden',
-                    minHeight: 'var(--t2t-vv-height, 100dvh)',
-                    bgcolor: '#f8f9fb',
-                    scrollBehavior: 'smooth',
-                }}
-            >
-                <LoadingScreen isLoading={showInitialLoader} clockSize={96} />
+            <ContactModal open={contactModalOpen} onClose={closeContactModal} />
+            <AuthModal2 open={authModalOpen} onClose={closeAuthModal} redirectPath="/calendar" />
 
-                <Container
-                    maxWidth={false}
-                    sx={{
-                        position: 'relative',
-                        zIndex: 1,
-                        py: { xs: 5, md: 7.25 },
-                        px: { xs: 2.5, sm: 3, md: 3.5, xl: 4.5 },
-                        maxWidth: { xs: '100%', md: 1160, lg: 1320, xl: 1520 },
-                        mx: 'auto',
-                    }}
-                >
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2} sx={{ mb: { xs: 3, md: 4 } }}>
-                        <Stack
-                            component={RouterLink}
-                            to="/"
-                            direction="row"
-                            alignItems="center"
-                            spacing={1.25}
+            {/* Loading screen with full coverage */}
+            <LoadingScreen isLoading={showInitialLoader} clockSize={96} />
+
+            {/* Navigation and main content */}
+            {(() => {
+                const navItems = [
+                    { id: 'calendar', label: 'Calendar', to: '/calendar', icon: <CalendarMonthIcon fontSize="small" /> },
+                    { id: 'clock', label: 'Clock', onClick: openApp, icon: <AccessTimeIcon fontSize="small" /> },
+                    { id: 'about', label: 'About', to: '/about', icon: <InfoIcon fontSize="small" /> },
+                ];
+                return (
+                    <PublicLayout navItems={navItems} onOpenSettings={openContactModal}>
+                        {/* NOTE: PublicLayout handles centering with flex:center pattern.
+                             Content flows within centered container (width:100%, maxWidth:1560, px:responsive).
+                             Just provide vertical padding and flex fill. No additional width constraints. */}
+                        <Box
+                            component="main"
                             sx={{
-                                textDecoration: 'none',
-                                color: 'inherit',
-                                '&:focus-visible': {
-                                    outline: '2px solid rgba(255,255,255,0.6)',
-                                    outlineOffset: 4,
-                                    borderRadius: 1,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                overflowY: 'auto',
+                                overflowX: 'hidden',
+                                scrollBehavior: 'smooth',
+                                flex: 1,
+                                minHeight: 0,
+                                mx: { xs: 2, sm: 2, md: 3 },
+                                py: { xs: 3, md: 4 },
+                                scrollbarWidth: 'thin',
+                                scrollbarColor: 'rgba(60,77,99,0.32) transparent',
+                                '&::-webkit-scrollbar': {
+                                    width: 6,
+                                },
+                                '&::-webkit-scrollbar-track': {
+                                    background: 'transparent',
+                                },
+                                '&::-webkit-scrollbar-thumb': {
+                                    backgroundColor: 'rgba(60,77,99,0.32)',
+                                    borderRadius: 999,
+                                },
+                                '&::-webkit-scrollbar-thumb:hover': {
+                                    backgroundColor: 'rgba(60,77,99,0.45)',
                                 },
                             }}
                         >
+                            {/* Hero Section */}
                             <Box
-                                component="img"
-                                src={brandLogoSrc}
-                                alt="Time 2 Trade logo"
+                                component="section"
+                                aria-labelledby="hero-heading"
                                 sx={{
-                                    display: 'block',
-                                    height: { xs: 34, sm: 38, md: 42 },
-                                    width: 'auto',
-                                    maxWidth: '70vw',
-                                    objectFit: 'contain',
-                                }}
-                            />
-                            <Typography variant="h7" sx={{ color: theme.palette.text.primary, fontWeight: 700 }}>
-                                Time 2 Trade
-                            </Typography>
-                        </Stack>
-
-                        <Stack direction="row" spacing={1.1} alignItems="center" flexWrap="wrap" justifyContent="flex-end" sx={{ display: { xs: 'none', md: 'flex' } }}>
-                            {navLinks
-                                .filter((link) => link.label !== 'Go to Calendar')
-                                .map((link) => {
-                                    if (link.to) {
-                                        return (
-                                            <Button key={link.label} component={RouterLink} to={link.to} variant="text" color="inherit" sx={{ color: theme.palette.text.primary, fontWeight: 600, textTransform: 'none' }}>
-                                                {link.label}
-                                            </Button>
-                                        );
-                                    }
-                                    return (
-                                        <Button key={link.label} component="a" href={link.href} variant="text" color="inherit" sx={{ color: theme.palette.text.primary, fontWeight: 600, textTransform: 'none' }}>
-                                            {link.label}
-                                        </Button>
-                                    );
-                                })}
-                            <Button
-                                onClick={openApp}
-                                variant="contained"
-                                color="primary"
-                                size="small"
-                                startIcon={<CalendarMonthIcon />}
-                                sx={{ fontWeight: 800, borderRadius: 999, px: 2.2, py: 1 }}
-                            >
-                                Go to Calendar
-                            </Button>
-                        </Stack>
-
-                        <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1 }}>
-                            <Button
-                                onClick={openApp}
-                                variant="contained"
-                                color="primary"
-                                size="small"
-                                startIcon={<CalendarMonthIcon />}
-                                sx={{ fontWeight: 800, borderRadius: 999, px: 2, py: 0.8 }}
-                            >
-                                Go to Calendar
-                            </Button>
-                            <IconButton aria-label="Open navigation" onClick={openMobileNav} sx={{ color: theme.palette.text.primary }}>
-                                <MenuIcon />
-                            </IconButton>
-                        </Box>
-                    </Stack>
-
-                    <Drawer anchor="right" open={mobileNavOpen} onClose={closeMobileNav} PaperProps={{ sx: { width: 320, bgcolor: '#ffffff', color: theme.palette.text.primary } }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2.5, pt: 2.5, pb: 1.5 }}>
-                            <Stack direction="row" spacing={1} alignItems="center">
-                                <Box component="img" src={brandLogoSrc} alt="Time 2 Trade logo" sx={{ height: 30, width: 'auto', objectFit: 'contain' }} />
-                                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                                    Time 2 Trade
-                                </Typography>
-                            </Stack>
-                            <IconButton aria-label="Close navigation" onClick={closeMobileNav} sx={{ color: '#f4f7fb' }}>
-                                <CloseIcon />
-                            </IconButton>
-                        </Box>
-                        <Stack spacing={1} sx={{ px: 2.5, pb: 3 }}>
-                            {navLinks.map((link) => {
-                                if (link.onClick) {
-                                    return (
-                                        <Button
-                                            key={link.label}
-                                            onClick={() => {
-                                                closeMobileNav();
-                                                link.onClick();
-                                            }}
-                                            variant={link.label === 'Go to Calendar' ? 'contained' : 'text'}
-                                            color={link.label === 'Go to Calendar' ? 'primary' : 'inherit'}
-                                            sx={{ justifyContent: 'flex-start', textTransform: 'none', fontWeight: link.label === 'Go to Calendar' ? 800 : 600 }}
-                                            startIcon={link.label === 'Go to Calendar' ? <CalendarMonthIcon /> : undefined}
-                                        >
-                                            {link.label}
-                                        </Button>
-                                    );
-                                }
-
-                                if (link.to) {
-                                    return (
-                                        <Button
-                                            key={link.label}
-                                            component={RouterLink}
-                                            to={link.to}
-                                            variant="text"
-                                            color="inherit"
-                                            onClick={closeMobileNav}
-                                            sx={{ justifyContent: 'flex-start', textTransform: 'none', fontWeight: 600 }}
-                                        >
-                                            {link.label}
-                                        </Button>
-                                    );
-                                }
-
-                                return (
-                                    <Button
-                                        key={link.label}
-                                        component="a"
-                                        href={link.href}
-                                        variant="text"
-                                        color="inherit"
-                                        onClick={closeMobileNav}
-                                        sx={{ justifyContent: 'flex-start', textTransform: 'none', fontWeight: 600 }}
-                                    >
-                                        {link.label}
-                                    </Button>
-                                );
-                            })}
-                        </Stack>
-                    </Drawer>
-
-                    <Box
-                        component="section"
-                        aria-labelledby="hero-heading"
-                        sx={{
-                            display: 'flex',
-                            flexDirection: { xs: 'column-reverse', md: 'row' },
-                            gap: { xs: 3, md: 4 },
-                            alignItems: { xs: 'center', md: 'flex-start' },
-                            justifyContent: 'space-between',
-                        }}
-                    >
-                        <Box
-                            sx={{
-                                color: theme.palette.text.primary,
-                                width: '100%',
-                                maxWidth: { xs: '100%', md: 640, lg: 720, xl: 820 },
-                                flexGrow: 1,
-                                textAlign: { xs: 'center', md: 'left' },
-                            }}
-                        >
-                            <Stack spacing={2.5}>
-                                <Chip
-                                    label="Forex Factory data"
-                                    sx={{
-                                        alignSelf: { xs: 'center', md: 'flex-start' },
-                                        bgcolor: 'rgba(15, 23, 42, 0.06)',
-                                        color: theme.palette.text.primary,
-                                        fontWeight: 700,
-                                        letterSpacing: 0.2,
-                                        textTransform: 'uppercase',
-                                    }}
-                                />
-
-                                <Typography
-                                    id="hero-heading"
-                                    variant="h3"
-                                    sx={{
-                                        fontWeight: 800,
-                                        lineHeight: 1.04,
-                                        color: theme.palette.text.primary,
-                                        letterSpacing: '-0.02em',
-                                        fontSize: { xs: '2.1rem', sm: '2.45rem', md: '2.9rem', lg: '3.1rem' },
-                                    }}
-                                >
-                                    Economic calendar with today&apos;s session clock and events
-                                </Typography>
-
-                                <Typography
-                                    variant="h6"
-                                    sx={{
-                                        color: theme.palette.text.secondary,
-                                        fontWeight: 500,
-                                        lineHeight: 1.6,
-                                        fontSize: { xs: '1.02rem', sm: '1.08rem', md: '1.12rem' },
-                                    }}
-                                >
-                                    Time 2 Trade combines a trusted Forex Factory economic calendar with a live market session clock. See today&apos;s events, overlaps, and countdowns in one clean, minimalist view with impact and currency filters, favorites, notes, and exports.
-                                </Typography>
-
-                                <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center" justifyContent={{ xs: 'center', md: 'flex-start' }}>
-                                    <Button
-                                        onClick={openApp}
-                                        variant="contained"
-                                        color="primary"
-                                        size="large"
-                                        startIcon={<CalendarMonthIcon />}
-                                        sx={{
-                                            fontWeight: 800,
-                                            px: { xs: 2.6, sm: 3.2 },
-                                            py: { xs: 1.2, sm: 1.3 },
-                                            borderRadius: 999,
-                                            boxShadow: '0 6px 14px rgba(15,23,42,0.08)',
-                                        }}
-                                    >
-                                        Go to Calendar
-                                    </Button>
-
-                                    <Button
-                                        component="a"
-                                        href="#how-it-works"
-                                        variant="outlined"
-                                        color="inherit"
-                                        sx={{
-                                            color: theme.palette.text.primary,
-                                            borderColor: 'rgba(0,0,0,0.12)',
-                                            fontWeight: 700,
-                                            px: { xs: 2.1, sm: 2.6 },
-                                            py: { xs: 1.05, sm: 1.15 },
-                                            borderRadius: 999,
-                                            '&:hover': { borderColor: theme.palette.text.primary, backgroundColor: 'rgba(15,23,42,0.04)' },
-                                        }}
-                                    >
-                                        See how it works
-                                    </Button>
-                                </Stack>
-
-                                {/* Ad/banner removed intentionally */}
-                            </Stack>
-                        </Box>
-
-                        <Box
-                            sx={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                width: '100%',
-                                maxWidth: { xs: '100%', md: 620, lg: 700, xl: 740 },
-                                flexGrow: 1,
-                                mx: { xs: 'auto', md: 0 },
-                                py: { xs: 2, sm: 1 },
-                            }}
-                        >
-                            <Card
-                                ref={heroClockReveal.ref}
-                                elevation={0}
-                                sx={{
-                                    ...heroClockReveal.sx,
-                                    position: 'relative',
-                                    overflow: 'visible',
-                                    borderRadius: 0,
-                                    bgcolor: 'transparent',
-                                    boxShadow: 'none',
-                                    width: '100%',
+                                    display: 'flex',
+                                    flexDirection: { xs: 'column', md: 'row' },
+                                    gap: { xs: 4, md: 6 },
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    mb: { xs: 6, md: 8 },
                                 }}
                             >
-
-                                <CardContent sx={{ position: 'relative', zIndex: 1, p: { xs: 1.5, sm: 2 } }}>
-                                    <Stack spacing={1.25} alignItems="center">
-                                        <Box
+                                {/* Hero Content - Text Column */}
+                                <Box
+                                    sx={{
+                                        flex: { xs: 1, lg: '1 1 60%' },
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'center',
+                                        alignItems: { xs: 'center', md: 'flex-start' },
+                                        textAlign: { xs: 'center', md: 'left' },
+                                        order: { xs: 2, md: 1 },
+                                    }}
+                                >
+                                    <Stack spacing={2.5}>
+                                        <Chip
+                                            label="Forex Factory data"
                                             sx={{
-                                                width: '100%',
-                                                display: 'flex',
-                                                justifyContent: 'center',
-                                                alignItems: 'center',
-                                                mb: { xs: 1.5, sm: 1 },
+                                                alignSelf: { xs: 'center', md: 'flex-start' },
+                                                bgcolor: 'rgba(0,0,0,0.06)',
+                                                color: theme.palette.text.secondary,
+                                                fontWeight: 600,
+                                                fontSize: '0.75rem',
+                                                height: 28,
+                                            }}
+                                        />
+
+                                        <Typography
+                                            id="hero-heading"
+                                            variant="h3"
+                                            sx={{
+                                                fontWeight: 700,
+                                                lineHeight: 1.2,
+                                                color: theme.palette.text.primary,
+                                                fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+                                                mb: 1,
                                             }}
                                         >
-                                            <Box
-                                                ref={clockContainerRef}
+                                            Economic calendar with today&apos;s session clock and events
+                                        </Typography>
+
+                                        <Typography
+                                            variant="body1"
+                                            sx={{
+                                                color: theme.palette.text.secondary,
+                                                fontSize: { xs: '1rem', md: '1.125rem' },
+                                                lineHeight: 1.6,
+                                            }}
+                                        >
+                                            Time 2 Trade combines a trusted Forex Factory economic calendar with a live market session clock. See today&apos;s events, overlaps, and countdowns in one clean, minimalist view with impact and currency filters, favorites, notes, and exports.
+                                        </Typography>
+
+                                        <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center" justifyContent={{ xs: 'center', md: 'flex-start' }}>
+                                            <Button
+                                                onClick={openAuthModal}
+                                                variant="contained"
+                                                color="primary"
+                                                size="large"
                                                 sx={{
-                                                    position: 'relative',
-                                                    width: '100%',
-                                                    maxWidth: heroClockSize,
-                                                    aspectRatio: '1 / 1',
-                                                    cursor: 'pointer',
+                                                    fontWeight: 800,
+                                                    px: 3,
+                                                    py: 1.5,
+                                                    borderRadius: 999,
+                                                    textTransform: 'none',
+                                                    boxShadow: 'none',
+                                                    '&:hover': {
+                                                        boxShadow: 'none',
+                                                    },
                                                 }}
+                                            >
+                                                Unlock all features
+                                            </Button>
+
+                                            <Button
                                                 onClick={openApp}
+                                                variant="text"
+                                                color="inherit"
+                                                sx={{
+                                                    color: theme.palette.text.primary,
+                                                    fontWeight: 700,
+                                                    px: 3,
+                                                    py: 1.5,
+                                                    borderRadius: 999,
+                                                    textTransform: 'none',
+                                                    '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' },
+                                                }}
+                                            >
+                                                Go to Calendar
+                                            </Button>
+                                        </Stack>
+
+                                        {/* Ad/banner removed intentionally */}
+                                    </Stack>
+                                </Box>
+
+                                {/* Hero Clock - Visual Column */}
+                                <Box
+                                    sx={{
+                                        flex: { xs: '0 0 auto', md: 1, lg: '0 1 40%' },
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        width: { xs: '100%', md: 'auto' },
+                                        maxWidth: { xs: 400, md: 500 },
+                                        order: { xs: 1, md: 2 },
+                                    }}
+                                >
+                                    <Box sx={{ width: '100%' }}>
+                                        <Stack spacing={1.25} alignItems="center">
+                                            <Box
+                                                sx={{
+                                                    width: '100%',
+                                                    display: 'flex',
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center',
+                                                    mb: { xs: 1.5, sm: 1 },
+                                                }}
                                             >
                                                 <Box
+                                                    ref={clockContainerRef}
                                                     sx={{
-                                                        position: 'absolute',
-                                                        inset: 0,
-                                                        display: 'flex',
-                                                        justifyContent: 'center',
-                                                        alignItems: 'center',
+                                                        position: 'relative',
+                                                        width: '100%',
+                                                        maxWidth: heroClockSize,
+                                                        aspectRatio: '1 / 1',
+                                                        cursor: 'pointer',
                                                     }}
+                                                    onClick={openApp}
                                                 >
-                                                    <Box sx={{ position: 'relative', width: renderedClockSize, height: renderedClockSize }}>
-                                                        <ClockCanvas
-                                                            size={renderedClockSize}
-                                                            time={currentTime}
-                                                            sessions={sessions}
-                                                            handColor={handColor}
-                                                            clockStyle={clockStyle}
-                                                            showSessionNamesInCanvas={showSessionNamesInCanvas}
-                                                            showPastSessionsGray={showPastSessionsGray}
-                                                            showClockNumbers={showClockNumbers}
-                                                            showClockHands={showClockHands}
-                                                            activeSession={activeSession}
-                                                            backgroundBasedOnSession={backgroundBasedOnSession}
-                                                            renderHandsInCanvas={false}
-                                                            handAnglesRef={handAnglesRef}
-                                                        />
-                                                        <ClockHandsOverlay
-                                                            size={renderedClockSize}
-                                                            handAnglesRef={handAnglesRef}
-                                                            handColor={handColor}
-                                                            time={currentTime}
-                                                            showSecondsHand={showClockHands}
-                                                        />
-                                                        {showOverlay && (
-                                                            <Suspense fallback={null}>
-                                                                <ClockEventsOverlay
-                                                                    size={renderedClockSize}
-                                                                    timezone={selectedTimezone}
-                                                                    eventFilters={eventFilters}
-                                                                    newsSource={newsSource}
-                                                                    disableTooltips
-                                                                    onEventClick={openApp}
-                                                                    suppressTooltipAutoscroll
-                                                                />
-                                                            </Suspense>
-                                                        )}
+                                                    <Box
+                                                        sx={{
+                                                            position: 'absolute',
+                                                            inset: 0,
+                                                            display: 'flex',
+                                                            justifyContent: 'center',
+                                                            alignItems: 'center',
+                                                        }}
+                                                    >
+                                                        <Box sx={{ position: 'relative', width: renderedClockSize, height: renderedClockSize }}>
+                                                            <ClockCanvas
+                                                                size={renderedClockSize}
+                                                                time={currentTime}
+                                                                sessions={sessions}
+                                                                handColor={handColor}
+                                                                clockStyle={clockStyle}
+                                                                showSessionNamesInCanvas={showSessionNamesInCanvas}
+                                                                showPastSessionsGray={showPastSessionsGray}
+                                                                showClockNumbers={showClockNumbers}
+                                                                showClockHands={showClockHands}
+                                                                activeSession={activeSession}
+                                                                backgroundBasedOnSession={backgroundBasedOnSession}
+                                                                renderHandsInCanvas={false}
+                                                                handAnglesRef={handAnglesRef}
+                                                            />
+                                                            <ClockHandsOverlay
+                                                                size={renderedClockSize}
+                                                                handAnglesRef={handAnglesRef}
+                                                                handColor={handColor}
+                                                                time={currentTime}
+                                                                showSecondsHand={showClockHands}
+                                                            />
+                                                            {showOverlay && (
+                                                                <Suspense fallback={null}>
+                                                                    <ClockEventsOverlay
+                                                                        size={renderedClockSize}
+                                                                        timezone={selectedTimezone}
+                                                                        eventFilters={eventFilters}
+                                                                        newsSource={newsSource}
+                                                                        disableTooltips
+                                                                        onEventClick={openApp}
+                                                                        suppressTooltipAutoscroll
+                                                                    />
+                                                                </Suspense>
+                                                            )}
+                                                        </Box>
                                                     </Box>
                                                 </Box>
                                             </Box>
-                                        </Box>
-                                        {timezoneLabelText ? (
-                                            <Typography
-                                                variant="caption"
-                                                sx={{
-                                                    mt: { xs: 1.25, sm: 1 },
-                                                    color: '#c7d3e0',
-                                                    textAlign: 'center',
-                                                    fontWeight: 600,
-                                                }}
-                                            >
-                                                {timezoneLabelText}
-                                            </Typography>
-                                        ) : null}
-                                    </Stack>
-                                </CardContent>
-                            </Card>
-                        </Box>
-                    </Box>
-
-                    <Card
-                        component="section"
-                        id="social-proof"
-                        elevation={0}
-                        sx={{
-                            ...sectionCardSx,
-                            mt: { xs: 5, md: 6 },
-                        }}
-                    >
-                        <Stack spacing={2.5}>
-                            <Typography variant="overline" sx={{ color: theme.palette.text.secondary, letterSpacing: 1, fontWeight: 700 }}>
-                                Social proof
-                            </Typography>
-                            <Typography variant="h5" sx={sectionHeadingSx}>
-                                Built for session-based traders and calendar users
-                            </Typography>
-                            <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                                If your process includes session windows, overlaps, kill zones, or avoiding major releases, this workspace fits your day.
-                            </Typography>
-                            <Stack spacing={1}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                                    Good fit for:
-                                </Typography>
-                                <Stack spacing={0.75}>
-                                    {socialProofFit.map((item) => (
-                                        <Stack key={item} direction="row" spacing={1} alignItems="center">
-                                            <CheckCircleIcon fontSize="small" color="primary" />
-                                            <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                                                {item}
-                                            </Typography>
-                                        </Stack>
-                                    ))}
-                                </Stack>
-                            </Stack>
-                        </Stack>
-                    </Card>
-
-                    <Stack spacing={{ xs: 4.25, md: 5.25 }} sx={{ mt: { xs: 4, md: 5 } }}>
-                        <Card component="section" id="problem" ref={problemReveal.ref} elevation={0} sx={{ ...sectionCardSx, ...problemReveal.sx }}>
-                            <Stack spacing={2.5}>
-                                <Typography variant="overline" sx={{ color: theme.palette.text.secondary, letterSpacing: 1, fontWeight: 700 }}>
-                                    The problem
-                                </Typography>
-                                <Typography variant="h5" sx={sectionHeadingSx}>
-                                    Trading is hard enough - timing should not be
-                                </Typography>
-                                <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                                    Most day traders lose focus to friction:
-                                </Typography>
-                                <Stack spacing={0.75}>
-                                    {problemPoints.map((item) => (
-                                        <Stack key={item} direction="row" spacing={1} alignItems="flex-start">
-                                            <BoltIcon fontSize="small" color="primary" />
-                                            <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                                                {item}
-                                            </Typography>
-                                        </Stack>
-                                    ))}
-                                </Stack>
-                            </Stack>
-                        </Card>
-
-                        <Card component="section" id="solution" ref={solutionReveal.ref} elevation={0} sx={{ ...sectionCardSx, ...solutionReveal.sx }}>
-                            <Stack spacing={2.5}>
-                                <Typography variant="overline" sx={{ color: theme.palette.text.secondary, letterSpacing: 1, fontWeight: 700 }}>
-                                    The solution
-                                </Typography>
-                                <Typography variant="h5" sx={sectionHeadingSx}>
-                                    One clean view: sessions plus scheduled catalysts
-                                </Typography>
-                                <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                                    Time 2 Trade combines a visual session clock with an economic events view so you can:
-                                </Typography>
-                                <Stack spacing={0.75}>
-                                    {solutionPoints.map((item) => (
-                                        <Stack key={item} direction="row" spacing={1} alignItems="flex-start">
-                                            <CheckCircleIcon fontSize="small" color="primary" />
-                                            <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                                                {item}
-                                            </Typography>
-                                        </Stack>
-                                    ))}
-                                </Stack>
-                            </Stack>
-                        </Card>
-
-                        <Card component="section" id="benefits" ref={benefitsReveal.ref} elevation={0} sx={{ ...sectionCardSx, ...benefitsReveal.sx }}>
-                            <Stack spacing={2.5}>
-                                <Typography variant="overline" sx={{ color: theme.palette.text.secondary, letterSpacing: 1, fontWeight: 700 }}>
-                                    Why day traders use Time 2 Trade
-                                </Typography>
-                                <Stack spacing={1.6}>
-                                    {benefits.map((item) => (
-                                        <Box key={item.title}>
-                                            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
-                                                {item.title}
-                                            </Typography>
-                                            <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                                                {item.body}
-                                            </Typography>
-                                        </Box>
-                                    ))}
-                                </Stack>
-                            </Stack>
-                        </Card>
-
-                        <Card component="section" id="features" ref={featuresReveal.ref} elevation={0} sx={{ ...sectionCardSx, ...featuresReveal.sx }}>
-                            <Stack spacing={2.5}>
-                                <Typography variant="overline" sx={{ color: theme.palette.text.secondary, letterSpacing: 1, fontWeight: 700 }}>
-                                    Features
-                                </Typography>
-                                <Box
-                                    sx={{
-                                        display: 'grid',
-                                        gap: { xs: 2.4, sm: 2.8, md: 3.2, lg: 3.6 },
-                                        gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
-                                        alignItems: 'stretch',
-                                    }}
-                                >
-                                    {featureSections.map((feature) => (
-                                        <Box
-                                            key={feature.id}
-                                            sx={{
-                                                position: 'relative',
-                                                borderRadius: 3,
-                                                p: { xs: 2.2, sm: 2.6, md: 2.8, lg: 3 },
-                                                bgcolor: 'rgba(255,255,255,0.9)',
-                                                boxShadow: '0 16px 48px rgba(15,23,42,0.06), 0 2px 10px rgba(15,23,42,0.04)',
-                                                border: '1px solid rgba(255,255,255,0.7)',
-                                                outline: '1px solid rgba(15,23,42,0.05)',
-                                                backdropFilter: 'blur(12px)',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                            }}
-                                        >
-                                            <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: { xs: 1, md: 1.2 } }}>
-                                                <Box
+                                            {timezoneLabelText ? (
+                                                <Typography
+                                                    variant="caption"
                                                     sx={{
-                                                        width: { xs: 38, sm: 40, md: 42 },
-                                                        height: { xs: 38, sm: 40, md: 42 },
-                                                        borderRadius: '14px',
-                                                        bgcolor: 'rgba(1,135,134,0.12)',
-                                                        color: theme.palette.primary.main,
-                                                        display: 'grid',
-                                                        placeItems: 'center',
-                                                        flexShrink: 0,
-                                                        border: '1px solid rgba(1,135,134,0.2)',
+                                                        mt: { xs: 1.25, sm: 1 },
+                                                        color: '#c7d3e0',
+                                                        textAlign: 'center',
+                                                        fontWeight: 600,
                                                     }}
                                                 >
-                                                    {feature.icon}
-                                                </Box>
-                                                <Typography variant="overline" sx={{ letterSpacing: 0.9, color: theme.palette.text.secondary, fontWeight: 700 }}>
-                                                    {feature.eyebrow}
+                                                    {timezoneLabelText}
                                                 </Typography>
-                                            </Stack>
-                                            <Typography variant="h6" sx={{ ...sectionHeadingSx, fontSize: { xs: '1.18rem', sm: '1.26rem', md: '1.32rem', lg: '1.38rem' }, lineHeight: 1.35 }}>
-                                                {feature.heading}
-                                            </Typography>
-                                            <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: { xs: 0.7, md: 0.8 }, lineHeight: { xs: 1.65, md: 1.7 }, fontSize: { xs: '0.95rem', sm: '0.97rem', md: '1rem' } }}>
-                                                {feature.body}
-                                            </Typography>
-                                            {feature.bullets.length > 0 && (
-                                                <Stack spacing={{ xs: 0.7, md: 0.75 }} sx={{ mt: { xs: 1.3, md: 1.4 } }}>
-                                                    {feature.bullets.map((bullet) => (
-                                                        <Stack key={bullet} direction="row" spacing={{ xs: 0.85, md: 0.95 }} alignItems="flex-start">
-                                                            <CheckCircleIcon fontSize="small" color="primary" />
-                                                            <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                                                                {bullet}
-                                                            </Typography>
-                                                        </Stack>
-                                                    ))}
-                                                </Stack>
-                                            )}
-                                            {feature.note && (
-                                                <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'block', mt: 1 }}>
-                                                    {feature.note}
-                                                </Typography>
-                                            )}
-                                        </Box>
-                                    ))}
+                                            ) : null}
+                                        </Stack>
+                                    </Box>
                                 </Box>
-                            </Stack>
-                        </Card>
+                            </Box>
 
-                        <Card component="section" id="use-cases" ref={useCasesReveal.ref} elevation={0} sx={{ ...sectionCardSx, ...useCasesReveal.sx }}>
-                            <Stack spacing={2.5}>
-                                <Typography variant="overline" sx={{ color: theme.palette.text.secondary, letterSpacing: 1, fontWeight: 700 }}>
-                                    Use cases
-                                </Typography>
-                                <Stack spacing={1.75}>
-                                    {useCases.map((useCase) => (
-                                        <Box key={useCase.title}>
-                                            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
-                                                {useCase.title}
-                                            </Typography>
-                                            <Stack spacing={0.6} sx={{ mt: 0.6 }}>
-                                                {useCase.bullets.map((bullet) => (
-                                                    <Stack key={bullet} direction="row" spacing={1} alignItems="flex-start">
-                                                        <CheckCircleIcon fontSize="small" color="primary" />
-                                                        <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                                                            {bullet}
+                            {/* Social Proof Section */}
+                            <Box
+                                component="section"
+                                id="social-proof"
+                                sx={{
+                                    maxWidth: { xs: '100%', md: 960, lg: 1200, xl: 1280 },
+                                    mx: 'auto',
+                                    width: '100%',
+                                    mb: { xs: 6, md: 8 },
+                                }}
+                            >
+                                <Stack spacing={2.5} sx={{ width: '100%' }}>
+                                    <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
+                                        Social proof
+                                    </Typography>
+                                    <Typography variant="h5" sx={sectionHeadingSx}>
+                                        Built for session-based traders and calendar users
+                                    </Typography>
+                                    <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
+                                        If your process includes session windows, overlaps, kill zones, or avoiding major releases, this workspace fits your day.
+                                    </Typography>
+                                    <Stack spacing={1.2}>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
+                                            Good fit for:
+                                        </Typography>
+                                        <Stack spacing={0.75}>
+                                            {socialProofFit.map((item) => (
+                                                <Stack key={item} direction="row" spacing={1} alignItems="center">
+                                                    <CheckCircleIcon fontSize="small" color="primary" />
+                                                    <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                                                        {item}
+                                                    </Typography>
+                                                </Stack>
+                                            ))}
+                                        </Stack>
+                                    </Stack>
+                                </Stack>
+                            </Box>
+
+                            {/* Main Content Sections */}
+                            <Stack spacing={{ xs: 6, md: 8 }}>
+                                <Box component="section" id="problem">
+                                    <Stack spacing={2.5}>
+                                        <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
+                                            The problem
+                                        </Typography>
+                                        <Typography variant="h5" sx={sectionHeadingSx}>
+                                            Trading is hard enough - timing should not be
+                                        </Typography>
+                                        <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
+                                            Most day traders lose focus to friction:
+                                        </Typography>
+                                        <Stack spacing={0.75}>
+                                            {problemPoints.map((item) => (
+                                                <Stack key={item} direction="row" spacing={1} alignItems="flex-start">
+                                                    <BoltIcon fontSize="small" color="primary" />
+                                                    <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                                                        {item}
+                                                    </Typography>
+                                                </Stack>
+                                            ))}
+                                        </Stack>
+                                    </Stack>
+                                </Box>
+
+                                <Box component="section" id="solution">
+                                    <Stack spacing={2.5}>
+                                        <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
+                                            The solution
+                                        </Typography>
+                                        <Typography variant="h5" sx={sectionHeadingSx}>
+                                            One clean view: sessions plus scheduled catalysts
+                                        </Typography>
+                                        <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
+                                            Time 2 Trade combines a visual session clock with an economic events view so you can:
+                                        </Typography>
+                                        <Stack spacing={0.75}>
+                                            {solutionPoints.map((item) => (
+                                                <Stack key={item} direction="row" spacing={1} alignItems="flex-start">
+                                                    <CheckCircleIcon fontSize="small" color="primary" />
+                                                    <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                                                        {item}
+                                                    </Typography>
+                                                </Stack>
+                                            ))}
+                                        </Stack>
+                                    </Stack>
+                                </Box>
+
+                                <Box component="section" id="benefits">
+                                    <Stack spacing={2.5}>
+                                        <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
+                                            Why day traders use Time 2 Trade
+                                        </Typography>
+                                        <Stack spacing={1.6}>
+                                            {benefits.map((item) => (
+                                                <Box key={item.title}>
+                                                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
+                                                        {item.title}
+                                                    </Typography>
+                                                    <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                                                        {item.body}
+                                                    </Typography>
+                                                </Box>
+                                            ))}
+                                        </Stack>
+                                    </Stack>
+                                </Box>
+
+                                <Box component="section" id="features">
+                                    <Stack spacing={2.5}>
+                                        <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
+                                            Features
+                                        </Typography>
+                                        <Box
+                                            sx={{
+                                                display: 'grid',
+                                                gap: { xs: 3, md: 4 },
+                                                gridTemplateColumns: { xs: '1fr' },
+                                            }}
+                                        >
+                                            {featureSections.map((feature) => (
+                                                <Box key={feature.id}>
+                                                    <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: { xs: 1, md: 1.2 } }}>
+                                                        <Box
+                                                            sx={{
+                                                                color: theme.palette.primary.main,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                            }}
+                                                        >
+                                                            {feature.icon}
+                                                        </Box>
+                                                        <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, color: theme.palette.text.secondary, fontWeight: 600, fontSize: '0.75rem' }}>
+                                                            {feature.eyebrow}
                                                         </Typography>
                                                     </Stack>
-                                                ))}
-                                            </Stack>
+                                                    <Typography variant="h6" sx={{ ...sectionHeadingSx, fontSize: { xs: '1.125rem', md: '1.25rem' }, mt: 1 }}>
+                                                        {feature.heading}
+                                                    </Typography>
+                                                    <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 1, lineHeight: 1.6 }}>
+                                                        {feature.body}
+                                                    </Typography>
+                                                    {feature.bullets.length > 0 && (
+                                                        <Stack spacing={{ xs: 0.7, md: 0.75 }} sx={{ mt: { xs: 1.3, md: 1.4 } }}>
+                                                            {feature.bullets.map((bullet) => (
+                                                                <Stack key={bullet} direction="row" spacing={{ xs: 0.85, md: 0.95 }} alignItems="flex-start">
+                                                                    <CheckCircleIcon fontSize="small" color="primary" />
+                                                                    <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                                                                        {bullet}
+                                                                    </Typography>
+                                                                </Stack>
+                                                            ))}
+                                                        </Stack>
+                                                    )}
+                                                    {feature.note && (
+                                                        <Typography variant="caption" sx={{ color: theme.palette.text.secondary, display: 'block', mt: 1 }}>
+                                                            {feature.note}
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                            ))}
                                         </Box>
-                                    ))}
-                                </Stack>
-                            </Stack>
-                        </Card>
-
-                        <Card component="section" id="how-it-works" ref={howItWorksReveal.ref} elevation={0} sx={{ ...sectionCardSx, ...howItWorksReveal.sx }}>
-                            <Stack spacing={2.5}>
-                                <Typography variant="overline" sx={{ color: theme.palette.text.secondary, letterSpacing: 1, fontWeight: 700 }}>
-                                    How it works
-                                </Typography>
-                                <Stack spacing={1}>
-                                    {howItWorksSteps.map((step) => (
-                                        <Stack key={step} direction="row" spacing={1} alignItems="flex-start">
-                                            <CheckCircleIcon fontSize="small" color="primary" />
-                                            <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                                                {step}
-                                            </Typography>
-                                        </Stack>
-                                    ))}
-                                </Stack>
-                            </Stack>
-                        </Card>
-
-                        <Card component="section" id="comparison" ref={comparisonReveal.ref} elevation={0} sx={{ ...sectionCardSx, ...comparisonReveal.sx }}>
-                            <Stack spacing={2.5}>
-                                <Typography variant="overline" sx={{ color: theme.palette.text.secondary, letterSpacing: 1, fontWeight: 700 }}>
-                                    Why this instead of just a calendar tab?
-                                </Typography>
-                                <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                                    Economic calendars are useful, but they are not built for fast intraday context.
-                                </Typography>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
-                                    Time 2 Trade is different because it is:
-                                </Typography>
-                                <Stack spacing={0.75}>
-                                    {comparisonPoints.map((item) => (
-                                        <Stack key={item} direction="row" spacing={1} alignItems="flex-start">
-                                            <CheckCircleIcon fontSize="small" color="primary" />
-                                            <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                                                {item}
-                                            </Typography>
-                                        </Stack>
-                                    ))}
-                                </Stack>
-                            </Stack>
-                        </Card>
-
-                        <Card
-                            id="faq"
-                            component="section"
-                            aria-labelledby="faq-heading"
-                            ref={faqReveal.ref}
-                            elevation={0}
-                            sx={{ ...sectionCardSx, ...faqReveal.sx }}
-                        >
-                            <Stack spacing={2.5}>
-                                <Typography id="faq-heading" variant="overline" sx={{ color: theme.palette.text.secondary, letterSpacing: 1, fontWeight: 700 }}>
-                                    Frequently asked questions
-                                </Typography>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.6 }}>
-                                    {faqEntries.map((faq) => (
-                                        <Box key={faq.question} sx={{ borderBottom: '1px solid rgba(0,0,0,0.06)', pb: 1.2 }}>
-                                            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
-                                                {faq.question}
-                                            </Typography>
-                                            <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.4 }}>
-                                                {faq.answer}
-                                            </Typography>
-                                        </Box>
-                                    ))}
+                                    </Stack>
                                 </Box>
-                            </Stack>
-                        </Card>
 
-                        <Card component="section" id="final-cta" ref={finalCtaReveal.ref} elevation={0} sx={{ ...sectionCardSx, ...finalCtaReveal.sx }}>
-                            <Stack spacing={2.5} alignItems={{ xs: 'flex-start', md: 'center' }} textAlign={{ xs: 'left', md: 'center' }}>
-                                <Typography variant="h5" sx={sectionHeadingSx}>
-                                    Go to the calendar with session context
-                                </Typography>
-                                <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                                    Check today&apos;s economic events, see which session you&apos;re in, and stay aligned with overlaps and countdowns. Powered by the Forex Factory source with filters, favorites, notes, and exports.
-                                </Typography>
-                                <Stack direction="row" spacing={1.5} flexWrap="wrap" justifyContent={{ xs: 'flex-start', md: 'center' }}>
-                                    <Button
-                                        onClick={openApp}
-                                        variant="contained"
-                                        color="primary"
-                                        size="large"
-                                        startIcon={<CalendarMonthIcon />}
-                                        sx={{ fontWeight: 800, px: { xs: 2.4, sm: 3 }, py: { xs: 1.1, sm: 1.25 }, borderRadius: 999 }}
-                                    >
-                                        Go to Calendar
-                                    </Button>
-                                    <Button
-                                        onClick={openApp}
-                                        variant="outlined"
-                                        color="inherit"
+                                <Box component="section" id="use-cases">
+                                    <Stack spacing={2.5}>
+                                        <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
+                                            Use cases
+                                        </Typography>
+                                        <Stack spacing={1.75}>
+                                            {useCases.map((useCase) => (
+                                                <Box key={useCase.title}>
+                                                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
+                                                        {useCase.title}
+                                                    </Typography>
+                                                    <Stack spacing={0.6} sx={{ mt: 0.6 }}>
+                                                        {useCase.bullets.map((bullet) => (
+                                                            <Stack key={bullet} direction="row" spacing={1} alignItems="flex-start">
+                                                                <CheckCircleIcon fontSize="small" color="primary" />
+                                                                <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                                                                    {bullet}
+                                                                </Typography>
+                                                            </Stack>
+                                                        ))}
+                                                    </Stack>
+                                                </Box>
+                                            ))}
+                                        </Stack>
+                                    </Stack>
+                                </Box>
+
+                                <Box component="section" id="how-it-works">
+                                    <Stack spacing={2.5}>
+                                        <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
+                                            How it works
+                                        </Typography>
+                                        <Stack spacing={1}>
+                                            {howItWorksSteps.map((step) => (
+                                                <Stack key={step} direction="row" spacing={1} alignItems="flex-start">
+                                                    <CheckCircleIcon fontSize="small" color="primary" />
+                                                    <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                                                        {step}
+                                                    </Typography>
+                                                </Stack>
+                                            ))}
+                                        </Stack>
+                                    </Stack>
+                                </Box>
+
+                                <Box component="section" id="comparison">
+                                    <Stack spacing={2.5}>
+                                        <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
+                                            Why this instead of just a calendar tab?
+                                        </Typography>
+                                        <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
+                                            Economic calendars are useful, but they are not built for fast intraday context.
+                                        </Typography>
+                                        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
+                                            Time 2 Trade is different because it is:
+                                        </Typography>
+                                        <Stack spacing={0.75}>
+                                            {comparisonPoints.map((item) => (
+                                                <Stack key={item} direction="row" spacing={1} alignItems="flex-start">
+                                                    <CheckCircleIcon fontSize="small" color="primary" />
+                                                    <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                                                        {item}
+                                                    </Typography>
+                                                </Stack>
+                                            ))}
+                                        </Stack>
+                                    </Stack>
+                                </Box>
+
+                                <Box
+                                    id="faq"
+                                    component="section"
+                                    aria-labelledby="faq-heading"
+                                >
+                                    <Stack spacing={2.5}>
+                                        <Typography id="faq-heading" variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
+                                            Frequently asked questions
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.6 }}>
+                                            {faqEntries.map((faq) => (
+                                                <Box key={faq.question} sx={{ borderBottom: '1px solid rgba(0,0,0,0.08)', pb: 2, mb: 2, '&:last-child': { borderBottom: 'none', mb: 0 } }}>
+                                                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
+                                                        {faq.question}
+                                                    </Typography>
+                                                    <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mt: 0.4 }}>
+                                                        {faq.answer}
+                                                    </Typography>
+                                                </Box>
+                                            ))}
+                                        </Box>
+                                    </Stack>
+                                </Box>
+
+                                <Box component="section" id="final-cta">
+                                    <Stack spacing={2.5} alignItems={{ xs: 'flex-start', md: 'center' }} textAlign={{ xs: 'left', md: 'center' }}>
+                                        <Typography variant="h5" sx={sectionHeadingSx}>
+                                            Go to the calendar with session context
+                                        </Typography>
+                                        <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
+                                            Check today&apos;s economic events, see which session you&apos;re in, and stay aligned with overlaps and countdowns. Powered by the Forex Factory source with filters, favorites, notes, and exports.
+                                        </Typography>
+                                        <Stack direction="row" spacing={1.5} flexWrap="wrap" justifyContent={{ xs: 'flex-start', md: 'center' }}>
+                                            <Button
+                                                onClick={openAuthModal}
+                                                variant="contained"
+                                                color="primary"
+                                                size="large"
+                                                sx={{
+                                                    fontWeight: 800,
+                                                    px: 3,
+                                                    py: 1.5,
+                                                    borderRadius: 999,
+                                                    textTransform: 'none',
+                                                    boxShadow: 'none',
+                                                    '&:hover': {
+                                                        boxShadow: 'none',
+                                                    },
+                                                }}
+                                            >
+                                                Unlock all features
+                                            </Button>
+                                            <Button
+                                                onClick={openApp}
+                                                variant="text"
+                                                color="inherit"
+                                                sx={{
+                                                    color: theme.palette.text.primary,
+                                                    fontWeight: 700,
+                                                    px: 3,
+                                                    py: 1.5,
+                                                    borderRadius: 999,
+                                                    textTransform: 'none',
+                                                    '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' },
+                                                }}
+                                            >
+                                                Go to Calendar
+                                            </Button>
+                                        </Stack>
+                                        <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
+                                            Not financial advice. Trading involves risk.
+                                        </Typography>
+                                    </Stack>
+                                </Box>
+
+                            </Stack>
+
+                            <Box
+                                component="footer"
+                                sx={{
+                                    maxWidth: { xs: '100%', md: 960, lg: 1200, xl: 1280 },
+                                    mx: 'auto',
+                                    width: '100%',
+                                    mt: { xs: 8, md: 10 },
+                                    pt: { xs: 4, md: 6 },
+                                    borderTop: '1px solid',
+                                    borderColor: 'divider',
+                                }}
+                            >
+                                <Stack spacing={2} alignItems="center" sx={{ textAlign: 'center' }}>
+                                    <Stack direction="row" spacing={1} alignItems="center">
+                                        <IconButton component="a" href="https://x.com/time2_trade" aria-label="@time2_trade on X" target="_blank" rel="noopener noreferrer" sx={{ color: theme.palette.text.primary }}>
+                                            <XIcon />
+                                        </IconButton>
+                                    </Stack>
+                                    <Stack direction="row" spacing={2} flexWrap="wrap" justifyContent="center">
+                                        <Button component={RouterLink} to="/about" variant="text" color="inherit" sx={{ textTransform: 'none', px: 0, color: theme.palette.text.primary }}>
+                                            About
+                                        </Button>
+                                        <Button component="a" href="#faq" variant="text" color="inherit" sx={{ textTransform: 'none', px: 0, color: theme.palette.text.primary }}>
+                                            FAQ
+                                        </Button>
+                                        <Button component="a" href="/privacy" variant="text" color="inherit" sx={{ textTransform: 'none', px: 0, color: theme.palette.text.primary }}>
+                                            Privacy
+                                        </Button>
+                                        <Button component="a" href="/terms" variant="text" color="inherit" sx={{ textTransform: 'none', px: 0, color: theme.palette.text.primary }}>
+                                            Terms
+                                        </Button>
+                                    </Stack>
+                                    <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
+                                        © {currentYear} Time 2 Trade. All rights reserved.
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
+                                        Not financial advice. Trading involves risk and may not be suitable for all investors.
+                                    </Typography>
+                                </Stack>
+                            </Box>
+
+                            {/* Back-to-top button - scrolls the main content area to top */}
+                            {showBackToTop && (
+                                <Box
+                                    sx={{
+                                        position: 'fixed',
+                                        right: { xs: 12, sm: 18, md: 24 },
+                                        bottom: { xs: 88, sm: 94, md: 74 },
+                                        zIndex: 1200,
+                                    }}
+                                >
+                                    <IconButton
+                                        aria-label="Back to top"
+                                        onClick={() => {
+                                            const behavior = prefersReducedMotion ? 'auto' : 'smooth';
+                                            const mainBox = document.querySelector('main[role="main"]') || document.querySelector('main');
+                                            if (mainBox) mainBox.scrollTo({ top: 0, behavior });
+                                        }}
                                         sx={{
+                                            bgcolor: 'rgba(0,0,0,0.06)',
                                             color: theme.palette.text.primary,
-                                            borderColor: 'rgba(0,0,0,0.14)',
-                                            fontWeight: 700,
-                                            px: { xs: 2.1, sm: 2.6 },
-                                            py: { xs: 1.05, sm: 1.15 },
-                                            borderRadius: 999,
-                                            '&:hover': { borderColor: theme.palette.text.primary },
+                                            width: 40,
+                                            height: 40,
+                                            '&:hover': { bgcolor: 'rgba(0,0,0,0.1)' },
                                         }}
                                     >
-                                        Create free account
-                                    </Button>
-                                </Stack>
-                                <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                                    Not financial advice. Trading involves risk.
-                                </Typography>
-                            </Stack>
-                        </Card>
-
-                        <Box
-                            component="footer"
-                            sx={{
-                                color: theme.palette.text.primary,
-                                textAlign: { xs: 'left', md: 'center' },
-                                pb: { xs: 1, md: 0 },
-                            }}
-                        >
-                            <Stack spacing={1.4} alignItems={{ xs: 'flex-start', md: 'center' }}>
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                    <IconButton component="a" href="https://x.com/time2_trade" aria-label="@time2_trade on X" target="_blank" rel="noopener noreferrer" sx={{ color: theme.palette.text.primary }}>
-                                        <XIcon />
+                                        <ArrowUpwardIcon />
                                     </IconButton>
-                                </Stack>
-                                <Stack direction="row" spacing={1.4} flexWrap="wrap" justifyContent={{ xs: 'flex-start', md: 'center' }}>
-                                    <Button component={RouterLink} to="/about" variant="text" color="inherit" sx={{ textTransform: 'none', px: 0, color: theme.palette.text.primary }}>
-                                        About
-                                    </Button>
-                                    <Button component="a" href="#faq" variant="text" color="inherit" sx={{ textTransform: 'none', px: 0, color: theme.palette.text.primary }}>
-                                        FAQ
-                                    </Button>
-                                    <Button component="a" href="/privacy" variant="text" color="inherit" sx={{ textTransform: 'none', px: 0, color: theme.palette.text.primary }}>
-                                        Privacy
-                                    </Button>
-                                    <Button component="a" href="/terms" variant="text" color="inherit" sx={{ textTransform: 'none', px: 0, color: theme.palette.text.primary }}>
-                                        Terms
-                                    </Button>
-                                </Stack>
-                                <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                                    © {currentYear} Time 2 Trade. All rights reserved.
-                                </Typography>
-                                <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                                    Not financial advice. Trading involves risk and may not be suitable for all investors.
-                                </Typography>
-                            </Stack>
+                                </Box>
+                            )}
                         </Box>
-                    </Stack>
-                </Container>
-
-                {showBackToTop && (
-                    <Box
-                        sx={{
-                            position: 'fixed',
-                            right: { xs: 12, sm: 18, md: 24 },
-                            bottom: { xs: 18, sm: 22, md: 26 },
-                            zIndex: 1200,
-                        }}
-                    >
-                        <IconButton
-                            aria-label="Back to top"
-                            onClick={() => {
-                                const behavior = prefersReducedMotion ? 'auto' : 'smooth';
-                                window.scrollTo({ top: 0, behavior });
-                            }}
-                            sx={{
-                                bgcolor: '#0F172A',
-                                color: '#ffffff',
-                                boxShadow: '0 12px 32px rgba(15,23,42,0.26)',
-                                border: '1px solid rgba(255,255,255,0.18)',
-                                width: 48,
-                                height: 48,
-                                '&:hover': { bgcolor: '#16213a' },
-                                '&:focus-visible': {
-                                    outline: '2px solid #0ea5e9',
-                                    outlineOffset: 3,
-                                },
-                            }}
-                        >
-                            <ArrowUpwardIcon />
-                        </IconButton>
-                    </Box>
-                )}
-
-            </Box>
+                    </PublicLayout>
+                );
+            })()}
         </>
     );
 }

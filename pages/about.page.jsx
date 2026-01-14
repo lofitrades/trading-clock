@@ -8,6 +8,7 @@
  * v1.0.0 - 2025-12-18 - Initial SSR About page implementation.
  */
 
+
 const siteUrl = 'https://time2.trade';
 const ogImage = `${siteUrl}/Time2Trade_SEO_Meta_3.PNG`;
 

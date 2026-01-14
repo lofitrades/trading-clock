@@ -49,8 +49,8 @@ export default function ClockHandsOverlay({ size, handAnglesRef, handColor, time
     const setupCanvas = () => {
       canvas.width = Math.round(size * dpr);
       canvas.height = Math.round(size * dpr);
-      canvas.style.width = `${size}px`;
-      canvas.style.height = `${size}px`;
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(dpr, dpr);
     };
@@ -115,7 +115,7 @@ export default function ClockHandsOverlay({ size, handAnglesRef, handColor, time
     <canvas
       ref={canvasRef}
       className="clock-hands-overlay"
-      style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3 }}
+      style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3, width: '100%', height: '100%' }}
     />
   );
 }

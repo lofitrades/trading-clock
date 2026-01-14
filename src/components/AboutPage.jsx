@@ -6,28 +6,56 @@
  * Includes proper SEO metadata, structured data, and mobile-first responsive design.
  * 
  * Changelog:
+ * v1.2.26 - 2026-01-14 - SCROLLBAR STYLING: Applied minimal scrollbar UI from CalendarEmbedLayout to Paper container. Thin 6px width, semi-transparent rgba(60,77,99,0.32) thumb that darkens on hover, transparent track. Provides subtle, professional scrollbar appearance consistent with /calendar page.
+ * v1.2.25 - 2026-01-14 - VISUAL REFINEMENT: Removed border (1px divider line) from main Paper container and changed background color from background.paper (#FFFFFF) to background.default (#F9F9F9) to match theme and create a seamless, integrated appearance with the page layout.
+ * v1.2.24 - 2026-01-14 - RESPONSIVE PADDING: Added mobile-first px padding to Paper (xs:2, sm:2, md:5) to ensure About content doesn't touch viewport edges on mobile while maintaining centering fix. Responsive padding scales with breakpoints: xs/sm get additional gutters (16px total), md+ gets wider padding (40px) for desktop comfortable reading width.
+ * v1.2.20 - 2026-01-14 - CENTERING FIX: Removed duplicate px padding and maxWidth/mx:auto from content wrapper since PublicLayout already provides these. This was causing double horizontal padding (32px instead of 16px on xs), breaking horizontal centering on mobile.
+ * v1.2.19 - 2026-01-13 - RESTRUCTURE: Move mobile brand lockup outside Paper with fixed positioning on xs/sm; Paper now starts below fixed logo+name and height adjusted accordingly. Paper scrollable independently with adjusted height calculations.
+ * v1.2.18 - 2026-01-13 - Removed "Start Using Time 2 Trade" CTA button; replaced footer with "Contact us" link that opens ContactModal. Removed unused imports (Button, useNavigate).
+ * v1.2.17 - 2026-01-13 - Updated container sizing to match canonical mobile-first pattern: width 100%, maxWidth 1560, mx auto, responsive px. Removed unused DASHBOARD_APP_BAR_CONTAINER_SX import for consistency with /app and /calendar layouts.
+ * v1.2.16 - 2026-01-13 - CRITICAL FIX: Removed width:100% from content wrapper; now relies on DASHBOARD_APP_BAR_CONTAINER_SX (mx:auto + maxWidth:1560) for self-centering. Aligns with centering fixes applied to /app and /calendar.
+ * v1.2.15 - 2026-01-13 - Aligned /about main content width with canonical AppBar container to prevent md/lg overflow; matches /calendar layout sizing.
+ * v1.2.14 - 2026-01-13 - Locked /about to canonical AppBar sizing by removing per-page overrides and relying on shared layout defaults.
+ * v1.2.13 - 2026-01-13 - Switched /about to standardized AppBar profile selection to align with shared public shell sizing.
+ * v1.2.12 - 2026-01-13 - Set xl AppBar margin to 0 so /about aligns flush on xl while retaining md/lg spacing.
+ * v1.2.11 - 2026-01-13 - Added xs/sm brand lockup above the About header to mirror AppBar logo and label on mobile.
+ * v1.2.10 - 2026-01-13 - Removed top margin on the About card and enabled internal scrolling with responsive max-heights.
+ * v1.2.9 - 2026-01-13 - Switched /about to PublicLayout (no banner) to match new chrome; removed local banner/AppBar wrappers while keeping SEO intact.
+ * v1.2.8 - 2026-01-13 - Centered all /about chrome/content (banner, AppBar, body, footer) with shared dashboard container sizing for mobile-first parity with /app.
+ * v1.2.7 - 2026-01-13 - Restored responsive top banner + DashboardAppBar chrome and removed the back-to-app button to match /calendar and /app layouts.
+ * v1.2.6 - 2026-01-13 - Removed DashboardAppBar and AdTopBanner chrome from the About page.
+ * v1.2.5 - 2026-01-12 - Implemented mobile-first responsive centering: replaced width:100% + maxWidth:100% with responsive maxWidth (360/540/full) for xs/sm/md+ to ensure proper horizontal centering of chrome on mobile breakpoints.
+ * v1.2.4 - 2026-01-12 - Applied maxWidth constraint and flexbox centering to chrome wrapper for xs/sm horizontal centering and consistent AppBar height across pages.
+ * v1.2.3 - 2026-01-12 - Fixed AppBar chrome consistency: added missing Box wrapper with margin around AdTopBanner to match /calendar and /app structure.
+ * v1.2.2 - 2026-01-12 - Applied shared AppBar container spacing/z-index to match /calendar and /app chrome.
+ * v1.2.1 - 2026-01-12 - Added AdTopBanner and DashboardAppBar to AboutPage with mobile-first nav chrome.
  * v1.2.0 - 2025-12-22 - Moved to shared Helmet-based SEO metadata with refreshed About positioning.
  * v1.1.0 - 2025-12-18 - Removed react-helmet-async; client title/description updates for /app.
  * v1.0.0 - 2025-12-17 - Initial implementation with SEO metadata and MUI components
  */
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState, Suspense, lazy } from 'react';
 import PropTypes from 'prop-types';
 import {
-  Container,
   Typography,
   Box,
   List,
   ListItem,
   ListItemText,
   Paper,
-  Button,
   Divider
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useNavigate } from 'react-router-dom';
+import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
+import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
+import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
+import { Link as RouterLink } from 'react-router-dom';
 import SEO from './SEO';
+import ContactModal from './ContactModal';
+import PublicLayout from './PublicLayout';
 import { aboutContent, aboutMeta, aboutStructuredData } from '../content/aboutContent';
+
+const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
 
 /**
  * Render content block based on type
@@ -115,7 +143,58 @@ ContentBlock.propTypes = {
  * - Shared content source with Settings Drawer
  */
 export default function AboutPage() {
-  const navigate = useNavigate();
+  const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const handleOpenSettings = () => {
+    setSettingsOpen(true);
+  };
+
+  const handleCloseSettings = () => {
+    setSettingsOpen(false);
+  };
+
+  const handleOpenAuth = () => {
+    // Auth modal if needed
+  };
+
+  const navItems = useMemo(
+    () => [
+      {
+        id: 'calendar',
+        label: 'Calendar',
+        shortLabel: 'Calendar',
+        to: '/calendar',
+        icon: <CalendarMonthRoundedIcon />,
+        ariaLabel: 'Economic calendar',
+      },
+      {
+        id: 'clock',
+        label: 'Trading Clock',
+        shortLabel: 'Clock',
+        to: '/app',
+        icon: <AccessTimeRoundedIcon />,
+        ariaLabel: 'Open the trading clock',
+      },
+      {
+        id: 'about',
+        label: 'About',
+        shortLabel: 'About',
+        to: '/about',
+        icon: <InfoRoundedIcon />,
+        ariaLabel: 'Learn about Time 2 Trade',
+      },
+      {
+        id: 'signin',
+        label: 'Sign in',
+        shortLabel: 'Sign in',
+        icon: <LockOpenRoundedIcon />,
+        primary: true,
+        ariaLabel: 'Sign in or create an account',
+      },
+    ],
+    [],
+  );
 
   // Scroll to top on mount
   useEffect(() => {
@@ -123,139 +202,190 @@ export default function AboutPage() {
   }, []);
 
   return (
-    <>
+    <PublicLayout
+      navItems={navItems}
+      onOpenAuth={() => setContactModalOpen(false)}
+      onOpenSettings={handleOpenSettings}
+    >
       <SEO {...aboutMeta} structuredData={[aboutStructuredData]} />
+      {/* NOTE: PublicLayout handles centering (width:100%, maxWidth:1560, px:responsive).
+          Just render content directly, no additional width/centering wrappers. */}
+
+      {/* Mobile brand lockup - fixed on xs/sm */}
       <Box
+        component={RouterLink}
+        to="/"
         sx={{
-          minHeight: 'var(--t2t-vv-height, 100dvh)',
+          display: { xs: 'inline-flex', sm: 'inline-flex', md: 'none' },
+          alignItems: 'center',
+          gap: 1,
+          textDecoration: 'none',
+          color: 'inherit',
+          position: { xs: 'fixed', sm: 'fixed', md: 'relative' },
+          top: { xs: 'calc(var(--t2t-app-bar-height, 8px) + 12px)', sm: 'calc(var(--t2t-app-bar-height, 12px) + 12px)' },
+          left: { xs: 16, md: 'auto' },
+          zIndex: { xs: 100, sm: 100, md: 'auto' },
+          '&:focus-visible': {
+            outline: '2px solid rgba(15,23,42,0.35)',
+            outlineOffset: 4,
+            borderRadius: 1,
+          },
+        }}
+        aria-label="Time 2 Trade home"
+      >
+        <Box
+          component="img"
+          src="/logos/favicon/favicon.ico"
+          alt="Time 2 Trade logo"
+          sx={{
+            display: 'block',
+            height: 32,
+            width: 'auto',
+            maxWidth: '32vw',
+            objectFit: 'contain',
+            flexShrink: 0,
+          }}
+        />
+        <Typography
+          variant="subtitle1"
+          sx={{
+            fontWeight: 900,
+            lineHeight: 1.1,
+            color: 'text.primary',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          Time 2 Trade
+        </Typography>
+      </Box>
+
+      {/* Main Content Card - flex: 1 fills available space, scrolls independently */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 3, sm: 4, md: 5 },
+          borderRadius: 3,
           bgcolor: 'background.default',
-          py: { xs: 3, sm: 5, md: 6 }
+          flex: 1,
+          width: '100%',
+          boxSizing: 'border-box',
+          mt: { xs: 'calc(32px + 40px)', sm: 'calc(32px + 40px)', md: 0 },
+          overflowY: 'auto',
+          minHeight: 0,
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(60,77,99,0.32) transparent',
+          '&::-webkit-scrollbar': {
+            width: 6,
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(60,77,99,0.32)',
+            borderRadius: 999,
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            backgroundColor: 'rgba(60,77,99,0.45)',
+          },
         }}
       >
-        <Container maxWidth="md">
-          {/* Back to App Button */}
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/')}
-            sx={{
-              mb: 3,
-              textTransform: 'none',
-              color: 'text.secondary',
-              '&:hover': {
-                bgcolor: 'action.hover'
-              }
-            }}
-          >
-            Back to App
-          </Button>
 
-          {/* Main Content Card */}
-          <Paper
-            elevation={0}
-            sx={{
-              p: { xs: 3, sm: 4, md: 5 },
-              borderRadius: 3,
-              border: 1,
-              borderColor: 'divider',
-              bgcolor: 'background.paper'
-            }}
-          >
-            {/* Page Header */}
-            <Typography
-              variant="h1"
-              component="h1"
-              sx={{
-                fontSize: { xs: '1.75rem', sm: '2.25rem', md: '2.5rem' },
-                fontWeight: 700,
-                mb: 1,
-                color: 'text.primary'
-              }}
-            >
-              {aboutContent.title}
-            </Typography>
+        {/* Page Header */}
+        <Typography
+          variant="h1"
+          component="h1"
+          sx={{
+            fontSize: { xs: '1.75rem', sm: '2.25rem', md: '2.5rem' },
+            fontWeight: 700,
+            mb: 1,
+            color: 'text.primary'
+          }}
+        >
+          {aboutContent.title}
+        </Typography>
 
-            <Typography
-              variant="subtitle1"
-              sx={{
-                fontSize: { xs: '1rem', sm: '1.1rem' },
-                color: 'text.secondary',
-                mb: 4,
-                fontWeight: 500
-              }}
-            >
-              {aboutContent.subtitle}
-            </Typography>
+        <Typography
+          variant="subtitle1"
+          sx={{
+            fontSize: { xs: '1rem', sm: '1.1rem' },
+            color: 'text.secondary',
+            mb: 4,
+            fontWeight: 500
+          }}
+        >
+          {aboutContent.subtitle}
+        </Typography>
 
-            <Divider sx={{ mb: 4 }} />
+        <Divider sx={{ mb: 4 }} />
 
-            {/* Content Sections */}
-            {aboutContent.sections.map((section, index) => (
-              <Box key={index} sx={{ mb: index < aboutContent.sections.length - 1 ? 4 : 0 }}>
-                {section.title && (
-                  <Typography
-                    variant="h2"
-                    component="h2"
-                    sx={{
-                      fontSize: { xs: '1.3rem', sm: '1.5rem' },
-                      fontWeight: 700,
-                      mb: 2,
-                      color: 'text.primary'
-                    }}
-                  >
-                    {section.title}
-                  </Typography>
-                )}
-
-                {section.content.map((block, blockIndex) => (
-                  <ContentBlock key={blockIndex} block={block} />
-                ))}
-              </Box>
-            ))}
-
-            {/* Call to Action */}
-            <Divider sx={{ my: 4 }} />
-
-            <Box sx={{ textAlign: 'center' }}>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={() => navigate('/app')}
+        {/* Content Sections */}
+        {aboutContent.sections.map((section, index) => (
+          <Box key={index} sx={{ mb: index < aboutContent.sections.length - 1 ? 4 : 0 }}>
+            {section.title && (
+              <Typography
+                variant="h2"
+                component="h2"
                 sx={{
-                  textTransform: 'none',
-                  px: 4,
-                  py: 1.5,
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  borderRadius: 2
+                  fontSize: { xs: '1.3rem', sm: '1.5rem' },
+                  fontWeight: 700,
+                  mb: 2,
+                  color: 'text.primary'
                 }}
               >
-                Start Using Time 2 Trade
-              </Button>
-            </Box>
-          </Paper>
+                {section.title}
+              </Typography>
+            )}
 
-          {/* Footer Note */}
-          <Typography
-            variant="body2"
-            sx={{
-              mt: 3,
-              textAlign: 'center',
-              color: 'text.secondary',
-              fontSize: '0.875rem'
-            }}
-          >
-            Questions? Follow us on{' '}
-            <a
-              href="https://x.com/time2_trade"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'inherit', fontWeight: 600 }}
-            >
-              @time2_trade
-            </a>
-          </Typography>
-        </Container>
-      </Box>
-    </>
+            {section.content.map((block, blockIndex) => (
+              <ContentBlock key={blockIndex} block={block} />
+            ))}
+          </Box>
+        ))}
+
+      </Paper>
+
+      {/* Footer - Contact Us */}
+      <Divider sx={{ my: 4 }} />
+      <Typography
+        variant="body2"
+        sx={{
+          textAlign: 'center',
+          color: 'text.secondary',
+          fontSize: '0.875rem',
+          mb: 4,
+        }}
+      >
+        Have questions?{' '}
+        <Box
+          component="button"
+          onClick={() => setContactModalOpen(true)}
+          sx={{
+            background: 'none',
+            border: 'none',
+            color: 'primary.main',
+            fontWeight: 600,
+            cursor: 'pointer',
+            padding: 0,
+            textDecoration: 'none',
+            '&:hover': { textDecoration: 'underline' },
+            '&:focus-visible': {
+              outline: '2px solid',
+              outlineOffset: 2,
+              outlineColor: 'primary.main',
+              borderRadius: 0.5,
+            }
+          }}
+        >
+          Contact us
+        </Box>
+      </Typography>
+
+      <ContactModal open={contactModalOpen} onClose={() => setContactModalOpen(false)} />
+      <Suspense fallback={null}>
+        <SettingsSidebar2 open={settingsOpen} onClose={handleCloseSettings} onOpenAuth={handleOpenAuth} onOpenContact={() => setContactModalOpen(true)} />
+      </Suspense>
+    </PublicLayout>
   );
 }

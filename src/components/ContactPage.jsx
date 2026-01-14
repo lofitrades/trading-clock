@@ -1,19 +1,23 @@
 /**
  * src/components/ContactPage.jsx
  * 
- * Purpose: Simple, mobile-first contact page with an accessible form (email*, name, phone, message)
- * and a direct link to our X account for fast responses. Uses SEO helpers and MUI v7.
- * Writes submissions to Firestore for follow-up and support workflows.
+ * Purpose: Contact page with an accessible form and X link that can render standalone or inside ContactModal; writes submissions to Firestore and validates phone numbers.
+ * Key responsibility and main functionality: Render the contact form in standalone or embedded contexts, validate inputs, and submit to Firestore with success feedback.
  * 
  * Changelog:
- * v1.3.1 - 2026-01-09 - Refine /contact copy + layout to an Airbnb-like enterprise UX.
- * v1.3.0 - 2026-01-09 - Add embeddable ContactCard, success state with centered confirmation CTA buttons, and hide form after submit.
+ * v1.3.6 - 2026-01-13 - PostMessage ready signal in embed mode so ContactModal keeps progress until form is ready.
+ * v1.3.5 - 2026-01-13 - Skip SEO render in embed mode to slim iframe payload.
+ * v1.3.4 - 2026-01-13 - Embed performance tuning; lazy-load country data and Firestore on demand.
+ * v1.3.3 - 2026-01-09 - Add explicit titles to contact inputs for better accessibility/UX.
+ * v1.3.2 - 2026-01-09 - Add embed mode (?embed=1) to hide non-form header copy and footer links when shown in ContactModal.
+ * v1.3.1 - 2026-01-09 - Refine /contact copy and layout to an enterprise UX.
+ * v1.3.0 - 2026-01-09 - Add embeddable ContactCard, success state with centered confirmation CTAs, and hide form after submit.
  * v1.2.0 - 2026-01-09 - Remove mailto flow, enforce phone country codes via libphonenumber-js, store phone metadata and message.
  * v1.1.0 - 2026-01-09 - Store to Firestore (contactMessages), add phone country code dropdown, enforce numeric phone, require message, and open mailto to time2tradex@gmail.com.
  * v1.0.0 - 2026-01-09 - Initial implementation with form and X link.
  */
 
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { Alert, Box, Button, Container, Link, MenuItem, Paper, Stack, SvgIcon, TextField, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import PropTypes from 'prop-types';
@@ -21,9 +25,7 @@ import { siX } from 'simple-icons';
 import SEO from './SEO';
 import { buildSeoMeta } from '../utils/seoMeta';
 import { db } from '../firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
-import { getCountries, getCountryCallingCode } from 'libphonenumber-js';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { Link as RouterLink } from 'react-router-dom';
 
@@ -55,19 +57,51 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState('');
     const [submitted, setSubmitted] = useState(false);
+    const readyPostedRef = useRef(false);
 
     const displayNames = useMemo(() => new Intl.DisplayNames(['en'], { type: 'region' }), []);
+    const [countryOptions, setCountryOptions] = useState(() => [{ value: 'US', label: 'United States (+1)', callingCode: '+1' }]);
 
-    const countryOptions = useMemo(() => {
-        const countries = getCountries();
-        return countries
-            .map((code) => {
-                const name = displayNames.of(code) || code;
-                const calling = getCountryCallingCode(code);
-                return { value: code, label: `${name} (+${calling})`, callingCode: `+${calling}` };
-            })
-            .sort((a, b) => a.label.localeCompare(b.label));
+    useEffect(() => {
+        let cancelled = false;
+        const loadCountryData = async () => {
+            try {
+                const [{ getCountries, getCountryCallingCode }] = await Promise.all([
+                    import('libphonenumber-js'),
+                ]);
+                const countries = getCountries();
+                const options = countries.map((code) => {
+                    const callingCode = getCountryCallingCode(code);
+                    const label = `${displayNames.of(code)} (+${callingCode})`;
+                    return { value: code, label, callingCode: `+${callingCode}` };
+                });
+                if (!cancelled && options.length > 0) {
+                    setCountryOptions(options);
+                }
+            } catch (err) {
+                console.error('Failed to load country data', err);
+            }
+        };
+        loadCountryData();
+        return () => { cancelled = true; };
     }, [displayNames]);
+
+    useEffect(() => {
+        if (!embedded) return;
+        if (readyPostedRef.current) return;
+        // Notify parent modal that the iframe content is ready to display.
+        readyPostedRef.current = true;
+        const timer = window.setTimeout(() => {
+            try {
+                window.parent?.postMessage({ type: 'contact-embed-ready' }, window.location.origin);
+            } catch (err) {
+                // Swallow postMessage errors silently; fallback timer in ContactModal will handle display.
+            }
+        }, 0);
+        return () => {
+            clearTimeout(timer);
+        };
+    }, [embedded, countryOptions.length]);
 
     const emailError = useMemo(() => {
         if (!touched.email) return '';
@@ -114,6 +148,12 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
             const referrer = document.referrer || '';
             const path = window.location.pathname || '/contact';
+
+            const [{ getCountryCallingCode }, { addDoc, collection, serverTimestamp }] = await Promise.all([
+                import('libphonenumber-js'),
+                import('firebase/firestore'),
+            ]);
+
             const callingCode = getCountryCallingCode(form.phoneCountry);
             const phoneE164 = `+${callingCode}${form.phone}`.replace(/\s+/g, '');
 
@@ -232,7 +272,7 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
                         </Typography>
 
                         <TextField
-                            label="Email *"
+                            label="Enter your email"
                             name="email"
                             type="email"
                             required
@@ -242,17 +282,16 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
                             error={Boolean(emailError)}
                             helperText={emailError || 'We’ll use this to reply.'}
                             fullWidth
-                            inputProps={{ inputMode: 'email', autoComplete: 'email' }}
+                            inputProps={{ inputMode: 'email', autoComplete: 'email', title: 'Enter the email we should reply to' }}
                         />
                         <TextField
-                            label="Name"
+                            label="Enter your name"
                             name="name"
                             value={form.name}
                             onChange={onChange}
                             onBlur={onBlur}
                             fullWidth
-                            inputProps={{ autoComplete: 'name' }}
-                            helperText="Optional"
+                            inputProps={{ autoComplete: 'name', title: 'Your name (optional)' }}
                         />
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'flex-start' }}>
                             <TextField
@@ -263,6 +302,7 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
                                 onChange={onChange}
                                 onBlur={onBlur}
                                 sx={{ width: { xs: '100%', sm: 240 } }}
+                                inputProps={{ title: 'Select your country to set the calling code' }}
                             >
                                 {countryOptions.map((opt) => (
                                     <MenuItem key={opt.value} value={opt.value}>
@@ -271,18 +311,18 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
                                 ))}
                             </TextField>
                             <TextField
-                                label="Phone"
+                                label="Enter your phone"
                                 name="phone"
                                 value={form.phone}
                                 onChange={onChange}
                                 onBlur={onBlur}
                                 fullWidth
-                                inputProps={{ inputMode: 'numeric', autoComplete: 'tel', pattern: '[0-9]*' }}
-                                helperText="Optional (digits only, no dashes)"
+                                inputProps={{ inputMode: 'numeric', autoComplete: 'tel', pattern: '[0-9]*', title: 'Optional phone (digits only)' }}
+                                helperText="(digits only, no dashes)"
                             />
                         </Stack>
                         <TextField
-                            label="Message *"
+                            label="Message"
                             name="message"
                             required
                             value={form.message}
@@ -293,6 +333,7 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
                             minRows={4}
                             error={Boolean(messageError)}
                             helperText={messageError || 'Tell us what you need help with.'}
+                            inputProps={{ title: 'Describe what you need help with' }}
                         />
 
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
@@ -335,78 +376,102 @@ ContactCard.propTypes = {
 };
 
 export default function ContactPage() {
+    const isEmbedded = useMemo(() => {
+        if (typeof window === 'undefined') return false;
+        const params = new URLSearchParams(window.location.search || '');
+        if (params.get('embed') === '1') return true;
+        return params.has('embed');
+    }, []);
+
     return (
         <Box
             component="main"
             sx={{
-                bgcolor: '#f9fafb',
+                bgcolor: isEmbedded ? 'background.default' : '#f9fafb',
                 color: '#0f172a',
-                minHeight: '100vh',
+                minHeight: isEmbedded ? '100dvh' : '100vh',
                 // Desktop: use a viewport-fit layout (no page scroll)
-                height: { md: 'var(--t2t-vv-height, 100dvh)' },
-                overflowY: { xs: 'auto', md: 'hidden' },
-                display: { md: 'flex' },
-                flexDirection: { md: 'column' },
+                height: isEmbedded ? '100dvh' : { md: 'var(--t2t-vv-height, 100dvh)' },
+                overflowY: isEmbedded ? 'hidden' : { xs: 'auto', md: 'hidden' },
+                display: isEmbedded ? 'flex' : { md: 'flex' },
+                flexDirection: isEmbedded ? 'column' : { md: 'column' },
+                justifyContent: isEmbedded ? 'center' : undefined,
+                alignItems: isEmbedded ? 'center' : undefined,
+                px: isEmbedded ? 1.5 : undefined,
             }}
         >
-            <SEO {...contactMeta} />
+            {!isEmbedded && <SEO {...contactMeta} />}
 
             <Container
                 maxWidth="md"
                 sx={{
-                    py: { xs: 4, sm: 6, md: 4 },
+                    py: isEmbedded ? { xs: 2, sm: 2.5, md: 2.5 } : { xs: 4, sm: 6, md: 4 },
                     // Desktop: flex container that fits viewport height
-                    height: { md: '100%' },
-                    display: { md: 'flex' },
-                    flexDirection: { md: 'column' },
-                    minHeight: { md: 0 },
+                    height: isEmbedded ? 'auto' : { md: '100%' },
+                    display: isEmbedded ? 'flex' : { md: 'flex' },
+                    flexDirection: isEmbedded ? 'column' : { md: 'column' },
+                    minHeight: isEmbedded ? 0 : { md: 0 },
+                    justifyContent: isEmbedded ? 'center' : undefined,
+                    alignItems: isEmbedded ? 'center' : undefined,
                 }}
             >
-                <Stack spacing={3} sx={{ flex: { md: 1 }, minHeight: { md: 0 } }}>
-                    <Box>
-                        <Typography variant="overline" sx={{ color: '#475569', fontWeight: 800, letterSpacing: '0.08em' }}>
-                            Contact
-                        </Typography>
-                        <Typography variant="h3" sx={{ fontWeight: 800, fontSize: { xs: '1.75rem', sm: '2.15rem' }, letterSpacing: '-0.02em' }}>
-                            Get in touch
-                        </Typography>
-                        <Typography variant="body1" sx={{ color: '#475569', mt: 1, maxWidth: 680 }}>
-                            Send a message for support, feedback, or questions. Prefer DM? Reach us on X for the fastest response.
-                        </Typography>
-                    </Box>
+                <Stack spacing={3} sx={{ flex: 1, minHeight: 0, width: '100%', maxWidth: isEmbedded ? 720 : '100%' }}>
+                    {!isEmbedded && (
+                        <Box>
+                            <Typography variant="overline" sx={{ color: '#475569', fontWeight: 800, letterSpacing: '0.08em' }}>
+                                Contact
+                            </Typography>
+                            <Typography variant="h3" sx={{ fontWeight: 800, fontSize: { xs: '1.75rem', sm: '2.15rem' }, letterSpacing: '-0.02em' }}>
+                                Get in touch
+                            </Typography>
+                            <Typography variant="body1" sx={{ color: '#475569', mt: 1, maxWidth: 680 }}>
+                                Send a message for support, feedback, or questions. Prefer DM? Reach us on X for the fastest response.
+                            </Typography>
+                        </Box>
+                    )}
 
                     <Box
                         sx={{
                             // Desktop: keep the card area within viewport (internal scroll if needed)
-                            flex: { md: 1 },
-                            minHeight: { md: 0 },
+                            flex: 1,
+                            minHeight: 0,
                             display: 'flex',
-                            alignItems: { md: 'center' },
+                            alignItems: isEmbedded ? 'center' : { md: 'center' },
+                            justifyContent: 'center',
+                            width: '100%',
                         }}
                     >
                         <ContactCard
+                            embedded={isEmbedded}
                             paperSx={{
                                 width: '100%',
-                                maxHeight: { md: 'calc(var(--t2t-vv-height, 100dvh) - 280px)' },
-                                overflowY: { md: 'auto' },
+                                maxWidth: 760,
+                                height: isEmbedded ? 'auto' : undefined,
+                                maxHeight: isEmbedded
+                                    ? { xs: 'min(760px, calc(100dvh - 120px))', sm: 'min(820px, calc(100dvh - 140px))', md: 'min(880px, calc(100dvh - 160px))' }
+                                    : { md: 'calc(var(--t2t-vv-height, 100dvh) - 280px)' },
+                                overflowY: isEmbedded ? 'auto' : { md: 'auto' },
+                                m: isEmbedded ? '0 auto' : 0,
                             }}
                         />
                     </Box>
 
-                    <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
-                        <Link href="/" underline="hover" sx={{ fontWeight: 700 }}>
-                            Home
-                        </Link>
-                        <Link href="/calendar" underline="hover" sx={{ fontWeight: 700 }}>
-                            Open Calendar
-                        </Link>
-                        <Link href="/privacy" underline="hover" sx={{ fontWeight: 700 }}>
-                            Privacy
-                        </Link>
-                        <Link href="/terms" underline="hover" sx={{ fontWeight: 700 }}>
-                            Terms
-                        </Link>
-                    </Stack>
+                    {!isEmbedded && (
+                        <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
+                            <Link href="/" underline="hover" sx={{ fontWeight: 700 }}>
+                                Home
+                            </Link>
+                            <Link href="/calendar" underline="hover" sx={{ fontWeight: 700 }}>
+                                Open Calendar
+                            </Link>
+                            <Link href="/privacy" underline="hover" sx={{ fontWeight: 700 }}>
+                                Privacy
+                            </Link>
+                            <Link href="/terms" underline="hover" sx={{ fontWeight: 700 }}>
+                                Terms
+                            </Link>
+                        </Stack>
+                    )}
                 </Stack>
             </Container>
         </Box>

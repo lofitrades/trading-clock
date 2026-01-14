@@ -1964,6 +1964,59 @@ whyDidYouRender(React, {
 
 ## 📝 Change Log
 
+### Version 2.7.8 - January 13, 2026
+**Referral Banner Removal**
+
+#### 🔄 Changes
+- Removed all referral banner placements from CalendarEmbed and public shells; calendar, app, and marketing routes now run banner-free.
+
+### Version 2.7.7 - January 13, 2026
+**Calendar Mobile Spacing**
+
+#### 🐛 Fixes
+- Added xs/sm top margin to the Economic Calendar paper when rendered on /calendar to clear sticky chrome and match mobile spacing across the public shell.
+
+### Version 2.7.6 - January 13, 2026
+**Public Layout Chrome Cleanup**
+
+#### 🔄 Changes
+- PublicLayout now omits the referral banner; DashboardAppBar remains sticky so public pages keep navigation without duplicate ad rows.
+- /app and /about use PublicLayout with page-level AppBar spacing overrides to keep chrome centered across marketing and app shells.
+
+#### 🐛 Fixes
+- About page card removes top margin and adds responsive max-heights with internal scrolling to prevent page-level overflow on small viewports.
+
+### Version 2.7.5 - January 13, 2026
+**Public Layout Shell**
+
+#### ✨ New Features
+- Added PublicLayout wrapper with sticky banner slot followed by the DashboardAppBar so public pages share the same chrome and referral placement.
+- /calendar now uses PublicLayout and disables the in-embed top banner to avoid duplicate ads while preserving router-aware SEO behavior.
+
+### Version 2.7.4 - January 13, 2026
+**Calendar Navigation Chrome**
+
+#### ✨ New Features
+- /calendar now renders the DashboardAppBar (sticky desktop bar + mobile bottom nav) inside CalendarEmbed for consistent navigation chrome.
+- CalendarPage conditionally hydrates a router wrapper only when needed, so embeds without React Router still load the new navigation safely.
+
+### Version 2.7.3 - January 11, 2026
+**Calendar Mobile UX + Next Navigation**
+
+#### ✨ New Features
+- /calendar now uses a floating "Jump to Next" control that appears only when a NEXT event exists and is not currently visible.
+
+#### 🐛 Fixes
+- Improved xs clock canvas sizing/centering to keep session labels visible on mobile.
+- Day sections now use sticky day + column headers below the sticky filters.
+
+### Version 2.7.2 - January 9, 2026
+**Contact Modal Embed Mode**
+
+#### ✨ New Features
+- Contact navigation on the landing page opens a responsive modal that embeds the /contact page.
+- /contact supports an embed mode (`?embed=1`) that hides non-form header copy and the bottom navigation links when rendered inside the modal.
+
 ### Version 2.7.1 - January 8, 2026
 **Removed Background Color Setting**
 
@@ -2034,7 +2087,7 @@ whyDidYouRender(React, {
   - / → LandingPage (marketing with FAQ schema)
   - /app → HomePage → App (interactive clock)
   - /about → AboutPage (about content)
-  - /events → EventsPage (events table/timeline)
+  - /calendar → CalendarPage (economic events calendar)
 
 #### 🔄 Changes
 - Added `AppRoutes.jsx` with React Router for client-side navigation

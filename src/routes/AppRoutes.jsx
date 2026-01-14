@@ -41,7 +41,6 @@ const AboutPage = lazy(() => import('../components/AboutPage'));
 const LoginPage = lazy(() => import('../components/LoginPage'));
 const UploadDescriptions = lazy(() => import('../components/UploadDescriptions'));
 const ExportEvents = lazy(() => import('../components/ExportEvents'));
-const EventsPage = lazy(() => import('../components/EventsPage'));
 const CalendarPage = lazy(() => import('../components/CalendarPage'));
 const PrivacyPage = lazy(() => import('../components/PrivacyPage'));
 const TermsPage = lazy(() => import('../components/TermsPage'));
@@ -192,16 +191,6 @@ export default function AppRoutes() {
               <PublicRoute>
                 <CalendarPage />
               </PublicRoute>
-            }
-          />
-
-          {/* Economic Events Page - Requires authentication */}
-          <Route
-            path="/events"
-            element={
-              <PrivateRoute redirectTo="/login">
-                <EventsPage />
-              </PrivateRoute>
             }
           />
 

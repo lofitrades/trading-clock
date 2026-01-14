@@ -160,8 +160,8 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
 
     canvas.width = Math.round(size * dpr);
     canvas.height = Math.round(size * dpr);
-    canvas.style.width = `${size}px`;
-    canvas.style.height = `${size}px`;
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
     ctx.scale(dpr, dpr);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
@@ -361,7 +361,7 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
   }, [clockStyle, sessions, size, detectHoveredSession]);
 
   return (
-    <div className="canvas-container">
+    <div className="canvas-container" style={{ width: '100%', height: '100%', aspectRatio: '1 / 1' }}>
       <canvas
         ref={canvasRef}
         onMouseMove={handleMouseMove}
@@ -370,7 +370,7 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
           setHoveredSession(null);
           hideTooltip();
         }}
-        style={{ touchAction: 'none' }}
+        style={{ touchAction: 'none', width: '100%', height: '100%' }}
       />
       {tooltip && (
         <div

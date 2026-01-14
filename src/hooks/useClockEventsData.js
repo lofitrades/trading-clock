@@ -5,8 +5,14 @@
  * event lists when available, otherwise fetches today's events for the active
  * timezone/news source with filter awareness. Keeps data concerns out of the
  * overlay UI and exposes a simple loading + events API for reuse.
+ * 
+ * Filter Sync: This hook automatically re-fetches when eventFilters (impacts, currencies)
+ * change in SettingsContext, ensuring the clock canvas reflects user filter preferences
+ * set on the /calendar page.
  *
  * Changelog:
+ * v1.2.1 - 2026-01-13 - CRITICAL FIX: Removed nowEpochMs from effect deps to prevent infinite re-fetch loop causing LoadingScreen blink; dayKey handles day rollover correctly.
+ * v1.2.0 - 2026-01-13 - Ensure filter changes from SettingsContext trigger re-fetch; added favoritesOnly filtering; improved filterKey stability.
  * v1.1.0 - 2026-01-08 - Refreshes automatically on timezone-based day rollover using caller-provided nowEpochMs.
  * v1.0.0 - 2026-01-07 - Initial extraction from ClockEventsOverlay for data/UI separation and reuse.
  */
@@ -52,16 +58,23 @@ export function useClockEventsData({
 
   const dayKey = useMemo(() => buildDayKey(timezone, nowEpochMs), [timezone, nowEpochMs]);
 
+  // Serialize filter arrays for stable comparison (sort to ensure order-independent matching)
+  const impactsKey = useMemo(
+    () => (eventFilters?.impacts || []).slice().sort().join('|'),
+    [eventFilters?.impacts]
+  );
+  const eventTypesKey = useMemo(
+    () => (eventFilters?.eventTypes || []).slice().sort().join('|'),
+    [eventFilters?.eventTypes]
+  );
+  const currenciesKey = useMemo(
+    () => (eventFilters?.currencies || []).slice().sort().join('|'),
+    [eventFilters?.currencies]
+  );
+
   const filterKey = useMemo(
-    () => [
-      timezone || 'na',
-      newsSource || 'na',
-      (eventFilters?.impacts || []).join('|'),
-      (eventFilters?.eventTypes || []).join('|'),
-      (eventFilters?.currencies || []).join('|'),
-      dayKey,
-    ].join('::'),
-    [timezone, newsSource, eventFilters?.impacts, eventFilters?.eventTypes, eventFilters?.currencies, dayKey],
+    () => [timezone || 'na', newsSource || 'na', impactsKey, eventTypesKey, currenciesKey, dayKey].join('::'),
+    [timezone, newsSource, impactsKey, eventTypesKey, currenciesKey, dayKey],
   );
 
   useEffect(() => {
@@ -76,7 +89,8 @@ export function useClockEventsData({
 
     const load = async () => {
       try {
-        const { start, end } = buildTodayRange(timezone, nowEpochMs);
+        // Use dayKey-based range (already incorporates timezone-aware current day)
+        const { start, end } = buildTodayRange(timezone, Date.now());
         const result = await getEventsByDateRange(start, end, {
           source: newsSource,
           impacts: eventFilters?.impacts || [],
@@ -104,6 +118,8 @@ export function useClockEventsData({
     return () => {
       cancelled = true;
     };
+    // filterKey captures all filter state changes including dayKey for day rollover
+    // CRITICAL: Do NOT include nowEpochMs here - it changes every second and would cause infinite re-fetches
   }, [filterKey, providedEvents, timezone, newsSource, eventFilters?.impacts, eventFilters?.eventTypes, eventFilters?.currencies]);
 
   return { events, loading };

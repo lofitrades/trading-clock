@@ -5,6 +5,8 @@
  * Supplies clock visibility, styling, timezone, news source, and economic events overlay controls to the app.
  * 
  * Changelog:
+ * v1.6.0 - 2026-01-14 - CRITICAL FIX: Replaced one-time getDoc with real-time onSnapshot listener for authenticated users. Settings now sync in real-time across all open tabs/pages. Added save-lock mechanism (isSavingRef) to prevent listener from overwriting local changes during active saves. Refactored settings application into reusable applyFirestoreSettings callback. Enterprise-grade cross-session consistency following Firebase best practices.
+ * v1.5.0 - 2026-01-13 - CRITICAL FIX: Added searchQuery to eventFilters schema; fixed updateEventFilters to properly normalize and serialize all filter fields; ensures filter consistency across sessions and page refreshes via proper Firestore/localStorage sync.
  * v1.4.7 - 2026-01-08 - Removed standalone "Background Color" setting; only Session-based Background functionality remains.
  * v1.4.6 - 2026-01-08 - Ensure showClockHands toggle properly propagates to ClockHandsOverlay via prop (seconds hand visibility).
  * v1.4.5 - 2026-01-08 - Added showPastSessionsGray toggle and Firestore persistence; fixed CalendarEmbed clock gray-out toggle not working.
@@ -22,11 +24,11 @@
  * v1.0.0 - 2025-09-15 - Initial implementation of settings context with Firestore sync.
  */
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from './AuthContext';
 import { db } from '../firebase';
-import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { USER_ROLES, SUBSCRIPTION_PLANS, SUBSCRIPTION_STATUS, PLAN_FEATURES } from '../types/userTypes';
 import { DEFAULT_NEWS_SOURCE } from '../types/economicEvents';
 
@@ -93,7 +95,7 @@ export function SettingsProvider({ children }) {
   const [newsSource, setNewsSource] = useState(DEFAULT_NEWS_SOURCE);
   const [preferredSource, setPreferredSource] = useState('auto');
 
-  // Event filters state
+  // Event filters state (includes all filter fields for full persistence)
   const [eventFilters, setEventFilters] = useState({
     startDate: null,
     endDate: null,
@@ -101,6 +103,7 @@ export function SettingsProvider({ children }) {
     eventTypes: [],
     currencies: [],
     favoritesOnly: false,
+    searchQuery: '',
   });
 
   useEffect(() => {
@@ -150,10 +153,13 @@ export function SettingsProvider({ children }) {
         try {
           const parsed = JSON.parse(savedEventFilters);
           setEventFilters({
-            ...parsed,
             startDate: parsed.startDate ? new Date(parsed.startDate) : null,
             endDate: parsed.endDate ? new Date(parsed.endDate) : null,
+            impacts: parsed.impacts || [],
+            eventTypes: parsed.eventTypes || [],
+            currencies: parsed.currencies || [],
             favoritesOnly: parsed.favoritesOnly ?? false,
+            searchQuery: parsed.searchQuery || '',
           });
         } catch (error) {
           console.error('❌ Failed to parse saved event filters:', error);
@@ -168,50 +174,69 @@ export function SettingsProvider({ children }) {
     loadInitialSettings();
   }, []);
 
-  useEffect(() => {
-    async function loadUserSettings() {
-      if (!user) return;
+  // Track if we're currently saving to prevent listener from overwriting local changes
+  const isSavingRef = useRef(false);
+  const saveTimeoutRef = useRef(null);
 
-      setIsLoading(true);
-      try {
-        const userRef = doc(db, 'users', user.uid);
-        const snap = await getDoc(userRef);
+  // Helper to apply Firestore settings to local state (used by both initial load and listener)
+  const applyFirestoreSettings = useCallback((data) => {
+    if (!data?.settings) return;
+    const s = data.settings;
+
+    if (s.clockSize !== undefined) setClockSize(s.clockSize);
+    if (s.sessions !== undefined) setSessions(s.sessions);
+    if (s.selectedTimezone !== undefined) setSelectedTimezone(s.selectedTimezone);
+    if (s.backgroundBasedOnSession !== undefined) setBackgroundBasedOnSession(s.backgroundBasedOnSession);
+    if (s.showHandClock !== undefined) setShowHandClock(s.showHandClock);
+    if (s.showDigitalClock !== undefined) setShowDigitalClock(s.showDigitalClock);
+    if (s.showSessionLabel !== undefined) setShowSessionLabel(s.showSessionLabel);
+    if (s.showTimezoneLabel !== undefined) setShowTimezoneLabel(s.showTimezoneLabel);
+    if (s.showTimeToEnd !== undefined) setShowTimeToEnd(s.showTimeToEnd);
+    if (s.showTimeToStart !== undefined) setShowTimeToStart(s.showTimeToStart);
+    if (s.showSessionNamesInCanvas !== undefined) setShowSessionNamesInCanvas(s.showSessionNamesInCanvas);
+    if (s.showEventsOnCanvas !== undefined) setShowEventsOnCanvas(s.showEventsOnCanvas);
+    if (s.showClockNumbers !== undefined) setShowClockNumbers(s.showClockNumbers);
+    if (s.showClockHands !== undefined) setShowClockHands(s.showClockHands);
+    if (s.showPastSessionsGray !== undefined) setShowPastSessionsGray(s.showPastSessionsGray);
+    if (s.newsSource !== undefined) setNewsSource(s.newsSource);
+    if (s.preferredSource !== undefined) setPreferredSource(s.preferredSource);
+
+    // Load event filters with date deserialization
+    if (s.eventFilters) {
+      const filters = s.eventFilters;
+      setEventFilters({
+        startDate: filters.startDate?.toDate ? filters.startDate.toDate() : (filters.startDate ? new Date(filters.startDate) : null),
+        endDate: filters.endDate?.toDate ? filters.endDate.toDate() : (filters.endDate ? new Date(filters.endDate) : null),
+        impacts: filters.impacts || [],
+        eventTypes: filters.eventTypes || [],
+        currencies: filters.currencies || [],
+        favoritesOnly: filters.favoritesOnly ?? false,
+        searchQuery: filters.searchQuery || '',
+      });
+    }
+  }, []);
+
+  // Real-time Firestore listener for authenticated users - keeps settings in sync across tabs/pages
+  useEffect(() => {
+    if (!user) return;
+
+    setIsLoading(true);
+    const userRef = doc(db, 'users', user.uid);
+
+    // Subscribe to real-time updates
+    const unsubscribe = onSnapshot(
+      userRef,
+      async (snap) => {
+        // Skip update if we're currently saving (prevents overwriting local changes)
+        if (isSavingRef.current) {
+          return;
+        }
+
         if (snap.exists()) {
           const data = snap.data();
-          if (data.settings) {
-            if (data.settings.clockSize) setClockSize(data.settings.clockSize);
-            if (data.settings.sessions) setSessions(data.settings.sessions);
-            if (data.settings.selectedTimezone) setSelectedTimezone(data.settings.selectedTimezone);
-            if (data.settings.backgroundBasedOnSession !== undefined)
-              setBackgroundBasedOnSession(data.settings.backgroundBasedOnSession);
-            if (data.settings.showHandClock !== undefined) setShowHandClock(data.settings.showHandClock);
-            if (data.settings.showDigitalClock !== undefined) setShowDigitalClock(data.settings.showDigitalClock);
-            if (data.settings.showSessionLabel !== undefined) setShowSessionLabel(data.settings.showSessionLabel);
-            if (data.settings.showTimezoneLabel !== undefined) setShowTimezoneLabel(data.settings.showTimezoneLabel);
-            if (data.settings.showTimeToEnd !== undefined) setShowTimeToEnd(data.settings.showTimeToEnd);
-            if (data.settings.showTimeToStart !== undefined) setShowTimeToStart(data.settings.showTimeToStart);
-            if (data.settings.showSessionNamesInCanvas !== undefined) setShowSessionNamesInCanvas(data.settings.showSessionNamesInCanvas);
-            if (data.settings.showEventsOnCanvas !== undefined) setShowEventsOnCanvas(data.settings.showEventsOnCanvas);
-            if (data.settings.showClockNumbers !== undefined) setShowClockNumbers(data.settings.showClockNumbers);
-            if (data.settings.showClockHands !== undefined) setShowClockHands(data.settings.showClockHands);
-            if (data.settings.showPastSessionsGray !== undefined) setShowPastSessionsGray(data.settings.showPastSessionsGray);
-
-            // Load news source preference
-            if (data.settings.newsSource) setNewsSource(data.settings.newsSource);
-            if (data.settings.preferredSource) setPreferredSource(data.settings.preferredSource);
-
-            // Load event filters with date deserialization
-            if (data.settings.eventFilters) {
-              const filters = data.settings.eventFilters;
-              setEventFilters({
-                ...filters,
-                startDate: filters.startDate?.toDate ? filters.startDate.toDate() : (filters.startDate ? new Date(filters.startDate) : null),
-                endDate: filters.endDate?.toDate ? filters.endDate.toDate() : (filters.endDate ? new Date(filters.endDate) : null),
-                favoritesOnly: filters.favoritesOnly ?? false,
-              });
-            }
-          }
+          applyFirestoreSettings(data);
         } else {
+          // Create new user document with defaults
           const defaultSubscription = {
             plan: SUBSCRIPTION_PLANS.FREE,
             status: SUBSCRIPTION_STATUS.ACTIVE,
@@ -253,20 +278,47 @@ export function SettingsProvider({ children }) {
             },
           });
         }
-      } catch (error) {
-        console.error('Error loading user settings:', error);
-      } finally {
+        setIsLoading(false);
+      },
+      (error) => {
+        console.error('Error in settings listener:', error);
         setIsLoading(false);
       }
-    }
-    loadUserSettings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+    );
 
+    // Cleanup listener on unmount or user change
+    return () => {
+      unsubscribe();
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, applyFirestoreSettings]);
+
+  // Debounced save to Firestore with save-lock to prevent listener from overwriting
   async function saveSettingsToFirestore(newSettings) {
     if (!user) return;
+
+    // Set saving flag to prevent listener from overwriting local changes
+    isSavingRef.current = true;
+
+    // Clear any pending timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
     const userRef = doc(db, 'users', user.uid);
-    await setDoc(userRef, { settings: { ...newSettings } }, { merge: true });
+    try {
+      await setDoc(userRef, { settings: { ...newSettings } }, { merge: true });
+    } catch (error) {
+      console.error('Error saving settings to Firestore:', error);
+    }
+
+    // Release save lock after a short delay to let listener settle
+    saveTimeoutRef.current = setTimeout(() => {
+      isSavingRef.current = false;
+    }, 500);
   }
 
   const updateClockSize = (size) => {
@@ -423,26 +475,42 @@ export function SettingsProvider({ children }) {
 
   /**
    * Update event filters with persistence
+   * CRITICAL: Ensures all filter fields are properly serialized for both localStorage and Firestore
+   * to maintain filter consistency across sessions and page refreshes.
    */
   const updateEventFilters = (newFilters) => {
-    setEventFilters(newFilters);
-
-    // Serialize dates for storage
-    const serializedFilters = {
-      ...newFilters,
-      startDate: newFilters.startDate?.toISOString() || null,
-      endDate: newFilters.endDate?.toISOString() || null,
+    // Ensure Date objects for internal state
+    const normalizedFilters = {
+      startDate: newFilters.startDate instanceof Date ? newFilters.startDate : (newFilters.startDate ? new Date(newFilters.startDate) : null),
+      endDate: newFilters.endDate instanceof Date ? newFilters.endDate : (newFilters.endDate ? new Date(newFilters.endDate) : null),
+      impacts: newFilters.impacts || [],
+      eventTypes: newFilters.eventTypes || [],
+      currencies: newFilters.currencies || [],
       favoritesOnly: Boolean(newFilters.favoritesOnly),
+      searchQuery: newFilters.searchQuery || '',
+    };
+
+    setEventFilters(normalizedFilters);
+
+    // Serialize dates for localStorage (ISO string format)
+    const serializedFilters = {
+      ...normalizedFilters,
+      startDate: normalizedFilters.startDate?.toISOString() || null,
+      endDate: normalizedFilters.endDate?.toISOString() || null,
     };
 
     localStorage.setItem('eventFilters', JSON.stringify(serializedFilters));
 
     if (user) {
-      // For Firestore, use Timestamp for dates
+      // For Firestore, use Timestamp for dates (primitives for other fields)
       const firestoreFilters = {
-        ...newFilters,
-        startDate: newFilters.startDate ? Timestamp.fromDate(newFilters.startDate) : null,
-        endDate: newFilters.endDate ? Timestamp.fromDate(newFilters.endDate) : null,
+        startDate: normalizedFilters.startDate ? Timestamp.fromDate(normalizedFilters.startDate) : null,
+        endDate: normalizedFilters.endDate ? Timestamp.fromDate(normalizedFilters.endDate) : null,
+        impacts: normalizedFilters.impacts,
+        eventTypes: normalizedFilters.eventTypes,
+        currencies: normalizedFilters.currencies,
+        favoritesOnly: normalizedFilters.favoritesOnly,
+        searchQuery: normalizedFilters.searchQuery,
       };
       saveSettingsToFirestore({ eventFilters: firestoreFilters });
     }
@@ -501,6 +569,7 @@ export function SettingsProvider({ children }) {
       eventTypes: [],
       currencies: [],
       favoritesOnly: false,
+      searchQuery: '',
     });
 
     // Also reset in Firestore if user is logged in
@@ -525,6 +594,15 @@ export function SettingsProvider({ children }) {
         showPastSessionsGray: false,
         newsSource: DEFAULT_NEWS_SOURCE,
         preferredSource: 'auto',
+        eventFilters: {
+          startDate: null,
+          endDate: null,
+          impacts: [],
+          eventTypes: [],
+          currencies: [],
+          favoritesOnly: false,
+          searchQuery: '',
+        },
       };
       await saveSettingsToFirestore(defaultSettings);
     }

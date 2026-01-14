@@ -18,7 +18,7 @@ Key features:
 Primary URLs:
 - Home/app: https://time2.trade/
 - About: https://time2.trade/about
-- Economic events: https://time2.trade/events
+- Calendar: https://time2.trade/calendar
 - Login: https://time2.trade/login
 
 Contact: @time2_trade (https://x.com/time2_trade) | support@time2.trade

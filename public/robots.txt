@@ -20,4 +20,3 @@ Disallow: /app/upload-desc
 Disallow: /app/export
 Disallow: /app/login
 Disallow: /login
-Disallow: /events
