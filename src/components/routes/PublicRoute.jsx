@@ -9,7 +9,7 @@
  * v1.0.0 - 2025-11-30 - Initial implementation
  */
 
-import React from 'react';
+import PropTypes from 'prop-types';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import RouteLoading from './RouteLoading';
@@ -25,9 +25,9 @@ import RouteLoading from './RouteLoading';
  * @param {boolean} props.restricted - If true, authenticated users are redirected
  * @param {string} props.redirectTo - Where to redirect authenticated users (default: '/')
  */
-export default function PublicRoute({ 
-  children, 
-  restricted = false, 
+export default function PublicRoute({
+  children,
+  restricted = false,
   redirectTo = '/',
 }) {
   const { user, loading, profileLoading } = useAuth();
@@ -45,3 +45,9 @@ export default function PublicRoute({
   // Render public content
   return children;
 }
+
+PublicRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+  restricted: PropTypes.bool,
+  redirectTo: PropTypes.string,
+};

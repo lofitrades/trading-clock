@@ -6,9 +6,18 @@
  * floating jump-to-next/now control.
  * 
  * Changelog:
+ * v1.0.28 - 2026-01-15 - TOP SPACING ALIGNMENT: Removed extra top padding so the Economic Calendar paper aligns with PublicLayout spacing like /about.
+ * v1.0.27 - 2026-01-15 - HEIGHT & SCROLL FIX (ENTERPRISE AUDIT): Fixed right column height exceeding left column and missing vertical scroll. (1) Added height:'100%' to grid container to fill parent flex. (2) Added maxHeight:'100%' and overflow:'hidden' to both columns to constrain content. (3) Ensured right column has overflowY:'auto' for proper vertical scrolling. (4) Grid now uses alignItems:'stretch' instead of 'start' so columns share same height. Follows enterprise pattern: grid fills available space, columns scroll independently within their bounds.
+ * v1.0.26 - 2026-01-15 - GRID LAYOUT FIX (ENTERPRISE AUDIT): Simplified two-column grid to use flexible fr units instead of strict minmax with large pixel minimums that caused overflow. Changed from minmax(360px, 520px) minmax(480px, 1fr) to 1fr 2fr on md and 1fr 2.5fr on lg. This ensures columns scale properly within PublicLayout constraints (maxWidth:1560, px:responsive) without forcing content wider than viewport. Mobile-first responsive: xs uses single column (1fr), md/lg use proportional two-column splits. Follows enterprise MUI dashboard pattern: grid columns should be flexible within their container, not force container to expand.
+ * v1.0.25 - 2026-01-15 - WIDTH CONSTRAINT FIX (ENTERPRISE AUDIT): Removed DASHBOARD_APP_BAR_CONTAINER_SX from AppBar wrapper and removed unused import (eliminates double-layering of width constraints when appBar prop is used). Removed overflowX:'hidden' from content container (was hiding overflow instead of preventing it). AppBar wrapper now only handles sticky positioning and margin-bottom, not width constraints. Content container now properly constrains children without hiding overflow. Follows enterprise single-layer width constraint pattern: PublicLayout provides authoritative centering (maxWidth:1560, mx:auto, px:responsive), all children use width:100% only.
+ * v1.0.24 - 2026-01-15 - WIDTH CONSTRAINT FIX (REVERTED): Removed maxWidth/mx/px from CONTENT_CONTAINER_SX and topBanner wrapper. CalendarEmbedLayout is a child of PublicLayout which already provides outer centering (maxWidth: 1560, mx: auto, px: responsive). Double-layering constraints caused width overflow. Now follows AboutPage pattern: child uses only width:100%, parent (PublicLayout) handles centering. Enterprise best practice: single responsibility for width constraints at layout level.
+ * v1.0.23 - 2026-01-15 - WIDTH CONSTRAINT FIX: Applied DASHBOARD_APP_BAR_CONTAINER_SX width constraints (maxWidth: 1560, mx: auto, px: responsive) to CONTENT_CONTAINER_SX and topBanner wrapper. This ensures Calendar and Clock papers stay within proper viewport bounds and center correctly on all breakpoints. Prevents right edge overflow and ensures enterprise-grade responsive centering across xs/sm/md/lg/xl.
+ * v1.0.22 - 2026-01-14 - VIEWPORT HEIGHT FILL FIX: Changed from height:auto to flex:1 to properly fill available viewport height constrained by PublicLayout (calc(100vh - 64px) on xs/sm for bottom nav, 100% on md+). Ensures Economic Calendar Paper sizes correctly within available space on all breakpoints.
+ * v1.0.21 - 2026-01-14 - LAYOUT CONSTRAINT FIXES: Simplified pb formula from calc(10*8px+48px)→10 units on xs/sm as bottom nav is already handled by PublicLayout maxHeight constraint. Removed height:100dvh and minHeight:100dvh constraints that conflicted with parent maxHeight, now using minHeight:0 and height:auto for proper flex-child behavior. Fixes height conflicts and excessive padding identified in mobile layout audit.
  * v1.0.20 - 2026-01-14 - NOW JUMP BUTTON: Added showJumpToNow/onJumpToNow/jumpToNowDirection props for "Jump to Now" floating button (blue, info color) with priority over NEXT button (green, success color). NOW events take precedence when visible. Mobile-first responsive design.
  * v1.0.19 - 2026-01-13 - Changed root backgroundColor to 'inherit' for session-based background propagation; allows App.jsx effectiveBackground to apply globally.
  * v1.0.18 - 2026-01-13 - BUGFIX: Add margin-bottom on xs/sm to account for fixed bottom AppBar; prevents content from hiding behind fixed navigation on mobile.
+ * v1.0.18 - 2026-01-14 - MOBILE LOGO SCROLL FIX: Increased pb (padding-bottom) on xs/sm from 10 units (80px) to account for PublicLayout mobile logo row height (32px logo + 16px padding-bottom = 48px additional). New formula: calc(10 * 8px + 48px) for xs/sm ensures calendar content can scroll all the way to bottom without being hidden by reserved space for bottom nav. On md+, pb returns to 12 units. Fully responsive mobile-first approach.
  * v1.0.17 - 2026-01-13 - Aligned main content width with canonical AppBar container (1560 max) for consistent chrome/content sizing across /calendar, /app, and /about.
  * v1.0.16 - 2026-01-13 - Switched root background to the main app background color for visual consistency with public shell.
  * v1.0.15 - 2026-01-13 - Aligned xl maxWidth with DashboardAppBar container (1560px) via shared constant for two-column layout parity.
@@ -34,11 +43,12 @@ import PropTypes from 'prop-types';
 import { Box, IconButton, Tooltip } from '@mui/material';
 import KeyboardDoubleArrowDownRoundedIcon from '@mui/icons-material/KeyboardDoubleArrowDownRounded';
 import KeyboardDoubleArrowUpRoundedIcon from '@mui/icons-material/KeyboardDoubleArrowUpRounded';
-import { DASHBOARD_APP_BAR_CONTAINER_SX } from './AppBar';
 
 const TOP_OFFSET_LG = 16;
 const CONTENT_CONTAINER_SX = {
     width: '100%',
+    // Width constraints (maxWidth: 1560, mx: auto, px) are handled by PublicLayout parent
+    // This container fills its parent width and lets PublicLayout manage viewport centering
 };
 
 const minimalScrollbar = {
@@ -88,11 +98,11 @@ const CalendarEmbedLayout = ({
                 backgroundColor: 'inherit',
                 color: 'inherit',
                 pt: 0,
-                // In two-column mode we lock to the viewport height and scroll within columns.
-                // Extra outer padding reduces usable height and can trigger unnecessary scrollbars.
-                pb: { xs: 10, md: 12 },
-                minHeight: '100dvh',
-                height: '100dvh',
+                // Standard bottom padding for scrollable content.
+                // Bottom nav constraint handled by PublicLayout maxHeight (calc(100vh - 64px)).
+                pb: 2,
+                flex: 1,
+                minHeight: 0,
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
@@ -121,7 +131,6 @@ const CalendarEmbedLayout = ({
                         <Box
                             sx={{
                                 width: '100%',
-                                ...DASHBOARD_APP_BAR_CONTAINER_SX,
                                 mb: { xs: 0, md: 2 },
                             }}
                         >
@@ -137,7 +146,6 @@ const CalendarEmbedLayout = ({
                     display: 'flex',
                     flexDirection: 'column',
                     gap: { xs: 1.5, md: 2.25 },
-                    overflowX: 'hidden',
                     flex: 1,
                     minHeight: 0,
                 }}
@@ -147,17 +155,19 @@ const CalendarEmbedLayout = ({
                         display: 'grid',
                         gridTemplateColumns: isTwoColumn
                             ? {
-                                xs: 'minmax(0, 1fr)',
-                                md: 'minmax(360px, 520px) minmax(480px, 1fr)',
-                                lg: 'minmax(360px, 520px) minmax(680px, 1fr)',
+                                xs: '1fr',
+                                md: '8fr 12fr',
+                                lg: '3fr 7fr',
+                                xl: '3fr 7fr',
                             }
-                            : 'minmax(0, 1fr)',
+                            : '1fr',
                         gap: { xs: 1.5, md: 2.25 },
-                        alignItems: 'start',
+                        alignItems: 'stretch',
                         minWidth: 0,
                         flex: 1,
                         minHeight: 0,
                         height: '100%',
+                        width: '100%',
                     }}
                 >
                     {isTwoColumn && (
@@ -171,11 +181,9 @@ const CalendarEmbedLayout = ({
                                 position: { xs: 'relative', lg: 'sticky' },
                                 top: { lg: TOP_OFFSET_LG },
                                 alignSelf: { lg: 'start' },
-                                height: '100%',
                                 minHeight: 0,
-                                overflowX: 'hidden',
-                                overflowY: { md: 'auto' },
-                                pr: { lg: 0.25 },
+                                maxHeight: '100%',
+                                overflow: 'hidden',
                                 ...minimalScrollbar,
                             }}
                         >
@@ -191,11 +199,11 @@ const CalendarEmbedLayout = ({
                             flexDirection: 'column',
                             gap: { xs: 1.5, md: 2.25 },
                             minWidth: 0,
-                            height: '100%',
                             minHeight: 0,
+                            maxHeight: '100%',
+                            overflowX: 'hidden',
                             overflowY: 'auto',
                             position: 'relative',
-                            pr: { lg: 0.25 },
                             ...minimalScrollbar,
                         }}
                     >

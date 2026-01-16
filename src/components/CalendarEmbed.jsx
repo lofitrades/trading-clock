@@ -5,6 +5,90 @@
  * and stays embeddable for other pages while keeping Time 2 Trade branding and SEO-friendly copy.
  * 
  * Changelog:
+ * v1.5.36 - 2026-01-15 - TIMEZONE MODAL BACKDROP FIX: Keep backdrop behind paper and ensure modal sits above AppBar.
+ * v1.5.35 - 2026-01-15 - TIMEZONE MODAL Z-INDEX: Raise the timezone selector modal above the AppBar for proper overlay priority.
+ * v1.5.34 - 2026-01-15 - CLOCK MARKER FLAG ALIGNMENT: Ensure clock event marker flag badges are styled
+ *   consistently on the /calendar route by importing the shared App.css marker styles for ClockEventsOverlay.
+ * v1.5.33 - 2026-01-15 - EVENT COUNT CHIP CONSISTENCY: Fixed day header styling for consistent appearance.
+ *   Today's entire header row now uses 'primary.main' background with 'primary.contrastText' color for emphasis.
+ *   The event count chip for today uses a semi-transparent white background to stand out against the primary color.
+ *   Other days maintain light grey background with dark text. All headers now display with consistent styling.
+ * v1.5.32 - 2026-01-15 - STICKY COLUMN CASCADE: Restored sticky column headers
+ *   and aligned their top offset with the sticky day header height + gap so the
+ *   headers cascade cleanly when scrolling.
+ * v1.5.31 - 2026-01-15 - COLUMN HEADER NON-STICKY: Removed sticky positioning from table column headers so
+ *   only day headers remain sticky during scroll.
+ * v1.5.30 - 2026-01-15 - DAY/COLUMN HEADER POLISH: Added vertical padding to day headers (with updated
+ *   fixed height) and forced a visible bottom border on sticky column headers for clearer separation.
+ * v1.5.29 - 2026-01-15 - DAY HEADER SOLID FILL: Replaced translucent header background with solid grey
+ *   tone to remove transparency while maintaining enterprise contrast.
+ * v1.5.28 - 2026-01-15 - DAY HEADER SURFACE TONE: Darkened the day header background using theme action
+ *   surface to better match enterprise table header styling.
+ * v1.5.27 - 2026-01-15 - DAY HEADER BACKGROUND: Set day header container background to match Paper for
+ *   consistent surface color across day sections.
+ * v1.5.26 - 2026-01-15 - STICKY HEADER CASCADE: Removed the sticky gap between day and column headers by
+ *   eliminating header margin and zeroing the column header offset for a tight cascade.
+ * v1.5.25 - 2026-01-15 - DAY HEADER CENTERING (NON-STICKY TOO): Tuned typography and chip sizing so
+ *   day header content stays vertically centered in both sticky and non-sticky states.
+ * v1.5.24 - 2026-01-15 - DAY HEADER VERTICAL ALIGNMENT: Removed excess vertical padding and tightened
+ *   line-height so day header text and chips are truly centered within the fixed-height sticky header.
+ * v1.5.23 - 2026-01-15 - HEADER SHADOW MOVE: Removed the day header shadow and applied a bottom shadow
+ *   to the sticky column headers to shift visual separation to the table header row.
+ * v1.5.22 - 2026-01-15 - COLUMN HEADER PADDING TUNE: Reduced non-sticky column header vertical padding for
+ *   tighter, consistent top/bottom spacing in the table header row.
+ * v1.5.21 - 2026-01-15 - STICKY COLUMN HEADER OFFSET: Nudged sticky table column headers down slightly
+ *   below the day header to improve visual separation when both are stacked.
+ * v1.5.20 - 2026-01-15 - STICKY OFFSET INIT ORDER FIX: Moved sticky header offset calculation to run after
+ *   filters height state initialization to avoid temporal dead zone errors during render.
+ * v1.5.19 - 2026-01-15 - STICKY HEADER OFFSET TUNING: Added responsive Paper padding offsets to the sticky
+ *   day/table header top calculations so headers start below the sticky filter block and the Paper's inner
+ *   padding. Ensures dynamic filter height + Paper padding are both respected for correct stacking.
+ * v1.5.18 - 2026-01-15 - STICKY HEADER ROOT CAUSE FIX: Removed overflow scrolling from the calendar Paper and
+ *   attached the filters measurement ref to the sticky filter container. The Paper's overflowY:'auto' created
+ *   an intermediate scroll container that broke the sticky chain for day/table headers and prevented them from
+ *   reacting to the rightScrollRef scroll container. Restoring overflow:'visible' ensures sticky headers anchor
+ *   to the intended scroll ancestor, and the filter ref now measures height correctly for top offsets.
+ * v1.5.17 - 2026-01-15 - DAY HEADER CASCADING SPACING: Added margin-bottom (mb: 1.25) to sticky day headers
+ *   to create visual cascading below the filter section. Day headers now properly stack below filters with
+ *   consistent gap spacing. Also adjusted day header padding (py: 0.75) for better vertical alignment of text
+ *   within the fixed height container. Ensures visual hierarchy when multiple day headers are sticky-stacked
+ *   and filters are frozen at top. Follows MUI spacing guidelines (1.25 = 10px) for consistent rhythm.
+ * v1.5.16 - 2026-01-15 - STICKY HEADER FIX (MUI BEST PRACTICE): Changed TableContainer overflow from 'hidden'
+ *   to 'visible' to enable proper sticky positioning for both day headers and column headers. Per CSS spec
+ *   and MUI enterprise patterns, sticky positioning requires an unbroken chain from the sticky element to
+ *   the scroll container - overflow:hidden on intermediate containers breaks this chain and prevents sticky
+ *   from working. The scroll container (rightScrollRef in CalendarGridLayout) has overflowY:'auto', and all
+ *   intermediate containers (Paper, TableContainer) now use overflow:'visible' to maintain the sticky chain.
+ *   Sticky hierarchy: filters (top:0, z-index:1000) → day headers (top:filtersHeight, z-index:999) →
+ *   column headers (top:filtersHeight+44px, z-index:998). This follows MUI Table stickyHeader patterns.
+ * v1.5.15 - 2026-01-15 - STICKY TABLE COLUMN HEADERS: Made TableHead column headers (TIME, CUR, IMP, EVENT, A, F, P)
+ *   sticky positioned below day headers, cascading below filters. Column headers now freeze at
+ *   `calc(stickyHeaderTop + DAY_HEADER_HEIGHT_PX)` with z-index one level below day header (stickyHeaderZIndex - 1).
+ *   Added boxShadow to column headers for visual separation when stuck. Follows MUI enterprise best practices
+ *   for multi-level sticky header hierarchies: filters (z-index 1000) → day headers (z-index 999) →
+ *   column headers (z-index 998) → table body. Improves UX by keeping column context visible when scrolling
+ *   through long event lists within each day section.
+ * v1.5.14 - 2026-01-15 - MOBILE SCROLLING FIX: Made calendar Paper scrollable on xs/sm breakpoints by changing
+ *   overflow from 'hidden' to responsive overflowY: { xs: 'auto', md: 'hidden' } with overflowX: 'hidden'.
+ *   On xs/sm (single-column), right column has no maxHeight constraint, so Paper must handle scrolling internally.
+ *   On md+ (two-column), right column has maxHeight constraint, so outer container handles scrolling (Paper uses hidden).
+ *   Added minimalScrollbarSx styling constant for consistent thin scrollbar appearance.
+ * v1.5.13 - 2026-01-15 - COMPONENT EXTRACTION & OVERFLOW FIX (ENTERPRISE AUDIT):
+ *   - Extracted ClockPanel to standalone ClockPanelPaper.jsx for separation of concerns
+ *   - Added overflow: hidden and boxSizing: border-box to calendar Paper
+ *   - Removed unused imports (ClockCanvas, ClockHandsOverlay, LoadingAnimation, SessionLabel, useClock, useClockVisibilitySnap, isColorDark, SettingsRoundedIcon)
+ *   - Both Papers now have proper overflow containment (minWidth:0, maxWidth:100%, overflow:hidden)
+ *   - Follows enterprise MUI pattern: flex children need minWidth:0 to shrink below content size
+ * v1.5.12 - 2026-01-15 - LAYOUT REFACTOR (ENTERPRISE AUDIT): Switched from custom CSS Grid (CalendarEmbedLayout) to MUI Grid component (CalendarGridLayout). MUI Grid provides proper responsive behavior, simpler height/scroll management, and follows MUI best practices. Left rail (clock) is sticky on md+ with independent scroll. Right rail (calendar) scrolls independently with proper height constraints. Mobile-first: single column on xs/sm.
+ * v1.5.11 - 2026-01-15 - PAPER HEIGHT FIX (ENTERPRISE AUDIT): Fixed calendar Paper overflowing its column container. Added minHeight:0 to allow Paper to shrink within flex parent. Changed flex:1 to flex:'1 1 auto' for proper flex-shrink behavior. This ensures Paper respects right column's maxHeight constraint and scrolls properly. Follows enterprise pattern: flex children need minHeight:0 to shrink below their content size.
+ * v1.5.10 - 2026-01-15 - STICKY CODE CLEANUP (ENTERPRISE AUDIT): Removed unused sticky positioning code after v1.5.9 removed sticky behavior from day headers. Removed: safeStickyOffsetTop variable, stickyOffsetTop prop from DaySection, daySectionStickyOffsetTop useMemo calculation, stickyOffsetTop propType, filtersStickyHeight state, and ResizeObserver measurement effect. No functional change - only dead code removal to fix lint errors and reduce bundle size.
+ * v1.5.9 - 2026-01-15 - DAY HEADER LAYOUT FIX (ENTERPRISE AUDIT): Removed sticky positioning from day header Box (was: position:'sticky', top:safeStickyOffsetTop). Day headers now flow naturally within their Paper containers following mobile-first best practices. Sticky positioning in nested scroll containers causes positioning bugs and is not recommended for complex layouts. Headers remain visually prominent with proper styling (bgcolor, border, padding) without sticky behavior. Simplifies layout and eliminates positioning conflicts.
+ * v1.5.8 - 2026-01-15 - TABLE LAYOUT FIX (ENTERPRISE AUDIT): Complete table layout refactor following mobile-first enterprise best practices. (1) Changed DaySection Paper overflow from 'visible' to 'hidden' to properly constrain table content within boundaries. (2) Removed stickyHeader prop from Table - sticky headers in nested scroll contexts cause positioning bugs. (3) Changed TableContainer overflow to 'hidden' to constrain content, not allow horizontal scrolling. (4) Removed custom top offset from TableHead cells (was: top: safeStickyOffsetTop + DAY_HEADER_HEIGHT_PX) - headers now flow naturally at table top. Fixes: table headers appearing mid-table, horizontal overflow, Papers extending beyond viewport. Pattern: simple responsive table layout without complex sticky positioning.
+ * v1.5.7 - 2026-01-15 - TABLE OVERFLOW FIX (ENTERPRISE AUDIT): Changed DaySection TableContainer overflow from 'visible' to overflowX:'auto'. Previously overflow:'visible' allowed table cells with fixed minWidth to push table beyond Paper boundaries causing horizontal overflow. Now TableContainer properly constrains table width within Paper bounds while allowing vertical scrolling. Follows enterprise pattern: containers constrain content, not allow escape. Fixes calendar page width issue where tables exceeded viewport constraints.
+ * v1.5.6 - 2026-01-14 - STICKY FILTERS GAP FIX: Changed EventsFilters3 sticky top from 48px→0 on xs/sm so filters stick flush at container top without leaving gap when non-sticky header scrolls away. PublicLayout pt (64px) already provides mobile logo clearance, eliminating need for additional offset. Simplified daySectionStickyOffsetTop to only account for filtersStickyHeight (removed mobileLogoOffset). Follows enterprise pattern: container-relative sticky positioning with parent-level clearance.
+ * v1.5.5 - 2026-01-14 - CRITICAL MOBILE LAYOUT FIX: Corrected EventsFilters3 sticky top on xs from 16px→48px to match sm breakpoint and properly clear 64px mobile logo. Removed -1px band-aid adjustment from daySectionStickyOffsetTop calculation as it's no longer needed with correct filter positioning. Fixes critical xs breakpoint overlap identified in mobile layout audit.
+ * v1.5.4 - 2026-01-14 - DAY HEADER STICKY OFFSET FIX: Updated daySectionStickyOffsetTop calculation to account for PublicLayout mobile logo row (48px) on xs/sm. Added isMobileLogoPresent breakpoint check (covers xs and sm). Now day headers stick at correct position: mobileLogoOffset (48px on xs/sm) + filtersStickyHeight on xs/sm, and filtersStickyHeight alone on md+. Follows enterprise MUI dashboard pattern: sticky components respect fixed-positioned siblings via offset calculations accounting for all positioned elements in the stack.
+ * v1.5.3 - 2026-01-14 - STICKY FILTER OFFSET FIX: EventsFilters3 sticky position now accounts for PublicLayout mobile logo row (48px fixed height) on xs/sm. Changed top from 0 to responsive top: { xs: '48px', sm: '48px', md: 0 }. This prevents filters from overlapping the fixed mobile logo when PublicLayout pt was reduced from 8 to 4. On md+, top reverts to 0 (logo is hidden, AppBar handles positioning). Follows MUI enterprise dashboard best practice: sticky containers respect fixed-positioned siblings via responsive top offsets.
  * v1.5.2 - 2026-01-14 - NOW BADGE & JUMP: Moved NOW badge from TIME column to event name column (same position as NEXT badge). Added Jump to Now functionality with blue icon (priority over NEXT). Added flash effect to NOW rows. Made 'Events in progress' clickable with blue UI matching 'Next in' button pattern. Mobile-first responsive design.
  * v1.5.1 - 2026-01-14 - TIMEZONE MODAL AUTO-CLOSE: Pass onTimezoneChange callback to TimezoneSelector to automatically close the modal after a timezone is selected and confirmed.
  * v1.5.0 - 2026-01-13 - Removed referral banner placements; calendar layout now renders banner-free across all breakpoints.
@@ -144,12 +228,11 @@
  * v1.0.1 - 2026-01-06 - Added PropTypes coverage and lint cleanups (React import, unused values).
  * v1.0.0 - 2026-01-06 - Initial implementation with This Week default preset, day grouping (including empty days), and embed-ready layout.
  */
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, memo } from 'react';
 import PropTypes from 'prop-types';
 import {
     Alert,
     Box,
-    Button,
     Chip,
     Dialog,
     DialogContent,
@@ -174,30 +257,22 @@ import { alpha, useTheme } from '@mui/material/styles';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
-import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import CloseIcon from '@mui/icons-material/Close';
-import ClockCanvas from './ClockCanvas';
-import ClockHandsOverlay from './ClockHandsOverlay';
-const ClockEventsOverlay = lazy(() => import('./ClockEventsOverlay'));
-import LoadingAnimation from './LoadingAnimation';
 import EventsFilters3 from './EventsFilters3';
 const NewsSourceSelector = lazy(() => import('./NewsSourceSelector'));
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import useCalendarData from '../hooks/useCalendarData';
-import { useClock } from '../hooks/useClock';
 import { useTimeEngine } from '../hooks/useTimeEngine';
-import { useClockVisibilitySnap } from '../hooks/useClockVisibilitySnap';
 import { useEventNotes } from '../hooks/useEventNotes';
-import CalendarEmbedLayout from './CalendarEmbedLayout';
+import CalendarGridLayout from './CalendarGridLayout';
+import ClockPanelPaper from './ClockPanelPaper';
+import '../App.css';
 const EventModal = lazy(() => import('./EventModal'));
 const EventNotesDialog = lazy(() => import('./EventNotesDialog'));
-import SessionLabel from './SessionLabel';
 const TimezoneSelector = lazy(() => import('./TimezoneSelector'));
 const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
-import '../App.css';
 import { DATE_FORMAT_OPTIONS, formatDate, formatTime } from '../utils/dateUtils';
-import { isColorDark } from '../utils/clockUtils';
 import { resolveImpactMeta } from '../utils/newsApi';
 import { getCurrencyFlag } from '../utils/currencyFlags';
 import { hasAdConsent, subscribeConsent } from '../utils/consent';
@@ -238,6 +313,27 @@ const eventShape = PropTypes.shape({
     previous: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     Previous: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 });
+
+/**
+ * Minimal scrollbar styling for scroll containers
+ */
+const minimalScrollbarSx = {
+    scrollbarWidth: 'thin',
+    scrollbarColor: 'rgba(60,77,99,0.32) transparent',
+    '&::-webkit-scrollbar': {
+        width: 6,
+    },
+    '&::-webkit-scrollbar-track': {
+        background: 'transparent',
+    },
+    '&::-webkit-scrollbar-thumb': {
+        backgroundColor: 'rgba(60,77,99,0.32)',
+        borderRadius: 999,
+    },
+    '&::-webkit-scrollbar-thumb:hover': {
+        backgroundColor: 'rgba(60,77,99,0.45)',
+    },
+};
 
 const buildEventKey = (event) => {
     const epoch = getEventEpochMs(event);
@@ -698,9 +794,11 @@ const DaySection = memo(({
     onOpenEvent,
     isToday,
     isLoading = false,
-    stickyOffsetTop = 0,
+    stickyHeaderZIndex = 999,
+    stickyHeaderTop = 0,
 }) => {
-    const DAY_HEADER_HEIGHT_PX = 44;
+    const DAY_HEADER_HEIGHT_PX = 36;
+    const DAY_HEADER_GAP_PX = 8;
     const displayDate = useMemo(() => {
         const parts = dayKey.split('-');
         const date = parts.length === 3 ? new Date(`${parts[0]}-${parts[1]}-${parts[2]}T12:00:00Z`) : null;
@@ -718,8 +816,6 @@ const DaySection = memo(({
     const showSkeletonRows = isLoading;
     const showEmptyState = !isLoading && events.length === 0;
 
-    const safeStickyOffsetTop = Number.isFinite(stickyOffsetTop) ? Math.max(0, stickyOffsetTop) : 0;
-
     return (
         <Paper
             variant="outlined"
@@ -730,23 +826,32 @@ const DaySection = memo(({
                 width: '100%',
                 maxWidth: '100%',
                 overflow: 'visible',
+                display: 'flex',
+                flexDirection: 'column',
+                minHeight: 0,
+                flexShrink: 0,
             }}
         >
             <Box
                 sx={{
                     position: 'sticky',
-                    top: `${safeStickyOffsetTop}px`,
-                    zIndex: 900,
+                    top: stickyHeaderTop,
+                    zIndex: stickyHeaderZIndex,
                     borderTopLeftRadius: 7,
                     borderTopRightRadius: 7,
-                    bgcolor: isToday ? 'primary.main' : 'background.paper',
+                    bgcolor: isToday ? 'primary.main' : 'grey.100',
                     color: isToday ? 'primary.contrastText' : 'text.primary',
                     borderBottom: '1px solid',
                     borderColor: 'divider',
                     px: 1.25,
-                    minHeight: DAY_HEADER_HEIGHT_PX,
+                    py: 2,
+                    height: DAY_HEADER_HEIGHT_PX,
                     display: 'flex',
                     alignItems: 'center',
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                    boxSizing: 'border-box',
+                    mb: `${DAY_HEADER_GAP_PX}px`,
                 }}
             >
                 <Stack
@@ -761,6 +866,7 @@ const DaySection = memo(({
                         variant="subtitle2"
                         sx={{
                             fontWeight: 800,
+                            lineHeight: 1,
                             flex: '1 1 auto',
                             minWidth: 0,
                             whiteSpace: 'nowrap',
@@ -776,21 +882,26 @@ const DaySection = memo(({
                             size="small"
                             sx={{
                                 fontWeight: 800,
-                                bgcolor: alpha(isToday ? '#ffffff' : '#3c4d63', 0.12),
-                                color: isToday ? 'primary.contrastText' : 'inherit',
+                                height: 20,
+                                bgcolor: isToday ? alpha('#ffffff', 0.2) : alpha('#3c4d63', 0.12),
+                                color: 'inherit',
+                                '& .MuiChip-label': {
+                                    px: 0.75,
+                                    lineHeight: 1,
+                                },
                             }}
                         />
                     </Stack>
                 </Stack>
             </Box>
 
-            <TableContainer sx={{ overflow: 'visible' }}>
+            <TableContainer sx={{ overflow: 'visible', flex: 1, minHeight: 0 }}>
                 <Table
                     size="small"
-                    stickyHeader
                     aria-label={`Events on ${displayDate}`}
                     sx={{
                         width: '100%',
+                        tableLayout: 'fixed',
                         '& .MuiTableBody-root .MuiTableRow-root:last-of-type .MuiTableCell-root': {
                             borderBottom: 0,
                         },
@@ -804,17 +915,21 @@ const DaySection = memo(({
                                         key={column.id}
                                         align={column.align}
                                         sx={{
+                                            position: 'sticky',
+                                            top: `calc(${stickyHeaderTop} + ${DAY_HEADER_HEIGHT_PX}px)`,
+                                            zIndex: stickyHeaderZIndex - 1,
                                             borderColor: 'divider',
                                             width: column.width,
-                                            minWidth: column.width,
+                                            minWidth: column.minWidth ?? column.width,
                                             display: column.hideBelow ? { xs: 'none', [column.hideBelow]: 'table-cell' } : 'table-cell',
                                             fontWeight: 800,
-                                            fontSize: '0.75rem',
+                                            fontSize: '0.7rem',
                                             textTransform: 'uppercase',
                                             letterSpacing: 0.2,
                                             bgcolor: 'background.paper',
-                                            top: `${safeStickyOffsetTop + DAY_HEADER_HEIGHT_PX}px`,
-                                            zIndex: 899,
+                                            boxShadow: '0 2px 4px -2px rgba(0, 0, 0, 0.12)',
+                                            py: 0,
+                                            px: { xs: 0, lg: 1 },
                                         }}
                                     >
                                         {column.label}
@@ -903,419 +1018,22 @@ DaySection.propTypes = {
     onOpenEvent: PropTypes.func,
     isToday: PropTypes.bool,
     isLoading: PropTypes.bool,
-    stickyOffsetTop: PropTypes.number,
+    stickyHeaderZIndex: PropTypes.number,
+    stickyHeaderTop: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 };
 DaySection.displayName = 'DaySection';
 
-const ClockPanel = memo(function ClockPanel({
-    timeEngine,
-    clockTimezone,
-    sessions,
-    clockStyle,
-    showSessionNamesInCanvas,
-    showPastSessionsGray,
-    showClockNumbers,
-    showClockHands,
-    showHandClock,
-    showDigitalClock,
-    showSessionLabel,
-    showTimeToEnd,
-    showTimeToStart,
-    showEventsOnCanvas,
-    eventFilters,
-    newsSource,
-    backgroundBasedOnSession,
-    selectedTimezone,
-    onOpenSettings,
-    onOpenTimezone,
-    onOpenEvent,
-}) {
-    const theme = useTheme();
-    const isXs = useMediaQuery(theme.breakpoints.only('xs'));
-    const { currentTime, activeSession, nextSession, timeToEnd, timeToStart } = useClock(clockTimezone, sessions, timeEngine);
-    const handAnglesRef = useRef({ hour: 0, minute: 0, second: 0 });
-    useClockVisibilitySnap({ handAnglesRef, currentTime, resumeToken: timeEngine?.resumeToken });
-
-    const workspaceClockContainerRef = useRef(null);
-    const [workspaceClockSize, setWorkspaceClockSize] = useState(260);
-    const [workspaceHasSize, setWorkspaceHasSize] = useState(false);
-    const [shouldRenderEventsOverlay, setShouldRenderEventsOverlay] = useState(false);
-
-    useEffect(() => {
-        const computeBaseSize = () => {
-            const vw = typeof window !== 'undefined' ? window.innerWidth : 1024;
-            const vh = typeof window !== 'undefined' ? window.innerHeight : 768;
-
-            const settingsButtonHeight = 48;
-            const totalRatio = 1;
-            const availableHeight = vh - settingsButtonHeight - 10;
-            let next = Math.floor((availableHeight / totalRatio) * 1);
-            next = Math.max(180, next);
-
-            const containerWidth = workspaceClockContainerRef.current?.getBoundingClientRect?.().width || 0;
-            const viewportGutter = vw < 600 ? 32 : 96;
-            const baseWidthBudget = containerWidth > 0 ? containerWidth : (vw - viewportGutter);
-            const labelSafeInset = isXs ? 20 : 8;
-            const widthBudget = Math.max(180, Math.floor(baseWidthBudget - labelSafeInset));
-
-            next = Math.min(next, widthBudget, 440);
-            if (isXs) {
-                next = Math.max(180, next - 8);
-            }
-
-            setWorkspaceClockSize((prev) => (prev === next ? prev : next));
-            setWorkspaceHasSize(true);
-        };
-
-        computeBaseSize();
-        const onResize = () => window.requestAnimationFrame(computeBaseSize);
-        window.addEventListener('resize', onResize);
-        return () => window.removeEventListener('resize', onResize);
-    }, [isXs]);
-
-    useEffect(() => {
-        if (!showEventsOnCanvas) {
-            setShouldRenderEventsOverlay(false);
-            return undefined;
-        }
-
-        let cancelled = false;
-
-        const scheduleOverlay = (cb) => {
-            if (typeof window === 'undefined') return 0;
-            if ('requestIdleCallback' in window) {
-                return window.requestIdleCallback(cb, { timeout: 1200 });
-            }
-            return window.setTimeout(cb, 550);
-        };
-
-        const cancelOverlay = (id) => {
-            if (typeof window === 'undefined') return;
-            if (typeof window.cancelIdleCallback === 'function') {
-                window.cancelIdleCallback(id);
-            } else {
-                window.clearTimeout(id);
-            }
-        };
-
-        const handle = scheduleOverlay(() => {
-            if (!cancelled) {
-                setShouldRenderEventsOverlay(true);
-            }
-        });
-
-        return () => {
-            cancelled = true;
-            cancelOverlay(handle);
-        };
-    }, [showEventsOnCanvas]);
-
-    const clockSurfaceColor = backgroundBasedOnSession && activeSession?.color ? activeSession.color : '#ffffff';
-    const clockSurfaceIsDark = useMemo(() => isColorDark(clockSurfaceColor), [clockSurfaceColor]);
-    const handColor = useMemo(() => (clockSurfaceIsDark ? '#F6F9FB' : '#0F172A'), [clockSurfaceIsDark]);
-    const clockPaperBg = useMemo(
-        () => (backgroundBasedOnSession && activeSession?.color ? activeSession.color : '#ffffff'),
-        [activeSession?.color, backgroundBasedOnSession],
-    );
-    const clockPaperTextColor = useMemo(() => {
-        if (!backgroundBasedOnSession) return '#0F172A';
-        return isColorDark(clockPaperBg) ? '#F6F9FB' : theme.palette.text.primary;
-    }, [backgroundBasedOnSession, clockPaperBg, theme.palette.text.primary]);
-
-    const todayFullDateLabel = useMemo(() => {
-        const date = new Date(timeEngine?.nowEpochMs || Date.now());
-        const baseOptions = {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-        };
-
-        try {
-            return new Intl.DateTimeFormat(undefined, { ...baseOptions, timeZone: clockTimezone }).format(date);
-        } catch {
-            return new Intl.DateTimeFormat(undefined, baseOptions).format(date);
-        }
-    }, [clockTimezone, timeEngine?.nowEpochMs]);
-
-    const headerDigitalClockLabel = useMemo(() => {
-        if (!showDigitalClock || !currentTime) return null;
-
-        const hours = currentTime.getHours();
-        const minutes = currentTime.getMinutes().toString().padStart(2, '0');
-        const seconds = currentTime.getSeconds().toString().padStart(2, '0');
-
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        const displayHours = hours % 12 || 12;
-        return `${displayHours}:${minutes}:${seconds} ${ampm}`;
-    }, [currentTime, showDigitalClock]);
-
-    const shouldShowSessionLabel = Boolean(showSessionLabel && workspaceHasSize);
-
-    return (
-        <Paper
-            elevation={0}
-            sx={{
-                position: 'relative',
-                borderRadius: 3,
-                border: '1px solid',
-                borderColor: alpha(clockPaperTextColor, 0.18),
-                bgcolor: clockPaperBg,
-                color: clockPaperTextColor,
-                p: { xs: 1.25, sm: 1.5, md: 1.75 },
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1.25,
-                minWidth: 0,
-                maxWidth: '100%',
-                width: '100%',
-            }}
-        >
-            <Stack spacing={0.75} sx={{ mb: 0.5, position: 'relative' }}>
-                <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
-                    Time 2 Trade
-                </Typography>
-                <Tooltip title="Open settings" placement="left">
-                    <IconButton
-                        size="medium"
-                        onClick={onOpenSettings}
-                        sx={{
-                            position: 'absolute',
-                            top: -2,
-                            right: 0,
-                            color: alpha(clockPaperTextColor, 0.9),
-                            p: 0.75,
-                        }}
-                        aria-label="Open settings"
-                    >
-                        <SettingsRoundedIcon fontSize="medium" />
-                    </IconButton>
-                </Tooltip>
-                <Typography variant="body2" sx={{ color: alpha(clockPaperTextColor, 0.72) }}>
-                    Today&apos;s market sessions and economic events.
-                </Typography>
-                <Divider sx={{ borderColor: alpha(clockPaperTextColor, 0.2) }} />
-                <Stack
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
-                    sx={{
-                        mt: 0.25,
-                        gap: 1,
-                        width: '100%',
-                        minWidth: 0,
-                        flexWrap: 'wrap',
-                    }}
-                >
-                    <Typography
-                        variant="caption"
-                        sx={{
-                            fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                            fontWeight: 700,
-                            letterSpacing: 0.15,
-                            textAlign: 'left',
-                            color: alpha(clockPaperTextColor, 0.8),
-                            minWidth: 0,
-                            flex: '1 1 auto',
-                        }}
-                    >
-                        {todayFullDateLabel}
-                    </Typography>
-                    {headerDigitalClockLabel ? (
-                        <Typography
-                            variant="caption"
-                            sx={{
-                                fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                                fontWeight: 700,
-                                letterSpacing: 0.15,
-                                textAlign: 'right',
-                                color: alpha(clockPaperTextColor, 0.8),
-                                flex: '0 0 auto',
-                                whiteSpace: 'nowrap',
-                            }}
-                        >
-                            {headerDigitalClockLabel}
-                        </Typography>
-                    ) : null}
-                </Stack>
-            </Stack>
-
-            <Stack spacing={0} alignItems="center" sx={{ p: 0, width: '100%', maxWidth: '100%' }}>
-                {showHandClock ? (
-                    <Box
-                        sx={{
-                            width: '100%',
-                            maxWidth: { xs: 420, sm: 520, md: 560 },
-                            mx: 'auto',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            p: 0,
-                            boxSizing: 'border-box',
-                        }}
-                    >
-                        <Box
-                            ref={workspaceClockContainerRef}
-                            sx={{
-                                width: '100%',
-                                aspectRatio: '1 / 1',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                p: 0,
-                            }}
-                        >
-                            <Box
-                                className="hand-clock-wrapper"
-                                sx={{
-                                    position: 'relative',
-                                    width: '100%',
-                                    maxWidth: workspaceClockSize,
-                                    aspectRatio: '1 / 1',
-                                    mx: 'auto',
-                                }}
-                            >
-                                {workspaceHasSize ? null : (
-                                    <Box
-                                        sx={{
-                                            position: 'absolute',
-                                            inset: 0,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            bgcolor: 'rgba(255,255,255,0.6)',
-                                            borderRadius: '50%',
-                                        }}
-                                    >
-                                        <LoadingAnimation
-                                            clockSize={Math.min(workspaceClockSize, 220)}
-                                            isLoading
-                                        />
-                                    </Box>
-                                )}
-
-                                {workspaceHasSize ? (
-                                    <>
-                                        <ClockCanvas
-                                            size={workspaceClockSize}
-                                            time={currentTime}
-                                            sessions={sessions}
-                                            handColor={handColor}
-                                            clockStyle={clockStyle}
-                                            showSessionNamesInCanvas={showSessionNamesInCanvas}
-                                            showPastSessionsGray={showPastSessionsGray}
-                                            showClockNumbers={showClockNumbers}
-                                            showClockHands={showClockHands}
-                                            activeSession={activeSession}
-                                            backgroundBasedOnSession={backgroundBasedOnSession}
-                                            renderHandsInCanvas={false}
-                                            handAnglesRef={handAnglesRef}
-                                        />
-                                        <ClockHandsOverlay
-                                            size={workspaceClockSize}
-                                            handAnglesRef={handAnglesRef}
-                                            handColor={handColor}
-                                            time={currentTime}
-                                            showSecondsHand={showClockHands}
-                                        />
-                                        {showEventsOnCanvas && shouldRenderEventsOverlay ? (
-                                            <Suspense fallback={null}>
-                                                <ClockEventsOverlay
-                                                    size={workspaceClockSize}
-                                                    timezone={clockTimezone}
-                                                    eventFilters={eventFilters}
-                                                    newsSource={newsSource}
-                                                    onEventClick={onOpenEvent || undefined}
-                                                    suppressTooltipAutoscroll
-                                                />
-                                            </Suspense>
-                                        ) : null}
-                                    </>
-                                ) : null}
-                            </Box>
-                        </Box>
-                    </Box>
-                ) : (
-                    <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center', width: '100%' }}>
-                        Clock hidden in settings.
-                    </Typography>
-                )}
-                {workspaceHasSize ? (
-                    <Button
-                        variant="text"
-                        size="small"
-                        onClick={onOpenTimezone}
-                        sx={{
-                            textTransform: 'none',
-                            color: alpha(handColor, 0.7),
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            minWidth: 'auto',
-                            px: 1,
-                            py: 0.5,
-                            mt: 0.25,
-                            '&:hover': {
-                                bgcolor: alpha(handColor, 0.08),
-                                color: handColor,
-                            },
-                        }}
-                    >
-                        {selectedTimezone?.replace(/_/g, ' ') || 'Select Timezone'}
-                    </Button>
-                ) : null}
-                {shouldShowSessionLabel && workspaceHasSize ? (
-                    <SessionLabel
-                        activeSession={activeSession}
-                        showTimeToEnd={showTimeToEnd}
-                        timeToEnd={timeToEnd}
-                        showTimeToStart={showTimeToStart}
-                        nextSession={nextSession}
-                        timeToStart={timeToStart}
-                        clockSize={workspaceClockSize}
-                        contrastTextColor={handColor}
-                        backgroundBasedOnSession={backgroundBasedOnSession}
-                    />
-                ) : null}
-            </Stack>
-        </Paper>
-    );
-});
-
-ClockPanel.propTypes = {
-    timeEngine: PropTypes.object,
-    clockTimezone: PropTypes.string.isRequired,
-    sessions: PropTypes.arrayOf(PropTypes.object).isRequired,
-    clockStyle: PropTypes.string,
-    showSessionNamesInCanvas: PropTypes.bool,
-    showPastSessionsGray: PropTypes.bool,
-    showClockNumbers: PropTypes.bool,
-    showClockHands: PropTypes.bool,
-    showHandClock: PropTypes.bool,
-    showDigitalClock: PropTypes.bool,
-    showSessionLabel: PropTypes.bool,
-    showTimeToEnd: PropTypes.bool,
-    showTimeToStart: PropTypes.bool,
-    showEventsOnCanvas: PropTypes.bool,
-    eventFilters: PropTypes.object,
-    newsSource: PropTypes.string,
-    backgroundBasedOnSession: PropTypes.bool,
-    selectedTimezone: PropTypes.string,
-    onOpenSettings: PropTypes.func,
-    onOpenTimezone: PropTypes.func,
-    onOpenEvent: PropTypes.func,
-};
-ClockPanel.displayName = 'ClockPanel';
+// ClockPanel component extracted to ClockPanelPaper.jsx for separation of concerns (v1.5.13)
 
 export default function CalendarEmbed({
     title = 'Economic Calendar',
     onOpenAuth = null,
     showSeoCopy = true,
     appBar = null,
-    isCalendarRoute = false,
 }) {
     const theme = useTheme();
-    const isXs = useMediaQuery(theme.breakpoints.only('xs'));
     const isTwoColumn = useMediaQuery(theme.breakpoints.up('md'));
+    const isSmUp = useMediaQuery(theme.breakpoints.up('sm'));
     const { user } = useAuth();
     const {
         filters,
@@ -1447,7 +1165,7 @@ export default function CalendarEmbed({
     const [newsSourceModalOpen, setNewsSourceModalOpen] = useState(false);
     const [forexFactoryModalOpen, setForexFactoryModalOpen] = useState(false);
     const [isFiltersStuck, setIsFiltersStuck] = useState(false);
-    const isMobileFiltersStuck = !isTwoColumn && isFiltersStuck;
+    // isMobileFiltersStuck removed - filters now at layout level
     const overlayEventFilters = useMemo(() => filters || settingsEventFilters, [filters, settingsEventFilters]);
     const overlayNewsSource = newsSource || settingsNewsSource;
 
@@ -1501,7 +1219,18 @@ export default function CalendarEmbed({
     const [showJumpToNow, setShowJumpToNow] = useState(false);
     const [jumpToNextDirection, setJumpToNextDirection] = useState('down');
     const [jumpToNowDirection, setJumpToNowDirection] = useState('down');
-    const [filtersStickyHeight, setFiltersStickyHeight] = useState(0);
+    const [filtersHeight, setFiltersHeight] = useState(0);
+
+    const paperPaddingTopPx = useMemo(() => {
+        if (isTwoColumn) return theme.spacing(0);
+        if (isSmUp) return theme.spacing(0);
+        return theme.spacing(0);
+    }, [isTwoColumn, isSmUp, theme]);
+
+    const stickyDayHeaderTop = useMemo(
+        () => `calc(${filtersHeight}px + ${paperPaddingTopPx})`,
+        [filtersHeight, paperPaddingTopPx],
+    );
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -1523,33 +1252,32 @@ export default function CalendarEmbed({
         };
     }, []);
 
-    // Measure the sticky filters height so day headers can pin directly beneath it.
-    useEffect(() => {
-        if (typeof window === 'undefined') return undefined;
-        const el = filtersBoxRef.current;
-        if (!el || typeof ResizeObserver === 'undefined') return undefined;
-
-        const measure = () => {
-            const rect = el.getBoundingClientRect();
-            const next = Math.max(0, Math.round(rect.height));
-            setFiltersStickyHeight((prev) => (prev === next ? prev : next));
+    // Measure filters height for day header sticky positioning
+    // Day headers should stick just below the filters box
+    useLayoutEffect(() => {
+        const measureHeight = () => {
+            if (filtersBoxRef.current) {
+                const height = filtersBoxRef.current.getBoundingClientRect().height;
+                setFiltersHeight(height);
+            }
         };
 
-        measure();
-        const ro = new ResizeObserver(() => measure());
-        ro.observe(el);
-        window.addEventListener('resize', measure);
+        // Measure on mount
+        measureHeight();
+
+        // Remeasure on resize
+        const resizeObserver = new ResizeObserver(() => {
+            measureHeight();
+        });
+
+        if (filtersBoxRef.current) {
+            resizeObserver.observe(filtersBoxRef.current);
+        }
 
         return () => {
-            ro.disconnect();
-            window.removeEventListener('resize', measure);
+            resizeObserver.disconnect();
         };
     }, []);
-
-    const daySectionStickyOffsetTop = useMemo(
-        () => Math.max(0, filtersStickyHeight - (isXs ? 1 : 0)),
-        [filtersStickyHeight, isXs],
-    );
 
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;
@@ -2081,7 +1809,7 @@ export default function CalendarEmbed({
     const lastUpdatedLabel = useMemo(() => (lastUpdated ? lastUpdated.toLocaleTimeString() : null), [lastUpdated]);
 
     const clockPanel = (
-        <ClockPanel
+        <ClockPanelPaper
             timeEngine={timeEngine}
             clockTimezone={clockTimezone}
             sessions={sessions}
@@ -2108,159 +1836,40 @@ export default function CalendarEmbed({
 
     const leftRailContent = isTwoColumn ? clockPanel : null;
 
-    const calendarPaperMarginTop = isCalendarRoute ? { xs: 2, sm: 3, md: 0 } : 0;
-
-    const calendarContent = (
-        <>
-            <Paper
-                elevation={0}
-                sx={{
-                    flex: 1,
-                    position: 'relative',
-                    mt: calendarPaperMarginTop,
-                    borderRadius: 3,
-                    border: '1px solid',
-                    borderColor: alpha('#3c4d63', 0.12),
-                    bgcolor: '#ffffff',
-                    color: theme.palette.text.primary,
-                    p: { xs: 1.25, sm: 1.5, md: 1.75 },
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: isFiltersStuck ? 0 : 1.25,
-                    width: '100%',
-                    minWidth: 0,
-                    maxWidth: '100%',
-                }}
-            >
-                {showSeoCopy && (
-                    <Stack spacing={0.75} sx={{ mb: 0.5, position: 'relative' }}>
-                        <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
-                            {title}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.72) }}>
-                            Powered by{' '}
-                            <Link
-                                component="button"
-                                onClick={() => setForexFactoryModalOpen(true)}
-                                sx={{
-                                    color: 'inherit',
-                                    textDecorationLine: 'underline',
-                                    textDecorationColor: alpha(theme.palette.text.primary, 0.4),
-                                    cursor: 'pointer',
-                                    fontWeight: 600,
-                                    '&:hover': {
-                                        textDecorationColor: 'inherit',
-                                    },
-                                }}
-                            >
-                                Forex Factory
-                            </Link>
-                        </Typography>
-                        <Divider sx={{ borderColor: alpha('#3c4d63', 0.12) }} />
-                    </Stack>
-                )}
-
-                {/* Simple sticky filters - works on all breakpoints */}
-                <Box
-                    ref={filtersBoxRef}
+    // Sticky filters at layout level - prevents content from pushing them
+    // Memoized to avoid unnecessary re-renders during table updates
+    const stickyFiltersNode = useMemo(
+        () => (
+            <Box ref={filtersBoxRef} sx={{ px: { xs: 1, sm: 1.25, md: 1.5 }, py: { xs: 1, sm: 1, md: 1 } }}>
+                {/* Desktop: filters and stats on same row */}
+                <Stack
+                    direction={{ xs: 'column', lg: 'row' }}
+                    spacing={{ xs: 1, lg: 1.5 }}
+                    alignItems={{ xs: 'flex-start', lg: 'flex-start' }}
+                    justifyContent="space-between"
                     sx={{
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 1000,
-                        bgcolor: 'background.paper',
-                        mx: { xs: -1, sm: -1.25, md: -1.5 },
-                        px: { xs: 1, sm: 1.25, md: 1.5 },
-                        pt: { xs: isMobileFiltersStuck ? 1 : 0, sm: isMobileFiltersStuck ? 1 : 0.25, md: 0 },
-                        pb: { xs: isMobileFiltersStuck ? 1 : 0, sm: isMobileFiltersStuck ? 1 : 0.25, md: 0 },
-                        borderBottom: '1px solid',
-                        borderColor: alpha('#3c4d63', 0.12),
-                        borderTopLeftRadius: 7,
-                        borderTopRightRadius: 7,
-                        borderBottomLeftRadius: 0,
-                        borderBottomRightRadius: 0,
-                        overflow: 'hidden',
-                        boxShadow: isFiltersStuck ? '0 2px 4px -1px rgba(0, 0, 0, 0.1)' : 'none',
+                        width: '100%',
+                        flexWrap: 'nowrap',
+                        overflowX: 'auto',
+                        minWidth: 0,
                     }}
                 >
-                    <Stack
-                        direction={{ xs: 'column', sm: 'row' }}
-                        spacing={1}
-                        alignItems={{ xs: 'flex-start', sm: 'center' }}
-                        justifyContent="space-between"
-                        sx={{ mb: 0, mt: { xs: 1, sm: 1, md: 1 } }}
-                    >
-                        <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                            Search & Filters
-                        </Typography>
-                        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" sx={{ gap: 1, display: { xs: 'none', lg: 'flex' } }}>
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                                {visibleCount.toLocaleString()} events
-                            </Typography>
-                            {nextCountdownLabel ? (
-                                <Stack
-                                    direction="row"
-                                    spacing={0.5}
-                                    alignItems="center"
-                                    onClick={scrollToNextEvent}
-                                    sx={{
-                                        cursor: 'pointer',
-                                        px: 1,
-                                        py: 0.5,
-                                        borderRadius: 1,
-                                        transition: 'background-color 0.2s',
-                                        '&:hover': {
-                                            bgcolor: alpha('#4caf50', 0.1),
-                                        },
-                                    }}
-                                >
-                                    <AccessTimeIcon sx={{ fontSize: 14, color: 'success.main' }} />
-                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.main' }}>
-                                        Next in {nextCountdownLabel}
-                                    </Typography>
-                                </Stack>
-                            ) : nowEventIds.size ? (
-                                <Stack
-                                    direction="row"
-                                    spacing={0.5}
-                                    alignItems="center"
-                                    onClick={scrollToNowEvent}
-                                    sx={{
-                                        cursor: 'pointer',
-                                        px: 1,
-                                        py: 0.5,
-                                        borderRadius: 1,
-                                        transition: 'background-color 0.2s',
-                                        '&:hover': {
-                                            bgcolor: alpha('#2196f3', 0.1),
-                                        },
-                                    }}
-                                >
-                                    <AccessTimeIcon sx={{ fontSize: 14, color: 'info.main' }} />
-                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main' }}>
-                                        Events in progress
-                                    </Typography>
-                                </Stack>
-                            ) : null}
-                        </Stack>
-                    </Stack>
-                    <EventsFilters3
-                        filters={filters}
-                        onFiltersChange={handleFiltersChangeGuard}
-                        onApply={handleApplyFiltersGuard}
-                        loading={loading}
-                        timezone={timezone}
-                        newsSource={newsSource}
-                        actionOffset={0}
-                        defaultPreset="thisWeek"
-                    />
-                    {/* Mobile: show chips below filters */}
-                    <Stack
-                        direction="row"
-                        spacing={1.5}
-                        alignItems="center"
-                        flexWrap="wrap"
-                        sx={{ gap: 1, display: { xs: 'flex', lg: 'none' }, mt: 0, mb: { xs: 1, sm: 0 } }}
-                    >
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <EventsFilters3
+                            filters={filters}
+                            onFiltersChange={handleFiltersChangeGuard}
+                            onApply={handleApplyFiltersGuard}
+                            loading={loading}
+                            timezone={timezone}
+                            newsSource={newsSource}
+                            actionOffset={0}
+                            defaultPreset="thisWeek"
+                            stickyZIndex={1000}
+                            stickyTop={0}
+                        />
+                    </Box>
+                    {/* Desktop: show event count and next button on same row as filters */}
+                    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ gap: 1, display: { xs: 'none', lg: 'flex' }, flexShrink: 0, whiteSpace: 'nowrap' }}>
                         <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
                             {visibleCount.toLocaleString()} events
                         </Typography>
@@ -2310,7 +1919,122 @@ export default function CalendarEmbed({
                             </Stack>
                         ) : null}
                     </Stack>
-                </Box>
+                </Stack>
+                {/* Mobile: show chips below filters */}
+                <Stack
+                    direction="row"
+                    spacing={1.5}
+                    alignItems="center"
+                    flexWrap="wrap"
+                    sx={{ gap: 1, display: { xs: 'flex', lg: 'none' }, mt: 1, ml: { xs: 0.5, md: 0 } }}
+                >
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                        {visibleCount.toLocaleString()} events
+                    </Typography>
+                    {nextCountdownLabel ? (
+                        <Stack
+                            direction="row"
+                            spacing={0.5}
+                            alignItems="center"
+                            onClick={scrollToNextEvent}
+                            sx={{
+                                cursor: 'pointer',
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: 1,
+                                transition: 'background-color 0.2s',
+                                '&:hover': {
+                                    bgcolor: alpha('#4caf50', 0.1),
+                                },
+                            }}
+                        >
+                            <AccessTimeIcon sx={{ fontSize: 14, color: 'success.main' }} />
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.main' }}>
+                                Next in {nextCountdownLabel}
+                            </Typography>
+                        </Stack>
+                    ) : nowEventIds.size ? (
+                        <Stack
+                            direction="row"
+                            spacing={0.5}
+                            alignItems="center"
+                            onClick={scrollToNowEvent}
+                            sx={{
+                                cursor: 'pointer',
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: 1,
+                                transition: 'background-color 0.2s',
+                                '&:hover': {
+                                    bgcolor: alpha('#2196f3', 0.1),
+                                },
+                            }}
+                        >
+                            <AccessTimeIcon sx={{ fontSize: 14, color: 'info.main' }} />
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main' }}>
+                                Events in progress
+                            </Typography>
+                        </Stack>
+                    ) : null}
+                </Stack>
+            </Box >
+        ),
+        [visibleCount, nextCountdownLabel, nowEventIds.size, filters, loading, timezone, newsSource, handleFiltersChangeGuard, handleApplyFiltersGuard, scrollToNextEvent, scrollToNowEvent],
+    );
+
+    const calendarContent = (
+        <>
+            <Paper
+                elevation={0}
+                sx={{
+                    flex: '1 1 auto',
+                    position: 'relative',
+                    mt: 0,
+                    borderRadius: 3,
+                    border: '1px solid',
+                    borderColor: alpha('#3c4d63', 0.12),
+                    bgcolor: '#ffffff',
+                    color: theme.palette.text.primary,
+                    p: { xs: 1.25, sm: 1.5, md: 1.75 },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: isFiltersStuck ? 0 : 1.25,
+                    width: '100%',
+                    minWidth: 0,
+                    maxWidth: '100%',
+                    minHeight: 0,
+                    overflow: 'visible',
+                    boxSizing: 'border-box',
+                    ...minimalScrollbarSx,
+                }}
+            >
+                {showSeoCopy && (
+                    <Stack spacing={0.75} sx={{ mb: 0.5, position: 'relative' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
+                            {title}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.72) }}>
+                            Powered by{' '}
+                            <Link
+                                component="button"
+                                onClick={() => setForexFactoryModalOpen(true)}
+                                sx={{
+                                    color: 'inherit',
+                                    textDecorationLine: 'underline',
+                                    textDecorationColor: alpha(theme.palette.text.primary, 0.4),
+                                    cursor: 'pointer',
+                                    fontWeight: 600,
+                                    '&:hover': {
+                                        textDecorationColor: 'inherit',
+                                    },
+                                }}
+                            >
+                                Forex Factory
+                            </Link>
+                        </Typography>
+                        <Divider sx={{ borderColor: alpha('#3c4d63', 0.12) }} />
+                    </Stack>
+                )}
 
                 {error ? (
                     <Alert severity="error" sx={{ borderRadius: 2 }}>
@@ -2354,7 +2078,8 @@ export default function CalendarEmbed({
                                 onOpenEvent={handleOpenEvent}
                                 isLoading={showSkeletons}
                                 isToday={dayKey === todayKey}
-                                stickyOffsetTop={daySectionStickyOffsetTop}
+                                stickyHeaderZIndex={999}
+                                stickyHeaderTop={stickyDayHeaderTop}
                             />
                         ))
                     )}
@@ -2388,7 +2113,7 @@ export default function CalendarEmbed({
 
     return (
         <>
-            <CalendarEmbedLayout
+            <CalendarGridLayout
                 isTwoColumn={isTwoColumn}
                 leftContent={leftRailContent}
                 rightContent={calendarContent}
@@ -2401,6 +2126,7 @@ export default function CalendarEmbed({
                 onJumpToNow={scrollToNowEvent}
                 jumpToNowDirection={jumpToNowDirection}
                 appBar={appBar}
+                stickyFiltersNode={stickyFiltersNode}
             />
 
             <Suspense fallback={null}>
@@ -2457,6 +2183,10 @@ export default function CalendarEmbed({
                 maxWidth="xs"
                 fullWidth
                 fullScreen={false}
+                sx={{ zIndex: 1701 }}
+                slotProps={{
+                    backdrop: { sx: { zIndex: -1 } },
+                }}
                 PaperProps={{
                     sx: {
                         borderRadius: { xs: 0, sm: 3 },

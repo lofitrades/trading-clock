@@ -1,9 +1,13 @@
 /**
  * src/components/CalendarPage.jsx
  * 
- * Purpose: Client-side calendar page shell that wires providers, theme, and viewport fixes
- * around the embeddable CalendarEmbed component for the /calendar route and in-app reuse.
+ * Purpose: Client-side calendar page shell that renders CalendarEmbed within PublicLayout.
+ * No longer wraps with duplicate providers (Theme, Auth, Settings) - these are provided at app level.
+ * Relies on app-level providers to ensure AppBar stays mounted during route navigation.
  * 
+ * Changelog:
+ * v1.3.0 - 2026-01-15 - PROVIDER REFACTOR: Removed duplicate ThemeProvider, AuthProvider, SettingsProvider, BrowserRouter, and CssBaseline. These are already provided at app level in main.jsx/AppBootstrap. CalendarPageShell now only handles page-specific state (auth modal, settings, contact modal) and navigation. This fixes the "white screen flash" issue where CalendarPage remounted on navigation, breaking AppBar persistence. PublicLayout now stays mounted across route changes, ensuring consistent navigation chrome.
+ * v1.2.2 - 2026-01-14 - Close settings drawer before showing AuthModal2 and hide the drawer while AuthModal2 is open on /calendar to prevent z-index overlap with the unlock CTA.
  * Changelog:
  * v1.2.1 - 2026-01-14 - REMOVED DYNAMIC BACKGROUND: Removed BackgroundUpdater component; /calendar background should remain fixed at #F9F9F9. Only /app page has session-based background color changes (handled by App.jsx). Clock paper background in /calendar remains dynamic via CalendarEmbed settings.
  * v1.2.0 - 2026-01-14 - INSTANT BACKGROUND UPDATE: Added BackgroundUpdater component to apply session-based background color changes instantly on /calendar route, matching /app behavior. Updates document.body.style.backgroundColor when Session-based Background toggle is enabled/disabled or session changes.
@@ -21,16 +25,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useState, Suspense, lazy } from 'react';
-import { BrowserRouter, useInRouterContext } from 'react-router-dom';
-import { CssBaseline } from '@mui/material';
-import { ThemeProvider } from '@mui/material/styles';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
 import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
-import theme from '../theme';
-import { AuthProvider } from '../contexts/AuthContext';
-import { SettingsProvider } from '../contexts/SettingsContext';
 import { setupViewportCssVars } from '../app/clientEffects';
 import CalendarEmbed from './CalendarEmbed';
 import PublicLayout from './PublicLayout';
@@ -39,7 +37,7 @@ const AuthModal2 = lazy(() => import('./AuthModal2'));
 const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
 const ContactModal = lazy(() => import('./ContactModal'));
 
-function CalendarPageShell() {
+export default function CalendarPage() {
     useEffect(() => {
         setupViewportCssVars();
     }, []);
@@ -49,6 +47,7 @@ function CalendarPageShell() {
     const [contactModalOpen, setContactModalOpen] = useState(false);
 
     const handleOpenAuth = useCallback(() => {
+        setSettingsOpen(false);
         setAuthModalOpen(true);
     }, []);
 
@@ -79,7 +78,7 @@ function CalendarPageShell() {
                 label: 'Calendar',
                 shortLabel: 'Calendar',
                 to: '/calendar',
-                icon: <CalendarMonthRoundedIcon />,
+                icon: <CalendarMonthRoundedIcon fontSize="small" />,
                 ariaLabel: 'Economic calendar',
             },
             {
@@ -87,7 +86,7 @@ function CalendarPageShell() {
                 label: 'Trading Clock',
                 shortLabel: 'Clock',
                 to: '/app',
-                icon: <AccessTimeRoundedIcon />,
+                icon: <AccessTimeRoundedIcon fontSize="small" />,
                 ariaLabel: 'Open the trading clock',
             },
             {
@@ -95,14 +94,14 @@ function CalendarPageShell() {
                 label: 'About',
                 shortLabel: 'About',
                 to: '/about',
-                icon: <InfoRoundedIcon />,
+                icon: <InfoRoundedIcon fontSize="small" />,
                 ariaLabel: 'Learn about Time 2 Trade',
             },
             {
                 id: 'signin',
                 label: 'Sign in',
                 shortLabel: 'Sign in',
-                icon: <LockOpenRoundedIcon />,
+                icon: <LockOpenRoundedIcon fontSize="small" />,
                 primary: true,
                 ariaLabel: 'Sign in or create an account',
             },
@@ -111,42 +110,28 @@ function CalendarPageShell() {
     );
 
     return (
-        <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <AuthProvider>
-                <SettingsProvider>
-                    <PublicLayout
-                        navItems={navItems}
-                        onOpenAuth={handleOpenAuth}
-                        onOpenSettings={handleOpenSettings}
-                    >
-                        <CalendarEmbed onOpenAuth={handleOpenAuth} isCalendarRoute />
-                    </PublicLayout>
-                    <Suspense fallback={null}>
-                        <AuthModal2 open={authModalOpen} onClose={handleCloseAuth} redirectPath="/calendar" />
-                    </Suspense>
-                    <Suspense fallback={null}>
-                        <SettingsSidebar2 open={settingsOpen} onClose={handleCloseSettings} onOpenAuth={handleOpenAuth} onOpenContact={handleOpenContact} />
-                    </Suspense>
-                    <Suspense fallback={null}>
-                        <ContactModal open={contactModalOpen} onClose={handleCloseContact} />
-                    </Suspense>
-                </SettingsProvider>
-            </AuthProvider>
-        </ThemeProvider>
-    );
-}
-
-export default function CalendarPage() {
-    const inRouter = useInRouterContext();
-
-    if (inRouter) {
-        return <CalendarPageShell />;
-    }
-
-    return (
-        <BrowserRouter>
-            <CalendarPageShell />
-        </BrowserRouter>
+        <>
+            <PublicLayout
+                navItems={navItems}
+                onOpenAuth={handleOpenAuth}
+                onOpenSettings={handleOpenSettings}
+            >
+                <CalendarEmbed onOpenAuth={handleOpenAuth} isCalendarRoute />
+            </PublicLayout>
+            <Suspense fallback={null}>
+                <AuthModal2 open={authModalOpen} onClose={handleCloseAuth} redirectPath="/calendar" />
+            </Suspense>
+            <Suspense fallback={null}>
+                <SettingsSidebar2
+                    open={settingsOpen && !authModalOpen}
+                    onClose={handleCloseSettings}
+                    onOpenAuth={handleOpenAuth}
+                    onOpenContact={handleOpenContact}
+                />
+            </Suspense>
+            <Suspense fallback={null}>
+                <ContactModal open={contactModalOpen} onClose={handleCloseContact} />
+            </Suspense>
+        </>
     );
 }

@@ -11,12 +11,17 @@
  * - Success/error state handling
  * 
  * Changelog:
+ * v2.0.8 - 2026-01-15 - Remove redundant paper z-index overrides (Dialog root controls stacking).
+ * v2.0.7 - 2026-01-15 - Raise modal/backdrop to top-level stack so AppBar never overlays it.
+ * v2.0.5 - 2026-01-15 - Broadcast priority state so AccountModal hides while password reset is open.
+ * v2.0.4 - 2026-01-15 - Raise ForgotPasswordModal z-index above AccountModal across all nested states.
+ * v2.0.2 - 2026-01-15 - Modal layering: keep backdrop behind paper and ensure modal stacks above AppBar.
  * v2.0.1 - 2025-12-16 - Added PropTypes validation, removed unused helper import, and fixed apostrophe escape.
  * v2.0.0 - 2025-12-16 - Redesigned to match new enterprise authentication UI
  * v1.0.0 - 2025-09-15 - Initial implementation
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   Dialog,
@@ -35,15 +40,23 @@ import { sendPasswordResetEmail, fetchSignInMethodsForEmail } from 'firebase/aut
 import { getFriendlyErrorMessage } from '../utils/messages';
 
 function PasswordResetSentModal({ email, onClose }) {
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('t2t-modal-priority', { detail: { active: true } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('t2t-modal-priority', { detail: { active: false } }));
+    };
+  }, []);
+
   return (
     <Dialog
       open={true}
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      sx={{ zIndex: 20001 }}
       slotProps={{
-        backdrop: { sx: { zIndex: 1502 } },
-        paper: { sx: { zIndex: 1503, borderRadius: 3 } },
+        backdrop: { sx: { zIndex: 20000 } },
+        paper: { sx: { borderRadius: 3 } },
       }}
     >
       <DialogContent sx={{ p: 4, textAlign: 'center' }}>
@@ -94,11 +107,18 @@ export default function ForgotPasswordModal({ onClose }) {
   const [error, setError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('t2t-modal-priority', { detail: { active: true } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('t2t-modal-priority', { detail: { active: false } }));
+    };
+  }, []);
+
   const handleReset = async (e) => {
     e.preventDefault();
     setMessage('');
     setError('');
-    
+
     try {
       const methods = await fetchSignInMethodsForEmail(auth, email);
       if (methods.length === 0) {
@@ -122,9 +142,10 @@ export default function ForgotPasswordModal({ onClose }) {
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      sx={{ zIndex: 20001 }}
       slotProps={{
-        backdrop: { sx: { zIndex: 1502 } },
-        paper: { sx: { zIndex: 1503, borderRadius: 3 } },
+        backdrop: { sx: { zIndex: 20000 } },
+        paper: { sx: { borderRadius: 3 } },
       }}
     >
       <IconButton
@@ -173,8 +194,8 @@ export default function ForgotPasswordModal({ onClose }) {
         <Box component="form" onSubmit={handleReset}>
           <Stack spacing={2.5}>
             {error && (
-              <Alert 
-                severity="error" 
+              <Alert
+                severity="error"
                 onClose={() => setError('')}
                 sx={{ borderRadius: 2 }}
               >
@@ -182,8 +203,8 @@ export default function ForgotPasswordModal({ onClose }) {
               </Alert>
             )}
             {message && (
-              <Alert 
-                severity="success" 
+              <Alert
+                severity="success"
                 onClose={() => setMessage('')}
                 sx={{ borderRadius: 2 }}
               >

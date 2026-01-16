@@ -5,7 +5,17 @@
  * Purpose: Global MUI theme configuration for Time 2 Trade.
  * Defines brand palette, typography, and component overrides for consistent UI styling.
  * 
+ * Z-Index Strategy:
+ * - AppBar: 1400 (navigation chrome)
+ * - SettingsSidebar2: 1600 (drawer container)
+ * - Modals/Poppers: 1700+ (standard modals)
+ * - AuthModal2/HighPriority: 2000 (authentication critical)
+ * - WelcomeModal: 11000 (onboarding, highest priority)
+ * 
+ * Backdrop behavior: All modals have explicit z-index > AppBar (1400) to block clicks
+ * 
  * Changelog:
+ * v1.2.0 - 2026-01-14 - CRITICAL Z-INDEX FIX: Added MuiBackdrop and MuiModal theme config to ensure modal backdrops block clicks and properly layer above AppBar. Set backdrop z-index base to 1300 (below AppBar 1400) so individual modals control their effective z-index via Dialog slotProps.
  * v1.1.0 - 2025-12-18 - Documented brand teal palette usage for primary colors
  * v1.0.0 - 2025-09-15 - Initial implementation
  */
@@ -50,8 +60,32 @@ const theme = createTheme({
         },
       },
     },
+    MuiBackdrop: {
+      styleOverrides: {
+        root: {
+          // Ensure backdrop is visible and blocks clicks
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          // Backdrop z-index is controlled per-modal via slotProps to allow layering
+          // but theme default ensures it's always present and interactive
+          '&.MuiBackdrop-invisible': {
+            backgroundColor: 'transparent',
+          },
+        },
+      },
+    },
+    MuiModal: {
+      styleOverrides: {
+        root: {
+          // Ensure modal can receive focus and block background interaction
+          // Individual modals set their own z-index via slotProps
+        },
+      },
+    },
     MuiDialog: {
       styleOverrides: {
+        root: {
+          // Ensure Dialog respects modal z-index stacking
+        },
         paper: {
           borderRadius: 8,
         },

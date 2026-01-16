@@ -11,13 +11,13 @@ import {
   Box,
 } from '@mui/material';
 
-export default function ConfirmModal({ 
-  open = false, 
-  onClose, 
-  onConfirm, 
-  title = 'Please Confirm', 
-  message, 
-  confirmText = 'Confirm', 
+export default function ConfirmModal({
+  open = false,
+  onClose,
+  onConfirm,
+  title = 'Please Confirm',
+  message,
+  confirmText = 'Confirm',
   cancelText = 'Cancel',
   requirePassword = false,
   password = null,
@@ -52,7 +52,16 @@ export default function ConfirmModal({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{
+        backdrop: { sx: { zIndex: 1699 } },
+        paper: { sx: { zIndex: 1700 } },
+      }}
+    >
       <DialogTitle sx={{ textAlign: 'center' }}>{title}</DialogTitle>
       <DialogContent>
         {/* Don't wrap in Typography - message can already contain Typography components */}
@@ -61,7 +70,7 @@ export default function ConfirmModal({
         ) : (
           message
         )}
-        
+
         {/* Password Input */}
         {requirePassword && password && (
           <Box sx={{ mt: 3 }}>

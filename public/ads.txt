@@ -1,1 +1,3 @@
+# ads.txt for Time 2 Trade (https://time2.trade)
+# Verified for Google AdSense
 google.com, pub-3984565509623618, DIRECT, f08c47fec0942fa0

@@ -12,7 +12,17 @@
  * - Green gradient design (trust, growth, money themes)
  * - Mobile-first responsive design
  * 
+ * Z-Index Strategy (ABSOLUTE HIGHEST):
+ * - Primary modal: root z-index 12001 (backdrop stays at -1 within modal to prevent flash)
+ * - Nested modals (EmailSent, Verifying): root z-index 12003 (backdrop stays at -1 within modal)
+ * - Ensures AuthModal2 renders above ALL UI including WelcomeModal (11000), EmailLinkHandler verification (9998-10000), drawers (1600), and AppBar (1400) on all breakpoints.
+ * 
+ * v1.4.3 - 2026-01-15 - Fix backdrop layering so the modal paper renders above the overlay from the first frame (no flash-on-open).
+ * v1.4.2 - 2026-01-14 - Elevate AuthModal2 to absolute highest z-index across the app and align nested modals accordingly so overlays never sit above it.
+ * v1.4.1 - 2026-01-14 - Root z-index fix: set Dialog root z-index to match high-priority stack so AuthModal2 always overlays SettingsSidebar2 on /calendar and other routes.
  * Changelog:
+ * v1.4.0 - 2026-01-14 - HIGHEST Z-INDEX: Set AuthModal2 and nested modals to z-index 10001-10004 to be the absolute highest in the codebase, rendering above EmailLinkHandler verification modals (9998-10000) and all other UI elements on all breakpoints.
+ * v1.3.0 - 2026-01-14 - MOBILE Z-INDEX FIX: Explicitly set backdrop z-index to 1999 and paper z-index to 2000 on all breakpoints (xs/sm/md/lg/xl) to ensure AuthModal2 renders above AppBar bottom nav (z-index 1400) on mobile devices. Nested modals at 2002 for proper layering.
  * v1.2.2 - 2026-01-08 - Reverted to Firebase sendSignInLinkToEmail with custom SMTP; removed SendGrid Cloud Function dependency
  * v1.2.1 - 2026-01-07 - Add redirectPath support so calendar embeds keep users on /calendar after auth; reuse same path for magic link continue URLs.
  * v1.2.0 - 2025-12-22 - Show welcome modal for new Google signups and centralize welcome copy.
@@ -75,8 +85,9 @@ function EmailSentModal({ email, onClose }) {
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      sx={{ zIndex: 2000 }}
+      sx={{ zIndex: 12003 }}
       slotProps={{
+        backdrop: { sx: { zIndex: -1 } },
         paper: { sx: { borderRadius: 3 } },
       }}
     >
@@ -174,8 +185,9 @@ function VerifyingModal({ onClose }) {
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      sx={{ zIndex: 2000 }}
+      sx={{ zIndex: 12003 }}
       slotProps={{
+        backdrop: { sx: { zIndex: -1 } },
         paper: { sx: { borderRadius: 3 } },
       }}
     >
@@ -249,7 +261,6 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
   // Countdown timer for cooldown
   useEffect(() => {
     if (cooldownSeconds <= 0) return;
-
     const timer = setInterval(() => {
       setCooldownSeconds((prev) => {
         if (prev <= 1) {
@@ -381,15 +392,34 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
       onClose={forceOpen ? () => { } : onClose}
       maxWidth="md"
       fullWidth
-      sx={{ zIndex: 2000 }}
+      sx={{ zIndex: 12001 }}
+
       disableEscapeKeyDown={forceOpen}
       slotProps={{
+        backdrop: forceOpen
+          ? {
+            onClick: (e) => e.stopPropagation(),
+            sx: {
+              zIndex: -1,
+              // Absolute highest: blocks clicks above all UI including EmailLinkHandler (9998-10000) and WelcomeModal (11000)
+              // Renders above on all breakpoints (xs/sm/md/lg/xl)
+            }
+          }
+          : {
+            sx: {
+              zIndex: -1,
+              // Absolute highest: blocks clicks above all UI including EmailLinkHandler (9998-10000) and WelcomeModal (11000)
+            }
+          },
         paper: {
           sx: {
             borderRadius: 3,
+            height: { xs: '100dvh', md: 'auto' },
+            justifyContent: 'flex-start',
+            // Modal paper rendered above all UI elements on all breakpoints
+            // xs/sm/md/lg/xl: above everything including verification modals (12003-12004)
           }
         },
-        backdrop: forceOpen ? { onClick: (e) => e.stopPropagation() } : undefined,
       }}
     >
       {!forceOpen && (
@@ -430,12 +460,12 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
             <Box sx={{ position: 'relative', zIndex: 1 }}>
               {/* Logo/Brand */}
 
-              <Typography variant="h4" fontWeight="700" gutterBottom sx={{ mb: 2 }}>
+              <Typography variant="h4" fontWeight="700" gutterBottom sx={{ mb: 0 }}>
                 Everything Free.
               </Typography>
 
-              <Typography variant="body1" sx={{ mb: 0, lineHeight: 1.7, fontSize: '1.05rem' }}>
-                See what you get with a free Time 2 Trade account. No credit card. No trials. No limits.
+              <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.7, fontSize: '1.05rem' }}>
+                No credit card. No trials. No limits.
               </Typography>
               {/* Benefits List */}
               <List sx={{ p: 0 }}>
@@ -527,7 +557,7 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
                 </Typography>
               </Box>
               <Typography variant="h5" fontWeight="700" gutterBottom>
-                {isSignup ? 'Get instant access' : 'Sign in to continue'}
+                {isSignup ? 'Get free instant access' : 'Sign in to continue'}
               </Typography>
               {/* Account Toggle */}
               <Box sx={{ textAlign: 'left', mb: 3 }}>

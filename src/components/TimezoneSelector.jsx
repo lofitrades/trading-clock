@@ -4,6 +4,8 @@
  * Purpose: Asynchronous timezone selector with read-only collapsed display and dedicated search field.
  * Key responsibility: Persist user timezone selection to Firestore via SettingsContext while gating guest edits.
  * 
+ * v1.4.2 - 2026-01-15 - Raise timezone popper z-index above AppBar for guaranteed overlay priority.
+ * v1.4.1 - 2026-01-14 - Auth handoff: invoke parent onRequestSignUp to close settings and open AuthModal2 when guests try to edit; fallback modal keeps z-index above AppBar.
  * Changelog:
  * v1.4.0 - 2026-01-14 - Added onTimezoneChange callback prop to notify parent when timezone is selected; enables auto-close of containing modals after selection.
  * v1.3.9 - 2026-01-14 - RAISED Z-INDEX: Changed dropdown popper z-index from 1500 to 1700 so timezone selector dropdown renders above SettingsSidebar2 (z-index 1600) following enterprise modal stacking best practices.
@@ -24,6 +26,7 @@
  * v1.0.0 - 2024-09-15 - Initial implementation
  */
 
+import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Autocomplete, TextField, Box, Popper, CircularProgress, Paper, Typography } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
@@ -91,7 +94,18 @@ const SearchablePopper = React.forwardRef(
 );
 SearchablePopper.displayName = 'SearchablePopper';
 
-export default function TimezoneSelector({ textColor = 'inherit', onRequestSignUp, onTimezoneChange, children }) {
+SearchablePopper.propTypes = {
+  searchQuery: PropTypes.string.isRequired,
+  onSearchChange: PropTypes.func.isRequired,
+  searchInputRef: PropTypes.shape({ current: PropTypes.any }),
+  mainInputRef: PropTypes.shape({ current: PropTypes.any }),
+  children: PropTypes.node,
+  placement: PropTypes.string,
+  props: PropTypes.object,
+  ref: PropTypes.any,
+};
+
+export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChange, onRequestSignUp, children }) {
   const { user } = useAuth();
   const { selectedTimezone, updateSelectedTimezone } = useSettings();
   const [showUnlock, setShowUnlock] = useState(false);
@@ -129,7 +143,7 @@ export default function TimezoneSelector({ textColor = 'inherit', onRequestSignU
             const parts = fmt.formatToParts(now);
             const tzPart = parts.find((p) => p.type === 'timeZoneName');
             offset = tzPart ? tzPart.value.replace(/UTC|GMT/, '').trim() : '';
-          } catch (error) {
+          } catch {
             offset = '';
           }
 
@@ -171,7 +185,12 @@ export default function TimezoneSelector({ textColor = 'inherit', onRequestSignU
 
   const handleChange = (event, newValue) => {
     if (!user) {
-      setShowUnlock(true);
+      if (onRequestSignUp) {
+        onRequestSignUp();
+      } else {
+        setShowUnlock(true);
+      }
+      setOpen(false);
       return;
     }
 
@@ -288,7 +307,7 @@ export default function TimezoneSelector({ textColor = 'inherit', onRequestSignU
                 mainInputRef,
                 ref: popperRef,
                 placement: 'bottom-start',
-                sx: { zIndex: 1700 },
+                sx: { zIndex: 2000 },
               },
               listbox: {
                 sx: {
@@ -373,3 +392,10 @@ export default function TimezoneSelector({ textColor = 'inherit', onRequestSignU
     </>
   );
 }
+
+TimezoneSelector.propTypes = {
+  textColor: PropTypes.string,
+  onTimezoneChange: PropTypes.func,
+  onRequestSignUp: PropTypes.func,
+  children: PropTypes.node,
+};

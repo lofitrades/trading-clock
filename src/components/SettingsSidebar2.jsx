@@ -179,6 +179,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 	const [showUnlockModal, setShowUnlockModal] = useState(false);
 	const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
 	const [showClearSessionConfirm, setShowClearSessionConfirm] = useState(false);
+	const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState(false);
 	const [clearSessionIndex, setClearSessionIndex] = useState(null);
 	const [userMenuAnchor, setUserMenuAnchor] = useState(null);
 	const [toggleError, setToggleError] = useState('');
@@ -232,12 +233,17 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 		}
 	}, [syncingActuals]);
 
+	const handleLogoutClick = () => {
+		setShowLogoutConfirmModal(true);
+	};
+
 	const handleLogout = async () => {
 		try {
 			await signOut(auth);
 			resetSettings();
 			handleUserMenuClose();
 			onClose();
+			setShowLogoutConfirmModal(false);
 		} catch (error) {
 			console.error(error);
 		}
@@ -933,7 +939,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 		<>
 			<Drawer
 				anchor="right"
-				open={open && !showUnlockModal && !showAccountModal && !showResetConfirmModal}
+				open={open && !showUnlockModal && !showAccountModal && !showResetConfirmModal && !showLogoutConfirmModal}
 				onClose={onClose}
 				variant="temporary"
 				ModalProps={{ keepMounted: true }}
@@ -1112,17 +1118,17 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 												setShowAccountModal(true);
 												setUserMenuAnchor(false);
 											}}
-											sx={{ justifyContent: 'flex-start', textTransform: 'none', py: 1.25, px: 1.5 }}
+											sx={{ justifyContent: 'flex-start', textTransform: 'none', py: 1.25, px: 1.5, color: 'text.primary' }}
 										>
 											My Account
 										</Button>
 										<Button
 											fullWidth
 											onClick={() => {
-												handleLogout();
+												handleLogoutClick();
 												setUserMenuAnchor(false);
 											}}
-											sx={{ justifyContent: 'flex-start', textTransform: 'none', py: 1.25, px: 1.5 }}
+											sx={{ justifyContent: 'flex-start', textTransform: 'none', py: 1.25, px: 1.5, color: 'text.primary' }}
 										>
 											Log out
 										</Button>
@@ -1284,22 +1290,34 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 					cancelText="Cancel"
 				/>
 			)}
+			{showLogoutConfirmModal && (
+				<ConfirmModal
+					open={showLogoutConfirmModal}
+					onClose={() => setShowLogoutConfirmModal(false)}
+					onConfirm={handleLogout}
+					title="Log out?"
+					message="Are you sure you want to log out? You'll need to sign in again to access your saved settings."
+					confirmText="Log out"
+					cancelText="Cancel"
+					slotProps={{ backdrop: { sx: { zIndex: 1699 } } }}
+				/>
+			)}
 		</>
 	);
 }
-
-SectionCard.propTypes = {
-	title: PropTypes.string,
-	subtitle: PropTypes.string,
-	children: PropTypes.node,
-	dense: PropTypes.bool,
-};
 
 SettingRow.propTypes = {
 	label: PropTypes.string.isRequired,
 	description: PropTypes.string,
 	children: PropTypes.node.isRequired,
 	helperText: PropTypes.string,
+	dense: PropTypes.bool,
+};
+
+SectionCard.propTypes = {
+	title: PropTypes.string,
+	subtitle: PropTypes.string,
+	children: PropTypes.node.isRequired,
 	dense: PropTypes.bool,
 };
 

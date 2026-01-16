@@ -4,8 +4,14 @@
  * Purpose: High-performance landing page with a live hero clock for futures and forex day traders.
  * Highlights Time 2 Trade value props with brand-safe visuals and responsive hero layout.
  * 
+ * v1.5.13 - 2026-01-15 - TOP SPACING ALIGNMENT: Remove extra top padding/margin on landing main content so it aligns with PublicLayout like /about.
+ * v1.5.12 - 2026-01-15 - SETTINGS DRAWER WIRING: Route AppBar Settings button to SettingsSidebar2 instead of ContactModal on landing page. Added settings drawer state and handlers with proper modal coordination.
+ * v1.5.8 - 2026-01-14 - HIDE MOBILE NAV: Pass hideNavOnMobile={true} to PublicLayout to remove the mobile bottom AppBar on xs/sm breakpoints. Landing page focuses on hero content without bottom nav clutter for both auth and guest visitors. Desktop sticky nav still shows on md+. Cleaner mobile-first experience with full viewport focus on hero clock and copy.
+ * v1.5.11 - 2026-01-14 - OUTLINED BUTTON STYLE: Changed "Go to Calendar" secondary button from variant="text" to variant="outlined" following MUI best practices. Added explicit borderColor: theme.palette.text.primary and '&:hover' with borderColor to maintain border visibility on interaction. Outlined variant provides stronger visual affordance for secondary CTAs and improves button hierarchy contrast against primary "Unlock all features" button.
+ * v1.5.10 - 2026-01-14 - MOBILE BUTTON LAYOUT: Changed CTA buttons from single row to responsive stacking on xs/sm breakpoints. Stack direction now responsive: direction={{ xs: 'column', md: 'row' }}. Buttons are full width on mobile (width: { xs: '100%', md: 'auto' }) with alignItems: stretch for better touch targets. Justification centered on xs/sm, maintains flex-start/center on md+ per section. Follows enterprise mobile UI best practices: improved accessibility and easier thumb reach on small screens.
+ * v1.5.9 - 2026-01-14 - ICON ENHANCEMENT: Added LockIcon to "Unlock all features" buttons and CalendarMonthIcon to "Go to Calendar" buttons throughout landing page (hero and final-cta sections). Updated both button sizes to "large" for consistent icon display. Icons improve visual affordance and UX clarity for conversion-focused CTAs across all breakpoints.
  * Changelog:
- * v1.5.5 - 2026-01-14 - SCROLLBAR STYLING: Applied minimal scrollbar UI from CalendarEmbedLayout to main Box container. Thin 6px width, semi-transparent rgba(60,77,99,0.32) thumb that darkens on hover, transparent track. Provides subtle, professional scrollbar appearance consistent with /calendar page.
+ * v1.5.7 - 2026-01-14 - MOBILE SCROLL PADDING FIX: Added responsive pb (padding-bottom) to main Box for xs/sm to ensure content scrolls all the way to the bottom without being clipped. Formula: xs uses calc(3 * 8px + 48px) = 72px, sm uses calc(4 * 8px + 48px) = 80px, md+ uses 4 units (32px). The +48px accounts for PublicLayout mobile logo row height (32px logo + 16px pb). Split py into separate pt and pb for granular control. This matches AboutPage and CalendarEmbedLayout pattern for consistent scrollability across all pages on mobile.
  * v1.5.4 - 2026-01-14 - RESPONSIVE PADDING: Added mobile-first px padding to main Box (xs:0.5, sm:0.5, md:0) to ensure content doesn't touch viewport edges on mobile while PublicLayout provides outer centering container padding. Small internal padding on xs/sm prevents edge-touching, md+ relies on outer container padding only.
  * v1.5.0 - 2026-01-14 - REFACTOR: Notion-style minimal design. Removed all Papers/Boxes/containers/shadows/gradients, kept only simple copy with clean typography, fully responsive mobile-first layout, maintaining SEO best practices.
  * v1.4.20 - 2026-01-14 - REFACTOR: Improved UI integration with PublicLayout. Single scrollable main content area with proper height constraints, removed nested Box layers, centralized SEO outside PublicLayout, improved mobile scroll experience.
@@ -77,14 +83,17 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import SecurityIcon from '@mui/icons-material/Security';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import LockIcon from '@mui/icons-material/Lock';
 import BoltIcon from '@mui/icons-material/Bolt';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import InfoIcon from '@mui/icons-material/Info';
+import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import { siX } from 'simple-icons';
 import ClockCanvas from './ClockCanvas';
 import ClockHandsOverlay from './ClockHandsOverlay';
 const ClockEventsOverlay = lazy(() => import('./ClockEventsOverlay'));
+const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
 import LoadingScreen from './LoadingScreen';
 import ContactModal from './ContactModal';
 import AuthModal2 from './AuthModal2';
@@ -317,6 +326,7 @@ export default function HomePage2() {
     const [renderedClockSize, setRenderedClockSize] = useState(320);
     const clockContainerRef = useRef(null);
     const [contactModalOpen, setContactModalOpen] = useState(false);
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const [showBackToTop, setShowBackToTop] = useState(false);
     const [showInitialLoader, setShowInitialLoader] = useState(true);
     const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -406,11 +416,20 @@ export default function HomePage2() {
         navigate('/app');
     }, [navigate]);
 
-    const openAuthModal = useCallback(() => setAuthModalOpen(true), []);
+    const openAuthModal = useCallback(() => {
+        setSettingsOpen(false);
+        setAuthModalOpen(true);
+    }, []);
     const closeAuthModal = useCallback(() => setAuthModalOpen(false), []);
 
-    const openContactModal = useCallback(() => setContactModalOpen(true), []);
+    const openContactModal = useCallback(() => {
+        setSettingsOpen(false);
+        setContactModalOpen(true);
+    }, []);
     const closeContactModal = useCallback(() => setContactModalOpen(false), []);
+
+    const openSettings = useCallback(() => setSettingsOpen(true), []);
+    const closeSettings = useCallback(() => setSettingsOpen(false), []);
 
     const sectionHeadingSx = {
         fontWeight: 700,
@@ -429,19 +448,28 @@ export default function HomePage2() {
             <SEO {...heroMeta} structuredData={landingStructuredData} />
             <ContactModal open={contactModalOpen} onClose={closeContactModal} />
             <AuthModal2 open={authModalOpen} onClose={closeAuthModal} redirectPath="/calendar" />
+            <Suspense fallback={null}>
+                <SettingsSidebar2
+                    open={settingsOpen && !authModalOpen}
+                    onClose={closeSettings}
+                    onOpenAuth={openAuthModal}
+                    onOpenContact={openContactModal}
+                />
+            </Suspense>
 
             {/* Loading screen with full coverage */}
-            <LoadingScreen isLoading={showInitialLoader} clockSize={96} />
+            <LoadingScreen isLoading={showInitialLoader && !authModalOpen} clockSize={96} />
 
             {/* Navigation and main content */}
             {(() => {
                 const navItems = [
                     { id: 'calendar', label: 'Calendar', to: '/calendar', icon: <CalendarMonthIcon fontSize="small" /> },
-                    { id: 'clock', label: 'Clock', onClick: openApp, icon: <AccessTimeIcon fontSize="small" /> },
+                    { id: 'clock', label: 'Trading Clock', shortLabel: 'Clock', onClick: openApp, icon: <AccessTimeIcon fontSize="small" /> },
                     { id: 'about', label: 'About', to: '/about', icon: <InfoIcon fontSize="small" /> },
+                    { id: 'signin', label: 'Settings', shortLabel: 'Settings', icon: <SettingsRoundedIcon fontSize="small" /> },
                 ];
                 return (
-                    <PublicLayout navItems={navItems} onOpenSettings={openContactModal}>
+                    <PublicLayout navItems={navItems} onOpenSettings={openSettings} onOpenAuth={openAuthModal}>
                         {/* NOTE: PublicLayout handles centering with flex:center pattern.
                              Content flows within centered container (width:100%, maxWidth:1560, px:responsive).
                              Just provide vertical padding and flex fill. No additional width constraints. */}
@@ -455,8 +483,10 @@ export default function HomePage2() {
                                 scrollBehavior: 'smooth',
                                 flex: 1,
                                 minHeight: 0,
-                                mx: { xs: 2, sm: 2, md: 3 },
-                                py: { xs: 3, md: 4 },
+                                px: { xs: 2, sm: 2, md: 4, lg: 4, xl: 2 },
+                                mt: 0,
+                                pt: 0,
+                                pb: { xs: 'calc(3 * 8px + 48px)', sm: 'calc(4 * 8px + 48px)', md: 4 },
                                 scrollbarWidth: 'thin',
                                 scrollbarColor: 'rgba(60,77,99,0.32) transparent',
                                 '&::-webkit-scrollbar': {
@@ -537,12 +567,13 @@ export default function HomePage2() {
                                             Time 2 Trade combines a trusted Forex Factory economic calendar with a live market session clock. See today&apos;s events, overlaps, and countdowns in one clean, minimalist view with impact and currency filters, favorites, notes, and exports.
                                         </Typography>
 
-                                        <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="center" justifyContent={{ xs: 'center', md: 'flex-start' }}>
+                                        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap" alignItems={{ xs: 'stretch', md: 'center' }} justifyContent={{ xs: 'center', md: 'flex-start' }}>
                                             <Button
                                                 onClick={openAuthModal}
                                                 variant="contained"
                                                 color="primary"
                                                 size="large"
+                                                startIcon={<LockIcon />}
                                                 sx={{
                                                     fontWeight: 800,
                                                     px: 3,
@@ -550,6 +581,7 @@ export default function HomePage2() {
                                                     borderRadius: 999,
                                                     textTransform: 'none',
                                                     boxShadow: 'none',
+                                                    width: { xs: '100%', md: 'auto' },
                                                     '&:hover': {
                                                         boxShadow: 'none',
                                                     },
@@ -560,8 +592,10 @@ export default function HomePage2() {
 
                                             <Button
                                                 onClick={openApp}
-                                                variant="text"
+                                                variant="outlined"
                                                 color="inherit"
+                                                size="large"
+                                                startIcon={<CalendarMonthIcon />}
                                                 sx={{
                                                     color: theme.palette.text.primary,
                                                     fontWeight: 700,
@@ -569,7 +603,9 @@ export default function HomePage2() {
                                                     py: 1.5,
                                                     borderRadius: 999,
                                                     textTransform: 'none',
-                                                    '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' },
+                                                    width: { xs: '100%', md: 'auto' },
+                                                    borderColor: theme.palette.text.primary,
+                                                    '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', borderColor: theme.palette.text.primary },
                                                 }}
                                             >
                                                 Go to Calendar
@@ -686,7 +722,7 @@ export default function HomePage2() {
                                 component="section"
                                 id="social-proof"
                                 sx={{
-                                    maxWidth: { xs: '100%', md: 960, lg: 1200, xl: 1280 },
+                                    maxWidth: { xs: '100%', lg: 1560, xl: 1560 },
                                     mx: 'auto',
                                     width: '100%',
                                     mb: { xs: 6, md: 8 },
@@ -948,12 +984,13 @@ export default function HomePage2() {
                                         <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
                                             Check today&apos;s economic events, see which session you&apos;re in, and stay aligned with overlaps and countdowns. Powered by the Forex Factory source with filters, favorites, notes, and exports.
                                         </Typography>
-                                        <Stack direction="row" spacing={1.5} flexWrap="wrap" justifyContent={{ xs: 'flex-start', md: 'center' }}>
+                                        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap" alignItems={{ xs: 'stretch', md: 'center' }} justifyContent={{ xs: 'center', md: 'center' }}>
                                             <Button
                                                 onClick={openAuthModal}
                                                 variant="contained"
                                                 color="primary"
                                                 size="large"
+                                                startIcon={<LockIcon />}
                                                 sx={{
                                                     fontWeight: 800,
                                                     px: 3,
@@ -961,6 +998,7 @@ export default function HomePage2() {
                                                     borderRadius: 999,
                                                     textTransform: 'none',
                                                     boxShadow: 'none',
+                                                    width: { xs: '100%', md: 'auto' },
                                                     '&:hover': {
                                                         boxShadow: 'none',
                                                     },
@@ -970,8 +1008,10 @@ export default function HomePage2() {
                                             </Button>
                                             <Button
                                                 onClick={openApp}
-                                                variant="text"
+                                                variant="outlined"
                                                 color="inherit"
+                                                size="large"
+                                                startIcon={<CalendarMonthIcon />}
                                                 sx={{
                                                     color: theme.palette.text.primary,
                                                     fontWeight: 700,
@@ -979,7 +1019,9 @@ export default function HomePage2() {
                                                     py: 1.5,
                                                     borderRadius: 999,
                                                     textTransform: 'none',
-                                                    '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' },
+                                                    width: { xs: '100%', md: 'auto' },
+                                                    borderColor: theme.palette.text.primary,
+                                                    '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', borderColor: theme.palette.text.primary },
                                                 }}
                                             >
                                                 Go to Calendar

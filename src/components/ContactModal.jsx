@@ -5,6 +5,7 @@
  * Keeps the contact page UI + SEO intact by rendering it in a same-origin iframe.
  * 
  * Changelog:
+ * v1.0.6 - 2026-01-15 - Align ContactModal z-index with AuthModal2 and keep backdrop behind paper to prevent overlay flash on open.
  * v1.0.5 - 2026-01-13 - Keep progress visible until iframe signals ready via postMessage; add fallback timer to avoid blank state.
  * v1.0.4 - 2026-01-13 - Speed: lazy iframe load, non-blocking top progress, keep paper above backdrop.
  * v1.0.3 - 2026-01-13 - Raised modal z-index above calendar chrome (AppBar/top banner/jump control) and pinned paper above backdrop using explicit z-index.
@@ -76,19 +77,17 @@ export default function ContactModal({ open, onClose }) {
             fullScreen={fullScreen}
             maxWidth="lg"
             fullWidth
+            sx={{ zIndex: 12001 }}
             TransitionProps={{ onEnter: handleEnter }}
             aria-labelledby="contact-modal-title"
-            sx={{ zIndex: (t) => t.zIndex.modal + 300 }}
             slotProps={{
                 backdrop: {
-                    // Keep backdrop below the paper while still above page chrome
-                    sx: { zIndex: (t) => t.zIndex.modal + 295 },
+                    sx: { zIndex: -1 },
                 },
             }}
             PaperProps={{
                 sx: {
                     position: 'relative',
-                    zIndex: (t) => t.zIndex.modal + 310,
                     display: 'flex',
                     flexDirection: 'column',
                     borderRadius: fullScreen ? 0 : 3,

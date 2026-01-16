@@ -1,4 +1,13 @@
 // src/components/UnlockModal.jsx
+/**
+ * src/components/UnlockModal.jsx
+ * 
+ * Purpose: Feature unlock promotion modal for non-authenticated users.
+ * 
+ * Changelog:
+ * v1.1.0 - 2026-01-14 - CRITICAL FIX: Updated backdrop z-index to 1699 and paper z-index to 1701 to ensure modal blocks clicks and properly layers above AppBar (1400) and SettingsSidebar2 (1600).
+ * v1.0.0 - Initial implementation
+ */
 import React from 'react';
 import {
   Dialog,
@@ -17,8 +26,8 @@ export default function UnlockModal({ onClose, onSignUp }) {
       maxWidth="sm"
       fullWidth
       slotProps={{
-        backdrop: { sx: { zIndex: 1500 } },
-        paper: { sx: { zIndex: 1501 } },
+        backdrop: { sx: { zIndex: 1699 } },
+        paper: { sx: { zIndex: 1701 } },
       }}
     >
       <DialogTitle sx={{ textAlign: 'center' }}>

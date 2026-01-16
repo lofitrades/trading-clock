@@ -6,6 +6,11 @@
  * Includes proper SEO metadata, structured data, and mobile-first responsive design.
  * 
  * Changelog:
+ * v1.2.31 - 2026-01-14 - MOBILE SCROLL PADDING FIX: Added responsive pb (padding-bottom) to Paper for xs/sm to ensure content scrolls all the way to the bottom without being clipped. Formula: xs uses calc(3 * 8px + 48px) = 72px, sm uses calc(4 * 8px + 48px) = 80px, md+ uses default 5 units (40px). The +48px accounts for PublicLayout mobile logo row height (32px logo + 16px pb). This matches CalendarEmbedLayout pattern for consistent scrollability across all pages on mobile.
+ * v1.2.30 - 2026-01-14 - MOBILE SPACING FIX: Added pt (padding-top) for xs/sm breakpoints (8 units = 64px) to content Paper so About text appears below the fixed PublicLayout mobile logo without overlap. On md+, pt is unset so normal padding applies. Ensures proper vertical spacing on mobile while maintaining responsive layout behavior.
+ * v1.2.29 - 2026-01-14 - MOBILE BRANDING REFACTOR: Removed fixed mobile brand lockup (logo + text) from AboutPage and moved to PublicLayout so it displays consistently across all public pages on xs/sm only. Updated Paper mt from 'calc(32px + 40px)' to 0 since logo is no longer locally fixed. This centralizes mobile branding in PublicLayout, reduces code duplication, and ensures consistent mobile-first responsive behavior across /about, /calendar, and /app pages.
+ * v1.2.28 - 2026-01-14 - BUGFIX: Fixed 'Unlock all features' button not opening AuthModal2 from SettingsSidebar2. Added missing authModalOpen state, handleOpenAuth/handleCloseAuth handlers, AuthModal2 import/render, and corrected PublicLayout onOpenAuth prop to call handleOpenAuth (was incorrectly calling setContactModalOpen(false)). Now auth flow works correctly on /about page.
+ * v1.2.27 - 2026-01-14 - Moved "Have questions? Contact us" footer from outside Paper to inside Paper (scrollable content) so it is not sticky at bottom.
  * v1.2.26 - 2026-01-14 - SCROLLBAR STYLING: Applied minimal scrollbar UI from CalendarEmbedLayout to Paper container. Thin 6px width, semi-transparent rgba(60,77,99,0.32) thumb that darkens on hover, transparent track. Provides subtle, professional scrollbar appearance consistent with /calendar page.
  * v1.2.25 - 2026-01-14 - VISUAL REFINEMENT: Removed border (1px divider line) from main Paper container and changed background color from background.paper (#FFFFFF) to background.default (#F9F9F9) to match theme and create a seamless, integrated appearance with the page layout.
  * v1.2.24 - 2026-01-14 - RESPONSIVE PADDING: Added mobile-first px padding to Paper (xs:2, sm:2, md:5) to ensure About content doesn't touch viewport edges on mobile while maintaining centering fix. Responsive padding scales with breakpoints: xs/sm get additional gutters (16px total), md+ gets wider padding (40px) for desktop comfortable reading width.
@@ -49,13 +54,13 @@ import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
 import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
-import { Link as RouterLink } from 'react-router-dom';
 import SEO from './SEO';
 import ContactModal from './ContactModal';
 import PublicLayout from './PublicLayout';
 import { aboutContent, aboutMeta, aboutStructuredData } from '../content/aboutContent';
 
 const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
+const AuthModal2 = lazy(() => import('./AuthModal2'));
 
 /**
  * Render content block based on type
@@ -145,6 +150,7 @@ ContentBlock.propTypes = {
 export default function AboutPage() {
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const handleOpenSettings = () => {
     setSettingsOpen(true);
@@ -155,7 +161,12 @@ export default function AboutPage() {
   };
 
   const handleOpenAuth = () => {
-    // Auth modal if needed
+    setAuthModalOpen(true);
+    setSettingsOpen(false);
+  };
+
+  const handleCloseAuth = () => {
+    setAuthModalOpen(false);
   };
 
   const navItems = useMemo(
@@ -165,7 +176,7 @@ export default function AboutPage() {
         label: 'Calendar',
         shortLabel: 'Calendar',
         to: '/calendar',
-        icon: <CalendarMonthRoundedIcon />,
+        icon: <CalendarMonthRoundedIcon fontSize="small" />,
         ariaLabel: 'Economic calendar',
       },
       {
@@ -173,7 +184,7 @@ export default function AboutPage() {
         label: 'Trading Clock',
         shortLabel: 'Clock',
         to: '/app',
-        icon: <AccessTimeRoundedIcon />,
+        icon: <AccessTimeRoundedIcon fontSize="small" />,
         ariaLabel: 'Open the trading clock',
       },
       {
@@ -181,14 +192,14 @@ export default function AboutPage() {
         label: 'About',
         shortLabel: 'About',
         to: '/about',
-        icon: <InfoRoundedIcon />,
+        icon: <InfoRoundedIcon fontSize="small" />,
         ariaLabel: 'Learn about Time 2 Trade',
       },
       {
         id: 'signin',
         label: 'Sign in',
         shortLabel: 'Sign in',
-        icon: <LockOpenRoundedIcon />,
+        icon: <LockOpenRoundedIcon fontSize="small" />,
         primary: true,
         ariaLabel: 'Sign in or create an account',
       },
@@ -204,74 +215,26 @@ export default function AboutPage() {
   return (
     <PublicLayout
       navItems={navItems}
-      onOpenAuth={() => setContactModalOpen(false)}
+      onOpenAuth={handleOpenAuth}
       onOpenSettings={handleOpenSettings}
     >
       <SEO {...aboutMeta} structuredData={[aboutStructuredData]} />
       {/* NOTE: PublicLayout handles centering (width:100%, maxWidth:1560, px:responsive).
           Just render content directly, no additional width/centering wrappers. */}
 
-      {/* Mobile brand lockup - fixed on xs/sm */}
-      <Box
-        component={RouterLink}
-        to="/"
-        sx={{
-          display: { xs: 'inline-flex', sm: 'inline-flex', md: 'none' },
-          alignItems: 'center',
-          gap: 1,
-          textDecoration: 'none',
-          color: 'inherit',
-          position: { xs: 'fixed', sm: 'fixed', md: 'relative' },
-          top: { xs: 'calc(var(--t2t-app-bar-height, 8px) + 12px)', sm: 'calc(var(--t2t-app-bar-height, 12px) + 12px)' },
-          left: { xs: 16, md: 'auto' },
-          zIndex: { xs: 100, sm: 100, md: 'auto' },
-          '&:focus-visible': {
-            outline: '2px solid rgba(15,23,42,0.35)',
-            outlineOffset: 4,
-            borderRadius: 1,
-          },
-        }}
-        aria-label="Time 2 Trade home"
-      >
-        <Box
-          component="img"
-          src="/logos/favicon/favicon.ico"
-          alt="Time 2 Trade logo"
-          sx={{
-            display: 'block',
-            height: 32,
-            width: 'auto',
-            maxWidth: '32vw',
-            objectFit: 'contain',
-            flexShrink: 0,
-          }}
-        />
-        <Typography
-          variant="subtitle1"
-          sx={{
-            fontWeight: 900,
-            lineHeight: 1.1,
-            color: 'text.primary',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          Time 2 Trade
-        </Typography>
-      </Box>
-
       {/* Main Content Card - flex: 1 fills available space, scrolls independently */}
       <Paper
         elevation={0}
         sx={{
-          p: { xs: 3, sm: 4, md: 5 },
+          pt: { xs: 3, sm: 4, md: 5 },
+          px: { xs: 3, md: 4, xl: 2 },
+          pb: { xs: 'calc(3 * 8px + 48px)', sm: 'calc(4 * 8px + 48px)', md: 5 },
           borderRadius: 3,
           bgcolor: 'background.default',
           flex: 1,
           width: '100%',
           boxSizing: 'border-box',
-          mt: { xs: 'calc(32px + 40px)', sm: 'calc(32px + 40px)', md: 0 },
+          mt: 0,
           overflowY: 'auto',
           minHeight: 0,
           scrollbarWidth: 'thin',
@@ -344,45 +307,47 @@ export default function AboutPage() {
           </Box>
         ))}
 
-      </Paper>
-
-      {/* Footer - Contact Us */}
-      <Divider sx={{ my: 4 }} />
-      <Typography
-        variant="body2"
-        sx={{
-          textAlign: 'center',
-          color: 'text.secondary',
-          fontSize: '0.875rem',
-          mb: 4,
-        }}
-      >
-        Have questions?{' '}
-        <Box
-          component="button"
-          onClick={() => setContactModalOpen(true)}
+        {/* Footer - Contact Us */}
+        <Divider sx={{ my: 4 }} />
+        <Typography
+          variant="body2"
           sx={{
-            background: 'none',
-            border: 'none',
-            color: 'primary.main',
-            fontWeight: 600,
-            cursor: 'pointer',
-            padding: 0,
-            textDecoration: 'none',
-            '&:hover': { textDecoration: 'underline' },
-            '&:focus-visible': {
-              outline: '2px solid',
-              outlineOffset: 2,
-              outlineColor: 'primary.main',
-              borderRadius: 0.5,
-            }
+            textAlign: 'center',
+            color: 'text.secondary',
+            fontSize: '0.875rem',
+            mb: 4,
           }}
         >
-          Contact us
-        </Box>
-      </Typography>
+          Have questions?{' '}
+          <Box
+            component="button"
+            onClick={() => setContactModalOpen(true)}
+            sx={{
+              background: 'none',
+              border: 'none',
+              color: 'primary.main',
+              fontWeight: 600,
+              cursor: 'pointer',
+              padding: 0,
+              textDecoration: 'none',
+              '&:hover': { textDecoration: 'underline' },
+              '&:focus-visible': {
+                outline: '2px solid',
+                outlineOffset: 2,
+                outlineColor: 'primary.main',
+                borderRadius: 0.5,
+              }
+            }}
+          >
+            Contact us
+          </Box>
+        </Typography>
+      </Paper>
 
       <ContactModal open={contactModalOpen} onClose={() => setContactModalOpen(false)} />
+      <Suspense fallback={null}>
+        <AuthModal2 open={authModalOpen} onClose={handleCloseAuth} redirectPath="/about" />
+      </Suspense>
       <Suspense fallback={null}>
         <SettingsSidebar2 open={settingsOpen} onClose={handleCloseSettings} onOpenAuth={handleOpenAuth} onOpenContact={() => setContactModalOpen(true)} />
       </Suspense>

@@ -5,6 +5,22 @@
  * Renders a sticky sub-header on md+ and an Airbnb-style bottom navigation on xs/sm.
  * 
  * Changelog:
+ * v1.4.8 - 2026-01-15 - DESKTOP SETTINGS VISIBILITY: Show Settings button for non-auth users on md+ when AppBar is visible.
+ * v1.4.7 - 2026-01-15 - CRITICAL CSS VARIABLE FIX: Changed isMobile from useMediaQuery(theme.breakpoints.down('sm'))
+ * to useMediaQuery(theme.breakpoints.down('md')). The mobile bottom nav is displayed on xs AND sm (display: { xs: 'block', md: 'none' }),
+ * but the CSS variable --t2t-bottom-nav-height was only being set on xs (below sm), not on sm itself. This caused floating buttons
+ * on sm breakpoint to calculate position as 'calc(18px + 0px + env(...))' instead of 'calc(18px + 64px + env(...))' because the
+ * CSS variable defaulted to 0px. Now isMobile correctly covers both xs and sm breakpoints, ensuring the CSS variable is set whenever
+ * the mobile bottom nav is visible. This fixes sm breakpoint buttons appearing under the AppBar instead of above it.
+ * v1.4.6 - 2026-01-14 - LOGOUT MODAL REFACTOR: Removed inline logout handler from AppBar.
+ * LogoutModal now handles full logout flow independently. AppBar focuses on navigation and chrome,
+ * delegating logout behavior to UserAvatar + LogoutModal. Removed dependency on signOut, auth, useSettings.
+ * UserAvatar no longer requires onLogout callback - LogoutModal manages the entire logout flow.
+ * v1.4.5 - 2026-01-14 - RESPONSIVE BRAND NAME: Updated brand text to show 'T2T' on md breakpoint only, 'Time 2 Trade' on xs/sm/lg/xl.
+ * Uses conditional display property on separate Typography components for space-efficient branding on medium screens.
+ * v1.4.4 - 2026-01-14 - USER AVATAR INTEGRATION: Added standalone UserAvatar component to desktop nav (md+ only, auth users only).
+ * Positioned to the right of nav items in the Stack. Integrated logout handler that calls signOut, resets settings, and navigates home.
+ * Improves separation of concerns: UserAvatar handles account modal UI, AppBar handles logout flow. Mobile bottom nav unchanged (no UserAvatar on xs/sm).
  * v1.4.3 - 2026-01-14 - BUGFIX: Filter out 'unlock-md' and 'unlock-lg' items from mobile bottom navigation. These should only show on desktop (md+ sticky nav), not on the mobile Airbnb-style bottom nav. Mobile users see Settings button instead for settings access, Unlock buttons are desktop-only.
  * v1.4.2 - 2026-01-14 - RESPONSIVE BUTTON TEXT: Desktop CTA now shows "Unlock" on md and "Unlock all features" on lg+. This provides concise copy on medium screens while showing the full value prop on larger displays where space is abundant.
  * v1.4.1 - 2026-01-14 - DESKTOP CTA: On md+ desktop navigation, replaced 'Settings' with primary 'Unlock all features' button. Mobile (xs/sm) bottom nav still shows Settings. This creates a clearer conversion path on desktop while maintaining settings access on mobile.
@@ -27,7 +43,7 @@
  * v1.0.0 - 2026-01-12 - Created responsive calendar dashboard AppBar with 5-item max nav model.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Badge,
@@ -48,6 +64,7 @@ import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import ChecklistRtlIcon from '@mui/icons-material/ChecklistRtl';
 import LockIcon from '@mui/icons-material/Lock';
 import { useAuth } from '../contexts/AuthContext';
+import UserAvatar from './UserAvatar';
 
 export const MOBILE_BOTTOM_APPBAR_HEIGHT_PX = 64;
 const DEFAULT_BRAND_LOGO_SRC = '/logos/favicon/favicon.ico';
@@ -128,8 +145,8 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { isAuthenticated } = useAuth();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { user, isAuthenticated } = useAuth();
 
   // Build processed items: remove 'contact', handle 'about' and 'roadmap', then reorder to: Calendar, Clock, Roadmap, About, Settings/Unlock
   const processedItems = useMemo(() => {
@@ -186,31 +203,35 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
     // Add any remaining items
     ordered.push(...otherItems);
 
-    // Add "Unlock" button for md only (shown on md desktop nav instead of Settings)
-    const unlockMdItem: AppBarNavItem = {
-      id: 'unlock-md',
-      label: 'Unlock',
-      shortLabel: 'Unlock',
-      icon: <LockIcon sx={{ fontSize: 'inherit' }} />,
-      onClick: onOpenAuth,
-      to: undefined,
-      primary: true,
-      ariaLabel: 'Unlock all features',
-    };
-    ordered.push(unlockMdItem);
+    // Add "Unlock" buttons only for non-authenticated users
+    const authed = isAuthenticated ? isAuthenticated() : false;
+    if (!authed) {
+      // Add "Unlock" button for md only (shown on md desktop nav instead of Settings)
+      const unlockMdItem: AppBarNavItem = {
+        id: 'unlock-md',
+        label: 'Unlock',
+        shortLabel: 'Unlock',
+        icon: <LockIcon sx={{ fontSize: 'inherit' }} />,
+        onClick: onOpenAuth,
+        to: undefined,
+        primary: true,
+        ariaLabel: 'Unlock all features',
+      };
+      ordered.push(unlockMdItem);
 
-    // Add "Unlock all features" button for lg+ (full copy on larger screens)
-    const unlockLgItem: AppBarNavItem = {
-      id: 'unlock-lg',
-      label: 'Unlock all features',
-      shortLabel: 'Unlock',
-      icon: <LockIcon sx={{ fontSize: 'inherit' }} />,
-      onClick: onOpenAuth,
-      to: undefined,
-      primary: true,
-      ariaLabel: 'Unlock all features',
-    };
-    ordered.push(unlockLgItem);
+      // Add "Unlock all features" button for lg+ (full copy on larger screens)
+      const unlockLgItem: AppBarNavItem = {
+        id: 'unlock-lg',
+        label: 'Unlock all features',
+        shortLabel: 'Unlock',
+        icon: <LockIcon sx={{ fontSize: 'inherit' }} />,
+        onClick: onOpenAuth,
+        to: undefined,
+        primary: true,
+        ariaLabel: 'Unlock all features',
+      };
+      ordered.push(unlockLgItem);
+    }
 
     return ordered;
   }, [items, isAuthenticated, onOpenSettings, onOpenAuth, location.pathname]);
@@ -269,7 +290,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
 
   return (
     <>
-      {/* Desktop / tablet sticky bar (rendered under the sticky banner wrapper) */}
+      {/* Desktop / tablet sticky bar */}
       <Box sx={{ display: { xs: 'none', md: 'block' }, ...sx }}>
         <Paper
           variant="outlined"
@@ -315,7 +336,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
                 alt="Time 2 Trade logo"
                 sx={{
                   display: 'block',
-                  height: 32,
+                  height: 40,
                   width: 'auto',
                   maxWidth: '32vw',
                   objectFit: 'contain',
@@ -332,13 +353,28 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   pr: { md: 0, lg: 12 },
+                  display: { xs: 'block', md: 'none', lg: 'block' },
                 }}
               >
                 Time 2 Trade
               </Typography>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: 900,
+                  lineHeight: 1.1,
+                  color: 'text.primary',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: { xs: 'none', md: 'block', lg: 'none' },
+                }}
+              >
+                T2T
+              </Typography>
             </Stack>
 
-            <Stack direction="row" spacing={2} alignItems="center" sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               {safeItems.map((item) => {
                 const variant = item.primary ? 'contained' : 'text';
                 const color = item.primary ? 'primary' : 'inherit';
@@ -360,12 +396,12 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
                       px: item.primary ? 2.5 : 2,
                       py: 0.9,
                       minWidth: 0,
-                      display: item.id === 'unlock-md' 
-                        ? { xs: 'none', md: 'inline-flex', lg: 'none' }  // Show on md only
-                        : item.id === 'unlock-lg'
-                          ? { xs: 'none', md: 'none', lg: 'inline-flex' }  // Show on lg+
-                          : item.id === 'settings'
-                            ? { xs: 'inline-flex', md: 'none' }  // Hide Settings on md+ (show only on mobile)
+                      display: item.id === 'settings'
+                        ? 'inline-flex'
+                        : item.id === 'unlock-md'
+                          ? { xs: 'none', md: 'inline-flex', lg: 'none' }
+                          : item.id === 'unlock-lg'
+                            ? { xs: 'none', md: 'none', lg: 'inline-flex' }
                             : 'inline-flex',
                       color: item.primary
                         ? 'primary.contrastText'
@@ -404,6 +440,11 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
                   </Tooltip>
                 );
               })}
+              
+              {/* User Avatar - show only for authenticated users on md+ */}
+              {(isAuthenticated ? isAuthenticated() : false) && user && (
+                <UserAvatar user={user} />
+              )}
             </Stack>
           </Stack>
         </Paper>
@@ -453,11 +494,15 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
+              '& .MuiSvgIcon-root': {
+                fontSize: '1.25rem',
+              },
             },
             '& .MuiBottomNavigationAction-label': {
-              fontSize: '0.70rem',
+              fontSize: '0.75rem',
               fontWeight: 700,
               lineHeight: 1.2,
+              marginTop: '2px',
             },
           }}
         >
@@ -472,11 +517,6 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
                 '&.Mui-selected': {
                   color: 'primary.main',
                 },
-                ...(item.primary
-                  ? {
-                      '& .MuiSvgIcon-root': { fontSize: 24 },
-                    }
-                  : null),
               }}
             />
           ))}

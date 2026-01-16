@@ -849,7 +849,7 @@ export default function EventsFilters3({
     <Box
       sx={{
         // Mobile-first: parent fixed container handles padding on xs/sm, component pads on md+
-        p: { xs: 1, sm: 1, md: 1.75 },
+        p: 0,
         mb: actionOffset ? actionOffset / 2 : 0,
         display: 'flex',
         flexDirection: 'column',
@@ -869,7 +869,7 @@ export default function EventsFilters3({
       <Stack
         direction="row"
         sx={{
-          overflowX: { xs: 'auto', md: 'visible' },
+          overflowX: 'auto',
           overflowY: 'hidden',
           alignItems: 'center',
           justifyContent: centerFilters ? 'center' : 'flex-start',
@@ -877,21 +877,21 @@ export default function EventsFilters3({
           width: '100%',
           minWidth: 0,
           '&::-webkit-scrollbar': {
-            height: 6,
+            height: 2,
           },
           '&::-webkit-scrollbar-track': {
             bgcolor: 'transparent',
           },
           '&::-webkit-scrollbar-thumb': {
-            bgcolor: 'divider',
-            borderRadius: 3,
+            bgcolor: 'rgba(0,0,0,0.12)',
+            borderRadius: 1,
             '&:hover': {
-              bgcolor: 'action.hover',
+              bgcolor: 'rgba(0,0,0,0.2)',
             },
           },
           // For Firefox
           scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(0,0,0,0.2) transparent',
+          scrollbarColor: 'rgba(0,0,0,0.12) transparent',
         }}
       >
         {/* Inner container: all filter controls treated as a single unit for centering and scroll width */}
@@ -899,7 +899,7 @@ export default function EventsFilters3({
           direction="row"
           spacing={{ xs: 0.5, sm: 0.75, md: 1 }}
           sx={{
-            flexWrap: { xs: 'nowrap', md: 'wrap' },
+            flexWrap: 'nowrap',
             alignItems: 'center',
             justifyContent: 'flex-start',
             width: 'auto',
@@ -1020,13 +1020,7 @@ export default function EventsFilters3({
       <Collapse in={searchExpanded} timeout="auto" unmountOnExit>
         <Box
           sx={{
-            pt: { xs: 0.75, sm: 1 },
-            pb: { xs: 0.5, sm: 0.75 },
-            px: { xs: 0.25, sm: 0.75, md: 1 },
-            borderRadius: 2,
-            bgcolor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'divider',
+            bgcolor: 'transparent',
             boxShadow: 1,
             width: '100%',
           }}
@@ -1059,7 +1053,7 @@ export default function EventsFilters3({
             }}
             sx={{
               '& .MuiOutlinedInput-root': {
-                bgcolor: 'background.default',
+                bgcolor: '#fff',
               },
             }}
           />
@@ -1107,6 +1101,8 @@ EventsFilters3.propTypes = {
   showSearchFilter: PropTypes.bool,
   centerFilters: PropTypes.bool,
   textColor: PropTypes.string,
+  stickyZIndex: PropTypes.number,
+  stickyTop: PropTypes.oneOfType([PropTypes.number, PropTypes.string, PropTypes.object]),
 };
 
 EventsFilters3.defaultProps = {
@@ -1121,4 +1117,6 @@ EventsFilters3.defaultProps = {
   showSearchFilter: true,
   centerFilters: false,
   textColor: null,
+  stickyZIndex: 1000,
+  stickyTop: 0,
 };

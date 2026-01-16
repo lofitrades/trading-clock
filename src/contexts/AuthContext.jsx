@@ -6,6 +6,7 @@
  * Automatically creates user documents with role and subscription on account creation.
  * 
  * Changelog:
+ * v2.1.2 - 2026-01-15 - Resilience: provide a safe default context to prevent HMR/context mismatch crashes.
  * v2.1.1 - 2025-12-01 - Documentation: Clarified that selectedTimezone in default settings is for new user creation only, SettingsContext is source of truth
  * v2.1.0 - 2025-11-30 - Added automatic user profile creation with role & subscription documents
  * v2.0.0 - 2025-11-30 - Enhanced with user profile, roles, and subscription support
@@ -20,7 +21,19 @@ import { USER_ROLES, SUBSCRIPTION_PLANS, SUBSCRIPTION_STATUS, PLAN_FEATURES } fr
 import WelcomeModal from '../components/WelcomeModal';
 import { createUserProfileSafely, updateLastLoginSafely } from '../utils/userProfileUtils';
 
-const AuthContext = createContext();
+const defaultAuthContext = {
+  user: null,
+  userProfile: null,
+  loading: true,
+  profileLoading: false,
+  hasRole: () => false,
+  hasPlan: () => false,
+  hasFeature: () => false,
+  isAdmin: () => false,
+  isAuthenticated: () => false,
+};
+
+const AuthContext = createContext(defaultAuthContext);
 
 /**
  * Enhanced AuthProvider with user profile and role management
@@ -260,10 +273,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);

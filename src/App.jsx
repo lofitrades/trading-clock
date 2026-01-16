@@ -6,7 +6,10 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
+ * v2.6.85 - 2026-01-15 - LOADINGSCREEN REMOVAL: Removed LoadingScreen from root App.jsx level (import and both render calls). LoadingScreen is now handled by PublicLayout following enterprise layout best practices. Simplifies App.jsx to focus on clock content and modals, not loading chrome.
+ * v2.6.84 - 2026-01-14 - MOBILE SCROLL PADDING FIX: Added responsive pb (padding-bottom) to inner content Box for xs/sm to account for PublicLayout mobile logo row (32px logo + 16px pb = 48px). Formula: xs/sm use calc(8 * 8px + 48px) = 112px, md+ uses contentPaddingBottom (calculated dynamically). Ensures content scrolls all the way to bottom without being clipped on mobile. Matches AboutPage and CalendarEmbedLayout pattern for consistent scrollability across all pages.
  * v2.6.83 - 2026-01-14 - CENTERING FIX (ENTERPRISE DEEP AUDIT): Fixed PublicLayout flex/width conflict affecting /app centering on all breakpoints. PublicLayout now uses proper flex:center pattern (justifyContent:center + alignItems:center) for enterprise-grade centering instead of conflicting mx:auto approach. App.jsx app-container is now just a flex column for layout (no centering styles, no width/maxWidth duplicates). Content naturally centers through PublicLayout. Matches enterprise MUI dashboard pattern and works consistently on xs/sm/md/lg/xl.
+ * v2.6.81 - 2026-01-15 - TIMEZONE MODAL BACKDROP FIX: Keep backdrop behind paper and ensure modal sits above AppBar to prevent overlaying the dialog.
  * v2.6.80 - 2026-01-14 - TIMEZONE MODAL: Replaced static timezone label with clickable Button that opens a Dialog modal containing TimezoneSelector, matching /calendar page pattern. Fully responsive, mobile-first design with enterprise best practices. Added lazy import for TimezoneSelector and required MUI imports (Dialog, DialogTitle, DialogContent, IconButton, Button, alpha, CloseIcon).
  * v2.6.79 - 2026-01-14 - INSTANT BACKGROUND UPDATE: Add backgroundBasedOnSession and activeSession to effect dependencies to ensure document.body background color updates immediately when the 'Session-based Background' toggle is enabled/disabled; follows enterprise reactive patterns matching MUI theme updates.
  * v2.6.78 - 2026-01-14 - CONTRAST-AWARE TEXT: Pass effectiveTextColor to DigitalClock and EventsFilters3 so digital clock and Reset button adapt to session-based background colors; previously DigitalClock used fixed canvasHandColor which was unreadable on dark session backgrounds.
@@ -117,7 +120,6 @@ import ClockCanvas from './components/ClockCanvas';
 import ClockHandsOverlay from './components/ClockHandsOverlay';
 import DigitalClock from './components/DigitalClock';
 import SessionLabel from './components/SessionLabel';
-import LoadingScreen from './components/LoadingScreen';
 import InstallPromptCTA from './components/InstallPromptCTA';
 import { MOBILE_BOTTOM_APPBAR_HEIGHT_PX } from './components/AppBar';
 import PublicLayout from './components/PublicLayout';
@@ -257,7 +259,7 @@ export default function App() {
         label: 'Calendar',
         shortLabel: 'Calendar',
         to: '/calendar',
-        icon: <CalendarMonthRoundedIcon />,
+        icon: <CalendarMonthRoundedIcon fontSize="small" />,
         ariaLabel: 'Economic calendar',
       },
       {
@@ -265,7 +267,7 @@ export default function App() {
         label: 'Trading Clock',
         shortLabel: 'Clock',
         to: '/app',
-        icon: <AccessTimeRoundedIcon />,
+        icon: <AccessTimeRoundedIcon fontSize="small" />,
         ariaLabel: 'Open the trading clock',
       },
       {
@@ -273,7 +275,7 @@ export default function App() {
         label: 'About',
         shortLabel: 'About',
         to: '/about',
-        icon: <InfoRoundedIcon />,
+        icon: <InfoRoundedIcon fontSize="small" />,
         ariaLabel: 'Learn about Time 2 Trade',
       },
       {
@@ -281,14 +283,14 @@ export default function App() {
         label: 'Contact',
         shortLabel: 'Help',
         onClick: openContactModal,
-        icon: <SupportAgentRoundedIcon />,
+        icon: <SupportAgentRoundedIcon fontSize="small" />,
         ariaLabel: 'Contact support',
       },
       {
         id: 'signin',
         label: 'Sign in',
         shortLabel: 'Sign in',
-        icon: <LockOpenRoundedIcon />,
+        icon: <LockOpenRoundedIcon fontSize="small" />,
         onClick: handleOpenAuth,
         primary: true,
         ariaLabel: 'Sign in or create an account',
@@ -601,7 +603,7 @@ export default function App() {
               width: '100%',
             }}
           >
-            <LoadingScreen isLoading clockSize={calculatedClockSize} />
+            {/* LoadingScreen now handled by PublicLayout */}
           </Box>
         </Box>
       </PublicLayout>
@@ -628,8 +630,6 @@ export default function App() {
       >
         <InstallPromptCTA isBusy={suppressInstallPrompt} />
 
-        <LoadingScreen isLoading={showLoadingScreen} clockSize={calculatedClockSize} />
-
         <Box
           sx={{
             backgroundColor: effectiveBackground,
@@ -642,7 +642,7 @@ export default function App() {
             justifyContent: 'flex-start',
             flex: 1,
             alignItems: 'center',
-            pb: contentPaddingBottom,
+            pb: { xs: 'calc(8 * 8px + 48px)', sm: 'calc(8 * 8px + 48px)', md: contentPaddingBottom },
             width: '100%',
             boxSizing: 'border-box',
           }}
@@ -887,6 +887,10 @@ export default function App() {
           maxWidth="xs"
           fullWidth
           fullScreen={false}
+          sx={{ zIndex: 1701 }}
+          slotProps={{
+            backdrop: { sx: { zIndex: -1 } },
+          }}
           PaperProps={{
             sx: {
               borderRadius: { xs: 0, sm: 3 },

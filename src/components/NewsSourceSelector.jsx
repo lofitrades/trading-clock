@@ -15,6 +15,7 @@
  * - Standalone mode: internal state management (default)
  * 
  * Changelog:
+ * v4.1.1 - 2026-01-15 - Modal layering: keep backdrop behind paper and ensure modal stacks above AppBar.
  * v4.1.0 - 2026-01-07 - Added controlled mode support: accept open, onOpenChange props for parent integration. Added showButton prop to hide button in controlled mode. Maintains backward compatibility with internal state management.
  * v4.0.0 - 2026-01-06 - Converted to informational-only modal. Removed source selection, now displays Forex Factory data provenance and builds user confidence.
  */
@@ -112,6 +113,10 @@ export default function NewsSourceSelector({
         maxWidth="sm"
         fullWidth
         fullScreen={isMobile}
+        sx={{ zIndex: 1701 }}
+        slotProps={{
+          backdrop: { sx: { zIndex: -1 } },
+        }}
         PaperProps={{
           sx: {
             borderRadius: { xs: 0, sm: 2 },

@@ -11,6 +11,7 @@
  * - Dismissible (shown once)
  * 
  * Changelog:
+ * v1.1.1 - 2026-01-15 - Modal layering: keep backdrop behind paper and ensure modal stacks above AppBar.
  * v1.1.0 - 2025-12-22 - Use centralized welcome copy shared across auth providers.
  * v1.0.1 - 2025-12-16 - Added PropTypes and removed unused imports.
  * v1.0.0 - 2025-12-16 - Initial implementation
@@ -38,10 +39,10 @@ export default function WelcomeModal({ onClose, userEmail }) {
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      sx={{ zIndex: 1701 }}
       slotProps={{
-        // Ensure welcome modal always sits above loaders/overlays
-        backdrop: { sx: { zIndex: 11000 } },
-        paper: { sx: { zIndex: 11001, borderRadius: 3 } },
+        backdrop: { sx: { zIndex: -1 } },
+        paper: { sx: { borderRadius: 3 } },
       }}
     >
       <DialogContent sx={{ p: { xs: 3, sm: 5 } }}>

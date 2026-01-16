@@ -5,6 +5,7 @@
  * Optimizes mobile viewport behavior for fullscreen-like experiences.
  * 
  * Changelog:
+ * v1.2.3 - 2026-01-15 - OVERFLOW FIX: Changed .clock-elements-container overflow from 'visible' to 'hidden' to prevent content escaping container bounds. Also added max-width: 100% constraint.
  * v1.2.2 - 2026-01-12 - Remove redundant min-heights/padding on the in-app shell and center the clock column to avoid scrollbars on /app while keeping safe-area support.
  * v1.2.1 - 2025-12-17 - Removed duplicated stylesheet block to reduce CSS payload and speed up first paint.
  * v1.2.0 - 2025-12-16 - Added visualViewport-driven safe inset vars to prevent mobile browser UI overlap (Android bottom bar) and standardized safe viewport min-heights.
@@ -67,12 +68,14 @@ li {
   justify-content: flex-start;
   flex: 1 1 auto;
   width: 100%;
+  max-width: 100%;
   /*padding-top: 50px;*/
   box-sizing: border-box;
   text-align: center;
   height: auto;
   min-height: 0;
-  overflow: visible;
+  /* v1.2.3 - 2026-01-15: Changed from 'visible' to 'hidden' to prevent content overflow beyond container bounds. */
+  overflow: hidden;
 }
 
 /* Tooltip */
@@ -224,16 +227,7 @@ canvas {
   }
 }
 
-@media (max-width: 600px) {
-  .clock-elements-container {
-    padding-top: 150px;
-  }
-}
-@media (min-width: 601px) and (max-width: 900px) {
-  .clock-elements-container {
-    padding-top: 100px;
-  }
-}
+
 
 /* Ensure canvas remains 1:1 */
 .hand-clock canvas {

@@ -1964,6 +1964,180 @@ whyDidYouRender(React, {
 
 ## 📝 Change Log
 
+### Version 2.7.34 - January 15, 2026
+**ads.txt Hosting Verification**
+
+#### ✅ Updates
+- Added ads.txt cache/content-type headers for Firebase Hosting and clarified ads.txt metadata for AdSense verification.
+
+### Version 2.7.23 - January 15, 2026
+**Auth Modal Backdrop Layering**
+
+#### 🐛 Fixes
+- Ensured AuthModal2 backdrop stays behind the modal paper on initial open (no overlay flash).
+
+### Version 2.7.24 - January 15, 2026
+**Contact Modal Layering**
+
+#### 🐛 Fixes
+- Aligned ContactModal stacking with AuthModal2 and kept its backdrop behind the paper to prevent overlay flash.
+
+### Version 2.7.25 - January 15, 2026
+**Timezone Selector Layering**
+
+#### 🐛 Fixes
+- Raised TimezoneSelector popper z-index above AppBar for consistent overlay priority.
+
+### Version 2.7.26 - January 15, 2026
+**Timezone Modal Layering**
+
+#### 🐛 Fixes
+- Raised the /calendar timezone modal z-index above the AppBar so the overlay stays on top.
+
+### Version 2.7.27 - January 15, 2026
+**Timezone Modal Backdrop**
+
+#### 🐛 Fixes
+- Ensured /calendar and /app timezone modals keep the backdrop behind the dialog paper to prevent overlaying the modal.
+
+### Version 2.7.28 - January 15, 2026
+**Modal Layering Audit**
+
+#### 🐛 Fixes
+- Aligned AccountModal, WelcomeModal, ForgotPasswordModal, and NewsSourceSelector stacking above the AppBar and kept backdrops behind the paper.
+
+### Version 2.7.29 - January 15, 2026
+**Logout Modal Layering**
+
+#### 🐛 Fixes
+- Aligned LogoutModal stacking above the AppBar and kept backdrop behind the paper.
+
+### Version 2.7.30 - January 15, 2026
+**Forgot Password Modal Priority**
+
+#### 🐛 Fixes
+- Raised ForgotPasswordModal z-index above AccountModal for correct stacking priority.
+
+### Version 2.7.32 - January 15, 2026
+**Forgot Password Modal Stacking**
+
+#### 🐛 Fixes
+- Increased ForgotPasswordModal z-index to ensure it always overlays AccountModal.
+
+### Version 2.7.33 - January 15, 2026
+**Account Modal Visibility**
+
+#### 🐛 Fixes
+- Hid AccountModal while ForgotPasswordModal is active to avoid stacking conflicts.
+
+### Version 2.7.34 - January 15, 2026
+**Account Modal Reset Flow**
+
+#### 🐛 Fixes
+- Hide AccountModal when the reset password action is initiated, restoring it after confirmation.
+
+### Version 2.7.35 - January 15, 2026
+**Forgot Password Overlay Priority**
+
+#### 🐛 Fixes
+- Raised ForgotPasswordModal backdrop above the AppBar while keeping the paper on top.
+
+### Version 2.7.36 - January 15, 2026
+**Forgot Password Modal Global Priority**
+
+#### 🐛 Fixes
+- Raised ForgotPasswordModal z-index to the top-level stack so AppBar never overlays it on any page.
+
+### Version 2.7.31 - January 15, 2026
+**Auth Context Resilience**
+
+#### 🐛 Fixes
+- Added a safe default AuthContext value to prevent useAuth crashes during HMR/context mismatch.
+
+### Version 2.7.22 - January 15, 2026
+**Calendar Column Header Behavior**
+
+#### 🐛 Fixes
+- Disabled sticky positioning for column headers so only day headers remain sticky.
+
+### Version 2.7.21 - January 15, 2026
+**Calendar Header Polish**
+
+#### 🎨 UI
+- Added vertical padding to day headers and ensured sticky column headers show a visible bottom border.
+
+### Version 2.7.20 - January 15, 2026
+**Calendar Day Header Solid Fill**
+
+#### 🎨 UI
+- Replaced the translucent day header background with a solid grey tone.
+
+### Version 2.7.19 - January 15, 2026
+**Calendar Day Header Tone**
+
+#### 🎨 UI
+- Darkened the day header background using theme action surface for enterprise header contrast.
+
+### Version 2.7.18 - January 15, 2026
+**Calendar Day Header Background**
+
+#### 🎨 UI
+- Set day header container background to match the Paper surface for consistent styling.
+
+### Version 2.7.17 - January 15, 2026
+**Calendar Sticky Header Cascade**
+
+#### 🎨 UI
+- Removed the gap between day headers and column headers so sticky stacks cascade cleanly.
+
+### Version 2.7.16 - January 15, 2026
+**Calendar Day Header Centering**
+
+#### 🎨 UI
+- Adjusted day header typography and chip sizing to keep content centered in both sticky and non-sticky states.
+
+### Version 2.7.15 - January 15, 2026
+**Calendar Day Header Alignment**
+
+#### 🎨 UI
+- Tightened day header vertical alignment by removing excess padding and adjusting line-height for centered text.
+
+### Version 2.7.14 - January 15, 2026
+**Calendar Header Shadow**
+
+#### 🎨 UI
+- Moved the shadow from the day header to the sticky column headers for clearer separation.
+
+### Version 2.7.13 - January 15, 2026
+**Calendar Column Header Padding**
+
+#### 🎨 UI
+- Reduced column header vertical padding for cleaner, consistent table header spacing.
+
+### Version 2.7.12 - January 15, 2026
+**Calendar Column Header Offset**
+
+#### 🐛 Fixes
+- Nudged sticky column headers slightly lower beneath day headers for clearer separation while scrolling.
+
+### Version 2.7.11 - January 15, 2026
+**Calendar Sticky Header Init Order**
+
+#### 🐛 Fixes
+- Reordered sticky header offset calculation to run after `filtersHeight` initialization, preventing render-time reference errors.
+
+### Version 2.7.10 - January 15, 2026
+**Calendar Sticky Header Offset**
+
+#### 🐛 Fixes
+- Adjusted sticky day/table header offsets to include both dynamic filter height and responsive Paper padding so headers stack beneath filters correctly.
+
+### Version 2.7.9 - January 15, 2026
+**Calendar Sticky Header Fix**
+
+#### 🐛 Fixes
+- Removed an intermediate scroll container in CalendarEmbed that broke sticky day/table headers; filters are now measured directly to calculate sticky offsets reliably.
+
 ### Version 2.7.8 - January 13, 2026
 **Referral Banner Removal**
 
