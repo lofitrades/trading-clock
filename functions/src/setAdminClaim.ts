@@ -2,9 +2,10 @@
  * functions/src/setAdminClaim.ts
  * 
  * Purpose: One-time script to set superadmin custom claim for a user
- * Run manually to grant upload permissions for economicEventDescriptions
+ * Syncs role to both Firebase Auth custom claims and Firestore for consistency
  * 
  * Changelog:
+ * v1.1.0 - 2026-01-16 - Added Firestore sync for role consistency
  * v1.0.0 - 2025-12-11 - Initial implementation
  */
 
@@ -17,6 +18,7 @@ if (!admin.apps.length) {
 
 /**
  * Set superadmin custom claim for a user
+ * Syncs to both Firebase Auth custom claims AND Firestore for consistency
  * @param email - User's email address
  */
 async function setAdminClaim(email: string): Promise<void> {
@@ -24,15 +26,22 @@ async function setAdminClaim(email: string): Promise<void> {
     // Get user by email
     const user = await admin.auth().getUserByEmail(email);
     
-    // Set custom claim
+    // Set custom claims for Cloud Functions to read from ID token
     await admin.auth().setCustomUserClaims(user.uid, {
       superadmin: true,
       role: 'superadmin'
     });
     
-    console.log(`✅ Successfully set superadmin claim for user: ${email}`);
+    // Sync role to Firestore for UI consistency
+    await admin.firestore().collection('users').doc(user.uid).set({
+      role: 'superadmin',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    
+    console.log(`✅ Successfully set superadmin for user: ${email}`);
     console.log(`User UID: ${user.uid}`);
-    console.log('The user will need to sign out and sign back in for changes to take effect.');
+    console.log('✅ Updated: Firebase Auth custom claims + Firestore');
+    console.log('⚠️  User must SIGN OUT and SIGN IN for ID token to refresh.');
     
   } catch (error) {
     console.error('❌ Error setting admin claim:', error);

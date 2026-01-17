@@ -5,18 +5,21 @@
 User-agent: *
 Allow: /
 
-# Explicitly allow key landing and calendar surfaces
+# Explicitly allow key landing and content surfaces
+Allow: /clock
 Allow: /calendar
 Allow: /about
-Allow: /contact
+Allow: /privacy
+Allow: /terms
 
 # Sitemap location
 Sitemap: https://time2.trade/sitemap.xml
 
-# Disallow admin routes
+# Disallow admin and auth routes
 Disallow: /upload-desc
 Disallow: /export
 Disallow: /app/upload-desc
 Disallow: /app/export
 Disallow: /app/login
 Disallow: /login
+Disallow: /fft2t

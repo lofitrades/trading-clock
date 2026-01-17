@@ -17,6 +17,8 @@
  * - Accessibility compliant
  * 
  * Changelog:
+ * v1.10.1 - 2026-01-16 - Default auth redirect to /calendar instead of /app for the public clock route.
+ * v1.10.0 - 2026-01-16 - Show GPT all-day/tentative time labels when available.
    * v1.9.9 - 2026-01-08 - Render table row skeletons during filter-triggered loading with page-sized (capped) skeleton count for fast, stable UX.
    * v1.9.8 - 2026-01-08 - Gate row clicks for guests: open AuthModal2 instead of EventModal when unauthenticated.
    * v1.9.5 - 2025-12-16 - Always show "Actual: —" when actual values are unavailable.
@@ -460,7 +462,7 @@ export default function EventsTable({
   const computedAuthRedirect = useMemo(() => (
     authRedirectPath
       ? authRedirectPath
-      : (typeof window !== 'undefined' ? (window.location.pathname || '/app') : '/app')
+      : (typeof window !== 'undefined' ? (window.location.pathname || '/calendar') : '/calendar')
   ), [authRedirectPath]);
 
   useEffect(() => {
@@ -535,7 +537,7 @@ export default function EventsTable({
     const nextTime = state.nextEventEpochMs;
 
     return { nextIds, nextFirstId, nextTime, nowIds };
-  }, [events, timezone, nowTick]);
+  }, [events, nowTick]);
 
   // ========== AUTO SCROLL LOGIC ==========
   const targetToken = useMemo(() => {
@@ -1042,7 +1044,7 @@ export default function EventsTable({
                                   {column.id === 'time' && (
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                       <Typography variant="body2" fontFamily="monospace" fontWeight={600} fontSize="0.8125rem">
-                                        {formatTime(event.time || event.date, timezone)}
+                                        {event.timeLabel || formatTime(event.time || event.date, timezone)}
                                       </Typography>
                                       {isNext && (
                                         <AccessTimeIcon
@@ -1333,6 +1335,7 @@ EventsTable.propTypes = {
   onRefresh: PropTypes.func,
   autoScrollToNextKey: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
   searchQuery: PropTypes.string,
+  disableMinWidth: PropTypes.bool,
   isFavoriteEvent: PropTypes.func,
   onToggleFavorite: PropTypes.func,
   isFavoritePending: PropTypes.func,

@@ -5,6 +5,7 @@
  * structured data, and lean markup for SEO and accessibility.
  * 
  * Changelog:
+ * v1.1.0 - 2026-01-16 - Updated /clock CTAs and refreshed About meta title/description.
  * v1.0.0 - 2025-12-18 - Initial SSR About page implementation.
  */
 
@@ -25,9 +26,9 @@ const aboutSchema = {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const documentProps = {
-    title: 'About Time 2 Trade | Sessions, events, and timezone intelligence',
+    title: 'About Time 2 Trade | Trading Clock for Futures & Forex',
     description:
-        'Time 2 Trade is built for futures and forex day traders who need a reliable session clock, economic events overlay, and timezone-aware workspace.',
+        'Time 2 Trade: a lightweight trading clock + economic calendar for futures and forex day traders. Visualize sessions, overlaps, and economic events with timezone-aware countdowns and fast PWA install.',
     canonical: `${siteUrl}/about`,
     robots: 'index,follow',
     ogImage,
@@ -49,7 +50,7 @@ const pillars = [
     },
     {
         title: 'Performance-first delivery',
-        body: 'Static marketing pages for SEO, a dedicated /app SPA for the interactive clock, and lean bundles to keep LCP fast.',
+        body: 'Static marketing pages for SEO, a dedicated /clock workspace for the interactive clock, and lean bundles to keep LCP fast.',
     },
 ];
 
@@ -62,7 +63,7 @@ export default function Page() {
                     <span>Time 2 Trade</span>
                 </div>
                 <nav className="nav">
-                    <a href="/app" aria-label="Open the trading app">Open app</a>
+                    <a href="/clock" aria-label="Open the trading clock">Open clock</a>
                     <a href="/" aria-label="Return to landing page">Home</a>
                 </nav>
             </header>
@@ -95,7 +96,7 @@ export default function Page() {
                         No paywalls. Open the app, pick your timezone, and start tracking sessions and economic events. Sign in to sync settings; stay in guest mode if you prefer.
                     </p>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                        <a className="btn btn-primary" href="/app" aria-label="Launch Time 2 Trade app">Open the app</a>
+                        <a className="btn btn-primary" href="/clock" aria-label="Launch Time 2 Trade clock">Open the clock</a>
                         <a className="btn btn-secondary" href="/" aria-label="Return to landing page">Back to home</a>
                     </div>
                 </section>
@@ -108,7 +109,7 @@ export default function Page() {
                         <span>Time 2 Trade</span>
                     </div>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                        <a className="btn btn-secondary" href="/app" aria-label="Open the app from footer">Open app</a>
+                        <a className="btn btn-secondary" href="/clock" aria-label="Open the clock from footer">Open clock</a>
                         <a className="btn btn-secondary" href="/" aria-label="Go to landing page">Home</a>
                     </div>
                 </div>

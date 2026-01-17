@@ -5,6 +5,15 @@
  * Renders impact-based icons on AM (inner) and PM (outer) rings using current filters and news source.
  *
  * Changelog:
+ * v1.15.10 - 2026-01-16 - Fix: outside-click close works even when tooltip autoscroll is suppressed (calendar clock).
+ * v1.15.9 - 2026-01-16 - Enable marker click actions when tooltips are disabled (landing hero), with propagation guard.
+ * v1.15.8 - 2026-01-16 - Show event tooltip only on click/touch (no hover/focus open/close) for stable UX.
+ * v1.15.7 - 2026-01-16 - Render event tooltip in a portal so it sits above ClockHandsOverlay while keeping z-index aligned with session tooltips.
+ * v1.15.6 - 2026-01-16 - Align event tooltip z-index with session arc tooltip for consistent layering.
+ * v1.15.5 - 2026-01-16 - Raise event tooltip z-index above clock hands overlay for reliable click/touch targeting.
+ * v1.15.4 - 2026-01-16 - FIX: Mark event tooltip container with data attribute so outside-click handler does not immediately close it; enables tooltip click to open EventModal on /clock.
+ * v1.15.3 - 2026-01-16 - GLOBAL CURRENCY ICON: Show MUI PublicIcon for '—' or missing currency (global events) instead of missing flag badge. Fully responsive, mobile-first, enterprise UX.
+ * v1.15.2 - 2026-01-16 - Display GPT all-day/tentative time labels in tooltip rows.
  * v1.15.1 - 2026-01-14 - CRITICAL FIX: Fixed React duplicate key warning for multiple events at same time. Fallback markerKey now includes array index to ensure uniqueness: `${hour}-${minute}-${idx}`.
  * v1.15.0 - 2026-01-13 - Lock markers to today-only display: date range filters (startDate/endDate) from EventsFilters3 are completely ignored. Only impact and currency filters apply to markers. "Showing events..." banner removed from App.
  * v1.14.4 - 2026-01-08 - Auto-refreshes markers when the day rolls over by reloading today's events for the active timezone.
@@ -64,11 +73,13 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Box, Tooltip, Typography, Stack, alpha, Divider, Chip } from '@mui/material';
+import { Box, Tooltip, Typography, Stack, alpha, Divider, Chip, Portal } from '@mui/material';
+import { useLocation } from 'react-router-dom';
 import { formatTime } from '../utils/dateUtils';
 import { getCurrencyFlag } from '../utils/currencyFlags';
 import { useFavorites } from '../hooks/useFavorites';
 import FavoriteIcon from '@mui/icons-material/Favorite';
+import PublicIcon from '@mui/icons-material/Public';
 import { useEventNotes } from '../hooks/useEventNotes';
 import NoteAltIcon from '@mui/icons-material/NoteAlt';
 import { resolveImpactMeta } from '../utils/newsApi';
@@ -79,6 +90,8 @@ import {
 } from '../utils/eventTimeEngine';
 import useClockEventsData from '../hooks/useClockEventsData';
 import useClockEventMarkers from '../hooks/useClockEventMarkers';
+import EventMarkerTooltip from './EventMarkerTooltip';
+import { useTooltipCoordinator } from '../contexts/useTooltipCoordinator';
 
 const MARKER_ANIM_MS = 1500; // Enterprise-grade marker motion duration
 const MARKER_EXIT_GRACE_MS = MARKER_ANIM_MS + 120; // Keep exiting markers long enough to finish
@@ -103,6 +116,9 @@ const formatTimeToEvent = (dateLike, _timezone, nowEpochMs) => {
 };
 
 function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: providedEvents, onEventClick, onLoadingStateChange, suppressTooltipAutoscroll = false, disableTooltips = false }) {
+  const location = useLocation();
+  const isCalendarPage = location.pathname === '/calendar';
+  const { openTooltip, closeTooltip: closeGlobalTooltip, isTooltipActive } = useTooltipCoordinator();
   const [nowTick, setNowTick] = useState(Date.now());
   const [openMarkerKey, setOpenMarkerKey] = useState(null);
   const [pinnedMarkerKey, setPinnedMarkerKey] = useState(null);
@@ -148,7 +164,8 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
     clearCloseTimer();
     setPinnedMarkerKey(null);
     setOpenMarkerKey(null);
-  }, [clearCloseTimer]);
+    closeGlobalTooltip('event'); // Close in global coordinator
+  }, [clearCloseTimer, closeGlobalTooltip]);
 
   useEffect(() => () => clearCloseTimer(), [clearCloseTimer]);
 
@@ -179,7 +196,6 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
 
   // Keep tooltip open after click and close only on explicit outside interaction
   useEffect(() => {
-    if (suppressTooltipAutoscroll) return undefined;
     if (!openMarkerKey) return;
 
     const handleKeyDown = (e) => {
@@ -262,13 +278,15 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
     if (openMarkerKey !== key) {
       setOpenMarkerKey(key);
       setPinnedMarkerKey(key);
+      openTooltip('event', key); // Register in global coordinator
       return;
     }
 
     // If already open, keep it open; dismissal happens via outside click/hover leave.
     setOpenMarkerKey(key);
     setPinnedMarkerKey(key);
-  }, [clearCloseTimer, openMarkerKey]);
+    openTooltip('event', key); // Register in global coordinator
+  }, [clearCloseTimer, openMarkerKey, openTooltip]);
 
   const handleTooltipEventSelect = useCallback((evt) => {
     // Tooltip row click should target only the selected event (not the entire marker group).
@@ -377,6 +395,9 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
         const markerKey = marker.key || `${marker.hour}-${marker.minute}-${idx}`;
         const isMarkerOpen = openMarkerKey === markerKey;
         const { x, y } = getPosition(marker.hour, marker.minute, isAm);
+        const overlayRect = overlayRef.current?.getBoundingClientRect();
+        const tooltipLeft = (overlayRect?.left ?? 0) + x;
+        const tooltipTop = (overlayRect?.top ?? 0) + y;
 
         // Calculate z-index priority: OPEN > Favorite(active) > NOW > NEXT > Note(active) > High Impact > Medium > Low > Rest
         // Enterprise UX: keep the active marker above all others so it never gets visually occluded.
@@ -539,7 +560,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
                     );
                   })()}
                   {eventsByDay[dayKey].map((evt) => {
-                    const timeLabel = formatTime(evt.date || evt.dateTime || evt.Date, timezone);
+                    const timeLabel = evt.timeLabel || formatTime(evt.date || evt.dateTime || evt.Date, timezone);
                     const impactMeta = getImpactMeta(evt.impact || evt.strength || evt.Strength);
                     const currency = evt.currency || evt.Currency;
                     const countryCode = currency ? getCurrencyFlag(currency) : null;
@@ -726,18 +747,27 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
             sx={markerStyle}
             style={{ pointerEvents: disableTooltips ? 'none' : 'auto' }}
             data-t2t-event-marker-key={markerKey}
-            onMouseEnter={!disableTooltips && !isTouchDevice ? () => {
-              // Enterprise: only one tooltip open at a time (switch instantly)
-              clearCloseTimer();
-              setOpenMarkerKey(markerKey);
-            } : undefined}
-            onMouseLeave={!disableTooltips && !isTouchDevice ? scheduleClose : undefined}
-            onFocus={!disableTooltips && !isTouchDevice ? () => {
-              clearCloseTimer();
-              setOpenMarkerKey(markerKey);
-            } : undefined}
-            onBlur={!disableTooltips && !isTouchDevice ? scheduleClose : undefined}
-            onClick={!disableTooltips ? () => handleMarkerSelect(marker, markerKey) : undefined}
+            onMouseEnter={undefined}
+            onMouseLeave={undefined}
+            onFocus={undefined}
+            onBlur={undefined}
+            onClick={(() => {
+              if (disableTooltips && !onEventClick) return undefined;
+              return (e) => {
+                e.stopPropagation();
+                if (disableTooltips) {
+                  if (marker.events && marker.events.length > 0) {
+                    const targetEvent = marker.events[0].evt;
+                    onEventClick?.(targetEvent, {
+                      source: 'canvas-marker',
+                      isCalendarPage,
+                    });
+                  }
+                  return;
+                }
+                handleMarkerSelect(marker, markerKey);
+              };
+            })()}
           >
             {(marker.hasNoteMarker || marker.hasNoteMarkerAny) && (
               <Box
@@ -793,6 +823,27 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
               >
                 <span className={`fi fi-${marker.countryCode}`} />
               </span>
+            ) : (marker.currency === '—' || !marker.currency) ? (
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 0.25,
+                  opacity: marker.isTodayPast ? 0.75 : 1,
+                  filter: marker.isTodayPast ? 'grayscale(1)' : 'none',
+                }}
+                title="Global"
+              >
+                <PublicIcon sx={{ fontSize: 14, lineHeight: 1 }} />
+                <Typography
+                  component="span"
+                  variant="caption"
+                  sx={{ fontWeight: 700, lineHeight: 1, fontSize: '0.65rem' }}
+                >
+                  ALL
+                </Typography>
+              </Box>
             ) : null}
           </Box>
         );
@@ -805,131 +856,44 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
           );
         }
 
-        const touchTooltipProps = isTouchDevice
-          ? {
-            open: openMarkerKey === markerKey,
-            disableHoverListener: true,
-            disableFocusListener: true,
-            disableTouchListener: true,
-            onClose: closeTooltip,
-            enterTouchDelay: 0,
-            leaveTouchDelay: 0,
-          }
-          : {};
-
-        const desktopTooltipProps = !isTouchDevice
-          ? {
-            open: openMarkerKey === markerKey,
-            disableHoverListener: true,
-            disableFocusListener: true,
-            disableTouchListener: true,
-            onClose: closeTooltip,
-          }
-          : {};
-
+        // Render EventMarkerTooltip as a positioned overlay when marker is active
         return (
-          <Tooltip
-            key={markerKey}
-            title={tooltipContent}
-            placement="top"
-            arrow
-            disableInteractive={false}
-            {...touchTooltipProps}
-            {...desktopTooltipProps}
-            slotProps={{
-              popper: {
-                'data-t2t-event-tooltip-key': markerKey,
-                keepMounted: true,
-                modifiers: [
-                  {
-                    name: 'preventOverflow',
-                    enabled: true,
-                    options: {
-                      altAxis: true,
-                      altBoundary: true,
-                      tether: false,
-                      rootBoundary: 'viewport',
-                      padding: { top: 16, right: 16, bottom: 16, left: 16 },
-                    },
-                  },
-                  {
-                    name: 'flip',
-                    enabled: true,
-                    options: {
-                      fallbackPlacements: ['bottom', 'top', 'left', 'right'],
-                      boundary: 'viewport',
-                      padding: { top: 16, right: 16, bottom: 16, left: 16 },
-                    },
-                  },
-                  {
-                    name: 'offset',
-                    enabled: true,
-                    options: {
-                      offset: [0, 12],
-                    },
-                  },
-                  {
-                    name: 'computeStyles',
-                    options: {
-                      adaptive: false,
-                      gpuAcceleration: true,
-                    },
-                  },
-                ],
-              },
-              tooltip: {
-                'data-t2t-event-tooltip-key': markerKey,
-                onClick: undefined,
-                onMouseEnter: !isTouchDevice ? clearCloseTimer : undefined,
-                onMouseLeave: !isTouchDevice ? scheduleClose : undefined,
-                sx: {
-                  bgcolor: '#111',
-                  color: '#fff',
-                  boxShadow: '0 10px 28px rgba(0,0,0,0.32)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  width: { xs: 'min(calc(100vw - 32px), 320px)', sm: 320 },
-                  maxWidth: { xs: 'calc(100vw - 32px)', sm: 320 },
-                  minHeight: { xs: 'auto', sm: 'auto' },
-                  maxHeight: { xs: 'calc(var(--t2t-vv-height, 100dvh) - 120px)', sm: 400 },
-                  overflowY: 'auto',
-                  overflowX: 'hidden',
-                  p: 1.25,
-                  // Let child Typography control its own color (needed for passed-state gray-out).
-                  '& .MuiTypography-root': { color: 'inherit' },
-                  cursor: isTouchDevice ? 'pointer' : 'default',
-                  WebkitOverflowScrolling: 'touch',
-                  // Hide scrollbar by default, show on hover - Firefox
-                  scrollbarWidth: 'thin',
-                  scrollbarColor: 'rgba(255,255,255,0.2) transparent',
-                  // Hide scrollbar by default, show on hover - Webkit
-                  '&::-webkit-scrollbar': {
-                    width: 6,
-                  },
-                  '&::-webkit-scrollbar-track': {
-                    bgcolor: 'transparent',
-                  },
-                  '&::-webkit-scrollbar-thumb': {
-                    bgcolor: 'rgba(255,255,255,0.2)',
-                    borderRadius: 3,
-                    '&:hover': {
-                      bgcolor: 'rgba(255,255,255,0.3)',
-                    },
-                  },
-                },
-              },
-              arrow: {
-                sx: {
-                  color: '#111',
-                  '&::before': {
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    boxSizing: 'border-box',
-                  },
-                },
-              },
-            }}
-          >
+          <React.Fragment key={markerKey}>
             {markerNode}
-          </Tooltip>
+            {isMarkerOpen && (
+              <Portal>
+                <Box
+                  data-t2t-event-tooltip-key={markerKey}
+                  role="tooltip"
+                  sx={{
+                    position: 'fixed',
+                    left: tooltipLeft + 10,
+                    top: tooltipTop - 10,
+                    zIndex: 1000, // Match session arc tooltip layering
+                    pointerEvents: 'auto',
+                  }}
+                >
+                  <EventMarkerTooltip
+                    events={marker.events.map(e => e.evt)}
+                    timezone={timezone}
+                    nowEpochMs={nowEpochMs}
+                    onClick={() => {
+                      // On /calendar page: auto-scroll to event (will be handled by parent)
+                      // On other pages: open event modal
+                      if (marker.events && marker.events.length > 0) {
+                        const targetEvent = marker.events[0].evt; // Extract event from wrapper
+                        onEventClick?.(targetEvent, {
+                          source: 'canvas-tooltip',
+                          isCalendarPage
+                        });
+                      }
+                      closeTooltip();
+                    }}
+                  />
+                </Box>
+              </Portal>
+            )}
+          </React.Fragment>
         );
       })}
     </Box>

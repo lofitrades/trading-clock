@@ -6,6 +6,7 @@
  * Includes proper SEO metadata, structured data, and mobile-first responsive design.
  * 
  * Changelog:
+ * v1.2.32 - 2026-01-16 - Updated trading clock navigation target to /clock for new public route.
  * v1.2.31 - 2026-01-14 - MOBILE SCROLL PADDING FIX: Added responsive pb (padding-bottom) to Paper for xs/sm to ensure content scrolls all the way to the bottom without being clipped. Formula: xs uses calc(3 * 8px + 48px) = 72px, sm uses calc(4 * 8px + 48px) = 80px, md+ uses default 5 units (40px). The +48px accounts for PublicLayout mobile logo row height (32px logo + 16px pb). This matches CalendarEmbedLayout pattern for consistent scrollability across all pages on mobile.
  * v1.2.30 - 2026-01-14 - MOBILE SPACING FIX: Added pt (padding-top) for xs/sm breakpoints (8 units = 64px) to content Paper so About text appears below the fixed PublicLayout mobile logo without overlap. On md+, pt is unset so normal padding applies. Ensures proper vertical spacing on mobile while maintaining responsive layout behavior.
  * v1.2.29 - 2026-01-14 - MOBILE BRANDING REFACTOR: Removed fixed mobile brand lockup (logo + text) from AboutPage and moved to PublicLayout so it displays consistently across all public pages on xs/sm only. Updated Paper mt from 'calc(32px + 40px)' to 0 since logo is no longer locally fixed. This centralizes mobile branding in PublicLayout, reduces code duplication, and ensures consistent mobile-first responsive behavior across /about, /calendar, and /app pages.
@@ -183,7 +184,7 @@ export default function AboutPage() {
         id: 'clock',
         label: 'Trading Clock',
         shortLabel: 'Clock',
-        to: '/app',
+        to: '/clock',
         icon: <AccessTimeRoundedIcon fontSize="small" />,
         ariaLabel: 'Open the trading clock',
       },

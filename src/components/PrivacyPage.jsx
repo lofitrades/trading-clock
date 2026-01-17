@@ -6,6 +6,7 @@
  * and GDPR/CCPA-style transparency following Google-level best practices.
  * 
  * Changelog:
+ * v2.0.1 - 2026-01-16 - Updated CTA link to /clock.
  * v2.0.0 - 2026-01-07 - Complete enterprise rewrite with MUI: specific data collection, legal basis, third-party disclosure, granular rights, retention timelines, international compliance.
  * v1.0.0 - 2026-01-07 - Added privacy page with best-practice copy and structured sections.
  */
@@ -446,7 +447,7 @@ export default function PrivacyPage() {
                         <Link href="/" underline="hover" sx={{ fontWeight: 700 }}>
                             Home
                         </Link>
-                        <Link href="/app" underline="hover" sx={{ fontWeight: 700 }}>
+                        <Link href="/clock" underline="hover" sx={{ fontWeight: 700 }}>
                             Open app
                         </Link>
                         <Link href="/terms" underline="hover" sx={{ fontWeight: 700 }}>

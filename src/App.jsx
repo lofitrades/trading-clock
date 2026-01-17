@@ -6,6 +6,7 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
+ * v2.6.86 - 2026-01-16 - SEO HEADING: Added a single visible H1 label for the trading clock and updated nav to /clock.
  * v2.6.85 - 2026-01-15 - LOADINGSCREEN REMOVAL: Removed LoadingScreen from root App.jsx level (import and both render calls). LoadingScreen is now handled by PublicLayout following enterprise layout best practices. Simplifies App.jsx to focus on clock content and modals, not loading chrome.
  * v2.6.84 - 2026-01-14 - MOBILE SCROLL PADDING FIX: Added responsive pb (padding-bottom) to inner content Box for xs/sm to account for PublicLayout mobile logo row (32px logo + 16px pb = 48px). Formula: xs/sm use calc(8 * 8px + 48px) = 112px, md+ uses contentPaddingBottom (calculated dynamically). Ensures content scrolls all the way to bottom without being clipped on mobile. Matches AboutPage and CalendarEmbedLayout pattern for consistent scrollability across all pages.
  * v2.6.83 - 2026-01-14 - CENTERING FIX (ENTERPRISE DEEP AUDIT): Fixed PublicLayout flex/width conflict affecting /app centering on all breakpoints. PublicLayout now uses proper flex:center pattern (justifyContent:center + alignItems:center) for enterprise-grade centering instead of conflicting mx:auto approach. App.jsx app-container is now just a flex column for layout (no centering styles, no width/maxWidth duplicates). Content naturally centers through PublicLayout. Matches enterprise MUI dashboard pattern and works consistently on xs/sm/md/lg/xl.
@@ -266,7 +267,7 @@ export default function App() {
         id: 'clock',
         label: 'Trading Clock',
         shortLabel: 'Clock',
-        to: '/app',
+        to: '/clock',
         icon: <AccessTimeRoundedIcon fontSize="small" />,
         ariaLabel: 'Open the trading clock',
       },
@@ -663,6 +664,17 @@ export default function App() {
                 gap: { xs: 1.25, sm: 1.5 },
               }}
             >
+              <Typography
+                component="h1"
+                variant="subtitle1"
+                sx={{
+                  fontWeight: 700,
+                  letterSpacing: 0.2,
+                  color: effectiveTextColor,
+                }}
+              >
+                Trading Clock
+              </Typography>
               {/* EventsFilters3 - filter controls above the clock on md+, hidden on xs/sm (moved below timezone label) */}
               <Suspense fallback={null}>
                 <Box
@@ -870,6 +882,7 @@ export default function App() {
               open={authModalOpen}
               onClose={() => setAuthModalOpen(false)}
               initialMode="signup"
+              redirectPath="/clock"
             />
           </Suspense>
         )}

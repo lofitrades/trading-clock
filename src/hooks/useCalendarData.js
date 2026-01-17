@@ -5,6 +5,9 @@
  * fetches economic events, and exposes grouped, filter-aware state for embeddable calendar surfaces.
  * 
  * Changelog:
+ * v1.1.3 - 2026-01-16 - Removed 'yesterday' date preset; users now choose between Today, Tomorrow, This Week, Next Week, or This Month.
+ * v1.1.2 - 2026-01-16 - Added 'thisMonth' date preset that calculates the current month's date range with full timezone awareness.
+ * v1.1.1 - 2026-01-16 - Added 'nextWeek' date preset that calculates next week's date range with full timezone awareness.
  * v1.1.0 - 2026-01-13 - CRITICAL FIX: Added sync effect to restore filters from SettingsContext on page refresh/navigation; ensures filter persistence across sessions via Firestore and localStorage.
  * v1.0.4 - 2026-01-11 - Repaired fetchEvents callback structure to restore valid parsing and loading state handling.
  * v1.0.3 - 2026-01-11 - Added in-memory fetch cache, deferred search filtering, and stricter setState guards to cut render and network overhead.
@@ -48,13 +51,27 @@ const calculateDateRange = (preset, timezone) => {
   switch (preset) {
     case 'today':
       return { startDate: createDate(year, month, day), endDate: createDate(year, month, day, true) };
-    case 'yesterday':
-      return { startDate: createDate(year, month, day - 1), endDate: createDate(year, month, day - 1, true) };
     case 'tomorrow':
       return { startDate: createDate(year, month, day + 1), endDate: createDate(year, month, day + 1, true) };
     case 'thisWeek': {
       const startDay = day - dayOfWeek;
       const endDay = day + (6 - dayOfWeek);
+      return { startDate: createDate(year, month, startDay), endDate: createDate(year, month, endDay, true) };
+    }
+    case 'nextWeek': {
+      // Start from the day after this week ends (next Sunday becomes Monday)
+      const thisWeekEndDay = day + (6 - dayOfWeek);
+      const nextWeekStartDay = thisWeekEndDay + 1;
+      const nextWeekEndDay = nextWeekStartDay + 6;
+      return { startDate: createDate(year, month, nextWeekStartDay), endDate: createDate(year, month, nextWeekEndDay, true) };
+    }
+    case 'thisMonth': {
+      // Start: First day of current month at 00:00:00
+      // End: Last day of current month at 23:59:59
+      const startDay = 1;
+      // Get last day of month: create first day of next month, then subtract 1 day
+      const firstOfNextMonth = month === 12 ? { year: year + 1, month: 1, day: 1 } : { year, month: month + 1, day: 1 };
+      const endDay = new Date(createDate(firstOfNextMonth.year, firstOfNextMonth.month, firstOfNextMonth.day).getTime() - 24 * 60 * 60 * 1000).getDate();
       return { startDate: createDate(year, month, startDay), endDate: createDate(year, month, endDay, true) };
     }
     default:

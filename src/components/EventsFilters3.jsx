@@ -6,7 +6,7 @@
  * 
  * Key Features:
  * - Single-row filter chips with dropdown popovers
- * - Timezone-aware date presets (Today default, Yesterday, Tomorrow, This Week)
+ * - Timezone-aware date presets (Today, Tomorrow, This Week, Next Week, This Month)
  * - Multi-select impacts and currencies with instant apply on every change
  * - Search functionality with debounced auto-search (400ms)
  * - Expandable search row with accordion-like UX
@@ -15,6 +15,9 @@
  * - Fully responsive: wraps on xs/sm, single-row on md+
  * 
  * Changelog:
+ * v1.3.27 - 2026-01-16 - Removed 'yesterday' date preset; users now choose between Today, Tomorrow, This Week, Next Week, or This Month.
+ * v1.3.26 - 2026-01-16 - Added 'thisMonth' date preset to DATE_PRESETS for full This Month filtering support with timezone awareness.
+ * v1.3.25 - 2026-01-16 - Added 'nextWeek' date preset to DATE_PRESETS for full Next Week filtering support with timezone awareness.
  * v1.3.24 - 2026-01-14 - CONTRAST-AWARE RESET: Add textColor prop to apply session-based background contrast color to Reset button; when textColor is provided, Reset button uses it instead of default text.secondary for proper visibility on dark session backgrounds.
  * v1.3.23 - 2026-01-14 - CENTER FILTERS ON XS: Simplify justifyContent to always use 'center' when centerFilters={true} across all breakpoints (xs, sm, md+). Remove responsive breakpoints to center filter elements horizontally on extra-small screens as well.
  * v1.3.22 - 2026-01-14 - CENTER FILTERS ON SM: Update justifyContent to center filter elements horizontally on sm breakpoint when centerFilters={true}; now { xs: 'flex-start', sm: 'center', md: 'center' } for responsive centering on tablets and above.
@@ -91,10 +94,11 @@ import AuthModal2 from './AuthModal2';
 // ============================================================================
 
 const DATE_PRESETS = [
-  { key: 'thisWeek', label: 'This Week', icon: '🗓️' },
   { key: 'today', label: 'Today', icon: '📅' },
-  { key: 'yesterday', label: 'Yesterday', icon: '📅' },
   { key: 'tomorrow', label: 'Tomorrow', icon: '📆' },
+  { key: 'thisWeek', label: 'This Week', icon: '🗓️' },
+  { key: 'nextWeek', label: 'Next Week', icon: '📅' },
+  { key: 'thisMonth', label: 'This Month', icon: '📆' },
 ];
 
 const IMPACT_LEVELS = [
@@ -159,13 +163,27 @@ const calculateDateRange = (preset, timezone) => {
   switch (preset) {
     case 'today':
       return { startDate: createDate(year, month, day), endDate: createDate(year, month, day, true) };
-    case 'yesterday':
-      return { startDate: createDate(year, month, day - 1), endDate: createDate(year, month, day - 1, true) };
     case 'tomorrow':
       return { startDate: createDate(year, month, day + 1), endDate: createDate(year, month, day + 1, true) };
     case 'thisWeek': {
       const startDay = day - dayOfWeek;
       const endDay = day + (6 - dayOfWeek);
+      return { startDate: createDate(year, month, startDay), endDate: createDate(year, month, endDay, true) };
+    }
+    case 'nextWeek': {
+      // Start from the day after this week ends (next Sunday becomes Monday)
+      const thisWeekEndDay = day + (6 - dayOfWeek);
+      const nextWeekStartDay = thisWeekEndDay + 1;
+      const nextWeekEndDay = nextWeekStartDay + 6;
+      return { startDate: createDate(year, month, nextWeekStartDay), endDate: createDate(year, month, nextWeekEndDay, true) };
+    }
+    case 'thisMonth': {
+      // Start: First day of current month at 00:00:00
+      // End: Last day of current month at 23:59:59
+      const startDay = 1;
+      // Get last day of month: create first day of next month, then subtract 1 day
+      const firstOfNextMonth = month === 12 ? { year: year + 1, month: 1, day: 1 } : { year, month: month + 1, day: 1 };
+      const endDay = new Date(createDate(firstOfNextMonth.year, firstOfNextMonth.month, firstOfNextMonth.day).getTime() - 24 * 60 * 60 * 1000).getDate();
       return { startDate: createDate(year, month, startDay), endDate: createDate(year, month, endDay, true) };
     }
     default:

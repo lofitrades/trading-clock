@@ -6,6 +6,7 @@
  * launching the trading clock or learning more.
  * 
  * Changelog:
+ * v1.1.0 - 2026-01-16 - Updated /clock CTAs and refreshed home meta/title lengths.
  * v1.0.0 - 2025-12-18 - Initial SSR landing page implementation.
  */
 
@@ -62,7 +63,7 @@ const softwareSchema = {
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     description:
         'Visual trading intelligence for futures and forex day traders: dual-circle session clock, economic events overlay, timezone-aware countdowns, and synced settings.',
-    url: `${siteUrl}/app`,
+    url: `${siteUrl}/clock`,
     creator: { '@type': 'Organization', name: 'Lofi Trades', url: siteUrl },
     featureList: [
         'Dual-circle session visualization',
@@ -90,9 +91,9 @@ const webSiteSchema = {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const documentProps = {
-    title: 'Time 2 Trade | Visual trading workspace for futures and forex day traders',
+    title: 'Time 2 Trade | Futures & Forex Session Clock',
     description:
-        'Time 2 Trade is a visual trading workspace for futures and forex day traders: dual-circle session clock, economic events overlay, timezone-aware countdowns, and synced settings.',
+        'Visual session clock and economic calendar for futures and forex day traders. Track overlaps, countdowns, and today’s events with impact and currency filters.',
     canonical: `${siteUrl}/`,
     robots: 'index,follow',
     ogImage,
@@ -135,7 +136,7 @@ export default function Page() {
                     <span>Time 2 Trade</span>
                 </div>
                 <nav className="nav">
-                    <a href="/app" aria-label="Open the timing trading app">Open app</a>
+                    <a href="/clock" aria-label="Open the trading clock">Open clock</a>
                     <a href="/about" aria-label="Learn about Time 2 Trade">About</a>
                     <a href="#faq" aria-label="Read frequently asked questions">FAQ</a>
                 </nav>
@@ -156,8 +157,8 @@ export default function Page() {
                                 See market sessions, high-impact economic events, and timezone-aware countdowns in one view. Built for day traders who need a fast, honest read on what is active right now.
                             </p>
                             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                                <a className="btn btn-primary" href="/app" aria-label="Open the Time 2 Trade app">
-                                    Open the app
+                                <a className="btn btn-primary" href="/clock" aria-label="Open the Time 2 Trade clock">
+                                    Open the clock
                                 </a>
                                 <a className="btn btn-secondary" href="/about" aria-label="Learn more about Time 2 Trade">
                                     Learn more
@@ -220,7 +221,7 @@ export default function Page() {
                             <span>Time 2 Trade</span>
                         </div>
                         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                            <a href="/app" aria-label="Launch the app from footer" className="btn btn-secondary">Open app</a>
+                            <a href="/clock" aria-label="Launch the clock from footer" className="btn btn-secondary">Open clock</a>
                             <a href="/about" aria-label="Read about Time 2 Trade" className="btn btn-secondary">About</a>
                         </div>
                     </div>

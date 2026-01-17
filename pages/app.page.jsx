@@ -5,6 +5,7 @@
  * interactive React SPA client-side to keep marketing bundles lean.
  * 
  * Changelog:
+ * v1.1.0 - 2026-01-16 - Marked /app as noindex,nofollow with canonical to / to avoid SEO duplication with /clock.
  * v1.0.0 - 2025-12-18 - Initial client-loaded app route with prerendered shell.
  */
 
@@ -18,12 +19,14 @@ const ogImage = `${siteUrl}/Time2Trade_SEO_Meta_3.PNG`;
 export const route = /^\/app(\/.*)?$/;
 export const prerender = () => ['/app'];
 
+// SEO decision (Option A): /app is a product UI shell only. Keep it accessible for users,
+// but block indexing to prevent duplication with the indexable /clock route.
 export const documentProps = {
-    title: 'Time 2 Trade App | Live trading session clock and events overlay',
+    title: 'Time 2 Trade App | Private trading workspace',
     description:
-        'Launch the Time 2 Trade app to see live market sessions, economic events, and timezone-aware countdowns in one responsive clock.',
-    canonical: `${siteUrl}/app`,
-    robots: 'noindex,follow',
+        'Private app workspace for the Time 2 Trade clock and events experience. Not indexed for search to prevent duplicate marketing content.',
+    canonical: `${siteUrl}/`,
+    robots: 'noindex,nofollow',
     ogImage,
     ogType: 'website',
 };

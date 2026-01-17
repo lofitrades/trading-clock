@@ -1964,6 +1964,24 @@ whyDidYouRender(React, {
 
 ## 📝 Change Log
 
+### Version 2.7.37 - January 16, 2026
+**SEO Route Refactor (/clock launch)**
+
+#### ✅ Updates
+- Added indexable /clock route with unique metadata, updated CTAs and navigation targets, and set /app to noindex,nofollow with canonical /. Updated sitemap/robots for clean crawlability.
+
+### Version 2.7.35 - January 16, 2026
+**GPT Placeholder Events (Fallback)**
+
+#### ✅ Updates
+- Added GPT as lowest-priority canonical provider and surfaced all-day/tentative time labels in UI while keeping NFS/JBlanked precedence.
+
+### Version 2.7.36 - January 16, 2026
+**FF-T2T GPT Uploader**
+
+#### ✅ Updates
+- Added superadmin-only FF-T2T uploader route and callable ingest for GPT event seeding into canonical collection.
+
 ### Version 2.7.34 - January 15, 2026
 **ads.txt Hosting Verification**
 

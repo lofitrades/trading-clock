@@ -5,6 +5,7 @@
  * Provides mobile-first full-screen mode, note creation, and deletion with timezone-aware timestamps.
  * 
  * Changelog:
+ * v1.0.1 - 2026-01-16 - Prefer event time labels for all-day/tentative GPT placeholders.
  * v1.0.0 - 2025-12-12 - Initial implementation with responsive dialog, add/remove controls, and timestamp formatting.
  */
 import React, { useEffect, useMemo, useState } from 'react';
@@ -67,7 +68,7 @@ export default function EventNotesDialog({
 	const eventCurrency = event?.currency || event?.Currency || null;
 	const eventTimeLabel = useMemo(() => {
 		if (!event) return '—';
-		return formatTime(event.time || event.date, timezone);
+		return event.timeLabel || formatTime(event.time || event.date, timezone);
 	}, [event, timezone]);
 
 	useEffect(() => {

@@ -12,6 +12,8 @@
  * - Premium Routes: Require specific subscription plans
  * 
  * Changelog:
+ * v1.2.0 - 2026-01-16 - Added /clock public route for the trading clock UI and retained /app as noindex app shell.
+ * v1.1.8 - 2026-01-16 - Added /fft2t superadmin route for GPT event uploader.
  * v1.1.7 - 2026-01-09 - Added /contact route using ContactPage component.
  * v1.1.6 - 2026-01-07 - Added /privacy route using shared PrivacyPage component.
  * v1.1.5 - 2026-01-07 - Mount CookiesBanner globally so consent prompt appears on all SPA routes.
@@ -37,10 +39,12 @@ import CookiesBanner from '../components/CookiesBanner';
 // Lazy load components for code splitting
 const LandingPage = lazy(() => import('../components/LandingPage'));
 const HomePage = lazy(() => import('../components/HomePage'));
+const ClockPage = lazy(() => import('../components/ClockPage'));
 const AboutPage = lazy(() => import('../components/AboutPage'));
 const LoginPage = lazy(() => import('../components/LoginPage'));
 const UploadDescriptions = lazy(() => import('../components/UploadDescriptions'));
 const ExportEvents = lazy(() => import('../components/ExportEvents'));
+const FFTTUploader = lazy(() => import('../components/FFTTUploader'));
 const CalendarPage = lazy(() => import('../components/CalendarPage'));
 const PrivacyPage = lazy(() => import('../components/PrivacyPage'));
 const TermsPage = lazy(() => import('../components/TermsPage'));
@@ -70,7 +74,7 @@ const NotFound = () => (
   >
     <h1>404 - Page Not Found</h1>
     <p>The page you&apos;re looking for doesn&apos;t exist.</p>
-    <a href="/app">Go back home</a>
+    <a href="/">Go back home</a>
   </Box>
 );
 
@@ -94,7 +98,9 @@ function AnalyticsInitializer() {
  * Centralized routing configuration with the following features:
  * 
  * 1. PUBLIC ROUTES (accessible to everyone)
- *    - / - Main application (clock, events, etc.) [served under /app basename]
+ *    - / - Marketing landing page
+ *    - /clock - Public trading clock experience
+ *    - /app - Noindex app shell for users who prefer the legacy route
  * 
  * 2. PRIVATE ROUTES (require authentication)
  *    - None currently (clock is public)
@@ -134,7 +140,17 @@ export default function AppRoutes() {
             }
           />
 
-          {/* Main Application - Interactive trading clock */}
+          {/* Public Trading Clock - Interactive clock UI */}
+          <Route
+            path="/clock"
+            element={
+              <PublicRoute>
+                <ClockPage />
+              </PublicRoute>
+            }
+          />
+
+          {/* Legacy Application Route - Noindex app shell */}
           <Route
             path="/app"
             element={
@@ -198,7 +214,7 @@ export default function AppRoutes() {
           <Route
             path="/login"
             element={
-              <PublicRoute restricted={true} redirectTo="/app">
+              <PublicRoute restricted={true} redirectTo="/clock">
                 <LoginPage />
               </PublicRoute>
             }
@@ -222,6 +238,16 @@ export default function AppRoutes() {
             element={
               <PrivateRoute roles={['admin', 'superadmin']}>
                 <ExportEvents />
+              </PrivateRoute>
+            }
+          />
+
+          {/* FF-T2T GPT Uploader - Superadmin only */}
+          <Route
+            path="/fft2t"
+            element={
+              <PrivateRoute roles={['superadmin']} redirectTo="/login">
+                <FFTTUploader />
               </PrivateRoute>
             }
           />

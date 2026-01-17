@@ -5,7 +5,6 @@
  * Centers the navigation chrome, preserves mobile bottom nav behavior, and keeps the layout banner-free by default.
  * 
  * Changelog:
- * v1.0.42 - 2026-01-15 - MOBILE BRAND LOCKUP SPACING: Tightened xs/sm padding and margin to remove extra space below the title/CTA row.
  * v1.0.40 - 2026-01-14 - LOGOUT MODAL REFACTOR: Replaced inline ConfirmModal with standalone LogoutModal component.
  * PublicLayout now passes the logout modal to mobile brand lockup UserAvatar but delegates logout flow to LogoutModal.
  * Removes duplicated logout logic and simplifies state management. Improves separation of concerns across components.
@@ -93,8 +92,8 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                         width: { xs: '100%', sm: '100%', md: 'auto' },
                         px: { xs: 2.5, sm: 2.75, md: 0 },
                         bgcolor: { xs: 'background.default', sm: 'background.default', md: 'transparent' },
-                        py: { xs: 0.75, sm: 0.75, md: 'unset' },
-                        mb: { xs: 1, sm: 1, md: 2 },
+                        py: { xs: 1, sm: 1, md: 'unset' },
+                        mb: 2,
                         position: { xs: 'fixed', sm: 'fixed', md: 'relative' },
                         top: 0,
                         left: { xs: 0, sm: 0, md: 'auto' },

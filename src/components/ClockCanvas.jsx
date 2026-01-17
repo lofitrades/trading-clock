@@ -1,6 +1,19 @@
-// src/components/ClockCanvas.jsx
+/**
+ * src/components/ClockCanvas.jsx
+ *
+ * Purpose: Canvas-based analog clock with session arcs, hover detection, and event markers.
+ * Renders static background + dynamic session donuts + interactive tooltips.
+ *
+ * Changelog:
+ * v1.3.0 - 2026-01-16 - Pass timezone-aware calculations to SessionArcTooltip for accurate 'in/ago' labels
+ * v1.2.0 - 2026-01-16 - Replace session arc tooltip with SessionArcTooltip component (12-hour format, relative labels, edit hint)
+ * v1.1.0 - 2025-12-15 - Session arc hover detection and inline tooltips
+ * v1.0.0 - 2025-11-15 - Initial implementation with canvas drawing utilities
+ */
+
 import { useEffect, useRef, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
+import { Portal } from '@mui/material';
 import gsap from 'gsap';
 import {
   drawStaticElements,
@@ -9,8 +22,13 @@ import {
   isColorDark,
   drawClockNumbers
 } from '../utils/clockUtils';
+import { useSettings } from '../contexts/SettingsContext';
+import SessionArcTooltip from './SessionArcTooltip';
+import { useTooltipCoordinator } from '../contexts/useTooltipCoordinator';
 
 export default function ClockCanvas({ size, time, sessions, handColor, clockStyle = 'normal', showSessionNamesInCanvas = true, showPastSessionsGray = true, showClockNumbers = true, showClockHands = true, activeSession = null, backgroundBasedOnSession = false, renderHandsInCanvas = true, handAnglesRef = null }) {
+  const { selectedTimezone } = useSettings();
+  const { openTooltip, closeTooltip: closeGlobalTooltip, isTooltipActive } = useTooltipCoordinator();
   const canvasRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const [hoveredSession, setHoveredSession] = useState(null);
@@ -249,7 +267,9 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
       tooltipAnimation.current.kill();
     }
 
+    const tooltipId = `session-${session.name}`;
     setTooltip({ x: clientX, y: clientY, ...session });
+    openTooltip('session', tooltipId); // Register in global coordinator
 
     // Animate tooltip entrance
     if (tooltipRef.current) {
@@ -272,12 +292,28 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
         scale: 0.8,
         duration: 0.15,
         ease: "power2.in",
-        onComplete: () => setTooltip(null)
+        onComplete: () => {
+          setTooltip(null);
+          closeGlobalTooltip('session'); // Close in global coordinator
+        }
       });
     } else {
       setTooltip(null);
+      closeGlobalTooltip('session'); // Close in global coordinator
     }
   };
+
+  // Tick effect to update tooltip time labels every second
+  useEffect(() => {
+    if (!tooltip) return;
+
+    const tickInterval = window.setInterval(() => {
+      // Force re-render of SessionArcTooltip by updating tooltip state
+      setTooltip(prev => ({ ...prev }));
+    }, 1000);
+
+    return () => window.clearInterval(tickInterval);
+  }, [tooltip]);
 
   const handleMouseMove = (e) => {
     // Disable hover detection for minimalistic style
@@ -373,20 +409,26 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
         style={{ touchAction: 'none', width: '100%', height: '100%' }}
       />
       {tooltip && (
-        <div
-          ref={tooltipRef}
-          className="tooltip"
-          style={{
-            left: tooltip.x + 10,
-            top: tooltip.y + 10,
-            backgroundColor: tooltip.color,
-            color: isColorDark(tooltip.color) ? '#fff' : '#000'
-          }}
-        >
-          <strong>{tooltip.name}</strong>
-          <div>Start: {tooltip.startNY}</div>
-          <div>End: {tooltip.endNY}</div>
-        </div>
+        <Portal>
+          <div
+            ref={tooltipRef}
+            style={{
+              position: 'fixed',
+              left: tooltip.x + 10,
+              top: tooltip.y + 10,
+              zIndex: 1000,
+              pointerEvents: 'none',
+            }}
+          >
+            <SessionArcTooltip
+              sessionName={tooltip.name}
+              startTime={tooltip.startNY}
+              endTime={tooltip.endNY}
+              timezone={selectedTimezone}
+              arcColor={tooltip.color}
+            />
+          </div>
+        </Portal>
       )}
     </div>
   );

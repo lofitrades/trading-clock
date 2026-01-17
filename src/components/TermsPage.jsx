@@ -6,6 +6,7 @@
  * IP rights, arbitration, and third-party service disclosures.
  * 
  * Changelog:
+ * v1.0.1 - 2026-01-16 - Updated CTA link to /clock.
  * v1.0.0 - 2026-01-07 - Initial enterprise implementation following Google-level best practices.
  */
 
@@ -416,7 +417,7 @@ export default function TermsPage() {
                         <Link href="/" underline="hover" sx={{ fontWeight: 700 }}>
                             Home
                         </Link>
-                        <Link href="/app" underline="hover" sx={{ fontWeight: 700 }}>
+                        <Link href="/clock" underline="hover" sx={{ fontWeight: 700 }}>
                             Open app
                         </Link>
                         <Link href="/privacy" underline="hover" sx={{ fontWeight: 700 }}>

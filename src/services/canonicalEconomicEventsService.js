@@ -6,6 +6,7 @@
  * values based on user preference.
  *
  * Changelog:
+ * v1.2.0 - 2026-01-16 - Include GPT fallback sources, expose time labels, and surface GPT-only placeholders.
  * v1.1.0 - 2025-12-16 - Filter to NFS-backed events only; preserve enrichment while blocking JBlanked-only documents.
  * v1.0.0 - 2025-12-11 - Initial canonical fetcher with user-preferred source handling.
  */
@@ -31,6 +32,7 @@ import { db } from '../firebase';
  * @property {string|null} forecast
  * @property {string|null} previous
  * @property {string|null} sourceKey
+ * @property {string|null} timeLabel
  */
 
 const CANONICAL_EVENTS_ROOT = 'economicEvents';
@@ -43,8 +45,8 @@ function getCanonicalEventsCollectionRef() {
 
 function pickValuesForUser(event, preferred = 'auto') {
   const order = preferred === 'auto'
-    ? ['jblanked-ff', 'jblanked-mt', 'jblanked-fxstreet', 'nfs']
-    : [preferred, 'jblanked-ff', 'jblanked-mt', 'jblanked-fxstreet', 'nfs'];
+    ? ['jblanked-ff', 'jblanked-mt', 'jblanked-fxstreet', 'nfs', 'gpt']
+    : [preferred, 'jblanked-ff', 'jblanked-mt', 'jblanked-fxstreet', 'nfs', 'gpt'];
 
   if (!event?.sources) {
     return {
@@ -85,10 +87,10 @@ export async function fetchCanonicalEconomicEvents({ from, to, currencies = [], 
     ];
 
     // Firestore supports 'in' with max 10 entries; otherwise filter client-side
-    const useInClause = Array.isArray(currencies) && currencies.length > 0 && currencies.length <= 10;
-    if (useInClause) {
-      whereClauses.push(where('currency', 'in', currencies.map((c) => c.toUpperCase())));
-    }
+    // IMPORTANT: DO NOT use Firestore 'in' clause for currency filtering because it excludes null values
+    // Firestore 'in' queries cannot match null/missing fields, so global events (currency: null) disappear
+    // Instead, always fetch all events in date range and filter client-side to include global events
+    // This ensures global events are always visible with ANY currency filter applied
 
     const q = query(eventsRef, ...whereClauses, orderBy('datetimeUtc', 'asc'));
     const snapshot = await getDocs(q);
@@ -97,10 +99,12 @@ export async function fetchCanonicalEconomicEvents({ from, to, currencies = [], 
       .map((docSnap) => {
         const data = docSnap.data();
         const hasNfsSource = Boolean(data?.sources?.nfs);
-        if (!hasNfsSource) return null;
+        const hasGptSource = Boolean(data?.sources?.gpt);
+        if (!hasNfsSource && !hasGptSource) return null;
 
         const dt = data.datetimeUtc?.toDate ? data.datetimeUtc.toDate() : null;
         const picked = pickValuesForUser(data, preferredSource);
+        const timeLabel = data?.sources?.gpt?.raw?.TimeLabel || null;
         return {
           id: docSnap.id,
           name: data.name,
@@ -112,13 +116,24 @@ export async function fetchCanonicalEconomicEvents({ from, to, currencies = [], 
           forecast: picked.forecast,
           previous: picked.previous,
           sourceKey: picked.sourceKey,
+          timeLabel,
         };
       })
       .filter(Boolean);
 
-    // If we could not use an "in" filter, filter currencies client-side
-    const filteredDocs = !useInClause && currencies?.length > 0
-      ? docs.filter((d) => d.currency && currencies.includes(d.currency))
+    // Apply client-side currency filter to include global events
+    // IMPORTANT: Always include events with currency === null or 'All' when any currency filter is applied
+    // Global events are part of ALL currencies and should appear regardless of filter
+    const filteredDocs = currencies?.length > 0
+      ? docs.filter((d) => {
+          const currency = d.currency;
+          // Always include global events (null or 'All')
+          if (currency === null || currency === 'All') {
+            return true;
+          }
+          // Include events matching any selected currency
+          return currencies.includes(currency);
+        })
       : docs;
 
     return { success: true, data: filteredDocs };

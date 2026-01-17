@@ -5,6 +5,7 @@
  * interactive CalendarPage (EventsFilters3 + day-grouped table) on the client.
  * 
  * Changelog:
+ * v1.1.1 - 2026-01-16 - Updated calendar CTAs to point to /clock.
  * v1.1.0 - 2026-01-11 - Prefetch CalendarPage module to reduce TTI and reuse a shared loader for hydration.
  * v1.0.2 - 2026-01-07 - Added sticky back-to-top control for the prerendered calendar route fallback.
  * v1.0.1 - 2026-01-07 - Added dynamic copyright year to prerendered calendar content.
@@ -68,9 +69,9 @@ const calendarSchema = {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const documentProps = {
-    title: 'Economic Calendar + Session Clock | Time 2 Trade',
+    title: 'Free Economic Calendar | Forex Factory + Session Clock',
     description:
-        'Trading economic calendar built on the trusted Forex Factory source with today\'s session clock context, This Week default, impact/currency filters, favorites, notes, exports, and an embeddable day-grouped table.',
+        'Free economic calendar for forex and futures traders. Forex Factory data with session clock context, impact/currency filters, favorites, notes, and exports. This Week default preset.',
     canonical: `${siteUrl}/calendar`,
     robots: 'index,follow',
     ogImage,
@@ -143,7 +144,7 @@ export default function Page() {
                         </p>
                         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                             <a className="btn btn-primary" href="#calendar" aria-label="Skip to calendar filters">Jump to calendar</a>
-                            <a className="btn btn-secondary" href="/app" aria-label="Open the app">Open the app</a>
+                            <a className="btn btn-secondary" href="/clock" aria-label="Open the trading clock">Open the clock</a>
                         </div>
                         <div style={{ marginTop: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                             <span className="muted-chip">This Week default preset</span>

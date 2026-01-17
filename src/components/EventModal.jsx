@@ -17,6 +17,7 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v1.10.2 - 2026-01-16 - Display all-day/tentative time labels when provided.
  * v1.10.1 - 2025-12-18 - Centralize impact color sourcing: low = yellow (#F2C94C), unknown = taupe (#C7B8A4) to avoid session color conflicts across modal chips.
  * v1.10.0 - 2025-12-18 - Centralize impact color sourcing and set low impact to taupe (#C7B8A4) to avoid session color conflicts across modal chips.
  * v1.9.1 - 2025-12-15 - REFACTOR: Replaced hardcoded NOW/NEXT calculations with global timezone-aware eventTimeEngine utilities (NOW_WINDOW_MS, getEventEpochMs, getNowEpochMs, computeNowNextState)
@@ -767,7 +768,7 @@ export default function EventModal({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <AccessTimeIcon sx={{ fontSize: 16 }} />
               <Typography variant="body2" sx={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>
-                {formatTime(currentEvent.time || currentEvent.date, timezone)}
+                {currentEvent.timeLabel || formatTime(currentEvent.time || currentEvent.date, timezone)}
               </Typography>
             </Box>
           </Box>

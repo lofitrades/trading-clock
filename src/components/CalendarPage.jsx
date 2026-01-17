@@ -6,6 +6,7 @@
  * Relies on app-level providers to ensure AppBar stays mounted during route navigation.
  * 
  * Changelog:
+ * v1.3.1 - 2026-01-16 - Updated trading clock navigation target to /clock for new public route.
  * v1.3.0 - 2026-01-15 - PROVIDER REFACTOR: Removed duplicate ThemeProvider, AuthProvider, SettingsProvider, BrowserRouter, and CssBaseline. These are already provided at app level in main.jsx/AppBootstrap. CalendarPageShell now only handles page-specific state (auth modal, settings, contact modal) and navigation. This fixes the "white screen flash" issue where CalendarPage remounted on navigation, breaking AppBar persistence. PublicLayout now stays mounted across route changes, ensuring consistent navigation chrome.
  * v1.2.2 - 2026-01-14 - Close settings drawer before showing AuthModal2 and hide the drawer while AuthModal2 is open on /calendar to prevent z-index overlap with the unlock CTA.
  * Changelog:
@@ -85,7 +86,7 @@ export default function CalendarPage() {
                 id: 'clock',
                 label: 'Trading Clock',
                 shortLabel: 'Clock',
-                to: '/app',
+                to: '/clock',
                 icon: <AccessTimeRoundedIcon fontSize="small" />,
                 ariaLabel: 'Open the trading clock',
             },
@@ -119,7 +120,7 @@ export default function CalendarPage() {
                 <CalendarEmbed onOpenAuth={handleOpenAuth} isCalendarRoute />
             </PublicLayout>
             <Suspense fallback={null}>
-                <AuthModal2 open={authModalOpen} onClose={handleCloseAuth} redirectPath="/calendar" />
+                <AuthModal2 open={authModalOpen} onClose={handleCloseAuth} redirectPath="/clock" />
             </Suspense>
             <Suspense fallback={null}>
                 <SettingsSidebar2

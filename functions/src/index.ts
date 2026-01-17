@@ -6,6 +6,8 @@
  * updates into the canonical economic events collection.
  *
  * Changelog:
+ * v1.2.1 - 2026-01-16 - Enhanced uploadGptEvents: check custom claims + Firestore fallback with better error messaging.
+ * v1.2.0 - 2026-01-16 - Added GPT uploader callable for canonical event seeding.
  * v1.1.0 - 2025-12-16 - Updated JBlanked actuals schedule to 11:59 AM ET daily.
  * v1.0.0 - 2025-12-11 - Initial functions entry with NFS + JBlanked sync flows.
  */
@@ -17,10 +19,11 @@ dotenv.config();
 import * as admin from "firebase-admin";
 import {setGlobalOptions} from "firebase-functions/v2";
 import {onSchedule} from "firebase-functions/v2/scheduler";
-import {onRequest} from "firebase-functions/v2/https";
+import {onCall, onRequest, HttpsError} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import {syncWeekFromNfs} from "./services/nfsSyncService";
 import {syncTodayActualsFromJblankedAllConfigured} from "./services/jblankedActualsService";
+import {uploadGptEventsBatch} from "./services/gptUploadService";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -130,6 +133,63 @@ export const syncTodayActualsFromJblankedNow = onRequest(
         error: errorMessage,
       });
     }
+  }
+);
+
+/**
+ * HTTPS Callable - GPT fallback event uploader (superadmin only)
+ * Accepts JSON array of GPT events and merges into canonical collection.
+ * Checks both Firebase custom claims (primary) and Firestore (fallback).
+ */
+export const uploadGptEvents = onCall(
+  {
+    timeoutSeconds: 300,
+    memory: "512MiB",
+  },
+  async (request) => {
+    const auth = request.auth;
+    if (!auth) {
+      throw new HttpsError("unauthenticated", "Authentication required");
+    }
+
+    const token = auth.token || {};
+    const uid = auth.uid;
+    let userData: any = null;
+    
+    // Check custom claims (primary - from ID token)
+    let isSuperadmin = token.role === "superadmin" || token.superadmin === true;
+    
+    // Fallback: Check Firestore if custom claims not present
+    if (!isSuperadmin) {
+      try {
+        const userDoc = await admin.firestore().collection('users').doc(uid).get();
+        userData = userDoc.data();
+        isSuperadmin = userData?.role === 'superadmin';
+      } catch (error) {
+        logger.warn("Failed to check Firestore role", { uid, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+    
+    if (!isSuperadmin) {
+      const userRole = token.role || userData?.role || 'user';
+      throw new HttpsError(
+        "permission-denied", 
+        `Superadmin role required. Current role: ${userRole}. User must sign out and back in after role update.`
+      );
+    }
+
+    const events = request.data?.events;
+    if (!Array.isArray(events)) {
+      throw new HttpsError("invalid-argument", "events must be an array");
+    }
+
+    if (events.length > 1000) {
+      throw new HttpsError("invalid-argument", "Batch too large (max 1000)");
+    }
+
+    const result = await uploadGptEventsBatch(events);
+    logger.info("✅ GPT upload batch complete", result);
+    return result;
   }
 );
 

@@ -11,6 +11,7 @@
  * 3. Rebuild/redeploy for public route to reflect updates
  * 
  * Changelog:
+ * v1.3.2 - 2026-01-16 - Shortened About meta title/description for uniqueness and CTR-friendly length.
  * v1.3.1 - 2026-01-07 - Cleaned string escapes to satisfy lint rules without altering copy.
  * v1.3.0 - 2026-01-07 - Updated About copy and metadata to emphasize Forex Factory economic calendar + session clock experience.
  * v1.2.0 - 2025-12-22 - Rewrote About copy for clarity on sessions + economic events, updated metadata and structured data.
@@ -33,18 +34,18 @@
  */
 export const aboutContent = {
   title: "About Time 2 Trade",
-  subtitle: "Forex Factory-powered economic calendar and session clock for futures and forex day traders.",
+  subtitle: "Visual trading clock for intraday traders. See market sessions (New York, London, Asia) with countdowns plus Forex Factory economic events.",
   sections: [
     {
       title: null,
       content: [
         {
           type: "paragraph",
-          text: "Time 2 Trade is a lightweight web app that pairs a Forex Factory economic calendar with a live market session clock so you can plan and execute around sessions and scheduled events."
+          text: "Time 2 Trade is a visual trading clock built for intraday traders. It shows you exactly where you are in the trading day (New York, London, Asia sessions) with real-time countdowns to session transitions. Plus, Forex Factory economic events integrated so you see what catalysts are coming."
         },
         {
           type: "paragraph",
-          text: "The goal is simple: help you visualize time so you can trade with better timing, fewer surprises, and a more consistent routine."
+          text: "Most intraday traders struggle with the same problem: timezone confusion and event surprises. Time 2 Trade eliminates both. One clock, all sessions, all countdowns. No tab-hopping. No mental math."
         }
       ]
     },
@@ -54,24 +55,24 @@ export const aboutContent = {
       content: [
         {
           type: "paragraph",
-          text: "Time 2 Trade turns the 24-hour day into a clean visual clock so you can instantly see New York, London, and Asia session windows, overlaps, where you are right now, and what's next—alongside today's economic events."
+          text: "Time 2 Trade is built for one job: Show you the trading day clearly so you execute with timing precision."
         },
         {
           type: "list",
           items: [
             {
-              label: "Visual market sessions",
-              text: "Dual-circle clock shows session windows, overlaps, and your current position in the trading day."
+              label: "Visual trading clock (New York / London / Asia)",
+              text: "A dual-circle 24-hour clock shows session windows, your current position in the day, and real-time countdowns to next session transitions. This is your primary tool—it answers 'what session am I in right now?' instantly."
             },
             {
-              label: "Forex Factory economic calendar",
-              text: "View upcoming releases in a timeline or table, filter by impact level and currency, save favorites and add notes (with an account), and export events for planning."
+              label: "Integrated Forex Factory calendar",
+              text: "See high-impact economic releases with countdown timers. Know when major catalysts fire so you never trade blind into a release. Filter by impact level and currency, save favorites, add notes, and export for prep."
             }
           ]
         },
         {
           type: "paragraph",
-          text: "Time 2 Trade is not a trading terminal and does not provide buy/sell signals. It's a timing and awareness layer you can keep next to your charts."
+          text: "Time 2 Trade is not a broker, signal tool, or terminal. It's a session awareness + event awareness layer. Use it as your pre-trade checklist next to your charts."
         }
       ]
     },
@@ -83,30 +84,30 @@ export const aboutContent = {
           type: "list",
           items: [
             {
-              label: "Futures and forex day traders",
-              text: "Intraday traders who rely on session timing."
+              label: "Day traders (futures/forex)",
+              text: "If you're trading ES, NQ, EUR/USD, GBP/USD, or any liquid intraday pair, session awareness is your edge. Time 2 Trade eliminates the mental load of timezone math."
             },
             {
-              label: "Economic calendar users",
-              text: "Traders who check news releases regularly."
+              label: "ICT and smart money traders",
+              text: "You already understand session structure drives volatility and order flow. Time 2 Trade lets you visualize exactly when high-volume periods collide with economic releases—execution windows become obvious."
             },
             {
-              label: "New York time workflows",
-              text: "Teams and individuals who anchor to NY session timing."
+              label: "Prop traders and funded accounts",
+              text: "With strict drawdown rules and daily limits, precision timing is non-negotiable. Catch sessions and events in real-time instead of discovering them post-trade."
             },
             {
-              label: "Funded/prop traders",
-              text: "Traders who need disciplined routines and event awareness."
+              label: "Trading students",
+              text: "Learn session dynamics visually. See why London open often reverses New York close, where volatility concentrates, and how economic data moves markets—through live observation, not theory."
             },
             {
-              label: "Session-based frameworks",
-              text: "Students and practitioners of session-focused timing (including ICT-style timing)."
+              label: "Multi-timezone traders",
+              text: "Managing workflows across New York, London, and Asia sessions requires constant mental switching. One clock shows all three overlaps at once."
             }
           ]
         },
         {
           type: "paragraph",
-          text: "If your process includes session windows, overlaps, or avoiding high-impact releases, this tool fits naturally."
+          text: "If your trading process includes session windows, overlaps, or event-driven volatility, this tool fits seamlessly."
         }
       ]
     },
@@ -116,28 +117,28 @@ export const aboutContent = {
       content: [
         {
           type: "paragraph",
-          text: "Intraday trading often comes down to timing:"
+          text: "Most trading losses don't come from bad setups—they come from bad timing. Executing a solid setup at the wrong time (against a session transition, before a high-impact release, or during low-liquidity periods) turns profit into pain."
         },
         {
           type: "list",
           items: [
             {
               label: "Session transitions",
-              text: "Volatility and volume shift as sessions open and close."
+              text: "Volume and volatility spike predictably as sessions open and close. Miss the timing, miss the move—or get stopped out by whipsaw."
             },
             {
-              label: "Overlaps",
-              text: "The conditions many strategies depend on are tied to overlaps."
+              label: "Overlaps = volatility windows",
+              text: "When two or three sessions trade simultaneously, volume surges and spreads tighten. Most profitable scalps and swings happen here."
             },
             {
-              label: "High-impact events",
-              text: "News can turn a normal setup into a high-risk one."
+              label: "Economic catalysts",
+              text: "A strong setup can become a trap if a high-impact release fires 2 minutes into your trade. You either survive the spike or get liquidated."
             }
           ]
         },
         {
           type: "paragraph",
-          text: "Time 2 Trade helps you answer the key question fast: Is this the right time to trade?"
+          text: "Time 2 Trade answers the critical question in real-time: \"Is this the right time to execute?\""
         }
       ]
     },
@@ -212,11 +213,28 @@ export const aboutContent = {
     },
     
     {
-      title: "Built for speed and everyday use",
+      title: "Built for speed—because your edge is timing",
       content: [
         {
           type: "paragraph",
-          text: "Time 2 Trade is built to load fast, work on mobile, and stay out of your way. You can also install it as a web app (PWA) so it launches like a native app, ideal for quick checks before a session starts or before a release."
+          text: "In intraday trading, every second counts. Time 2 Trade loads instantly, works offline, and installs as a web app (PWA) so you can get your answer before the candle closes. No spinning wheels, no lag—just real-time session and event data at your fingertips."
+        },
+        {
+          type: "list",
+          items: [
+            {
+              label: "Sub-1-second clock updates",
+              text: "See exact countdown to session transitions and economic releases in real-time."
+            },
+            {
+              label: "Works on phone and desktop",
+              text: "Check session status from anywhere—between trades, pre-market, post-trade analysis."
+            },
+            {
+              label: "Installs as a native app",
+              text: "One tap to launch from your home screen, no browser tabs needed."
+            }
+          ]
         }
       ]
     },
@@ -236,11 +254,11 @@ export const aboutContent = {
     },
     
     {
-      title: "Ready to visualize your trading day?",
+      title: "Ready to see your trading day clearly?",
       content: [
         {
           type: "paragraph",
-          text: "Open the app and get instant session and event context in one clean view."
+          text: "Open the app now and answer three questions in seconds: What session am I in? What's the next event? Is it safe to trade right now? Start making timing-based decisions, not guesses."
         }
       ]
     }
@@ -251,8 +269,8 @@ export const aboutContent = {
  * SEO Metadata for About Page
  */
 export const aboutMeta = {
-  title: "About Time 2 Trade | Forex Factory Economic Calendar + Session Clock",
-  description: "Forex Factory-powered economic calendar paired with a live session clock for futures and forex day traders. See New York / London / Asia overlaps, filter events by impact and currency, save favorites and notes, export, and install fast as a PWA. No trading signals.",
+  title: "About Time 2 Trade | New York-Time Trading Focus",
+  description: "Why Time 2 Trade exists: New York-time-first session clock plus a Forex Factory economic calendar for futures and forex day traders.",
   keywords: "economic calendar, forex factory calendar, trading session clock, market session overlaps, futures economic calendar, forex news calendar, impact filters, currency filters, day trading routine, prop trader workflow, New York session timing, London session timing",
   canonical: "https://time2.trade/about",
   ogType: "website",

@@ -6,6 +6,7 @@
  * and GDPR/CCPA-style transparency following Google-level best practices.
  * 
  * Changelog:
+ * v2.0.1 - 2026-01-16 - Updated primary CTA to /clock.
  * v2.0.0 - 2026-01-07 - Complete enterprise rewrite: specific data collection, legal basis, third-party disclosure, granular rights, retention timelines, international compliance.
  * v1.1.0 - 2026-01-07 - Rewrote privacy copy to enterprise-style, covering data use, AdSense, cookies, rights, and contact.
  * v1.0.0 - 2026-01-07 - Added privacy policy with AdSense disclosure and cookie details.
@@ -283,7 +284,7 @@ export default function Page() {
                     <span>Time 2 Trade</span>
                 </div>
                 <nav className="nav">
-                    <a href="/app">Open app</a>
+                    <a href="/clock">Open clock</a>
                     <a href="/">Home</a>
                 </nav>
             </header>

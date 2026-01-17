@@ -202,7 +202,7 @@ export const getTodayEvents = async (options = {}) => {
       success: true,
       data: todayEvents
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: 'Failed to parse events data'
@@ -217,7 +217,6 @@ export const getTodayEvents = async (options = {}) => {
  * Free tier is limited to 1 request per day, so use this for testing
  */
 const getMockTodayEvents = () => {
-  const today = new Date();
   const formatDate = (hours, minutes) => {
     const d = new Date();
     d.setHours(hours, minutes, 0, 0);
@@ -475,7 +474,7 @@ export const formatEventData = (event) => {
       const dateStr = event.Date.replace(/\./g, '-');
       dateTime = new Date(dateStr);
       time = formatTime(dateTime); // OPTIMIZED: 10-100x faster than toLocaleTimeString
-    } catch (e) {
+    } catch {
       // Date parsing error - skip logging
     }
   }

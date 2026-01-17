@@ -5,6 +5,8 @@
  * and stays embeddable for other pages while keeping Time 2 Trade branding and SEO-friendly copy.
  * 
  * Changelog:
+ * v1.5.38 - 2026-01-16 - RESPONSIVE TIME LABEL: Reduced font size on xs/sm/md (0.65rem/0.75rem/0.875rem) with ellipsis overflow for Tentative/All Day labels. GLOBAL CURRENCY ICON: Show MUI PublicIcon for '—' or missing currency (global events) instead of '—' chip.
+ * v1.5.37 - 2026-01-16 - Display all-day/tentative time labels for GPT placeholder events.
  * v1.5.36 - 2026-01-15 - TIMEZONE MODAL BACKDROP FIX: Keep backdrop behind paper and ensure modal sits above AppBar.
  * v1.5.35 - 2026-01-15 - TIMEZONE MODAL Z-INDEX: Raise the timezone selector modal above the AppBar for proper overlay priority.
  * v1.5.34 - 2026-01-15 - CLOCK MARKER FLAG ALIGNMENT: Ensure clock event marker flag badges are styled
@@ -273,6 +275,7 @@ const EventNotesDialog = lazy(() => import('./EventNotesDialog'));
 const TimezoneSelector = lazy(() => import('./TimezoneSelector'));
 const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
 import { DATE_FORMAT_OPTIONS, formatDate, formatTime } from '../utils/dateUtils';
+import PublicIcon from '@mui/icons-material/Public';
 import { resolveImpactMeta } from '../utils/newsApi';
 import { getCurrencyFlag } from '../utils/currencyFlags';
 import { hasAdConsent, subscribeConsent } from '../utils/consent';
@@ -294,6 +297,7 @@ const eventShape = PropTypes.shape({
     dateTime: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.instanceOf(Date), PropTypes.object]),
     Date: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.instanceOf(Date), PropTypes.object]),
     time: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.instanceOf(Date), PropTypes.object]),
+    timeLabel: PropTypes.string,
     name: PropTypes.string,
     Name: PropTypes.string,
     description: PropTypes.string,
@@ -438,9 +442,37 @@ const buildDaySequence = (startDate, endDate, timezone) => {
 const CurrencyBadge = ({ currency, isPast = false }) => {
     const code = (currency || '').toUpperCase();
     const countryCode = getCurrencyFlag(code);
+    const isGlobal = !code || code === '—';
 
-    if (!code) {
-        return <Chip label="—" size="small" variant="outlined" sx={{ fontWeight: 700 }} />;
+    if (isGlobal) {
+        return (
+            <Tooltip title="Global">
+                <Box
+                    sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 0.4,
+                        px: 0.75,
+                        py: 0.25,
+                        borderRadius: 1,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        bgcolor: 'background.paper',
+                        opacity: isPast ? 0.7 : 1,
+                        filter: isPast ? 'grayscale(1)' : 'none',
+                    }}
+                >
+                    <PublicIcon sx={{ fontSize: 16, lineHeight: 1 }} />
+                    <Typography
+                        variant="caption"
+                        sx={{ fontWeight: 700, lineHeight: 1, display: { xs: 'none', sm: 'inline' } }}
+                    >
+                        ALL
+                    </Typography>
+                </Box>
+            </Tooltip>
+        );
     }
 
     if (!countryCode) {
@@ -656,8 +688,22 @@ const EventRow = memo(({
                     whiteSpace: { xs: 'normal', sm: 'nowrap' },
                 }}
             >
-                <Typography variant="body2" fontWeight={800} sx={{ fontFamily: 'monospace', textAlign: 'center', width: '100%' }}>
-                    {formatTime(event.time || event.date || event.Date, timezone)}
+                <Typography
+                    variant="body2"
+                    fontWeight={800}
+                    sx={{
+                        fontFamily: 'monospace',
+                        textAlign: 'center',
+                        width: '100%',
+                        fontSize: { xs: '0.65rem', sm: '0.75rem', md: '0.875rem' },
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 1,
+                        WebkitBoxOrient: 'vertical',
+                    }}
+                >
+                    {event.timeLabel || formatTime(event.time || event.date || event.Date, timezone)}
                 </Typography>
             </TableCell>
 

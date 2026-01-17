@@ -6,6 +6,7 @@
  * and Firestore helpers to unify NFS weekly schedules with JBlanked actuals.
  *
  * Changelog:
+ * v1.0.1 - 2026-01-16 - Added GPT as lowest-priority provider for fallback-only canonical merges.
  * v1.0.0 - 2025-12-11 - Initial canonical model, normalization, merge utilities, and helpers.
  */
 
@@ -59,6 +60,7 @@ const PROVIDER_PRIORITY: ProviderSourceName[] = [
   "jblanked-mt",
   "jblanked-fxstreet",
   "nfs",
+  "gpt",
 ];
 
 const PROVIDER_QUALITY: Record<ProviderSourceName, number> = {
@@ -66,6 +68,7 @@ const PROVIDER_QUALITY: Record<ProviderSourceName, number> = {
   "jblanked-mt": 95,
   "jblanked-fxstreet": 95,
   nfs: 80,
+  gpt: 40,
 };
 
 const STATUS_ORDER: Record<CanonicalEconomicEvent["status"], number> = {

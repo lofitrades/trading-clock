@@ -488,7 +488,18 @@ export async function getFilteredEvents(filters = {}) {
     if (endDate && event.date > endDate.getTime()) return false;
     
     // Currency filter
-    if (currencies.length > 0 && !currencies.includes(event.currency)) return false;
+    // IMPORTANT: Include global events (currency === null or currency === 'All') when any currency filter is applied
+    // Global events are part of ALL currencies, so they should always appear regardless of filter
+    if (currencies.length > 0) {
+      const eventCurrency = event.currency;
+      // Always include global events (null or 'All')
+      if (eventCurrency !== null && eventCurrency !== 'All') {
+        // Not a global event, so check if it matches any selected currency
+        if (!currencies.includes(eventCurrency)) {
+          return false;
+        }
+      }
+    }
     
     // Category filter
     if (categories.length > 0 && !categories.includes(event.category)) return false;

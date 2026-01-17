@@ -5,6 +5,7 @@
  * Supports multi-source economic calendar data (mql5, forex-factory, fxstreet)
  * 
  * Changelog:
+ * v2.5.2 - 2026-01-16 - Surface canonical time labels (All Day/Tentative) for GPT placeholders in UI.
  * v2.5.1 - 2026-01-06 - Improved event name formatting to preserve common acronyms (NFP, GDP, CPI, etc.) while keeping matching behavior intact.
  * v2.5.0 - 2025-12-12 - Added cached description index and helper for description availability checks (reduces per-event Firestore reads).
  * v2.4.1 - 2025-12-11 - Normalized impact values for consistent filtering across canonical and legacy data paths.
@@ -405,18 +406,20 @@ export const getEventsByDateRange = async (startDate, endDate, filters = {}) => 
           const eventDate = event.datetimeUtc ? new Date(event.datetimeUtc) : null;
           const impact = normalizeImpactValue(event.impact);
           const formattedName = formatEventName(event.name);
+          const safeSourceKey = event.sourceKey === 'gpt' ? 'canonical' : event.sourceKey;
           return {
             id: event.id,
             name: formattedName,
             currency: event.currency,
             category: null,
             date: eventDate,
+            timeLabel: event.timeLabel || null,
             actual: event.actual,
             forecast: event.forecast,
             previous: event.previous,
             strength: impact,
             quality: null,
-            source: event.sourceKey || 'canonical',
+            source: safeSourceKey || 'canonical',
             // PascalCase aliases for backward compatibility
             Name: formattedName,
             Currency: event.currency,
@@ -509,13 +512,19 @@ export const getEventsByDateRange = async (startDate, endDate, filters = {}) => 
     }
 
     // Apply currency filter (support both lowercase and PascalCase)
+    // IMPORTANT: Include global events (currency === null or currency === 'All') when any currency filter is applied
+    // Global events are part of ALL currencies, so they should always appear regardless of filter
     if (filters.currencies && filters.currencies.length > 0) {
       const beforeCount = events.length;
       
       events = events.filter(event => {
         const currency = event.currency || event.Currency;
-        const matches = filters.currencies.includes(currency);
-        return matches;
+        // Always include global events (null or 'All')
+        if (currency === null || currency === 'All') {
+          return true;
+        }
+        // Include events matching any selected currency
+        return filters.currencies.includes(currency);
       });
     }
 

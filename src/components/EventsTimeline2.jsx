@@ -7,6 +7,7 @@
  * for past events in the selected timezone.
  *
  * Changelog:
+ * v3.8.5 - 2026-01-16 - Display all-day/tentative time labels for GPT placeholder events.
  * v3.8.4 - 2025-12-18 - Centralize impact colors (low impact yellow #F2C94C, unknown taupe #C7B8A4) to avoid collisions with session and NOW colors across timeline badges.
  * v3.8.3 - 2025-12-17 - Added sticky day chip that pins while scrolling a day (chip only; dividers remain inline) for chat-style day headers.
  * v3.8.2 - 2025-12-16 - Floating scroll action now targets NOW when present (blue/info), otherwise NEXT; avoids misleading "Scroll to Next" during active NOW window.
@@ -488,7 +489,7 @@ TodayEmptyState.displayName = 'TodayEmptyState';
  * Supports NOW, NEXT, and PAST states
  * Memoized for performance
  */
-const TimeChip = memo(({ time, isPast, isNext, isNow, timezone, countdownLabel = null }) => {
+const TimeChip = memo(({ time, timeLabel = null, isPast, isNext, isNow, timezone, countdownLabel = null }) => {
   const theme = useTheme();
 
   const stateStyles = (() => {
@@ -527,7 +528,7 @@ const TimeChip = memo(({ time, isPast, isNext, isNow, timezone, countdownLabel =
       icon={<AccessTimeIcon sx={{ fontSize: { xs: 12, sm: 14 } }} />}
       label={
         <Typography component="span" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>
-          {formatTime(time, timezone)}
+          {timeLabel || formatTime(time, timezone)}
         </Typography>
       }
       size="small"
@@ -561,7 +562,8 @@ const TimeChip = memo(({ time, isPast, isNext, isNow, timezone, countdownLabel =
   prevProps.isNext === nextProps.isNext &&
   prevProps.isNow === nextProps.isNow &&
   prevProps.timezone === nextProps.timezone &&
-  prevProps.countdownLabel === nextProps.countdownLabel
+  prevProps.countdownLabel === nextProps.countdownLabel &&
+  prevProps.timeLabel === nextProps.timeLabel
 ));
 
 TimeChip.displayName = 'TimeChip';
@@ -2659,6 +2661,7 @@ export default function EventsTimeline2({
                     <Box sx={{ pl: { xs: 1.5, sm: 2 } }}>
                       <TimeChip
                         time={event.time || event.date}
+                        timeLabel={event.timeLabel || null}
                         isPast={isPast}
                         isNow={isNow}
                         isNext={isNext}

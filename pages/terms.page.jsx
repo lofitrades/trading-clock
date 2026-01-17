@@ -5,6 +5,7 @@
  * and AdSense disclosure required for Time 2 Trade.
  * 
  * Changelog:
+ * v1.0.1 - 2026-01-16 - Updated primary CTA to /clock.
  * v1.0.0 - 2026-01-07 - Added Terms & Conditions with trading and advertising disclaimers.
  */
 
@@ -65,7 +66,7 @@ export default function Page() {
                     <span>Time 2 Trade</span>
                 </div>
                 <nav className="nav">
-                    <a href="/app">Open app</a>
+                    <a href="/clock">Open clock</a>
                     <a href="/">Home</a>
                 </nav>
             </header>

@@ -22,19 +22,34 @@ const distPath = path.resolve(__dirname, '../dist');
 
 const pages = {
   '/': {
-    title: 'Time 2 Trade | Trading Clock + Economic Events for Day Traders',
-    description: 'Visual market sessions and economic events in a New York time-first workspace. Filters, favorites/notes, exports, and fast launch for futures and forex day traders.',
+    title: 'Time 2 Trade | Free Trading Clock + Economic Calendar',
+    description: 'Free economic calendar for forex and futures traders. Live session clock with today\'s events, impact/currency filters, favorites, notes, exports. Trusted Forex Factory source.',
     path: 'index.html',
   },
+  '/clock': {
+    title: 'Trading Clock | Live Market Sessions for Forex & Futures',
+    description: 'Free live trading clock for day traders. Real-time market sessions (NY, London, Asia), overlaps, countdowns, economic events, and timezone-aware insights.',
+    path: 'clock/index.html',
+  },
+  '/calendar': {
+    title: 'Free Economic Calendar | Forex Factory + Session Clock',
+    description: 'Free economic calendar for forex and futures traders. Forex Factory data with session clock context, impact/currency filters, favorites, notes, and exports.',
+    path: 'calendar/index.html',
+  },
   '/about': {
-    title: 'About Time 2 Trade | A clearer view of the trading day',
-    description: 'Lightweight trading clock for futures and forex day traders. Visualize New York, London, and Asia sessions plus an optional economic events workspace with filters, favorites/notes, exports, and fast PWA install. No trading signals.',
+    title: 'About Time 2 Trade | Trading Clock for Futures & Forex',
+    description: 'Time 2 Trade: a lightweight trading clock + economic calendar for futures and forex day traders. Visualize sessions, overlaps, and events with timezone-aware countdowns.',
     path: 'about/index.html',
   },
-  '/contact': {
-    title: 'Contact | Time 2 Trade',
-    description: 'Contact Time 2 Trade for support, feedback, or questions. Send a message and we’ll follow up by email. Prefer DM? Reach us on X.',
-    path: 'contact/index.html',
+  '/privacy': {
+    title: 'Privacy Policy | Time 2 Trade',
+    description: 'How Time 2 Trade collects, uses, and protects your data. Learn about your rights, our legal basis for processing, and controls for consent, deletion, and ad personalization.',
+    path: 'privacy/index.html',
+  },
+  '/terms': {
+    title: 'Terms & Conditions | Time 2 Trade',
+    description: 'Time 2 Trade Terms & Conditions, including acceptable use, disclaimers, and ad disclosures. Free trading intelligence platform for futures and forex day traders.',
+    path: 'terms/index.html',
   },
 };
 

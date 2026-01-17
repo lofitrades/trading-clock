@@ -5,6 +5,7 @@
  * Matches the landing page navigation UI while supporting auth-aware menu items.
  * 
  * Changelog:
+ * v1.0.3 - 2026-01-16 - Updated auth navigation target to /clock.
  * v1.0.2 - 2026-01-12 - Highlight active route menu item using theme primary color.
  * v1.0.1 - 2026-01-12 - UI: Reduce header vertical spacing for a tighter, mobile-first nav.
  * v1.0.0 - 2026-01-12 - Extracted responsive landing navigation into reusable component with AuthContext support.
@@ -63,8 +64,8 @@ export default function NavigationMenu({
 
   const navLinks = useMemo<NavLink[]>(() => {
     const authLink: NavLink = authed
-      ? { id: 'account', label: 'Account', to: '/app' }
-      : { id: 'signin', label: 'Sign in', to: '/app' };
+      ? { id: 'account', label: 'Account', to: '/clock' }
+      : { id: 'signin', label: 'Sign in', to: '/clock' };
 
     return [
       { id: 'primary', label: 'Go to Calendar', onClick: onOpenPrimary },

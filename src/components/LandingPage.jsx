@@ -4,6 +4,8 @@
  * Purpose: High-performance landing page with a live hero clock for futures and forex day traders.
  * Highlights Time 2 Trade value props with brand-safe visuals and responsive hero layout.
  * 
+ * v1.6.1 - 2026-01-16 - Landing hero clock: marker clicks open AuthModal2/EventModal; background clicks route to /clock.
+ * v1.6.0 - 2026-01-16 - Updated homepage SEO meta, routed primary CTAs to /clock, and promoted hero heading to the single H1.
  * v1.5.13 - 2026-01-15 - TOP SPACING ALIGNMENT: Remove extra top padding/margin on landing main content so it aligns with PublicLayout like /about.
  * v1.5.12 - 2026-01-15 - SETTINGS DRAWER WIRING: Route AppBar Settings button to SettingsSidebar2 instead of ContactModal on landing page. Added settings drawer state and handlers with proper modal coordination.
  * v1.5.8 - 2026-01-14 - HIDE MOBILE NAV: Pass hideNavOnMobile={true} to PublicLayout to remove the mobile bottom AppBar on xs/sm breakpoints. Landing page focuses on hero content without bottom nav clutter for both auth and guest visitors. Desktop sticky nav still shows on md+. Cleaner mobile-first experience with full viewport focus on hero clock and copy.
@@ -69,6 +71,7 @@
 
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import {
     Box,
     Button,
@@ -93,6 +96,7 @@ import { siX } from 'simple-icons';
 import ClockCanvas from './ClockCanvas';
 import ClockHandsOverlay from './ClockHandsOverlay';
 const ClockEventsOverlay = lazy(() => import('./ClockEventsOverlay'));
+const EventModal = lazy(() => import('./EventModal'));
 const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
 import LoadingScreen from './LoadingScreen';
 import ContactModal from './ContactModal';
@@ -108,12 +112,12 @@ import SEO from './SEO';
 import '../App.css';
 
 const heroMeta = buildSeoMeta({
-    title: 'Time 2 Trade | Economic Calendar + Session Clock (Forex Factory Data)',
+    title: 'Time 2 Trade | Futures & Forex Session Clock',
     description:
-        'Trading economic calendar with market session clock, today\'s events overview, and visual session timeline. Built on the trusted Forex Factory source with impact/currency filters, favorites, notes, and exports.',
+        'A visual trading clock for intraday traders. See New York, London, and Asia market sessions with real-time countdowns. Plus Forex Factory economic events in one integrated view.',
     path: '/',
     keywords:
-        'economic calendar, forex factory calendar, trading sessions clock, market session times, today\'s economic events, forex news calendar, futures economic calendar, impact filters, currency filters, session overlaps',
+        'trading clock, market sessions, futures trading clock, forex trading clock, session timing, intraday trading, market session times, economic events, day trading tool',
 });
 
 const XIcon = (props) => (
@@ -123,41 +127,42 @@ const XIcon = (props) => (
 );
 
 const socialProofFit = [
-    'Futures and forex day traders',
-    'Traders who check the economic calendar daily',
-    'ICT-style students and similar timing frameworks',
-    'Funded and prop traders who need repeatable routines',
+    'Futures day traders (ES, NQ, YM, indices)',
+    'Forex day traders (majors and USD pairs)',
+    'ICT-style traders and timing framework students',
+    'Prop traders and funded account traders',
 ];
 
 const problemPoints = [
-    'Converting timezones between your chart, calendar, and phone',
-    'Missing a session transition or entering late',
-    'Forgetting a high-impact event is minutes away',
-    'Tab-hopping between tools just to answer: "Is it safe to trade right now?"',
+    'Timezone math in your head while your charts are moving',
+    'Entering a perfect setup 30 seconds before a high-impact release fires',
+    'Missing when London opens or the New York-London overlap starts',
+    'Tab-hopping between three tools just to answer "is it safe to trade now?"',
 ];
 
 const solutionPoints = [
-    'Confirm where you are in the trading day',
-    'See what is coming next',
-    'Keep your routine consistent across devices',
+    'One trading clock shows all three market sessions (New York, London, Asia) in real-time',
+    'Countdown timers tell you exactly when sessions transition',
+    'Integrated Forex Factory events so you see catalysts coming',
+    'Session context + event awareness in one view = timing clarity',
 ];
 
 const benefits = [
     {
-        title: 'Know what session you are in instantly',
-        body: 'A dual-ring 24-hour clock makes the trading day obvious, including overlaps.',
+        title: 'Visualize today\'s market sessions at a glance',
+        body: 'See New York, London, and Asia sessions in real-time on a dual-circle clock. Know exactly where you are in the trading day—zero timezone confusion.',
     },
     {
-        title: 'Stay aware of high-impact event windows',
-        body: 'Filter events by impact and currency to focus on what actually moves your market.',
+        title: 'Avoid event surprises',
+        body: 'High-impact releases can turn profitable setups into losses. Filter by impact and currency, then trade with the confidence that you know what\'s coming.',
     },
     {
-        title: 'Reduce surprise volatility',
-        body: 'Use the app as a fast pre-trade check: session context plus upcoming events.',
+        title: 'Execute with timing precision',
+        body: 'Entry setup is only half the story—timing is everything. Use Time 2 Trade as a pre-trade check to confirm session context and event risk.',
     },
     {
-        title: 'Build a repeatable funded-trader routine',
-        body: 'Launch fast, keep settings consistent, and stick to your plan.',
+        title: 'Build a disciplined trading routine',
+        body: 'Save filters, notes, and event favorites. Keep settings synced across devices. Consistency (especially under pressure) is your competitive edge.',
     },
 ];
 
@@ -165,47 +170,46 @@ const featureSections = [
     {
         id: 'visual-session-clock',
         icon: <AccessTimeIcon fontSize="small" />,
-        eyebrow: 'Visual Session Clock',
-        heading: 'Sessions at a glance (NY / London / Asia)',
-        body: 'See session ranges and overlaps on a clock built for intraday decision-making.',
+        eyebrow: 'Visual Market Sessions',
+        heading: 'Your trading clock: New York, London, Asia',
+        body: 'A dual-circle 24-hour clock shows exactly where you are in the trading day and when sessions transition. Real-time countdowns, active session indicators, and no timezone confusion. This is your primary differentiator—built for intraday traders who need session awareness.',
         bullets: [
-            'Active session indicator and countdown',
-            'Overlap visibility when volatility and volume often change',
-            'Clean canvas-based view that works great on mobile',
+            'Session windows color-coded for New York, London, Asia',
+            'Real-time countdown to next session transition',
+            'Active session indicator (know where you are now)',
         ],
     },
     {
         id: 'economic-events',
         icon: <CalendarMonthIcon fontSize="small" />,
-        eyebrow: 'Economic Events Timeline',
-        heading: 'Economic events where you trade',
-        body: 'Track upcoming releases and keep attention on the events that matter to your strategy.',
+        eyebrow: 'Event Awareness',
+        heading: 'Plus: Forex Factory events integrated',
+        body: 'See high-impact economic releases on the same view as your sessions. High-impact releases move price; filter by impact and currency to focus on what matters. Exportable for pre-market prep.',
         bullets: [
-            'Filter by impact level and currency',
-            'Timeline view for quick scanning',
-            'Save favorites and add personal notes',
-            'Export events for planning (CSV or JSON)',
+            'Trusted Forex Factory data (MQL5-sourced)',
+            'Filter by high-impact only (USD, EUR, etc.)',
+            'Save favorites and add trading notes',
         ],
-        note: 'The full calendar experience is unlocked with a free account so you can save preferences and access the events workspace across devices.',
+        note: 'Free account unlocks full calendar workspace so you can save filters, notes, and favorites across all your devices.',
     },
     {
         id: 'timezone-confidence',
         icon: <SecurityIcon fontSize="small" />,
-        eyebrow: 'Timezone Confidence',
-        heading: 'Designed around New York time',
-        body: 'Most intraday education and session-based execution are anchored to New York time. Time 2 Trade is built around that default workflow with optional timezone handling.',
+        eyebrow: 'Timezone Flexibility',
+        heading: 'New York time by default (switch anytime)',
+        body: 'Most intraday education anchors to New York time. Time 2 Trade defaults to New York but lets you switch to your local timezone instantly. Countdown timers stay synced to your timezone.',
         bullets: [
-            'New York time-first experience',
-            'Clear, consistent time formatting in the app',
-            'Built to reduce chart and calendar timezone mismatch',
+            'New York time-first interface by default',
+            'Switch timezones instantly (stays synced)',
+            'Live countdown timers match your timezone',
         ],
     },
     {
         id: 'performance',
         icon: <PhoneIphoneIcon fontSize="small" />,
         eyebrow: 'Performance & Speed',
-        heading: 'Launch like an app, not a website',
-        body: 'Install Time 2 Trade and open it instantly for quick checks before a session starts or right before a release.',
+        heading: 'Load instantly (even on mobile)',
+        body: 'In trading, speed is precision. Time 2 Trade loads in <1 second, works offline, and installs as a native app. Check your session status before the candle closes—no waiting.',
         bullets: [],
     },
 ];
@@ -214,63 +218,63 @@ const useCases = [
     {
         title: 'Futures day trading (ES/NQ/YM/RTY)',
         bullets: [
-            'Confirm session context before entries',
-            'Watch overlaps and transition windows',
-            'Avoid high-impact releases without tab-hopping',
+            'Know exactly which session you\'re in before every entry',
+            'See when New York-London overlap (volume spike) is coming',
+            'Avoid surprise liquidations near high-impact events',
         ],
     },
     {
-        title: 'Forex day trading (major pairs)',
+        title: 'Forex day trading (major pairs + crosses)',
         bullets: [
-            'Stay aligned with London open and NY overlap',
-            'Filter events by currency such as USD-only',
-            'Keep a clean what is next view throughout the day',
+            'Execute London open with timing confidence',
+            'Know when New York overlap (liquidity surge) starts',
+            'See economic events firing so you avoid whipsaws',
         ],
     },
     {
-        title: 'I only care about CPI / NFP / FOMC',
+        title: 'ICT / Smart Money timing frameworks',
         bullets: [
-            'Set filters once',
-            'Open the app for a 10-second check',
-            'Keep the routine simple and consistent',
+            'Visualize session windows and execution zones',
+            'See exactly when volatility spikes will hit',
+            'Pair session timing with your supply/demand analysis',
         ],
     },
     {
         title: 'Funded and prop trading routines',
         bullets: [
-            'Reduce rule-breaking mistakes near scheduled volatility',
-            'Standardize pre-trade and mid-session checks',
-            'Keep settings synced across devices',
+            'Standardize your pre-trade checklist (session + events)',
+            'Avoid rule-breaking trades near high-impact catalysts',
+            'Settings sync across all devices—consistency is your edge',
         ],
     },
     {
-        title: 'Students using timing frameworks',
+        title: 'Trading students and learning',
         bullets: [
-            'Track timing windows and session structure visually',
-            'Build discipline around trade windows vs no-trade windows',
-            'Pair with your charting platform as a timing HUD',
+            'See how sessions actually move price (live)',
+            'Understand why London open creates volatility',
+            'Learn when economic events fire and impact markets',
         ],
     },
 ];
 
 const howItWorksSteps = [
-    'Step 1 - Open the app: use the clock immediately for session context.',
-    'Step 2 - Set your session view: choose what sessions and ranges stay visible and keep the display clean.',
-    'Step 3 - Unlock the calendar workspace (free account): save filters, view the events timeline, favorite releases, and add notes.',
-    'Step 4 - Trade with better timing: use Time 2 Trade as your timing layer next to your charts.',
+    'Step 1 - Open the app: Get instant session and event context without leaving your charts.',
+    'Step 2 - Customize for your strategy: Show only the sessions and timeframes that matter to your trading plan.',
+    'Step 3 - Save and sync (free account): Filter by impact level and currency, save favorites, add notes—everything syncs across devices.',
+    'Step 4 - Execute with clarity: Use Time 2 Trade as your timing layer. Check before entries, monitor countdown to high-impact releases.',
 ];
 
 const comparisonPoints = [
-    'Visual: sessions and overlaps on a clock',
-    'Fast: built for quick checks, especially on mobile',
-    'Workflow-oriented: timing and scheduled catalysts together',
-    'Routine-friendly: favorites, notes, exports, and fast launch',
+    'Built on a visual trading clock (unique differentiator)',
+    'Shows market sessions + Forex Factory events together',
+    'Fast loading (<1 second) with mobile-native performance',
+    'Made specifically for intraday session-based traders',
 ];
 
 const faqEntries = [
     {
         question: 'Is this for futures, forex, or both?',
-        answer: 'Both. The session clock is built for intraday timing and overlaps, and the economic events view helps for futures and major FX pairs that react to high-impact releases.',
+        answer: 'Both. The session clock is built for intraday traders, and the economic events view helps for futures and major FX pairs that react to high-impact releases.',
     },
     {
         question: 'Do I need an account?',
@@ -286,7 +290,7 @@ const faqEntries = [
     },
     {
         question: 'Is this for ICT killzones?',
-        answer: 'It supports that workflow with session windows, timing ranges, overlaps, and a fast way to confirm whether a major event is close.',
+        answer: 'It supports that workflow with session windows, timing ranges, and a fast way to confirm whether a major event is close.',
     },
     {
         question: 'Does it work on mobile?',
@@ -302,6 +306,8 @@ const landingStructuredData = [
 export default function HomePage2() {
     const theme = useTheme();
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const isAuthenticated = !!user;
     const {
         sessions,
         selectedTimezone,
@@ -413,7 +419,7 @@ export default function HomePage2() {
     const showOverlay = (showEventsOnCanvas ?? true) && (showHandClock ?? true);
 
     const openApp = useCallback(() => {
-        navigate('/app');
+        navigate('/clock');
     }, [navigate]);
 
     const openAuthModal = useCallback(() => {
@@ -421,6 +427,17 @@ export default function HomePage2() {
         setAuthModalOpen(true);
     }, []);
     const closeAuthModal = useCallback(() => setAuthModalOpen(false), []);
+
+    const [selectedEventFromClock, setSelectedEventFromClock] = useState(null);
+    const closeEventModal = useCallback(() => setSelectedEventFromClock(null), []);
+
+    const handleHeroEventClick = useCallback((evt) => {
+        if (!isAuthenticated) {
+            setAuthModalOpen(true);
+            return;
+        }
+        setSelectedEventFromClock(evt);
+    }, [isAuthenticated]);
 
     const openContactModal = useCallback(() => {
         setSettingsOpen(false);
@@ -447,7 +464,17 @@ export default function HomePage2() {
             {/* SEO metadata and modals rendered outside PublicLayout */}
             <SEO {...heroMeta} structuredData={landingStructuredData} />
             <ContactModal open={contactModalOpen} onClose={closeContactModal} />
-            <AuthModal2 open={authModalOpen} onClose={closeAuthModal} redirectPath="/calendar" />
+            <AuthModal2 open={authModalOpen} onClose={closeAuthModal} redirectPath="/clock" />
+            {selectedEventFromClock && isAuthenticated && (
+                <Suspense fallback={null}>
+                    <EventModal
+                        open={Boolean(selectedEventFromClock)}
+                        onClose={closeEventModal}
+                        event={selectedEventFromClock}
+                        timezone={selectedTimezone}
+                    />
+                </Suspense>
+            )}
             <Suspense fallback={null}>
                 <SettingsSidebar2
                     open={settingsOpen && !authModalOpen}
@@ -545,6 +572,7 @@ export default function HomePage2() {
                                         <Typography
                                             id="hero-heading"
                                             variant="h3"
+                                            component="h1"
                                             sx={{
                                                 fontWeight: 700,
                                                 lineHeight: 1.2,
@@ -553,7 +581,7 @@ export default function HomePage2() {
                                                 mb: 1,
                                             }}
                                         >
-                                            Economic calendar with today&apos;s session clock and events
+                                            Trading Clock for Today&apos;s Market Sessions
                                         </Typography>
 
                                         <Typography
@@ -564,52 +592,101 @@ export default function HomePage2() {
                                                 lineHeight: 1.6,
                                             }}
                                         >
-                                            Time 2 Trade combines a trusted Forex Factory economic calendar with a live market session clock. See today&apos;s events, overlaps, and countdowns in one clean, minimalist view with impact and currency filters, favorites, notes, and exports.
+                                            A visual trading clock for intraday traders (futures, forex, ICT). See New York, London, and Asia sessions with countdown timers—plus Forex Factory events so you never trade blind into a release.
                                         </Typography>
 
                                         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap" alignItems={{ xs: 'stretch', md: 'center' }} justifyContent={{ xs: 'center', md: 'flex-start' }}>
-                                            <Button
-                                                onClick={openAuthModal}
-                                                variant="contained"
-                                                color="primary"
-                                                size="large"
-                                                startIcon={<LockIcon />}
-                                                sx={{
-                                                    fontWeight: 800,
-                                                    px: 3,
-                                                    py: 1.5,
-                                                    borderRadius: 999,
-                                                    textTransform: 'none',
-                                                    boxShadow: 'none',
-                                                    width: { xs: '100%', md: 'auto' },
-                                                    '&:hover': {
-                                                        boxShadow: 'none',
-                                                    },
-                                                }}
-                                            >
-                                                Unlock all features
-                                            </Button>
+                                            {!isAuthenticated ? (
+                                                <>
+                                                    <Button
+                                                        onClick={openAuthModal}
+                                                        variant="contained"
+                                                        color="primary"
+                                                        size="large"
+                                                        startIcon={<LockIcon />}
+                                                        sx={{
+                                                            fontWeight: 800,
+                                                            px: 3,
+                                                            py: 1.5,
+                                                            borderRadius: 999,
+                                                            textTransform: 'none',
+                                                            boxShadow: 'none',
+                                                            width: { xs: '100%', md: 'auto' },
+                                                            '&:hover': {
+                                                                boxShadow: 'none',
+                                                            },
+                                                        }}
+                                                    >
+                                                        Unlock all features
+                                                    </Button>
 
-                                            <Button
-                                                onClick={openApp}
-                                                variant="outlined"
-                                                color="inherit"
-                                                size="large"
-                                                startIcon={<CalendarMonthIcon />}
-                                                sx={{
-                                                    color: theme.palette.text.primary,
-                                                    fontWeight: 700,
-                                                    px: 3,
-                                                    py: 1.5,
-                                                    borderRadius: 999,
-                                                    textTransform: 'none',
-                                                    width: { xs: '100%', md: 'auto' },
-                                                    borderColor: theme.palette.text.primary,
-                                                    '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', borderColor: theme.palette.text.primary },
-                                                }}
-                                            >
-                                                Go to Calendar
-                                            </Button>
+                                                    <Button
+                                                        onClick={openApp}
+                                                        variant="outlined"
+                                                        color="inherit"
+                                                        size="large"
+                                                        startIcon={<AccessTimeIcon />}
+                                                        sx={{
+                                                            color: theme.palette.text.primary,
+                                                            fontWeight: 700,
+                                                            px: 3,
+                                                            py: 1.5,
+                                                            borderRadius: 999,
+                                                            textTransform: 'none',
+                                                            width: { xs: '100%', md: 'auto' },
+                                                            borderColor: theme.palette.text.primary,
+                                                            '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', borderColor: theme.palette.text.primary },
+                                                        }}
+                                                    >
+                                                        Open Trading Clock
+                                                    </Button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Button
+                                                        onClick={() => navigate('/clock')}
+                                                        variant="contained"
+                                                        color="primary"
+                                                        size="large"
+                                                        startIcon={<AccessTimeIcon />}
+                                                        sx={{
+                                                            fontWeight: 800,
+                                                            px: 3,
+                                                            py: 1.5,
+                                                            borderRadius: 999,
+                                                            textTransform: 'none',
+                                                            boxShadow: 'none',
+                                                            width: { xs: '100%', md: 'auto' },
+                                                            '&:hover': {
+                                                                boxShadow: 'none',
+                                                            },
+                                                        }}
+                                                    >
+                                                        Open Trading Clock
+                                                    </Button>
+
+                                                    <Button
+                                                        onClick={() => navigate('/calendar')}
+                                                        variant="outlined"
+                                                        color="inherit"
+                                                        size="large"
+                                                        startIcon={<CalendarMonthIcon />}
+                                                        sx={{
+                                                            color: theme.palette.text.primary,
+                                                            fontWeight: 700,
+                                                            px: 3,
+                                                            py: 1.5,
+                                                            borderRadius: 999,
+                                                            textTransform: 'none',
+                                                            width: { xs: '100%', md: 'auto' },
+                                                            borderColor: theme.palette.text.primary,
+                                                            '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', borderColor: theme.palette.text.primary },
+                                                        }}
+                                                    >
+                                                        Go to Calendar
+                                                    </Button>
+                                                </>
+                                            )}
                                         </Stack>
 
                                         {/* Ad/banner removed intentionally */}
@@ -690,7 +767,7 @@ export default function HomePage2() {
                                                                         eventFilters={eventFilters}
                                                                         newsSource={newsSource}
                                                                         disableTooltips
-                                                                        onEventClick={openApp}
+                                                                        onEventClick={handleHeroEventClick}
                                                                         suppressTooltipAutoscroll
                                                                     />
                                                                 </Suspense>
@@ -985,47 +1062,95 @@ export default function HomePage2() {
                                             Check today&apos;s economic events, see which session you&apos;re in, and stay aligned with overlaps and countdowns. Powered by the Forex Factory source with filters, favorites, notes, and exports.
                                         </Typography>
                                         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap" alignItems={{ xs: 'stretch', md: 'center' }} justifyContent={{ xs: 'center', md: 'center' }}>
-                                            <Button
-                                                onClick={openAuthModal}
-                                                variant="contained"
-                                                color="primary"
-                                                size="large"
-                                                startIcon={<LockIcon />}
-                                                sx={{
-                                                    fontWeight: 800,
-                                                    px: 3,
-                                                    py: 1.5,
-                                                    borderRadius: 999,
-                                                    textTransform: 'none',
-                                                    boxShadow: 'none',
-                                                    width: { xs: '100%', md: 'auto' },
-                                                    '&:hover': {
-                                                        boxShadow: 'none',
-                                                    },
-                                                }}
-                                            >
-                                                Unlock all features
-                                            </Button>
-                                            <Button
-                                                onClick={openApp}
-                                                variant="outlined"
-                                                color="inherit"
-                                                size="large"
-                                                startIcon={<CalendarMonthIcon />}
-                                                sx={{
-                                                    color: theme.palette.text.primary,
-                                                    fontWeight: 700,
-                                                    px: 3,
-                                                    py: 1.5,
-                                                    borderRadius: 999,
-                                                    textTransform: 'none',
-                                                    width: { xs: '100%', md: 'auto' },
-                                                    borderColor: theme.palette.text.primary,
-                                                    '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', borderColor: theme.palette.text.primary },
-                                                }}
-                                            >
-                                                Go to Calendar
-                                            </Button>
+                                            {!isAuthenticated ? (
+                                                <>
+                                                    <Button
+                                                        onClick={openAuthModal}
+                                                        variant="contained"
+                                                        color="primary"
+                                                        size="large"
+                                                        startIcon={<LockIcon />}
+                                                        sx={{
+                                                            fontWeight: 800,
+                                                            px: 3,
+                                                            py: 1.5,
+                                                            borderRadius: 999,
+                                                            textTransform: 'none',
+                                                            boxShadow: 'none',
+                                                            width: { xs: '100%', md: 'auto' },
+                                                            '&:hover': {
+                                                                boxShadow: 'none',
+                                                            },
+                                                        }}
+                                                    >
+                                                        Unlock all features
+                                                    </Button>
+                                                    <Button
+                                                        onClick={openApp}
+                                                        variant="outlined"
+                                                        color="inherit"
+                                                        size="large"
+                                                        startIcon={<AccessTimeIcon />}
+                                                        sx={{
+                                                            color: theme.palette.text.primary,
+                                                            fontWeight: 700,
+                                                            px: 3,
+                                                            py: 1.5,
+                                                            borderRadius: 999,
+                                                            textTransform: 'none',
+                                                            width: { xs: '100%', md: 'auto' },
+                                                            borderColor: theme.palette.text.primary,
+                                                            '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', borderColor: theme.palette.text.primary },
+                                                        }}
+                                                    >
+                                                        Open Trading Clock
+                                                    </Button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Button
+                                                        onClick={() => navigate('/clock')}
+                                                        variant="contained"
+                                                        color="primary"
+                                                        size="large"
+                                                        startIcon={<AccessTimeIcon />}
+                                                        sx={{
+                                                            fontWeight: 800,
+                                                            px: 3,
+                                                            py: 1.5,
+                                                            borderRadius: 999,
+                                                            textTransform: 'none',
+                                                            boxShadow: 'none',
+                                                            width: { xs: '100%', md: 'auto' },
+                                                            '&:hover': {
+                                                                boxShadow: 'none',
+                                                            },
+                                                        }}
+                                                    >
+                                                        Open Trading Clock
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => navigate('/calendar')}
+                                                        variant="outlined"
+                                                        color="inherit"
+                                                        size="large"
+                                                        startIcon={<CalendarMonthIcon />}
+                                                        sx={{
+                                                            color: theme.palette.text.primary,
+                                                            fontWeight: 700,
+                                                            px: 3,
+                                                            py: 1.5,
+                                                            borderRadius: 999,
+                                                            textTransform: 'none',
+                                                            width: { xs: '100%', md: 'auto' },
+                                                            borderColor: theme.palette.text.primary,
+                                                            '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', borderColor: theme.palette.text.primary },
+                                                        }}
+                                                    >
+                                                        Go to Calendar
+                                                    </Button>
+                                                </>
+                                            )}
                                         </Stack>
                                         <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
                                             Not financial advice. Trading involves risk.

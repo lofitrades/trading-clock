@@ -24,6 +24,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { ThemeProvider } from '@mui/material/styles';
 import { AuthProvider } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { TooltipProvider } from './contexts/TooltipContext';
 import theme from './theme';
 import './index.css';
 import AppRoutes from './routes/AppRoutes';
@@ -49,7 +50,9 @@ createRoot(document.getElementById('root')).render(
         <ThemeProvider theme={theme}>
           <AuthProvider>
             <SettingsProvider>
-              <AppRoutes />
+              <TooltipProvider>
+                <AppRoutes />
+              </TooltipProvider>
             </SettingsProvider>
           </AuthProvider>
         </ThemeProvider>

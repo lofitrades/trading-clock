@@ -6,6 +6,7 @@
  * Mobile-first, fully responsive, with verification state management.
  * 
  * Changelog:
+ * v1.1.4 - 2026-01-16 - Redirect social login success to /calendar for the new public clock route.
  * v1.1.3 - 2026-01-08 - Reverted to Firebase sendSignInLinkToEmail with custom SMTP; removed SendGrid Cloud Function dependency
  * v1.1.2 - 2025-12-22 - Redirect social login success to /app instead of root for post-auth landing.
  * v1.1.1 - 2025-12-22 - Swapped text avatar with official secondary teal logo asset and aligned with brand hierarchy.
@@ -112,7 +113,7 @@ export default function LoginPage() {
 
       await signInWithPopup(auth, provider);
       setSuccessMsg(getSuccessMessage('login'));
-      setTimeout(() => navigate('/app'), 1000);
+      setTimeout(() => navigate('/calendar'), 1000);
     } catch (err) {
       setErrorMsg(getFriendlyErrorMessage(err.code));
     }

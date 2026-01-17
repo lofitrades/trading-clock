@@ -7,15 +7,15 @@
   <!-- Landing Page -->
   <url>
     <loc>https://time2.trade/</loc>
-    <lastmod>2026-01-07</lastmod>
+    <lastmod>2026-01-16</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   
-  <!-- App Workspace -->
+  <!-- Trading Clock -->
   <url>
-    <loc>https://time2.trade/app</loc>
-    <lastmod>2026-01-07</lastmod>
+    <loc>https://time2.trade/clock</loc>
+    <lastmod>2026-01-16</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
@@ -23,7 +23,7 @@
   <!-- Economic Calendar -->
   <url>
     <loc>https://time2.trade/calendar</loc>
-    <lastmod>2026-01-07</lastmod>
+    <lastmod>2026-01-16</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
@@ -31,15 +31,23 @@
   <!-- About Page -->
   <url>
     <loc>https://time2.trade/about</loc>
-    <lastmod>2026-01-09</lastmod>
+    <lastmod>2026-01-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
-  <!-- Contact Page -->
+  <!-- Privacy Policy -->
   <url>
-    <loc>https://time2.trade/contact</loc>
-    <lastmod>2026-01-09</lastmod>
+    <loc>https://time2.trade/privacy</loc>
+    <lastmod>2026-01-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Terms & Conditions -->
+  <url>
+    <loc>https://time2.trade/terms</loc>
+    <lastmod>2026-01-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

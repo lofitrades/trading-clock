@@ -223,7 +223,7 @@ function VerifyingModal({ onClose }) {
   );
 }
 
-export default function AuthModal2({ open, onClose, initialMode = 'signup', forceOpen = false, redirectPath = '/calendar' }) {
+export default function AuthModal2({ open, onClose, initialMode = 'signup', forceOpen = false, redirectPath = '/clock' }) {
   const [email, setEmail] = useState('');
   const [isSignup, setIsSignup] = useState(initialMode === 'signup');
   const [errorMsg, setErrorMsg] = useState('');

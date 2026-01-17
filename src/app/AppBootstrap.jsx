@@ -1,11 +1,12 @@
 /**
  * src/app/AppBootstrap.jsx
  * 
- * Purpose: Reusable SPA bootstrap for the /app route with providers and routing.
+ * Purpose: Reusable SPA bootstrap for SSR pages with providers and routing.
  * Keeps DOM access behind effects so SSR prerendering stays safe while the app
  * remains fully client-driven after hydration.
  * 
  * Changelog:
+ * v1.1.0 - 2026-01-16 - Removed hardcoded basename to support /clock and /app routes from SSR.
  * v1.0.0 - 2025-12-18 - Extracted bootstrap component for vite-plugin-ssr integration.
  */
 
@@ -27,7 +28,7 @@ export default function AppBootstrap() {
     }, []);
 
     return (
-        <BrowserRouter basename="/app">
+        <BrowserRouter>
             <ThemeProvider theme={theme}>
                 <AuthProvider>
                     <SettingsProvider>

@@ -5,6 +5,7 @@
  * Renders a sticky sub-header on md+ and an Airbnb-style bottom navigation on xs/sm.
  * 
  * Changelog:
+ * v1.4.9 - 2026-01-16 - NAV ORDER: Reordered nav items so Trading Clock appears before Calendar on all breakpoints.
  * v1.4.8 - 2026-01-15 - DESKTOP SETTINGS VISIBILITY: Show Settings button for non-auth users on md+ when AppBar is visible.
  * v1.4.7 - 2026-01-15 - CRITICAL CSS VARIABLE FIX: Changed isMobile from useMediaQuery(theme.breakpoints.down('sm'))
  * to useMediaQuery(theme.breakpoints.down('md')). The mobile bottom nav is displayed on xs AND sm (display: { xs: 'block', md: 'none' }),
@@ -98,7 +99,7 @@ export type AppBarProps = {
 };
 
 const clampItems = (items: AppBarNavItem[]) => {
-  // Allow up to 6 items: Calendar, Clock, Roadmap, About, Settings, Unlock
+  // Allow up to 6 items: Clock, Calendar, Roadmap, About, Settings, Unlock
   // Always ensure 'settings' and 'unlock' buttons are visible (never clamp them out)
   const settingsItem = items.find((item) => item.id === 'settings');
   const unlockMdItem = items.find((item) => item.id === 'unlock-md');
@@ -114,7 +115,7 @@ const clampItems = (items: AppBarNavItem[]) => {
     );
     
     // Add items up to slot for settings/unlock
-    const numMainItems = 4; // Calendar, Clock, Roadmap, About
+    const numMainItems = 4; // Clock, Calendar, Roadmap, About
     keepItems.push(...mainItems.slice(0, numMainItems));
     
     // Add control items at the end
@@ -148,14 +149,14 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, isAuthenticated } = useAuth();
 
-  // Build processed items: remove 'contact', handle 'about' and 'roadmap', then reorder to: Calendar, Clock, Roadmap, About, Settings/Unlock
+  // Build processed items: remove 'contact', handle 'about' and 'roadmap', then reorder to: Clock, Calendar, Roadmap, About, Settings/Unlock
   const processedItems = useMemo(() => {
     // Filter out contact items but keep about items
     const filtered = items.filter((item) => item.id !== 'contact');
 
-    // Extract Calendar, Clock, and About items to maintain their order at the start
-    const calendarItem = filtered.find((item) => item.id === 'calendar');
+    // Extract Clock, Calendar, and About items to maintain their order at the start
     const clockItem = filtered.find((item) => item.id === 'clock');
+    const calendarItem = filtered.find((item) => item.id === 'calendar');
     const aboutItem = filtered.find((item) => item.id === 'about');
 
     // Remove them from filtered so we can rebuild in specific order
@@ -164,11 +165,11 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
     // Build the final ordered array
     const ordered: AppBarNavItem[] = [];
 
-    // Add Calendar first
-    if (calendarItem) ordered.push(calendarItem);
-
-    // Add Clock second
+    // Add Clock first
     if (clockItem) ordered.push(clockItem);
+
+    // Add Calendar second
+    if (calendarItem) ordered.push(calendarItem);
 
     // Add Roadmap third
     const roadmapItem: AppBarNavItem = {
