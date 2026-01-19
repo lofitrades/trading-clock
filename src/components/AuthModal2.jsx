@@ -58,6 +58,7 @@ import {
   ListItemIcon,
   ListItemText,
 } from '@mui/material';
+import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 import CloseIcon from '@mui/icons-material/Close';
 import GoogleIcon from '@mui/icons-material/Google';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -87,7 +88,7 @@ function EmailSentModal({ email, onClose }) {
       fullWidth
       sx={{ zIndex: 12003 }}
       slotProps={{
-        backdrop: { sx: { zIndex: -1 } },
+        backdrop: { sx: BACKDROP_OVERLAY_SX },
         paper: { sx: { borderRadius: 3 } },
       }}
     >
@@ -399,17 +400,10 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
         backdrop: forceOpen
           ? {
             onClick: (e) => e.stopPropagation(),
-            sx: {
-              zIndex: -1,
-              // Absolute highest: blocks clicks above all UI including EmailLinkHandler (9998-10000) and WelcomeModal (11000)
-              // Renders above on all breakpoints (xs/sm/md/lg/xl)
-            }
+            sx: BACKDROP_OVERLAY_SX,
           }
           : {
-            sx: {
-              zIndex: -1,
-              // Absolute highest: blocks clicks above all UI including EmailLinkHandler (9998-10000) and WelcomeModal (11000)
-            }
+            sx: BACKDROP_OVERLAY_SX,
           },
         paper: {
           sx: {

@@ -27,6 +27,7 @@ import {
   Stack,
   Divider,
 } from '@mui/material';
+import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -41,7 +42,7 @@ export default function WelcomeModal({ onClose, userEmail }) {
       fullWidth
       sx={{ zIndex: 1701 }}
       slotProps={{
-        backdrop: { sx: { zIndex: -1 } },
+        backdrop: { sx: BACKDROP_OVERLAY_SX },
         paper: { sx: { borderRadius: 3 } },
       }}
     >

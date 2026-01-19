@@ -34,7 +34,7 @@ export default function PublicRoute({
 
   // Show loading spinner while checking authentication
   if (loading || (user && profileLoading)) {
-    return <RouteLoading message="Loading..." />;
+    return <RouteLoading message="Almost ready..." />;
   }
 
   // If route is restricted and user is authenticated, redirect

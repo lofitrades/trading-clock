@@ -5,6 +5,7 @@
  * Supplies clock visibility, styling, timezone, news source, and economic events overlay controls to the app.
  * 
  * Changelog:
+ * v1.6.1 - 2026-01-17 - ENHANCED LOGOUT: Improved resetSettings to ensure complete user preference cleanup. Fixed showSessionLabel default to false (not true) for consistency. Added try-catch around Firestore reset to prevent logout failures if reset fails. Added detailed step-by-step comments explaining the reset flow. Follows BEP enterprise logout patterns.
  * v1.6.0 - 2026-01-14 - CRITICAL FIX: Replaced one-time getDoc with real-time onSnapshot listener for authenticated users. Settings now sync in real-time across all open tabs/pages. Added save-lock mechanism (isSavingRef) to prevent listener from overwriting local changes during active saves. Refactored settings application into reusable applyFirestoreSettings callback. Enterprise-grade cross-session consistency following Firebase best practices.
  * v1.5.0 - 2026-01-13 - CRITICAL FIX: Added searchQuery to eventFilters schema; fixed updateEventFilters to properly normalize and serialize all filter fields; ensures filter consistency across sessions and page refreshes via proper Firestore/localStorage sync.
  * v1.4.7 - 2026-01-08 - Removed standalone "Background Color" setting; only Session-based Background functionality remains.
@@ -538,20 +539,17 @@ export function SettingsProvider({ children }) {
   };
 
   const resetSettings = async () => {
-    // Clear localStorage
-    localStorage.clear();
-
-    // Create deep copies of default sessions to ensure colors are fully reset
+    // STEP 1: Reset all state values to defaults immediately
+    // This ensures React components see the reset state right away
     const resetSessions = defaultSessions.map(session => ({ ...session }));
 
-    // Reset all state values to defaults
     setClockSize(375);
     setSessions(resetSessions);
     setSelectedTimezone('America/New_York');
     setBackgroundBasedOnSession(false);
     setShowHandClock(true);
     setShowDigitalClock(true);
-    setShowSessionLabel(true);
+    setShowSessionLabel(false); // Default to hidden per v1.4.3
     setShowTimezoneLabel(true);
     setShowTimeToEnd(true);
     setShowTimeToStart(true);
@@ -572,39 +570,49 @@ export function SettingsProvider({ children }) {
       searchQuery: '',
     });
 
-    // Also reset in Firestore if user is logged in
+    // STEP 2: Clear localStorage of all keys (guest user cleanup)
+    // This removes all stored preferences from the device
+    localStorage.clear();
+
+    // STEP 3: Reset Firestore if user is currently authenticated
+    // Ensures clean state across all devices when user logs back in
     if (user) {
-      const defaultSettings = {
-        clockStyle: 'normal',
-        canvasSize: 100,
-        clockSize: 375,
-        sessions: defaultSessions.map(session => ({ ...session })),
-        selectedTimezone: 'America/New_York',
-        backgroundBasedOnSession: false,
-        showHandClock: true,
-        showDigitalClock: true,
-        showSessionLabel: false,
-        showTimezoneLabel: true,
-        showTimeToEnd: true,
-        showTimeToStart: true,
-        showSessionNamesInCanvas: true,
-        showEventsOnCanvas: true,
-        showClockNumbers: true,
-        showClockHands: true,
-        showPastSessionsGray: false,
-        newsSource: DEFAULT_NEWS_SOURCE,
-        preferredSource: 'auto',
-        eventFilters: {
-          startDate: null,
-          endDate: null,
-          impacts: [],
-          eventTypes: [],
-          currencies: [],
-          favoritesOnly: false,
-          searchQuery: '',
-        },
-      };
-      await saveSettingsToFirestore(defaultSettings);
+      try {
+        const defaultSettings = {
+          clockStyle: 'normal',
+          canvasSize: 100,
+          clockSize: 375,
+          sessions: defaultSessions.map(session => ({ ...session })),
+          selectedTimezone: 'America/New_York',
+          backgroundBasedOnSession: false,
+          showHandClock: true,
+          showDigitalClock: true,
+          showSessionLabel: false,
+          showTimezoneLabel: true,
+          showTimeToEnd: true,
+          showTimeToStart: true,
+          showSessionNamesInCanvas: true,
+          showEventsOnCanvas: true,
+          showClockNumbers: true,
+          showClockHands: true,
+          showPastSessionsGray: false,
+          newsSource: DEFAULT_NEWS_SOURCE,
+          preferredSource: 'auto',
+          eventFilters: {
+            startDate: null,
+            endDate: null,
+            impacts: [],
+            eventTypes: [],
+            currencies: [],
+            favoritesOnly: false,
+            searchQuery: '',
+          },
+        };
+        await saveSettingsToFirestore(defaultSettings);
+      } catch (err) {
+        console.error('Failed to reset Firestore settings during logout:', err);
+        // Continue with logout even if Firestore reset fails - local state is already clean
+      }
     }
   };
 

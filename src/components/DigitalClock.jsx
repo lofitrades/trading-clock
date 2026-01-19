@@ -20,9 +20,9 @@ const DigitalClock = React.memo(({ time, clockSize, textColor }) => {
   // Enterprise: Memoize font size calculation since it only changes when clockSize changes
   const computedFontSize = useMemo(() => {
     const baseSize = 375;
-    const baseFontSize = 28;
+    const baseFontSize = 18;
     const scaleFactor = clockSize / baseSize;
-    return Math.max(16, Math.round(baseFontSize * scaleFactor));
+    return Math.max(12, Math.round(baseFontSize * scaleFactor));
   }, [clockSize]);
 
   // Enterprise: Memoize time formatting with millisecond precision to sync with hand animations
@@ -49,7 +49,7 @@ const DigitalClock = React.memo(({ time, clockSize, textColor }) => {
       fontSize: `${computedFontSize}px`,
       color: textColor,
       fontWeight: 400,
-      marginBottom: '10px',
+      marginBottom: 0,
     }),
     [computedFontSize, textColor]
   );

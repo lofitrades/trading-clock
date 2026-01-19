@@ -7,12 +7,15 @@
  * 
  * Key Features:
  * - Handles full logout flow (sign-out, settings reset, navigation)
+ * - Complete user data cleanup (Firebase + localStorage + all preferences)
+ * - Sets sensible defaults after logout confirmation
  * - Error boundary with user-friendly error messages
  * - Prevents double-clicks with loading state
  * - Respects user preference for reduced motion
  * - Enterprise z-index stacking (Dialog: 10001+)
  * 
  * Changelog:
+ * v1.1.0 - 2026-01-17 - ENHANCED LOGOUT: Ensure complete user preference cleanup. Reset settings BEFORE sign-out to clear state immediately. Add explicit localStorage targeted cleanup for user-specific keys. Ensure all async operations complete before navigation. Set sensible defaults (America/New_York timezone, show all clock elements). Follows BEP enterprise logout patterns.
  * v1.0.1 - 2026-01-15 - Modal layering: keep backdrop behind paper and ensure modal stacks above AppBar.
  * v1.0.0 - 2026-01-14 - INITIAL COMPONENT: Created standalone LogoutModal for enterprise logout flow.
  * Manages Firebase sign-out, settings reset, and navigation internally. Prevents double-click logout
@@ -33,6 +36,7 @@ import {
     Box,
     Alert,
 } from '@mui/material';
+import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
@@ -60,13 +64,44 @@ const LogoutModal = ({ open = false, onClose, onLogoutComplete }) => {
         setError(null);
 
         try {
-            // Sign out from Firebase
+            // STEP 1: Reset all user settings and preferences FIRST
+            // This clears localStorage and resets all state to defaults
+            // Must happen before Firebase sign-out to ensure clean state
+            await resetSettings();
+
+            // STEP 2: Clear any remaining user-specific localStorage keys
+            // Target only user-specific data, not app-wide data like consent
+            const userSpecificKeys = [
+                'selectedTimezone',
+                'eventFilters',
+                'newsSource',
+                'clockSize',
+                'sessions',
+                'showHandClock',
+                'showDigitalClock',
+                'showSessionLabel',
+                'showTimezoneLabel',
+                'showTimeToEnd',
+                'showTimeToStart',
+                'showSessionNamesInCanvas',
+                'showEventsOnCanvas',
+                'showClockNumbers',
+                'showClockHands',
+                'showPastSessionsGray',
+                'backgroundBasedOnSession',
+            ];
+
+            userSpecificKeys.forEach(key => {
+                if (localStorage.getItem(key)) {
+                    localStorage.removeItem(key);
+                }
+            });
+
+            // STEP 3: Sign out from Firebase
+            // After state reset, perform Firebase sign-out
             await signOut(auth);
 
-            // Reset user settings (localStorage and Firestore cache)
-            resetSettings();
-
-            // Close modal
+            // STEP 4: Close modal and trigger callbacks
             handleClose();
 
             // Call success callback if provided
@@ -74,7 +109,8 @@ const LogoutModal = ({ open = false, onClose, onLogoutComplete }) => {
                 onLogoutComplete();
             }
 
-            // Navigate to home
+            // STEP 5: Navigate to home after all cleanup is complete
+            // Ensures user sees clean state on home page
             navigate('/');
         } catch (err) {
             console.error('Logout failed:', err);
@@ -93,7 +129,7 @@ const LogoutModal = ({ open = false, onClose, onLogoutComplete }) => {
             fullWidth
             sx={{ zIndex: 1701 }}
             slotProps={{
-                backdrop: { sx: { zIndex: -1 } },
+                backdrop: { sx: BACKDROP_OVERLAY_SX },
             }}
             PaperProps={{
                 sx: {

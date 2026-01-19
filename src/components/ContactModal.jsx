@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Dialog, DialogContent, DialogTitle, IconButton, LinearProgress, Typography, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
+import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 
 export default function ContactModal({ open, onClose }) {
     const theme = useTheme();
@@ -81,9 +82,7 @@ export default function ContactModal({ open, onClose }) {
             TransitionProps={{ onEnter: handleEnter }}
             aria-labelledby="contact-modal-title"
             slotProps={{
-                backdrop: {
-                    sx: { zIndex: -1 },
-                },
+                backdrop: { sx: BACKDROP_OVERLAY_SX },
             }}
             PaperProps={{
                 sx: {

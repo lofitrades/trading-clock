@@ -5,6 +5,7 @@
  * Centers the navigation chrome, preserves mobile bottom nav behavior, and keeps the layout banner-free by default.
  * 
  * Changelog:
+ * v1.0.41 - 2026-01-17 - FULLSCREEN MODE SUPPORT: Added isFullscreenMode prop to conditionally hide AppBar when fullscreen is active. AppBar display now checks isFullscreenMode first, hiding all navigation chrome for immersive clock-only experience. Updated PropTypes and defaultProps to include isFullscreenMode (defaults to false).
  * v1.0.40 - 2026-01-14 - LOGOUT MODAL REFACTOR: Replaced inline ConfirmModal with standalone LogoutModal component.
  * PublicLayout now passes the logout modal to mobile brand lockup UserAvatar but delegates logout flow to LogoutModal.
  * Removes duplicated logout logic and simplifies state management. Improves separation of concerns across components.
@@ -64,7 +65,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 const LogoutModal = lazy(() => import('./LogoutModal'));
 
-const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavOnMobile }) => {
+const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavOnMobile, isFullscreenMode = false }) => {
     const hasNavItems = useMemo(() => Array.isArray(navItems) && navItems.length > 0, [navItems]);
     const { user } = useAuth();
 
@@ -182,7 +183,7 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                             top: 0,
                             zIndex: 1400,
                             width: '100%',
-                            display: { xs: hideNavOnMobile ? 'none' : 'flex', md: 'flex' },
+                            display: isFullscreenMode ? 'none' : { xs: hideNavOnMobile ? 'none' : 'flex', md: 'flex' },
                             justifyContent: 'center',
                             mb: { xs: 0, md: 2 },
                         }}
@@ -278,11 +279,13 @@ PublicLayout.propTypes = {
     onOpenSettings: PropTypes.func,
     onOpenAuth: PropTypes.func,
     hideNavOnMobile: PropTypes.bool,
+    isFullscreenMode: PropTypes.bool,
 };
 
 PublicLayout.defaultProps = {
     navItems: [],
     hideNavOnMobile: false,
+    isFullscreenMode: false,
 };
 
 export default PublicLayout;

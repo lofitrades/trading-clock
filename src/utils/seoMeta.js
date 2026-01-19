@@ -10,7 +10,7 @@
  */
 
 const SITE_URL = 'https://time2.trade';
-const DEFAULT_OG_IMAGE = `${SITE_URL}/Time2Trade_SEO_Meta_3.PNG`;
+const DEFAULT_OG_IMAGE = `${SITE_URL}/Time2Trade_SEO_Meta_5.PNG`;
 const DEFAULT_TWITTER_SITE = '@time2_trade';
 const DEFAULT_THEME_COLOR = '#018786';
 

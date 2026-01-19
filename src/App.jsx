@@ -6,7 +6,16 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
- * v2.6.86 - 2026-01-16 - SEO HEADING: Added a single visible H1 label for the trading clock and updated nav to /clock.
+ * v2.6.98 - 2026-01-17 - AUTO-FULLSCREEN FROM CALENDAR: Added useEffect to detect ?autoFullscreen=true query param on mount. When present and hasCalculatedClockSize is true, automatically calls toggleFullscreenMode() to enter fullscreen immediately. After activation, removes query param via window.history.replaceState() to clean up URL. Enables seamless fullscreen entry from /calendar page when user clicks the new fullscreen shortcut button in ClockPanelPaper. Effect dependencies: [hasCalculatedClockSize, isFullscreenMode, toggleFullscreenMode].
+ * v2.6.97 - 2026-01-17 - TIMEZONE MODAL REFACTOR: Extracted inline Dialog/TimezoneSelector code into standalone TimezoneModal component (src/components/TimezoneModal.jsx). App.jsx now uses lazy-loaded TimezoneModal with props: open, onClose, onOpenAuth, zIndex. Removed Dialog, DialogTitle, DialogContent, IconButton, CloseIcon imports (no longer needed). Improves reusability across /clock and /calendar pages, cleaner code, follows component composition BEP, and maintains z-index management. TimezoneModal handles all modal UI while App.jsx handles just state management.
+ * v2.6.96 - 2026-01-17 - BUGFIX: Close EventModal when exiting fullscreen mode. Added useEffect that watches isFullscreenMode and calls closeEventModal when transitioning from fullscreen to normal mode. Prevents modal from persisting after user exits fullscreen, improving UX for fullscreen immersive experience. Modal state now properly resets when exiting fullscreen on all breakpoints.
+ * v2.6.95 - 2026-01-17 - FULLSCREEN TOOLTIP STACKING CONTEXT FIX: Pass isFullscreenMode prop to ClockCanvas and ClockEventsOverlay. Both components now conditionally render tooltips with absolute positioning (in fullscreen) vs Portal rendering (normal mode). Absolute positioning keeps tooltips within the fullscreen element's stacking context, fixing visibility bug where tooltips were hidden behind the fullscreen element. Tooltips now visible in fullscreen mode on hover (SessionArcTooltip) and click (EventMarkerTooltip). Enterprise BEP: Responsive, tested on xs/sm/md/lg/xl.
+ * v2.6.94 - 2026-01-17 - VERTICAL CENTERING DEEP FIX: Traced and fixed the root cause of vertical centering failure. The issue was the clock-elements-container <div> was NOT a flex item, so it didn't participate in flex layout centering. Changed clock-elements-container from a plain <div> to a MUI Box with display:flex, flexDirection:column, flex:1, alignItems:center, justifyContent:center. Also removed minHeight:0 and pt padding from the outer content Box (causes flex issues), simplified to flex:1 with only pb padding. Now the entire flex chain works correctly: PublicLayout centers → App Box centers → clock container centers → clock group centers on all breakpoints. Verified layout audit trace: PublicLayout → appContainerRef → content Box → clock-elements-container → clock wrapper.
+ * v2.6.93 - 2026-01-17 - VERTICAL CENTERING: Changed main content Box from justifyContent: 'flex-start' to 'center' so the clock canvas + digital clock + date group is vertically centered within the main content section. Follows enterprise layout best practice of visual hierarchy centering. Clock group centers naturally while maintaining scrollability and responsive padding on all breakpoints.
+ * v2.6.92 - 2026-01-17 - FULLSCREEN BROWSER API: Updated useClockFullscreenMode to integrate with browser's Fullscreen API. Now entering fullscreen mode also requests browser fullscreen via element.requestFullscreen() and exiting fullscreen exits both UI state and browser fullscreen. Matches enterprise full-viewport UX like SettingsSidebar2 fullscreen button. Immersive clock experience with no UI chrome and no browser toolbars.
+ * v2.6.91 - 2026-01-17 - FULLSCREEN APPBAR HIDE: Pass isFullscreenMode prop to PublicLayout so the AppBar is also hidden when entering fullscreen mode. Now fullscreen hides: AppBar, EventsFilters3, headings, and timezone button for complete immersive experience.
+ * v2.6.90 - 2026-01-17 - FULLSCREEN MODE: Added fullscreen icon button (fixed bottom-left) that hides AppBar, EventsFilters3, headings (h1, h2), and timezone button for immersive clock-only viewing. Imported useClockFullscreenMode hook and FullscreenModeButton component. Added isFullscreenMode state and display:none toggle to header Box. FullscreenModeButton renders at z-index:1050 above clock but below modals. Improves focus on the clock without navigation chrome distractions.
+ * v2.6.89 - 2026-01-16 - RESPONSIVE HEADER LAYOUT: Reorganized header to display "Trading Clock" + "Today's Market Sessions" (left-aligned) and EventsFilters3 (right-aligned) on the same row for md+. On xs/sm, headings remain centered and stacked while filters stay fixed at bottom. Updated height calculation to account for new header row layout: headerHeightEstimate changed from 50px (stacked headings only) to 46px (headings + filters in same row on md+, or headings alone on xs/sm). Adjusted H2 mb from variable to 0 since it now sits in a flex row. Ensures content properly centers across all breakpoints.
  * v2.6.85 - 2026-01-15 - LOADINGSCREEN REMOVAL: Removed LoadingScreen from root App.jsx level (import and both render calls). LoadingScreen is now handled by PublicLayout following enterprise layout best practices. Simplifies App.jsx to focus on clock content and modals, not loading chrome.
  * v2.6.84 - 2026-01-14 - MOBILE SCROLL PADDING FIX: Added responsive pb (padding-bottom) to inner content Box for xs/sm to account for PublicLayout mobile logo row (32px logo + 16px pb = 48px). Formula: xs/sm use calc(8 * 8px + 48px) = 112px, md+ uses contentPaddingBottom (calculated dynamically). Ensures content scrolls all the way to bottom without being clipped on mobile. Matches AboutPage and CalendarEmbedLayout pattern for consistent scrollability across all pages.
  * v2.6.83 - 2026-01-14 - CENTERING FIX (ENTERPRISE DEEP AUDIT): Fixed PublicLayout flex/width conflict affecting /app centering on all breakpoints. PublicLayout now uses proper flex:center pattern (justifyContent:center + alignItems:center) for enterprise-grade centering instead of conflicting mx:auto approach. App.jsx app-container is now just a flex column for layout (no centering styles, no width/maxWidth duplicates). Content naturally centers through PublicLayout. Matches enterprise MUI dashboard pattern and works consistently on xs/sm/md/lg/xl.
@@ -103,9 +112,8 @@
  */
 
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Box, Typography, useMediaQuery, Dialog, DialogTitle, DialogContent, IconButton, Button, alpha } from '@mui/material';
+import { Box, Typography, useMediaQuery, Button, alpha } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import CloseIcon from '@mui/icons-material/Close';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
@@ -116,12 +124,13 @@ import { useClock } from './hooks/useClock';
 import { useTimeEngine } from './hooks/useTimeEngine';
 import { useClockVisibilitySnap } from './hooks/useClockVisibilitySnap';
 import useFullscreen from './hooks/useFullscreen';
+import useClockFullscreenMode from './hooks/useClockFullscreenMode';
 import { useAuth } from './contexts/AuthContext';
 import ClockCanvas from './components/ClockCanvas';
 import ClockHandsOverlay from './components/ClockHandsOverlay';
-import DigitalClock from './components/DigitalClock';
 import SessionLabel from './components/SessionLabel';
 import InstallPromptCTA from './components/InstallPromptCTA';
+import FullscreenModeButton from './components/FullscreenModeButton';
 import { MOBILE_BOTTOM_APPBAR_HEIGHT_PX } from './components/AppBar';
 import PublicLayout from './components/PublicLayout';
 import { isColorDark, normalizeClockSize } from './utils/clockUtils';
@@ -134,7 +143,7 @@ const ClockEventsOverlay = lazy(() => import('./components/ClockEventsOverlay'))
 const ContactModal = lazy(() => import('./components/ContactModal'));
 const EventModal = lazy(() => import('./components/EventModal'));
 const EventsFilters3 = lazy(() => import('./components/EventsFilters3'));
-const TimezoneSelector = lazy(() => import('./components/TimezoneSelector'));
+const TimezoneModal = lazy(() => import('./components/TimezoneModal'));
 
 export default function App() {
   const {
@@ -186,6 +195,7 @@ export default function App() {
   const [minLoaderElapsed, setMinLoaderElapsed] = useState(false);
   const appContainerRef = useRef(null);
   const { isFullscreen } = useFullscreen(appContainerRef);
+  const { isFullscreenMode, toggleFullscreenMode } = useClockFullscreenMode(appContainerRef);
   const handAnglesRef = useRef({ hour: 0, minute: 0, second: 0 });
   useClockVisibilitySnap({ handAnglesRef, currentTime, resumeToken: timeEngine?.resumeToken });
   const [overlayLoading, setOverlayLoading] = useState(false);
@@ -193,6 +203,17 @@ export default function App() {
   const [safeAreaTop, setSafeAreaTop] = useState(0);
   const [clockShellWidth, setClockShellWidth] = useState(null);
   const clockShellRef = useRef(null);
+
+  // Auto-fullscreen from /calendar query param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const autoFullscreen = params.get('autoFullscreen');
+    if (autoFullscreen === 'true' && !isFullscreenMode && hasCalculatedClockSize) {
+      toggleFullscreenMode();
+      // Remove query param to clean up URL
+      window.history.replaceState({}, document.title, '/clock');
+    }
+  }, [hasCalculatedClockSize, isFullscreenMode, toggleFullscreenMode]);
 
   const applyThemeColor = useCallback((color) => {
     if (typeof document === 'undefined') return;
@@ -366,25 +387,37 @@ export default function App() {
       const viewportHeight = appContainerRef.current?.getBoundingClientRect().height || window.innerHeight;
       const viewportWidth = window.innerWidth;
 
-      const chromeHeight = safeAreaTop;
-
-      // Account for fixed elements (minimal margins)
-      const settingsButtonHeight = 48; // Top margin + button size (10px + 38px)
-      const bottomPadding = contentPaddingBottom; // padding we add to clear safe area
+      // Base: content Box uses pb: calc(8 * 8px + 48px) = 112px for xs/sm, or contentPaddingBottom for md+
+      const bottomPadding = contentPaddingBottom;
 
       // Calculate scaling factor for digital clock and label based on base 375px
       const baseSize = 375;
 
+      // Header section height calculation (responsive layout)
+      // xs/sm: Headings stack vertically (h1 + h2 + margin gap)
+      // h1: 15px (xs) + mb: 0.25 (2px) = 17px
+      // h2: 13px (xs) + mb: 1.25 (10px) = 23px
+      // Total xs/sm: ~40px
+      //
+      // md+: Headings + Filters in same row (max height of either)
+      // h1: 17px (md) + h2: 15px (md) stacked = 32px
+      // Filters height: ~36px (filter chips)
+      // Row max height: 36px (filters taller)
+      // mb on header row: 1.25 (10px)
+      // Total md+: ~46px
+      const headerHeightEstimate = 46; // Conservative estimate for md+ (larger of the two layouts)
+
       // Element height ratios relative to canvas size (based on 375px reference)
-      const digitalClockRatio = showDigitalClock ? 0.133 : 0; // ~50px / 375px
+      // Digital clock moved to header, so no longer counted here
       const timezoneLabelRatio = timezoneLabelActive ? 0.07 : 0; // ~26px / 375px
       const sessionLabelRatio = sessionLabelActive ? 0.213 : 0; // ~80px / 375px
 
-      // Total ratio: canvas + digital clock + timezone label + session label
-      const totalRatio = 1 + digitalClockRatio + timezoneLabelRatio + sessionLabelRatio;
+      // Total ratio: canvas + timezone label + session label
+      const totalRatio = 1 + timezoneLabelRatio + sessionLabelRatio;
 
-      // Available height for all elements (minimal buffer)
-      const availableHeight = viewportHeight - chromeHeight - settingsButtonHeight - bottomPadding - 10; // 10px tiny buffer
+      // Available height: remove header, bottom padding, and safety margin
+      // ViewportHeight is the inner Box height (after PublicLayout accounting)
+      const availableHeight = viewportHeight - headerHeightEstimate - bottomPadding - 4; // 4px final safety margin
 
       // Calculate canvas size based on the percentage and ratio
       let calculatedSize = normalizeClockSize((availableHeight / totalRatio) * (canvasSize / 100));
@@ -411,22 +444,29 @@ export default function App() {
       const maxWidthSize = Math.max(0, widthBudget);
       calculatedSize = Math.min(calculatedSize, maxWidthSize);
 
-      // Verify everything fits with actual scaled sizes
-      const actualDigitalHeight = showDigitalClock ? Math.round(60 * (calculatedSize / baseSize)) : 0;
-      const actualTimezoneLabelHeight = timezoneLabelActive ? Math.round(28 * (calculatedSize / baseSize)) : 0;
+      // Final check: verify everything fits within viewport
+      // Digital clock now in header, no longer counted in clock elements height
+      const actualTimezoneLabelHeight = timezoneLabelActive ? Math.round(26 * (calculatedSize / baseSize)) : 0;
       const actualLabelHeight = sessionLabelActive ? Math.round(100 * (calculatedSize / baseSize)) : 0;
-      // Include vertical margins/padding around digital/timezone blocks for accurate clamping
-      const verticalSpacingBuffer =
-        (showDigitalClock ? 24 : 0) +
-        (timezoneLabelActive ? 24 : 0) +
-        (sessionLabelActive ? 28 : 0);
 
-      const totalHeightNeeded = calculatedSize + actualDigitalHeight + actualTimezoneLabelHeight + actualLabelHeight + settingsButtonHeight + 20 + chromeHeight + bottomPadding + verticalSpacingBuffer;
+      // Gap spacing from Box gap: xs/sm: 1.25 (10px), md: 1.5 (12px)
+      // Each gap contributes to total height
+      const gapCount = (timezoneLabelActive ? 1 : 0) + (sessionLabelActive ? 1 : 0);
+      const gapHeight = gapCount * 10; // Conservative 10px per gap
 
-      // If we exceed viewport at 100%, adjust down
+      const totalHeightNeeded =
+        headerHeightEstimate +
+        calculatedSize +
+        actualTimezoneLabelHeight +
+        actualLabelHeight +
+        gapHeight +
+        bottomPadding +
+        4; // Final safety margin
+
+      // If we exceed viewport at 100%, adjust down iteratively
       if (totalHeightNeeded > viewportHeight) {
         const adjustmentFactor = viewportHeight / totalHeightNeeded;
-        calculatedSize = Math.floor(calculatedSize * adjustmentFactor * 0.98); // 98% for tiny safety margin
+        calculatedSize = Math.floor(calculatedSize * adjustmentFactor * 0.92); // 92% for responsive safety margin
       }
 
       setCalculatedClockSize(normalizeClockSize(calculatedSize));
@@ -568,6 +608,13 @@ export default function App() {
     setSelectedEventFromClock(null);
   };
 
+  // Close EventModal when exiting fullscreen mode
+  useEffect(() => {
+    if (!isFullscreenMode && selectedEventFromClock) {
+      closeEventModal();
+    }
+  }, [isFullscreenMode]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => setMinLoaderElapsed(true), 450);
     return () => window.clearTimeout(timer);
@@ -616,6 +663,7 @@ export default function App() {
       navItems={navItems}
       onOpenSettings={() => setSettingsOpen(true)}
       onOpenAuth={() => setAuthModalOpen(true)}
+      isFullscreenMode={isFullscreenMode}
     >
       <Box
         ref={appContainerRef}
@@ -637,22 +685,138 @@ export default function App() {
             opacity: 1,
             pointerEvents: 'auto',
             transition: 'opacity 0.6s ease',
-            overflow: 'hidden',
+            overflow: 'auto',
+            overscrollBehavior: 'contain',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'flex-start',
-            flex: 1,
+            justifyContent: 'center',
             alignItems: 'center',
+            flex: 1,
             pb: { xs: 'calc(8 * 8px + 48px)', sm: 'calc(8 * 8px + 48px)', md: contentPaddingBottom },
             width: '100%',
             boxSizing: 'border-box',
           }}
         >
-          {/* Settings gear removed; access settings from events drawer header */}
+          {/* Header Section: Headings (left) + Filters (right) on md+, stacked on xs/sm */}
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: 1560,
+              display: isFullscreenMode ? 'none' : 'flex',
+              flexDirection: { xs: 'column', md: 'row' },
+              alignItems: { xs: 'center', md: 'flex-start' },
+              justifyContent: { xs: 'center', md: 'space-between' },
+              gap: { xs: 1.5, md: 2 },
+              mb: { xs: 0, md: 1.25 },
+              px: { xs: 2, sm: 2.75, md: 3.5 },
+              mx: 'auto',
+              boxSizing: 'border-box',
+            }}
+          >
+            {/* Headings - left aligned on md+, centered on xs/sm */}
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: { xs: 'center', md: 'flex-start' },
+                gap: 0,
+                flex: { xs: 'none', md: 1 },
+                width: { xs: '100%', md: 'auto' },
+              }}
+            >
+              <Typography
+                component="h1"
+                variant="subtitle1"
+                sx={{
+                  fontWeight: 900,
+                  color: 'text.primary',
+                  fontSize: { xs: '0.95rem', sm: '1rem', md: '1.05rem' },
+                  mb: { xs: 0.5, sm: 0.75 },
+                  lineHeight: 1.2,
+                  textAlign: { xs: 'center', md: 'left' },
+                }}
+              >
+                Trading Clock
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' },
+                  color: alpha(effectiveTextColor, 0.6),
+                  fontWeight: 500,
+                  letterSpacing: '0.3px',
+                  lineHeight: 1.2,
+                  textAlign: { xs: 'center', md: 'left' },
+                }}
+              >
+                {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} | {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+              </Typography>
+              {timezoneLabelActive && timezoneLabelText && (
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => setTimezoneModalOpen(true)}
+                  sx={{
+                    textTransform: 'none',
+                    color: alpha(effectiveTextColor, 0.6),
+                    fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' },
+                    fontWeight: 500,
+                    letterSpacing: '0.3px',
+                    minWidth: 'auto',
+                    px: { xs: 0.5, md: 0 },
+                    py: 0.25,
+                    lineHeight: 1.2,
+                    mt: { xs: 0.25, sm: 0.25 },
+                    '&:hover': {
+                      bgcolor: alpha(effectiveTextColor, 0.08),
+                      color: effectiveTextColor,
+                    },
+                  }}
+                >
+                  {timezoneLabelText}
+                </Button>
+              )}
+            </Box>
 
-          {/* Date Range Label - removed as of v2.6.18: ClockEventsOverlay always shows today's events only, regardless of date range selection in EventsFilters3 */}
+            {/* EventsFilters3 - right aligned on md+, hidden on xs/sm */}
+            <Suspense fallback={null}>
+              <Box
+                sx={{
+                  display: { xs: 'none', md: 'flex' },
+                  justifyContent: { md: 'flex-end' },
+                  width: { md: 'auto' },
+                  flexShrink: 0,
+                }}
+              >
+                <EventsFilters3
+                  filters={eventFilters}
+                  onFiltersChange={handleFiltersChange}
+                  onApply={handleApplyFilters}
+                  loading={overlayLoading}
+                  timezone={selectedTimezone}
+                  newsSource={newsSource}
+                  defaultPreset="today"
+                  showDateFilter={false}
+                  showSearchFilter={false}
+                  centerFilters={false}
+                  textColor={effectiveTextColor}
+                />
+              </Box>
+            </Suspense>
+          </Box>
 
-          <div className="clock-elements-container">
+          <Box
+            component="div"
+            className="clock-elements-container"
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flex: 1,
+              width: '100%',
+              minHeight: 0,
+            }}
+          >
             <Box
               sx={{
                 width: '100%',
@@ -664,44 +828,6 @@ export default function App() {
                 gap: { xs: 1.25, sm: 1.5 },
               }}
             >
-              <Typography
-                component="h1"
-                variant="subtitle1"
-                sx={{
-                  fontWeight: 700,
-                  letterSpacing: 0.2,
-                  color: effectiveTextColor,
-                }}
-              >
-                Trading Clock
-              </Typography>
-              {/* EventsFilters3 - filter controls above the clock on md+, hidden on xs/sm (moved below timezone label) */}
-              <Suspense fallback={null}>
-                <Box
-                  sx={{
-                    display: { xs: 'none', md: 'block' },
-                    width: '100%',
-                    maxWidth: { xs: '100%', sm: 480, md: '100%', lg: 560 },
-                    px: { xs: 0.25, sm: 0, md: 0 },
-                    mb: { xs: 0.5, sm: 1, md: 1.25 },
-                  }}
-                >
-                  <EventsFilters3
-                    filters={eventFilters}
-                    onFiltersChange={handleFiltersChange}
-                    onApply={handleApplyFilters}
-                    loading={overlayLoading}
-                    timezone={selectedTimezone}
-                    newsSource={newsSource}
-                    defaultPreset="today"
-                    showDateFilter={false}
-                    showSearchFilter={false}
-                    centerFilters={true}
-                    textColor={effectiveTextColor}
-                  />
-                </Box>
-              </Suspense>
-
               {showHandClock && (
                 <Box
                   className="hand-clock"
@@ -729,6 +855,7 @@ export default function App() {
                         backgroundBasedOnSession={backgroundBasedOnSession}
                         renderHandsInCanvas={false}
                         handAnglesRef={handAnglesRef}
+                        isFullscreenMode={isFullscreenMode}
                       />
                       <ClockHandsOverlay
                         size={calculatedClockSize}
@@ -746,6 +873,7 @@ export default function App() {
                             newsSource={newsSource}
                             onEventClick={handleEventFromClockClick}
                             onLoadingStateChange={showHandClock ? setOverlayLoading : undefined}
+                            isFullscreenMode={isFullscreenMode}
                           />
                         </Suspense>
                       ) : null}
@@ -754,45 +882,42 @@ export default function App() {
                 </Box>
               )}
 
+              {/* Enterprise Digital Clock - below canvas */}
               {showDigitalClock && !renderSkeleton && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', mt: { xs: 1.5, sm: 1.25 } }}>
-                  <DigitalClock time={currentTime} clockSize={calculatedClockSize} textColor={effectiveTextColor} />
-                </Box>
-              )}
-
-              {timezoneLabelActive && !renderSkeleton && timezoneLabelText && (
                 <Box
                   sx={{
-                    textAlign: 'center',
-                    mt: { xs: 0.25, sm: 0.5 },
-                    mb: { xs: 0.75, sm: 1 },
-                    px: { xs: 1.5, sm: 2 },
-                    maxWidth: { xs: '95%', sm: calculatedClockSize },
-                    mx: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: { xs: 0.5, sm: 0.75 },
+                    mt: { xs: 1, sm: 1.5, md: 2 },
                   }}
                 >
-                  <Button
-                    variant="text"
-                    size="small"
-                    onClick={() => setTimezoneModalOpen(true)}
+                  <Typography
                     sx={{
-                      textTransform: 'none',
-                      color: alpha(effectiveTextColor, 0.7),
-                      fontSize: { xs: '0.75rem', sm: '0.8rem' },
-                      fontWeight: 600,
-                      minWidth: 'auto',
-                      px: 1,
-                      py: 0.5,
-                      lineHeight: 1.35,
-                      wordBreak: 'break-word',
-                      '&:hover': {
-                        bgcolor: alpha(effectiveTextColor, 0.08),
-                        color: effectiveTextColor,
-                      },
+                      fontFamily: '"Roboto Mono", monospace',
+                      fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+                      fontWeight: 300,
+                      letterSpacing: '0.05em',
+                      color: 'text.primary',
+                      lineHeight: 1.1,
+                      fontVariantNumeric: 'tabular-nums',
                     }}
                   >
-                    {timezoneLabelText}
-                  </Button>
+                    {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' },
+                      color: alpha(effectiveTextColor, 0.6),
+                      fontWeight: 400,
+                      letterSpacing: '0.3px',
+                      textTransform: 'uppercase',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </Typography>
                 </Box>
               )}
 
@@ -849,7 +974,7 @@ export default function App() {
                 />
               )}
             </Box>
-          </div>
+          </Box>
         </Box>
 
         {(hasRenderedSettingsDrawer || settingsOpen) && (
@@ -894,57 +1019,20 @@ export default function App() {
         )}
 
         {/* Timezone Modal - Opens when user clicks timezone label button */}
-        <Dialog
-          open={timezoneModalOpen}
-          onClose={() => setTimezoneModalOpen(false)}
-          maxWidth="xs"
-          fullWidth
-          fullScreen={false}
-          sx={{ zIndex: 1701 }}
-          slotProps={{
-            backdrop: { sx: { zIndex: -1 } },
-          }}
-          PaperProps={{
-            sx: {
-              borderRadius: { xs: 0, sm: 3 },
-              m: { xs: 0, sm: 2 },
-              maxHeight: { xs: '100vh', sm: 'calc(100vh - 64px)' },
-            },
-          }}
-        >
-          <DialogTitle
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              pb: 1,
-            }}
-          >
-            <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
-              Select Timezone
-            </Typography>
-            <IconButton
-              edge="end"
-              onClick={() => setTimezoneModalOpen(false)}
-              aria-label="close"
-              sx={{
-                ml: 1,
-                p: { xs: 1, sm: 1.25, md: 1.5 },
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent sx={{ pt: 1, pb: 3 }}>
-            <Suspense fallback={null}>
-              <TimezoneSelector
-                textColor={theme.palette.text.primary}
-                onRequestSignUp={handleOpenAuth}
-                onTimezoneChange={() => setTimezoneModalOpen(false)}
-              />
-            </Suspense>
-          </DialogContent>
-        </Dialog>
+        <Suspense fallback={null}>
+          <TimezoneModal
+            open={timezoneModalOpen}
+            onClose={() => setTimezoneModalOpen(false)}
+            onOpenAuth={handleOpenAuth}
+            zIndex={1701}
+          />
+        </Suspense>
+
+        {/* Fullscreen Mode Button - Fixed bottom-left */}
+        <FullscreenModeButton
+          isFullscreenMode={isFullscreenMode}
+          onToggle={toggleFullscreenMode}
+        />
       </Box>
     </PublicLayout>
   );

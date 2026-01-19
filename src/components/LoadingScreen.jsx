@@ -14,7 +14,7 @@
 
 
 import PropTypes from 'prop-types';
-import { Box, Fade, Typography } from '@mui/material';
+import { Box, Fade } from '@mui/material';
 import LoadingAnimation from './LoadingAnimation';
 
 const LoadingScreen = ({ isLoading, clockSize = 375 }) => {
@@ -41,19 +41,7 @@ const LoadingScreen = ({ isLoading, clockSize = 375 }) => {
         }}
       >
         <LoadingAnimation clockSize={effectiveSize} isLoading={isLoading} />
-        <Typography
-          variant="subtitle1"
-          sx={{
-            textAlign: 'center',
-            fontWeight: 400,
-            color: '#202124a5',
-            letterSpacing: 0,
-            lineHeight: 1,
-            fontSize: { xs: '0.8rem', sm: '0.8rem' },
-          }}
-        >
-          Almost ready...
-        </Typography>
+
       </Box>
     </Fade>
   );

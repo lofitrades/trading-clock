@@ -5,6 +5,8 @@
  * fetches economic events, and exposes grouped, filter-aware state for embeddable calendar surfaces.
  * 
  * Changelog:
+ * v1.1.5 - 2026-01-17 - UX IMPROVEMENT: Immediately set loading=true when filters change to show skeletons during reset/filter transitions. Prevents "No events for this day." message from appearing while fetching new data. Follows enterprise pattern: show loading state immediately on user action, then show content or empty state after fetch completes.
+ * v1.1.4 - 2026-01-16 - FILTER PERSISTENCE: Removed early return when no persisted dates exist; now always applies defaultRange fallback (thisWeek) even when eventFilters has no dates. Ensures date range is NEVER unselected on /calendar page load.
  * v1.1.3 - 2026-01-16 - Removed 'yesterday' date preset; users now choose between Today, Tomorrow, This Week, Next Week, or This Month.
  * v1.1.2 - 2026-01-16 - Added 'thisMonth' date preset that calculates the current month's date range with full timezone awareness.
  * v1.1.1 - 2026-01-16 - Added 'nextWeek' date preset that calculates next week's date range with full timezone awareness.
@@ -148,23 +150,12 @@ export function useCalendarData({ defaultPreset = 'thisWeek' } = {}) {
     prevEventFiltersRef.current = eventFilters;
     hasInitializedFromSettingsRef.current = true;
 
-    // Only sync if SettingsContext has valid data (not default empty state)
-    const hasPersistedDates = Boolean(eventFilters.startDate || eventFilters.endDate);
-    const hasPersistedFilters = Boolean(
-      eventFilters.impacts?.length ||
-      eventFilters.currencies?.length ||
-      eventFilters.favoritesOnly ||
-      eventFilters.searchQuery
-    );
-
-    if (!hasPersistedDates && !hasPersistedFilters) {
-      // No persisted data - use defaults
-      return;
-    }
-
-    // Sync from SettingsContext to local state
+    // Always sync from SettingsContext to local state
+    // If dates are saved, use them; otherwise, fall back to defaultRange (thisWeek)
+    // This ensures date range is NEVER unselected
     const startDate = ensureDate(eventFilters.startDate) || defaultRange?.startDate || null;
     const endDate = ensureDate(eventFilters.endDate) || defaultRange?.endDate || null;
+    
     const syncedFilters = {
       startDate,
       endDate,
@@ -276,6 +267,9 @@ export function useCalendarData({ defaultPreset = 'thisWeek' } = {}) {
   );
 
   const handleFiltersChange = useCallback((nextFilters) => {
+    // Immediately show loading skeleton when filters change
+    // This prevents "No events" message from appearing during filter/reset transitions
+    setLoading(true);
     setFilters((prev) => ({ ...prev, ...nextFilters }));
   }, []);
 

@@ -91,7 +91,7 @@
  * v1.5.5 - 2026-01-14 - CRITICAL MOBILE LAYOUT FIX: Corrected EventsFilters3 sticky top on xs from 16px→48px to match sm breakpoint and properly clear 64px mobile logo. Removed -1px band-aid adjustment from daySectionStickyOffsetTop calculation as it's no longer needed with correct filter positioning. Fixes critical xs breakpoint overlap identified in mobile layout audit.
  * v1.5.4 - 2026-01-14 - DAY HEADER STICKY OFFSET FIX: Updated daySectionStickyOffsetTop calculation to account for PublicLayout mobile logo row (48px) on xs/sm. Added isMobileLogoPresent breakpoint check (covers xs and sm). Now day headers stick at correct position: mobileLogoOffset (48px on xs/sm) + filtersStickyHeight on xs/sm, and filtersStickyHeight alone on md+. Follows enterprise MUI dashboard pattern: sticky components respect fixed-positioned siblings via offset calculations accounting for all positioned elements in the stack.
  * v1.5.3 - 2026-01-14 - STICKY FILTER OFFSET FIX: EventsFilters3 sticky position now accounts for PublicLayout mobile logo row (48px fixed height) on xs/sm. Changed top from 0 to responsive top: { xs: '48px', sm: '48px', md: 0 }. This prevents filters from overlapping the fixed mobile logo when PublicLayout pt was reduced from 8 to 4. On md+, top reverts to 0 (logo is hidden, AppBar handles positioning). Follows MUI enterprise dashboard best practice: sticky containers respect fixed-positioned siblings via responsive top offsets.
- * v1.5.2 - 2026-01-14 - NOW BADGE & JUMP: Moved NOW badge from TIME column to event name column (same position as NEXT badge). Added Jump to Now functionality with blue icon (priority over NEXT). Added flash effect to NOW rows. Made 'Events in progress' clickable with blue UI matching 'Next in' button pattern. Mobile-first responsive design.
+ * v1.5.2 - 2026-01-17 - TIMEZONE MODAL REFACTOR: Extracted inline Dialog/TimezoneSelector code into standalone TimezoneModal component (src/components/TimezoneModal.jsx). CalendarEmbed now uses lazy-loaded TimezoneModal with props: open, onClose, onOpenAuth, zIndex. Improves reusability across /clock and /calendar pages, cleaner code, follows component composition BEP. TimezoneModal handles all modal UI while CalendarEmbed handles just state management.
  * v1.5.1 - 2026-01-14 - TIMEZONE MODAL AUTO-CLOSE: Pass onTimezoneChange callback to TimezoneSelector to automatically close the modal after a timezone is selected and confirmed.
  * v1.5.0 - 2026-01-13 - Removed referral banner placements; calendar layout now renders banner-free across all breakpoints.
  * v1.4.9 - 2026-01-13 - Added xs/sm top margin for the Economic Calendar paper on /calendar route to clear sticky chrome on mobile.
@@ -272,7 +272,7 @@ import ClockPanelPaper from './ClockPanelPaper';
 import '../App.css';
 const EventModal = lazy(() => import('./EventModal'));
 const EventNotesDialog = lazy(() => import('./EventNotesDialog'));
-const TimezoneSelector = lazy(() => import('./TimezoneSelector'));
+const TimezoneModal = lazy(() => import('./TimezoneModal'));
 const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
 import { DATE_FORMAT_OPTIONS, formatDate, formatTime } from '../utils/dateUtils';
 import PublicIcon from '@mui/icons-material/Public';
@@ -1914,118 +1914,10 @@ export default function CalendarEmbed({
                             stickyTop={0}
                         />
                     </Box>
-                    {/* Desktop: show event count and next button on same row as filters */}
-                    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ gap: 1, display: { xs: 'none', lg: 'flex' }, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                            {visibleCount.toLocaleString()} events
-                        </Typography>
-                        {nextCountdownLabel ? (
-                            <Stack
-                                direction="row"
-                                spacing={0.5}
-                                alignItems="center"
-                                onClick={scrollToNextEvent}
-                                sx={{
-                                    cursor: 'pointer',
-                                    px: 1,
-                                    py: 0.5,
-                                    borderRadius: 1,
-                                    transition: 'background-color 0.2s',
-                                    '&:hover': {
-                                        bgcolor: alpha('#4caf50', 0.1),
-                                    },
-                                }}
-                            >
-                                <AccessTimeIcon sx={{ fontSize: 14, color: 'success.main' }} />
-                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.main' }}>
-                                    Next in {nextCountdownLabel}
-                                </Typography>
-                            </Stack>
-                        ) : nowEventIds.size ? (
-                            <Stack
-                                direction="row"
-                                spacing={0.5}
-                                alignItems="center"
-                                onClick={scrollToNowEvent}
-                                sx={{
-                                    cursor: 'pointer',
-                                    px: 1,
-                                    py: 0.5,
-                                    borderRadius: 1,
-                                    transition: 'background-color 0.2s',
-                                    '&:hover': {
-                                        bgcolor: alpha('#2196f3', 0.1),
-                                    },
-                                }}
-                            >
-                                <AccessTimeIcon sx={{ fontSize: 14, color: 'info.main' }} />
-                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main' }}>
-                                    Events in progress
-                                </Typography>
-                            </Stack>
-                        ) : null}
-                    </Stack>
-                </Stack>
-                {/* Mobile: show chips below filters */}
-                <Stack
-                    direction="row"
-                    spacing={1.5}
-                    alignItems="center"
-                    flexWrap="wrap"
-                    sx={{ gap: 1, display: { xs: 'flex', lg: 'none' }, mt: 1, ml: { xs: 0.5, md: 0 } }}
-                >
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                        {visibleCount.toLocaleString()} events
-                    </Typography>
-                    {nextCountdownLabel ? (
-                        <Stack
-                            direction="row"
-                            spacing={0.5}
-                            alignItems="center"
-                            onClick={scrollToNextEvent}
-                            sx={{
-                                cursor: 'pointer',
-                                px: 1,
-                                py: 0.5,
-                                borderRadius: 1,
-                                transition: 'background-color 0.2s',
-                                '&:hover': {
-                                    bgcolor: alpha('#4caf50', 0.1),
-                                },
-                            }}
-                        >
-                            <AccessTimeIcon sx={{ fontSize: 14, color: 'success.main' }} />
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.main' }}>
-                                Next in {nextCountdownLabel}
-                            </Typography>
-                        </Stack>
-                    ) : nowEventIds.size ? (
-                        <Stack
-                            direction="row"
-                            spacing={0.5}
-                            alignItems="center"
-                            onClick={scrollToNowEvent}
-                            sx={{
-                                cursor: 'pointer',
-                                px: 1,
-                                py: 0.5,
-                                borderRadius: 1,
-                                transition: 'background-color 0.2s',
-                                '&:hover': {
-                                    bgcolor: alpha('#2196f3', 0.1),
-                                },
-                            }}
-                        >
-                            <AccessTimeIcon sx={{ fontSize: 14, color: 'info.main' }} />
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main' }}>
-                                Events in progress
-                            </Typography>
-                        </Stack>
-                    ) : null}
                 </Stack>
             </Box >
         ),
-        [visibleCount, nextCountdownLabel, nowEventIds.size, filters, loading, timezone, newsSource, handleFiltersChangeGuard, handleApplyFiltersGuard, scrollToNextEvent, scrollToNowEvent],
+        [visibleCount, filters, loading, timezone, newsSource, handleFiltersChangeGuard, handleApplyFiltersGuard],
     );
 
     const calendarContent = (
@@ -2055,29 +1947,97 @@ export default function CalendarEmbed({
                 }}
             >
                 {showSeoCopy && (
-                    <Stack spacing={0.75} sx={{ mb: 0.5, position: 'relative' }}>
-                        <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
-                            {title}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.72) }}>
-                            Powered by{' '}
-                            <Link
-                                component="button"
-                                onClick={() => setForexFactoryModalOpen(true)}
-                                sx={{
-                                    color: 'inherit',
-                                    textDecorationLine: 'underline',
-                                    textDecorationColor: alpha(theme.palette.text.primary, 0.4),
-                                    cursor: 'pointer',
-                                    fontWeight: 600,
-                                    '&:hover': {
-                                        textDecorationColor: 'inherit',
-                                    },
-                                }}
+                    <Stack spacing={1} sx={{ mb: 0, position: 'relative', width: '100%' }}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.25, sm: 2 }} alignItems={{ xs: 'flex-start', sm: 'flex-start' }} justifyContent="space-between" sx={{ width: '100%' }}>
+                            <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.2 }}>
+                                    {title}
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.72), lineHeight: 1.4, display: 'flex', alignItems: 'center', gap: 0.3 }}>
+                                    Powered by
+                                    <Link
+                                        component="button"
+                                        onClick={() => setForexFactoryModalOpen(true)}
+                                        sx={{
+                                            display: 'inline',
+                                            color: 'inherit',
+                                            textDecorationLine: 'underline',
+                                            textDecorationColor: alpha(theme.palette.text.primary, 0.4),
+                                            cursor: 'pointer',
+                                            fontWeight: 600,
+                                            lineHeight: 'inherit',
+                                            verticalAlign: 'baseline',
+                                            '&:hover': {
+                                                textDecorationColor: 'inherit',
+                                            },
+                                        }}
+                                    >
+                                        Forex Factory
+                                    </Link>
+                                </Typography>
+                            </Stack>
+                            <Stack
+                                direction={{ xs: 'row', sm: 'column' }}
+                                spacing={0.5}
+                                alignItems={{ xs: 'center', sm: 'flex-end' }}
+                                justifyContent={{ xs: 'space-between', sm: 'flex-start' }}
+                                sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' }, pt: { xs: 0, sm: 0.25 } }}
                             >
-                                Forex Factory
-                            </Link>
-                        </Typography>
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: { xs: '0.75rem', sm: '0.8125rem' }, whiteSpace: 'nowrap', lineHeight: 1.4 }}>
+                                    {visibleCount.toLocaleString()} events
+                                </Typography>
+                                <Stack
+                                    direction="row"
+                                    spacing={{ xs: 1, md: 0.75 }}
+                                    alignItems="center"
+                                    flexWrap={{ xs: 'nowrap', md: 'nowrap' }}
+                                    justifyContent={{ xs: 'flex-end', md: 'flex-end' }}
+                                    sx={{ whiteSpace: 'nowrap' }}
+                                >
+                                    {nextCountdownLabel ? (
+                                        <Stack
+                                            direction="row"
+                                            spacing={0.5}
+                                            alignItems="center"
+                                            onClick={scrollToNextEvent}
+                                            sx={{
+                                                cursor: 'pointer',
+                                                borderRadius: 1.5,
+                                                transition: 'background-color 0.2s',
+                                                '&:hover': {
+                                                    bgcolor: alpha('#4caf50', 0.1),
+                                                },
+                                            }}
+                                        >
+                                            <AccessTimeIcon sx={{ fontSize: { xs: 12, sm: 14 }, color: 'success.main' }} />
+                                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.main', fontSize: { xs: '0.75rem', sm: '0.8125rem' } }}>
+                                                Next in {nextCountdownLabel}
+                                            </Typography>
+                                        </Stack>
+                                    ) : nowEventIds.size ? (
+                                        <Stack
+                                            direction="row"
+                                            spacing={0.5}
+                                            alignItems="center"
+                                            onClick={scrollToNowEvent}
+                                            sx={{
+                                                cursor: 'pointer',
+                                                borderRadius: 1.5,
+                                                transition: 'background-color 0.2s',
+                                                '&:hover': {
+                                                    bgcolor: alpha('#2196f3', 0.1),
+                                                },
+                                            }}
+                                        >
+                                            <AccessTimeIcon sx={{ fontSize: { xs: 12, sm: 14 }, color: 'info.main' }} />
+                                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main', fontSize: { xs: '0.75rem', sm: '0.8125rem' } }}>
+                                                Events in progress
+                                            </Typography>
+                                        </Stack>
+                                    ) : null}
+                                </Stack>
+                            </Stack>
+                        </Stack>
                         <Divider sx={{ borderColor: alpha('#3c4d63', 0.12) }} />
                     </Stack>
                 )}
@@ -2087,12 +2047,6 @@ export default function CalendarEmbed({
                         {error}
                     </Alert>
                 ) : null}
-
-                {favoritesLoading && (
-                    <Alert severity="info" sx={{ borderRadius: 2 }}>
-                        Loading favorites…
-                    </Alert>
-                )}
 
                 {notesError ? (
                     <Alert severity="error" sx={{ borderRadius: 2 }}>
@@ -2223,57 +2177,15 @@ export default function CalendarEmbed({
                 />
             </Suspense>
 
-            <Dialog
-                open={timezoneModalOpen}
-                onClose={() => setTimezoneModalOpen(false)}
-                maxWidth="xs"
-                fullWidth
-                fullScreen={false}
-                sx={{ zIndex: 1701 }}
-                slotProps={{
-                    backdrop: { sx: { zIndex: -1 } },
-                }}
-                PaperProps={{
-                    sx: {
-                        borderRadius: { xs: 0, sm: 3 },
-                        m: { xs: 0, sm: 2 },
-                        maxHeight: { xs: '100vh', sm: 'calc(100vh - 64px)' },
-                    },
-                }}
-            >
-                <DialogTitle
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        pb: 1,
-                    }}
-                >
-                    <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
-                        Select Timezone
-                    </Typography>
-                    <IconButton
-                        edge="end"
-                        onClick={() => setTimezoneModalOpen(false)}
-                        aria-label="close"
-                        sx={{
-                            ml: 1,
-                            p: { xs: 1, sm: 1.25, md: 1.5 },
-                        }}
-                    >
-                        <CloseIcon />
-                    </IconButton>
-                </DialogTitle>
-                <DialogContent sx={{ pt: 1, pb: 3 }}>
-                    <Suspense fallback={null}>
-                        <TimezoneSelector
-                            textColor={theme.palette.text.primary}
-                            onRequestSignUp={onOpenAuth}
-                            onTimezoneChange={() => setTimezoneModalOpen(false)}
-                        />
-                    </Suspense>
-                </DialogContent>
-            </Dialog>
+            {/* Timezone Modal */}
+            <Suspense fallback={null}>
+                <TimezoneModal
+                    open={timezoneModalOpen}
+                    onClose={() => setTimezoneModalOpen(false)}
+                    onOpenAuth={onOpenAuth}
+                    zIndex={1701}
+                />
+            </Suspense>
 
             <Dialog
                 open={newsSourceModalOpen}

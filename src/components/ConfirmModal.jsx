@@ -10,6 +10,7 @@ import {
   TextField,
   Box,
 } from '@mui/material';
+import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 
 export default function ConfirmModal({
   open = false,
@@ -58,7 +59,7 @@ export default function ConfirmModal({
       maxWidth="sm"
       fullWidth
       slotProps={{
-        backdrop: { sx: { zIndex: 1699 } },
+        backdrop: { sx: BACKDROP_OVERLAY_SX },
         paper: { sx: { zIndex: 1700 } },
       }}
     >

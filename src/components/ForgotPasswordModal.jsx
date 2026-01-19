@@ -35,6 +35,7 @@ import {
   Stack,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 import { auth } from '../firebase';
 import { sendPasswordResetEmail, fetchSignInMethodsForEmail } from 'firebase/auth';
 import { getFriendlyErrorMessage } from '../utils/messages';
@@ -53,10 +54,10 @@ function PasswordResetSentModal({ email, onClose }) {
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      sx={{ zIndex: 20001 }}
+      sx={{ zIndex: 99999 }}
       slotProps={{
-        backdrop: { sx: { zIndex: 20000 } },
-        paper: { sx: { borderRadius: 3 } },
+        backdrop: { sx: { ...BACKDROP_OVERLAY_SX, zIndex: 99998 } },
+        paper: { sx: { borderRadius: 3, zIndex: 99999 } },
       }}
     >
       <DialogContent sx={{ p: 4, textAlign: 'center' }}>
@@ -142,10 +143,10 @@ export default function ForgotPasswordModal({ onClose }) {
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      sx={{ zIndex: 20001 }}
+      sx={{ zIndex: 99999 }}
       slotProps={{
-        backdrop: { sx: { zIndex: 20000 } },
-        paper: { sx: { borderRadius: 3 } },
+        backdrop: { sx: { ...BACKDROP_OVERLAY_SX, zIndex: 99998 } },
+        paper: { sx: { borderRadius: 3, zIndex: 99999 } },
       }}
     >
       <IconButton

@@ -11,7 +11,7 @@
  */
 
 const siteUrl = 'https://time2.trade';
-const ogImage = `${siteUrl}/Time2Trade_SEO_Meta_3.PNG`;
+const ogImage = `${siteUrl}/Time2Trade_SEO_Meta_5.PNG`;
 
 const faqEntries = [
     {

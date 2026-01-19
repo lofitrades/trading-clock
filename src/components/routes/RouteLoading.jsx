@@ -9,11 +9,11 @@
  * v1.0.0 - 2025-12-09 - Initial implementation for route guards and lazy loading
  */
 
-import React from 'react';
+import PropTypes from 'prop-types';
 import LoadingScreen from '../LoadingScreen';
 import { Box, Typography } from '@mui/material';
 
-const RouteLoading = ({ message = 'Loading...' }) => (
+const RouteLoading = ({ message = 'Almost ready...' }) => (
   <Box sx={{ position: 'relative', minHeight: '100vh' }}>
     <LoadingScreen isLoading clockSize={240} />
     <Box
@@ -33,5 +33,9 @@ const RouteLoading = ({ message = 'Loading...' }) => (
     </Box>
   </Box>
 );
+
+RouteLoading.propTypes = {
+  message: PropTypes.string,
+};
 
 export default RouteLoading;

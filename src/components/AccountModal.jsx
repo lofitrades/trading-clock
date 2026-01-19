@@ -41,6 +41,7 @@ import {
   Collapse,
   alpha,
 } from '@mui/material';
+import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import LockResetIcon from '@mui/icons-material/LockReset';
@@ -214,7 +215,7 @@ export default function AccountModal({ open, onClose, user }) {
           fullWidth
           sx={{ zIndex: 1701 }}
           slotProps={{
-            backdrop: { sx: { zIndex: -1 } },
+            backdrop: { sx: BACKDROP_OVERLAY_SX },
           }}
           PaperProps={{
             sx: {

@@ -28,6 +28,7 @@ import {
 	useMediaQuery,
 	useTheme,
 } from '@mui/material';
+import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import NoteAltIcon from '@mui/icons-material/NoteAlt';
@@ -102,7 +103,7 @@ export default function EventNotesDialog({
 	};
 
 	return (
-		<Dialog open={open} onClose={onClose} fullScreen={fullScreen} maxWidth="sm" fullWidth>
+		<Dialog open={open} onClose={onClose} fullScreen={fullScreen} maxWidth="sm" fullWidth slotProps={{ backdrop: { sx: BACKDROP_OVERLAY_SX } }}>
 			{fullScreen ? (
 				<AppBar sx={{ position: 'relative' }} color="primary">
 					<Toolbar>

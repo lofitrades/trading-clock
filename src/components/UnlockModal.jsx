@@ -17,6 +17,7 @@ import {
   Button,
   Typography,
 } from '@mui/material';
+import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 
 export default function UnlockModal({ onClose, onSignUp }) {
   return (
@@ -26,7 +27,7 @@ export default function UnlockModal({ onClose, onSignUp }) {
       maxWidth="sm"
       fullWidth
       slotProps={{
-        backdrop: { sx: { zIndex: 1699 } },
+        backdrop: { sx: BACKDROP_OVERLAY_SX },
         paper: { sx: { zIndex: 1701 } },
       }}
     >

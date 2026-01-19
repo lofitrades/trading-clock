@@ -17,6 +17,7 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v1.10.3 - 2026-01-17 - BUGFIX: Set Dialog z-index to 12001 to appear on top of fullscreen mode (matches AuthModal2 hierarchy)
  * v1.10.2 - 2026-01-16 - Display all-day/tentative time labels when provided.
  * v1.10.1 - 2025-12-18 - Centralize impact color sourcing: low = yellow (#F2C94C), unknown = taupe (#C7B8A4) to avoid session color conflicts across modal chips.
  * v1.10.0 - 2025-12-18 - Centralize impact color sourcing and set low impact to taupe (#C7B8A4) to avoid session color conflicts across modal chips.
@@ -63,6 +64,7 @@ import {
   Tooltip as MuiTooltip,
   CircularProgress,
 } from '@mui/material';
+import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 import CloseIcon from '@mui/icons-material/Close';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -717,6 +719,10 @@ export default function EventModal({
       fullWidth
       TransitionComponent={SlideTransition}
       TransitionProps={{ timeout: ANIMATION_DURATION.slide }}
+      sx={{ zIndex: 12001 }}
+      slotProps={{
+        backdrop: { sx: BACKDROP_OVERLAY_SX },
+      }}
       PaperProps={{
         sx: {
           borderRadius: fullScreen ? 0 : 2,

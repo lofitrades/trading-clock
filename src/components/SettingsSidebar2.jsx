@@ -48,6 +48,7 @@ import {
 	Tooltip,
 	Typography,
 } from '@mui/material';
+import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
@@ -944,6 +945,9 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 				variant="temporary"
 				ModalProps={{ keepMounted: true }}
 				sx={{ zIndex: 1600, '& .MuiDrawer-paper': { boxSizing: 'border-box' } }}
+				slotProps={{
+					backdrop: { sx: BACKDROP_OVERLAY_SX },
+				}}
 				PaperProps={{
 					sx: {
 						width: { xs: '100%', sm: '100%', md: 520, lg: 560 },

@@ -490,7 +490,7 @@ function Dashboard() {
   const { userProfile } = useAuth();
   
   if (!userProfile) {
-    return <div>Loading...</div>;
+    return <div>Almost ready...</div>;
   }
   
   if (userProfile.subscription.plan === 'free') {

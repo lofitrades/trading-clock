@@ -27,6 +27,7 @@ import {
   Stack,
   alpha,
 } from '@mui/material';
+import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import SyncIcon from '@mui/icons-material/Sync';
@@ -46,17 +47,17 @@ import { NEWS_SOURCE_OPTIONS } from '../types/economicEvents';
  * @param {string[]} props.defaultSources - Pre-selected sources
  * @param {(sources: string[]) => Promise<Object>} props.onSync - Sync handler
  */
-export default function SyncCalendarModal({ 
-  isOpen, 
-  onClose, 
-  defaultSources = [], 
-  onSync 
+export default function SyncCalendarModal({
+  isOpen,
+  onClose,
+  defaultSources = [],
+  onSync
 }) {
   // Selected sources for sync
   const [selectedSources, setSelectedSources] = useState(
     defaultSources.length > 0 ? defaultSources : ['mql5']
   );
-  
+
   // Sync state
   const [syncing, setSyncing] = useState(false);
   const [syncResults, setSyncResults] = useState({});
@@ -85,7 +86,7 @@ export default function SyncCalendarModal({
 
     setSyncing(true);
     setError(null);
-    
+
     // Initialize sync results with 'running' state
     const initialResults = {};
     selectedSources.forEach(source => {
@@ -125,7 +126,7 @@ export default function SyncCalendarModal({
         });
       } else {
         setError(result.error || response.error || 'Sync failed');
-        
+
         // Mark all as error
         const errorResults = {};
         selectedSources.forEach(source => {
@@ -136,12 +137,12 @@ export default function SyncCalendarModal({
     } catch (err) {
       console.error('Sync error:', err);
       setError(err.message || 'An unexpected error occurred');
-      
+
       // Mark all as error
       const errorResults = {};
       selectedSources.forEach(source => {
-        errorResults[source] = { 
-          state: 'error', 
+        errorResults[source] = {
+          state: 'error',
           error: err.message || 'Unknown error',
           progress: 0,
         };
@@ -162,7 +163,7 @@ export default function SyncCalendarModal({
         return;
       }
     }
-    
+
     // Reset state
     setSyncResults({});
     setError(null);
@@ -174,8 +175,8 @@ export default function SyncCalendarModal({
    * Calculate overall progress
    */
   const overallProgress = Object.keys(syncResults).length > 0
-    ? Object.values(syncResults).reduce((sum, r) => sum + (r.progress || 0), 0) / 
-      Object.keys(syncResults).length
+    ? Object.values(syncResults).reduce((sum, r) => sum + (r.progress || 0), 0) /
+    Object.keys(syncResults).length
     : 0;
 
   const allCompleted = Object.keys(syncResults).length > 0 && Object.values(syncResults).every(
@@ -190,15 +191,18 @@ export default function SyncCalendarModal({
       fullWidth
       aria-labelledby="sync-calendar-dialog-title"
       aria-describedby="sync-calendar-dialog-description"
+      slotProps={{
+        backdrop: { sx: BACKDROP_OVERLAY_SX },
+      }}
       PaperProps={{
         sx: {
           borderRadius: 2,
         }
       }}
     >
-      <DialogTitle 
+      <DialogTitle
         id="sync-calendar-dialog-title"
-        sx={{ 
+        sx={{
           pb: 1,
           display: 'flex',
           alignItems: 'center',
@@ -216,10 +220,10 @@ export default function SyncCalendarModal({
         {!syncing && Object.keys(syncResults).length === 0 && (
           <>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Select one or more news sources to sync economic calendar data. 
+              Select one or more news sources to sync economic calendar data.
               Each source provides 3 years of event data (previous year, current year, next year).
             </Typography>
-            
+
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
                 <strong>Note:</strong> To view events from a specific source, change your "Preferred News Source" in Settings → General.
@@ -265,8 +269,8 @@ export default function SyncCalendarModal({
                   ⚠️ FXStreet Data Limitation
                 </AlertTitle>
                 <Typography variant="body2">
-                  <strong>FXStreet provides very limited data</strong> (typically 10-20 future events only). 
-                  This may result in 0 events being synced if the date range has no upcoming events. 
+                  <strong>FXStreet provides very limited data</strong> (typically 10-20 future events only).
+                  This may result in 0 events being synced if the date range has no upcoming events.
                   We recommend using <strong>MQL5 (12,000+ events)</strong> or <strong>Forex Factory</strong> instead.
                 </Typography>
               </Alert>
@@ -278,7 +282,7 @@ export default function SyncCalendarModal({
                 API Credit Usage
               </AlertTitle>
               <Typography variant="body2">
-                This action will use <strong>{selectedSources.length} API credit{selectedSources.length > 1 ? 's' : ''}</strong> 
+                This action will use <strong>{selectedSources.length} API credit{selectedSources.length > 1 ? 's' : ''}</strong>
                 ({selectedSources.length} {selectedSources.length > 1 ? 'sources' : 'source'} × 1 credit per source).
               </Typography>
             </Alert>
@@ -299,9 +303,9 @@ export default function SyncCalendarModal({
                     {Math.round(overallProgress)}%
                   </Typography>
                 </Box>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={overallProgress} 
+                <LinearProgress
+                  variant="determinate"
+                  value={overallProgress}
                   sx={{ height: 8, borderRadius: 4 }}
                 />
               </Box>
@@ -326,23 +330,23 @@ export default function SyncCalendarModal({
                         border: 1,
                         borderColor: 'divider',
                         borderRadius: 1,
-                        bgcolor: (theme) => 
+                        bgcolor: (theme) =>
                           state === 'success' ? alpha(theme.palette.success.main, 0.08) :
-                          state === 'error' ? alpha(theme.palette.error.main, 0.08) :
-                          'background.paper',
+                            state === 'error' ? alpha(theme.palette.error.main, 0.08) :
+                              'background.paper',
                       }}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
                           {option?.label || sourceValue}
                         </Typography>
-                        
+
                         {/* Status Icon */}
                         {state === 'running' && (
-                          <Chip 
-                            label="Syncing..." 
-                            size="small" 
-                            color="primary" 
+                          <Chip
+                            label="Syncing..."
+                            size="small"
+                            color="primary"
                             sx={{ height: 24 }}
                           />
                         )}
@@ -353,9 +357,9 @@ export default function SyncCalendarModal({
                           <ErrorIcon color="error" sx={{ fontSize: 24 }} />
                         )}
                         {state === 'pending' && (
-                          <Chip 
-                            label="Pending" 
-                            size="small" 
+                          <Chip
+                            label="Pending"
+                            size="small"
                             sx={{ height: 24, bgcolor: 'action.hover' }}
                           />
                         )}
@@ -407,8 +411,8 @@ export default function SyncCalendarModal({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button 
-          onClick={handleClose} 
+        <Button
+          onClick={handleClose}
           disabled={syncing}
           sx={{ textTransform: 'none' }}
         >
@@ -420,7 +424,7 @@ export default function SyncCalendarModal({
             variant="contained"
             disabled={syncing || selectedSources.length === 0}
             startIcon={syncing ? <SyncIcon className="spin" /> : <SyncIcon />}
-            sx={{ 
+            sx={{
               textTransform: 'none',
               '@keyframes spin': {
                 '0%': { transform: 'rotate(0deg)' },

@@ -66,6 +66,7 @@ import ChecklistRtlIcon from '@mui/icons-material/ChecklistRtl';
 import LockIcon from '@mui/icons-material/Lock';
 import { useAuth } from '../contexts/AuthContext';
 import UserAvatar from './UserAvatar';
+import RoadmapModal from './RoadmapModal';
 
 export const MOBILE_BOTTOM_APPBAR_HEIGHT_PX = 64;
 const DEFAULT_BRAND_LOGO_SRC = '/logos/favicon/favicon.ico';
@@ -148,6 +149,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
   const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, isAuthenticated } = useAuth();
+  const [roadmapModalOpen, setRoadmapModalOpen] = useState(false);
 
   // Build processed items: remove 'contact', handle 'about' and 'roadmap', then reorder to: Clock, Calendar, Roadmap, About, Settings/Unlock
   const processedItems = useMemo(() => {
@@ -178,7 +180,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
       shortLabel: 'Roadmap',
       icon: <ChecklistRtlIcon />,
       onClick: () => {
-        window.alert('🚀 Roadmap feature coming soon! We\'re working on exciting updates.');
+        setRoadmapModalOpen(true);
       },
       ariaLabel: 'View roadmap (coming soon)',
     };
@@ -291,6 +293,8 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
 
   return (
     <>
+      <RoadmapModal open={roadmapModalOpen} onClose={() => setRoadmapModalOpen(false)} />
+
       {/* Desktop / tablet sticky bar */}
       <Box sx={{ display: { xs: 'none', md: 'block' }, ...sx }}>
         <Paper
@@ -304,6 +308,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
             boxShadow: '0 10px 26px rgba(15,23,42,0.06)',
             overflow: 'hidden',
             maxHeight: 72,
+            zIndex: 100,
           }}
         >
           <Stack
@@ -462,7 +467,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
           left: 0,
           right: 0,
           bottom: 0,
-          zIndex: 1400,
+          zIndex: 100,
           borderTop: '1px solid',
           borderColor: 'divider',
           bgcolor: 'rgba(255,255,255,0.98)',

@@ -15,6 +15,7 @@
  * - Fully responsive: wraps on xs/sm, single-row on md+
  * 
  * Changelog:
+ * v1.3.28 - 2026-01-17 - RESET BUTTON UX: Exclude date filter from triggering reset button visibility. Reset button now only appears when impacts, currencies, favoritesOnly, or searchQuery are active. Prevents reset button from showing when only date range is changed on /clock page (cleaner UX for users just switching between date presets).
  * v1.3.27 - 2026-01-16 - Removed 'yesterday' date preset; users now choose between Today, Tomorrow, This Week, Next Week, or This Month.
  * v1.3.26 - 2026-01-16 - Added 'thisMonth' date preset to DATE_PRESETS for full This Month filtering support with timezone awareness.
  * v1.3.25 - 2026-01-16 - Added 'nextWeek' date preset to DATE_PRESETS for full Next Week filtering support with timezone awareness.
@@ -534,14 +535,16 @@ export default function EventsFilters3({
   const activePresetKey = activePreset?.key || null;
 
   const hasActiveFilters = useMemo(() => {
+    // Only count non-date filters as "active" for reset button visibility
+    // This prevents reset button from showing when only date filter is applied
+    // (common on /clock page where users just change the date range)
     return Boolean(
       localFilters.impacts.length ||
       localFilters.currencies.length ||
       localFilters.favoritesOnly ||
-      localFilters.searchQuery ||
-      (activePresetKey && activePresetKey !== defaultPreset),
+      localFilters.searchQuery,
     );
-  }, [activePresetKey, defaultPreset, localFilters.currencies.length, localFilters.favoritesOnly, localFilters.impacts.length, localFilters.searchQuery]);
+  }, [localFilters.currencies.length, localFilters.favoritesOnly, localFilters.impacts.length, localFilters.searchQuery]);
 
   const showResetInline = hasActiveFilters && !anchorOpen;
 

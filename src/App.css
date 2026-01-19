@@ -66,3 +66,9 @@
 	height: 100%;
 	border-radius: 2px;
 }
+
+/* ============================================================================ */
+/* Fullscreen Mode Styles */
+/* ============================================================================ */
+/* v1.0.0 - 2026-01-17 - Fullscreen mode hides AppBar, EventsFilters3, headings,
+   and timezone button. FullscreenModeButton remains visible at fixed bottom-left. */

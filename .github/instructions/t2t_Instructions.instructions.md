@@ -496,3 +496,8 @@ npm run deploy           # Build + deploy to Firebase Hosting
 ---
 
 **Need more details?** → Read `kb/kb.md` for comprehensive documentation on architecture, tech stack, data models, security rules, deployment procedures, and troubleshooting guides.
+
+---
+
+**Additonal instructions or clarifications can be appended here as needed:**
+- 'bep'/'BEP' = 'follow all best React, Firebase, MUI, UI, UX, dev, copywriting, and mobile-first responsive enterprise practices'.

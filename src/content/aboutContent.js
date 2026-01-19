@@ -274,7 +274,7 @@ export const aboutMeta = {
   keywords: "economic calendar, forex factory calendar, trading session clock, market session overlaps, futures economic calendar, forex news calendar, impact filters, currency filters, day trading routine, prop trader workflow, New York session timing, London session timing",
   canonical: "https://time2.trade/about",
   ogType: "website",
-  ogImage: "https://time2.trade/Time2Trade_SEO_Meta_3.PNG",
+  ogImage: "https://time2.trade/Time2Trade_SEO_Meta_5.PNG",
   twitterCard: "summary_large_image",
   twitterSite: "@time2_trade"
 };
@@ -309,5 +309,5 @@ export const aboutStructuredData = {
     "Customizable trading sessions and colors (up to eight)",
     "Installable PWA for fast launch"
   ],
-  "screenshot": "https://time2.trade/Time2Trade_SEO_Meta_3.PNG"
+  "screenshot": "https://time2.trade/Time2Trade_SEO_Meta_5.PNG"
 };

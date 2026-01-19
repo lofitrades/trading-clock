@@ -5,6 +5,9 @@
  * Renders impact-based icons on AM (inner) and PM (outer) rings using current filters and news source.
  *
  * Changelog:
+ * v1.15.13 - 2026-01-17 - FULLSCREEN TOOLTIP POSITIONING FIX: Fixed EventMarkerTooltip positioning in fullscreen by converting viewport coordinates to container-relative coordinates using overlayRef.current?.parentElement?.getBoundingClientRect(). Tooltips now render at correct position relative to overlay container. Removed incorrect transform. Ensures EventModal opens correctly from tooltip click in fullscreen mode on all breakpoints.
+ * v1.15.12 - 2026-01-17 - FULLSCREEN TOOLTIP STACKING CONTEXT FIX: When isFullscreenMode is true, tooltips now render with absolute positioning instead of Portal. This keeps tooltips within the fullscreen element's stacking context, fixing visibility issues where Portal-rendered tooltips were hidden behind the fullscreen element. Tooltips now visible on click in fullscreen mode on all breakpoints.
+ * v1.15.11 - 2026-01-17 - FULLSCREEN TOOLTIP Z-INDEX FIX: Increased EventMarkerTooltip z-index from 1000 to 1250 so tooltips remain visible during fullscreen mode. Tooltips now render above all clock content and fullscreen button while staying below modals (10001+). Fixes visibility issue where tooltips were hidden behind fullscreen elements on click.
  * v1.15.10 - 2026-01-16 - Fix: outside-click close works even when tooltip autoscroll is suppressed (calendar clock).
  * v1.15.9 - 2026-01-16 - Enable marker click actions when tooltips are disabled (landing hero), with propagation guard.
  * v1.15.8 - 2026-01-16 - Show event tooltip only on click/touch (no hover/focus open/close) for stable UX.
@@ -115,7 +118,7 @@ const formatTimeToEvent = (dateLike, _timezone, nowEpochMs) => {
   return formatRelativeLabel({ eventEpochMs, nowEpochMs, nowWindowMs: NOW_WINDOW_MS });
 };
 
-function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: providedEvents, onEventClick, onLoadingStateChange, suppressTooltipAutoscroll = false, disableTooltips = false }) {
+function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: providedEvents, onEventClick, onLoadingStateChange, suppressTooltipAutoscroll = false, disableTooltips = false, isFullscreenMode = false }) {
   const location = useLocation();
   const isCalendarPage = location.pathname === '/calendar';
   const { openTooltip, closeTooltip: closeGlobalTooltip, isTooltipActive } = useTooltipCoordinator();
@@ -860,7 +863,45 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
         return (
           <React.Fragment key={markerKey}>
             {markerNode}
-            {isMarkerOpen && (
+            {isMarkerOpen && isFullscreenMode ? (
+              // In fullscreen: use absolute positioning with container-relative coordinates
+              (() => {
+                // In fullscreen, coordinates are viewport-relative, need to convert to container-relative
+                const containerRect = overlayRef.current?.parentElement?.getBoundingClientRect();
+                const relativeLeft = containerRect ? tooltipLeft - containerRect.left + 10 : tooltipLeft + 10;
+                const relativeTop = containerRect ? tooltipTop - containerRect.top - 10 : tooltipTop - 10;
+                return (
+                  <Box
+                    data-t2t-event-tooltip-key={markerKey}
+                    role="tooltip"
+                    sx={{
+                      position: 'absolute',
+                      left: `${relativeLeft}px`,
+                      top: `${relativeTop}px`,
+                      zIndex: 1250,
+                      pointerEvents: 'auto',
+                    }}
+                  >
+                    <EventMarkerTooltip
+                      events={marker.events.map(e => e.evt)}
+                      timezone={timezone}
+                      nowEpochMs={nowEpochMs}
+                      onClick={() => {
+                        if (marker.events && marker.events.length > 0) {
+                          const targetEvent = marker.events[0].evt;
+                          onEventClick?.(targetEvent, {
+                            source: 'canvas-tooltip',
+                            isCalendarPage
+                          });
+                        }
+                        closeTooltip();
+                      }}
+                    />
+                  </Box>
+                );
+              })()
+            ) : isMarkerOpen && !isFullscreenMode ? (
+              // Not in fullscreen: use Portal for root-level rendering
               <Portal>
                 <Box
                   data-t2t-event-tooltip-key={markerKey}
@@ -869,7 +910,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
                     position: 'fixed',
                     left: tooltipLeft + 10,
                     top: tooltipTop - 10,
-                    zIndex: 1000, // Match session arc tooltip layering
+                    zIndex: 1250, // Above all content and fullscreen button, below modals (10001+)
                     pointerEvents: 'auto',
                   }}
                 >
@@ -892,7 +933,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
                   />
                 </Box>
               </Portal>
-            )}
+            ) : null}
           </React.Fragment>
         );
       })}
@@ -928,6 +969,7 @@ ClockEventsOverlay.propTypes = {
   onLoadingStateChange: PropTypes.func,
   suppressTooltipAutoscroll: PropTypes.bool,
   disableTooltips: PropTypes.bool,
+  isFullscreenMode: PropTypes.bool,
 };
 
 export default MemoClockEventsOverlay;

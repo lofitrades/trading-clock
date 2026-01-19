@@ -10,8 +10,10 @@
  * - Responsive clock sizing with container-aware calculations
  * - Session-based dynamic background color support
  * - Lazy-loaded ClockEventsOverlay for performance
+ * - Bottom-left fullscreen button redirects to /clock with autoFullscreen=true param
  *
  * Changelog:
+ * v1.0.2 - 2026-01-17 - FULLSCREEN SHORTCUT: Added minimalistic fullscreen icon button positioned at bottom-left corner of the clock paper. Button is borderless, shadowless, and uses low opacity until hover. Clicking navigates to /clock page with ?autoFullscreen=true query param to automatically activate fullscreen mode. Uses useNavigate from react-router-dom and FullscreenRoundedIcon from MUI. Tooltip shows "View fullscreen on /clock page". Responsive padding on all breakpoints.
  * v1.0.1 - 2026-01-15 - BORDER & DIVIDER COLOR CONSISTENCY: Changed border and divider colors from
  *   dynamic alpha(clockPaperTextColor, 0.18/0.2) to fixed alpha('#3c4d63', 0.12) to match the economic
  *   calendar paper styling. This ensures consistent UI colors across the /calendar page regardless of
@@ -24,6 +26,7 @@
 
 import { Suspense, lazy, memo, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
+import { useNavigate } from 'react-router-dom';
 import {
     Box,
     Button,
@@ -37,6 +40,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
+import FullscreenRoundedIcon from '@mui/icons-material/FullscreenRounded';
 
 import ClockCanvas from './ClockCanvas';
 import ClockHandsOverlay from './ClockHandsOverlay';
@@ -76,6 +80,7 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
     onOpenEvent,
 }) {
     const theme = useTheme();
+    const navigate = useNavigate();
     const isXs = useMediaQuery(theme.breakpoints.only('xs'));
     const { currentTime, activeSession, nextSession, timeToEnd, timeToStart } = useClock(clockTimezone, sessions, timeEngine);
     const handAnglesRef = useRef({ hour: 0, minute: 0, second: 0 });
@@ -458,6 +463,29 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
                     />
                 ) : null}
             </Stack>
+
+            {/* Fullscreen button - bottom-left corner, minimalistic */}
+            <Tooltip title="View fullscreen on /clock page" placement="top">
+                <IconButton
+                    onClick={() => navigate('/clock?autoFullscreen=true')}
+                    sx={{
+                        position: 'absolute',
+                        bottom: { xs: 8, sm: 10, md: 12 },
+                        left: { xs: 8, sm: 10, md: 12 },
+                        color: alpha(clockPaperTextColor, 0.6),
+                        '&:hover': {
+                            color: alpha(clockPaperTextColor, 0.9),
+                            bgcolor: 'transparent',
+                        },
+                        p: 0.75,
+                        zIndex: 10,
+                    }}
+                    aria-label="View fullscreen"
+                    size="small"
+                >
+                    <FullscreenRoundedIcon fontSize="small" />
+                </IconButton>
+            </Tooltip>
         </Paper>
     );
 });
