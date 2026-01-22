@@ -5,6 +5,7 @@
  * Follows Material Design v7 best practices with proper spacing, typography hierarchy, and alignment.
  *
  * Changelog:
+ * v1.4.1 - 2026-01-21 - Add close icon button to tooltip header.
  * v1.4.0 - 2026-01-16 - Smart labels with session state: "Starts in X", "Started X ago", "Ended X ago", with overnight session handling
  * v1.2.0 - 2026-01-16 - Enterprise UI: proper spacing system, typography hierarchy, alignment, and visual grouping
  * v1.1.0 - 2026-01-16 - Simplified to show single 'in/ago' label based on session state, reduced size for performance
@@ -13,7 +14,8 @@
 
 import { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, IconButton } from '@mui/material';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 
 /**
  * Convert 24-hour time string to 12-hour format with AM/PM
@@ -169,7 +171,7 @@ const formatSessionLabel = (state, minutes) => {
  *   arcColor="primary.main"
  * />
  */
-function SessionArcTooltip({ sessionName = '', startTime = '', endTime = '', timezone = 'UTC', arcColor = 'primary.main' }) {
+function SessionArcTooltip({ sessionName = '', startTime = '', endTime = '', timezone = 'UTC', arcColor = 'primary.main', onClose }) {
     // Memoize time calculations to avoid unnecessary recomputation
     // Timezone-aware: recalculates when timezone or session times change
     const displayData = useMemo(() => {
@@ -215,6 +217,10 @@ function SessionArcTooltip({ sessionName = '', startTime = '', endTime = '', tim
                     pt: 1.5, // 12px top padding
                     pb: 1, // 8px bottom padding
                     bgcolor: arcColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 1,
                 }}
             >
                 <Typography
@@ -230,6 +236,23 @@ function SessionArcTooltip({ sessionName = '', startTime = '', endTime = '', tim
                 >
                     {sessionName}
                 </Typography>
+                <IconButton
+                    size="small"
+                    aria-label="Close tooltip"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onClose?.();
+                    }}
+                    sx={{
+                        color: 'primary.contrastText',
+                        p: 0.5,
+                        '&:hover': {
+                            bgcolor: 'rgba(255,255,255,0.12)',
+                        },
+                    }}
+                >
+                    <CloseRoundedIcon fontSize="small" />
+                </IconButton>
             </Box>
 
             {/* Times Section */}
@@ -318,6 +341,7 @@ SessionArcTooltip.propTypes = {
     endTime: PropTypes.string,
     timezone: PropTypes.string,
     arcColor: PropTypes.string,
+    onClose: PropTypes.func,
 };
 
 export default SessionArcTooltip;

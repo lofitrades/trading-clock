@@ -6,13 +6,21 @@
  * lightweight temporal status (per second) so the overlay UI stays fast.
  *
  * Changelog:
+ * v1.2.2 - 2026-01-22 - Group event markers into nearest 5-minute windows for consistent clock clustering.
+ * v1.2.1 - 2026-01-21 - Expose impact meta for custom marker badges.
+ * v1.2.0 - 2026-01-21 - Use custom icon/color overrides for reminder markers.
+ * v1.1.3 - 2026-01-21 - Use a custom MUI icon for custom reminder markers.
+ * v1.1.2 - 2026-01-21 - Keep custom reminder markers visible when favorites-only filter is active.
+ * v1.1.1 - 2026-01-21 - Refactor: Markers now group only by exact time; representative visuals follow current priority scoring.
+ * v1.1.0 - 2026-01-21 - Refactor: Removed 30-minute window bucketing. Markers now group only by exact time and currency.
  * v1.0.0 - 2026-01-07 - Extracted marker builder to isolate data shaping from UI; optimized per-second updates and live favorites/notes badge support.
  */
 
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { resolveImpactMeta } from '../utils/newsApi';
 import { getCurrencyFlag } from '../utils/currencyFlags';
 import { getEventEpochMs, NOW_WINDOW_MS } from '../utils/eventTimeEngine';
+import { getCustomEventIconComponent, resolveCustomEventColor } from '../utils/customEventStyle';
 
 const useTimeParts = (timezone) => {
   const formatter = useMemo(
@@ -38,6 +46,27 @@ const useTimeParts = (timezone) => {
 
 const getImpactMeta = (impact) => resolveImpactMeta(impact);
 
+const GROUP_MINUTES = 5;
+
+const getNearestGroupTime = (hour, minute) => {
+  const rounded = Math.round(minute / GROUP_MINUTES) * GROUP_MINUTES;
+  let bucketMinute = rounded;
+  let bucketHour = hour;
+
+  if (bucketMinute === 60) {
+    bucketMinute = 0;
+    bucketHour = (bucketHour + 1) % 24;
+  }
+
+  return { bucketHour, bucketMinute };
+};
+
+const getMinuteDelta = (minute, bucketMinute) => {
+  let delta = (bucketMinute - minute + 60) % 60;
+  if (delta > 30) delta -= 60;
+  return delta;
+};
+
 export function useClockEventMarkers({ events = [], timezone, eventFilters, nowEpochMs, isFavorite, hasNotes }) {
   const getTimeParts = useTimeParts(timezone);
 
@@ -46,18 +75,6 @@ export function useClockEventMarkers({ events = [], timezone, eventFilters, nowE
 
     const grouped = new Map();
 
-    // Enterprise: 30-minute buckets centered at :00 and :30; each bucket covers -14 to +15 minutes
-    // Examples: 07:46-08:15 → 08:00 marker, 08:16-08:45 → 08:30 marker.
-    const bucketFor = (hour, minute) => {
-      const totalMinutes = hour * 60 + minute;
-      const bucketIndex = Math.floor((totalMinutes + 14) / 30);
-      const bucketCenter = bucketIndex * 30;
-      return {
-        bucketHour: Math.floor(bucketCenter / 60),
-        bucketMinute: bucketCenter % 60,
-      };
-    };
-
     events.forEach((evt) => {
       const date = evt.date || evt.dateTime || evt.Date;
       const parts = getTimeParts(date);
@@ -65,7 +82,11 @@ export function useClockEventMarkers({ events = [], timezone, eventFilters, nowE
       if (!parts || eventEpochMs === null) return;
 
       const { hour, minute } = parts;
-      const { bucketHour, bucketMinute } = bucketFor(hour, minute);
+      const currency = evt.currency || evt.Currency || '';
+
+      const { bucketHour, bucketMinute } = getNearestGroupTime(hour, minute);
+      const minuteDelta = getMinuteDelta(minute, bucketMinute);
+      const groupEpochMs = eventEpochMs + minuteDelta * 60000;
 
       const impactMeta = getImpactMeta(evt.impact || evt.strength || evt.Strength);
       const key = `${bucketHour}-${bucketMinute}`;
@@ -76,9 +97,10 @@ export function useClockEventMarkers({ events = [], timezone, eventFilters, nowE
         hour: bucketHour,
         minute: bucketMinute,
         eventEpochMs,
+        groupEpochMs,
         impactMeta,
-        currency: evt.currency || evt.Currency,
-        countryCode: evt.currency || evt.Currency ? getCurrencyFlag(evt.currency || evt.Currency) : null,
+        currency,
+        countryCode: currency ? getCurrencyFlag(currency) : null,
         isFavoriteEvent: isFavorite ? isFavorite(evt) : false,
         hasNoteEvent: hasNotes ? hasNotes(evt) : false,
       });
@@ -93,14 +115,23 @@ export function useClockEventMarkers({ events = [], timezone, eventFilters, nowE
           key,
           hour: list[0].hour,
           minute: list[0].minute,
+          groupEpochMs: list[0].groupEpochMs ?? null,
           events: list,
         };
       })
       .filter(Boolean)
-      .sort((a, b) => (a.hour * 60 + a.minute) - (b.hour * 60 + b.minute));
+      .sort((a, b) => {
+        const timeDiff = (a.hour * 60 + a.minute) - (b.hour * 60 + b.minute);
+        if (timeDiff !== 0) return timeDiff;
+        const aCurrency = (a.events?.[0]?.currency || '').toString();
+        const bCurrency = (b.events?.[0]?.currency || '').toString();
+        return aCurrency.localeCompare(bCurrency);
+      });
 
     if (eventFilters?.favoritesOnly) {
-      return markers.filter((marker) => marker.events.some((item) => item.isFavoriteEvent));
+      return markers.filter((marker) =>
+        marker.events.some((item) => item.isFavoriteEvent || item.evt?.isCustom)
+      );
     }
 
     return markers;
@@ -159,6 +190,18 @@ export function useClockEventMarkers({ events = [], timezone, eventFilters, nowE
         return best.eventEpochMs <= current.eventEpochMs ? best : current;
       }, scoredEvents[0]);
 
+      const isCustomEvent = Boolean(representative?.evt?.isCustom);
+      const CustomIcon = isCustomEvent
+        ? getCustomEventIconComponent(representative?.evt?.customIcon)
+        : null;
+      const customMeta = isCustomEvent
+        ? {
+            ...representative.impactMeta,
+            icon: CustomIcon ? React.createElement(CustomIcon, { sx: { fontSize: 14, color: '#fff' } }) : representative.impactMeta.icon,
+            color: resolveCustomEventColor(representative?.evt?.customColor),
+          }
+        : representative.impactMeta;
+
       const isAllPast = scoredEvents.every((item) => item.isPassed && !item.isNow);
 
       const upcomingOrNow = scoredEvents.filter((item) => !item.isPassed || item.isNow);
@@ -172,7 +215,8 @@ export function useClockEventMarkers({ events = [], timezone, eventFilters, nowE
         isNow: hasNowInGroup,
         isNext: hasNextInGroup,
         isTodayPast: isAllPast,
-        meta: representative.impactMeta,
+        meta: customMeta,
+        impactMeta: representative.impactMeta,
         currency: representative.currency,
         countryCode: representative.countryCode,
         isFavoriteMarker,

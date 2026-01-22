@@ -6,6 +6,7 @@
  * values based on user preference.
  *
  * Changelog:
+ * v1.3.0 - 2026-01-21 - BEP Refactor: Add normalizedName to DTO, backwards compatibility for old events.
  * v1.2.0 - 2026-01-16 - Include GPT fallback sources, expose time labels, and surface GPT-only placeholders.
  * v1.1.0 - 2025-12-16 - Filter to NFS-backed events only; preserve enrichment while blocking JBlanked-only documents.
  * v1.0.0 - 2025-12-11 - Initial canonical fetcher with user-preferred source handling.
@@ -24,6 +25,7 @@ import { db } from '../firebase';
  * @typedef {Object} CanonicalEconomicEventDTO
  * @property {string} id
  * @property {string} name
+ * @property {string} normalizedName
  * @property {string|null} currency
  * @property {string|null} impact
  * @property {Date|null} datetimeUtc
@@ -108,6 +110,7 @@ export async function fetchCanonicalEconomicEvents({ from, to, currencies = [], 
         return {
           id: docSnap.id,
           name: data.name,
+          normalizedName: data.normalizedName || data.name || '',
           currency: data.currency ?? null,
           impact: data.impact ?? null,
           datetimeUtc: dt,

@@ -6,6 +6,24 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
+ * v2.7.15 - 2026-01-22 - BEP: Remove box shadows from Add button across breakpoints.
+ * v2.7.14 - 2026-01-22 - BEP: Match Add button font styling to filter chips.
+ * v2.7.13 - 2026-01-22 - BEP: Match md+ Add button height and border color to filter chips.
+ * v2.7.12 - 2026-01-22 - BEP: Match Add button styling to notification bell on all breakpoints while keeping label.
+ * v2.7.11 - 2026-01-22 - BEP: Add "Add" label to reminder button on all breakpoints.
+ * v2.7.10 - 2026-01-22 - BEP: Match xs/sm Add reminder button styling to md+ outlined button.
+ * v2.7.9 - 2026-01-22 - BEP: Move xs/sm Add reminder button to mobile header, left of notifications.
+ * v2.7.8 - 2026-01-22 - BEP: Align xs/sm Add reminder button below header, right-aligned with header padding.
+ * v2.7.7 - 2026-01-22 - BEP: Align xs/sm floating Add reminder button with mobile avatar padding and Trading Clock title top edge.
+ * v2.7.6 - 2026-01-22 - BEP: Custom events on clock markers now open in EventModal (view mode) instead of directly opening CustomEventDialog. Added Edit button in EventModal that opens CustomEventDialog at z-index 12003. Consistent view/edit flow for both clock markers and calendar rows.
+ * v2.7.5 - 2026-01-22 - BEP: Add circular borders to Add reminder buttons on /clock page (md+ header button and xs/sm floating button) with hover states for enhanced visual hierarchy.
+ * v2.7.4 - 2026-01-22 - BEP: Add custom event reminder button to /clock page header. On md+: Add icon button positioned to the right of EventsFilters3. On xs/sm: Floating button in top-right corner. Opens CustomEventDialog for creating reminders. Integrated useCustomEvents hook for CRUD operations. Auth-gated with fallback to AuthModal2 for unauthenticated users.
+ * 
+ * Changelog:
+ * v2.7.3 - 2026-01-22 - GLOBAL NOTIFICATION SCOPE: Delegated notification wiring to PublicLayout so all public pages (calendar, clock, landing) share the same NotificationCenter placement on md+ and xs/sm. Removed local notification props from App.jsx.
+ * v2.7.1 - 2026-01-21 - Persist clock event selection through auth so favorites state renders after login.
+ * v2.7.0 - 2026-01-21 - Add favorites/notes wiring for clock event modal with notes dialog support.
+ * v2.6.99 - 2026-01-21 - FULLSCREEN REMOVAL: Removed all fullscreen toggle UI and logic from /clock.
  * v2.6.98 - 2026-01-17 - AUTO-FULLSCREEN FROM CALENDAR: Added useEffect to detect ?autoFullscreen=true query param on mount. When present and hasCalculatedClockSize is true, automatically calls toggleFullscreenMode() to enter fullscreen immediately. After activation, removes query param via window.history.replaceState() to clean up URL. Enables seamless fullscreen entry from /calendar page when user clicks the new fullscreen shortcut button in ClockPanelPaper. Effect dependencies: [hasCalculatedClockSize, isFullscreenMode, toggleFullscreenMode].
  * v2.6.97 - 2026-01-17 - TIMEZONE MODAL REFACTOR: Extracted inline Dialog/TimezoneSelector code into standalone TimezoneModal component (src/components/TimezoneModal.jsx). App.jsx now uses lazy-loaded TimezoneModal with props: open, onClose, onOpenAuth, zIndex. Removed Dialog, DialogTitle, DialogContent, IconButton, CloseIcon imports (no longer needed). Improves reusability across /clock and /calendar pages, cleaner code, follows component composition BEP, and maintains z-index management. TimezoneModal handles all modal UI while App.jsx handles just state management.
  * v2.6.96 - 2026-01-17 - BUGFIX: Close EventModal when exiting fullscreen mode. Added useEffect that watches isFullscreenMode and calls closeEventModal when transitioning from fullscreen to normal mode. Prevents modal from persisting after user exits fullscreen, improving UX for fullscreen immersive experience. Modal state now properly resets when exiting fullscreen on all breakpoints.
@@ -17,6 +35,10 @@
  * v2.6.90 - 2026-01-17 - FULLSCREEN MODE: Added fullscreen icon button (fixed bottom-left) that hides AppBar, EventsFilters3, headings (h1, h2), and timezone button for immersive clock-only viewing. Imported useClockFullscreenMode hook and FullscreenModeButton component. Added isFullscreenMode state and display:none toggle to header Box. FullscreenModeButton renders at z-index:1050 above clock but below modals. Improves focus on the clock without navigation chrome distractions.
  * v2.6.89 - 2026-01-16 - RESPONSIVE HEADER LAYOUT: Reorganized header to display "Trading Clock" + "Today's Market Sessions" (left-aligned) and EventsFilters3 (right-aligned) on the same row for md+. On xs/sm, headings remain centered and stacked while filters stay fixed at bottom. Updated height calculation to account for new header row layout: headerHeightEstimate changed from 50px (stacked headings only) to 46px (headings + filters in same row on md+, or headings alone on xs/sm). Adjusted H2 mb from variable to 0 since it now sits in a flex row. Ensures content properly centers across all breakpoints.
  * v2.6.85 - 2026-01-15 - LOADINGSCREEN REMOVAL: Removed LoadingScreen from root App.jsx level (import and both render calls). LoadingScreen is now handled by PublicLayout following enterprise layout best practices. Simplifies App.jsx to focus on clock content and modals, not loading chrome.
+ * v2.6.88 - 2026-01-21 - MOBILE FULLSCREEN CTA: Matched inline fullscreen button size and right padding to mobile avatar.
+ * v2.6.87 - 2026-01-21 - MOBILE FULLSCREEN CTA: Moved fullscreen button to header row on xs/sm only.
+ * v2.6.86 - 2026-01-21 - TIMEZONE CTA SPACING: Removed xs/sm horizontal padding from timezone selector to match md+.
+ * v2.6.85 - 2026-01-21 - MOBILE HEADER SPACING: Move /clock header below fixed mobile brand row and align left on xs/sm.
  * v2.6.84 - 2026-01-14 - MOBILE SCROLL PADDING FIX: Added responsive pb (padding-bottom) to inner content Box for xs/sm to account for PublicLayout mobile logo row (32px logo + 16px pb = 48px). Formula: xs/sm use calc(8 * 8px + 48px) = 112px, md+ uses contentPaddingBottom (calculated dynamically). Ensures content scrolls all the way to bottom without being clipped on mobile. Matches AboutPage and CalendarEmbedLayout pattern for consistent scrollability across all pages.
  * v2.6.83 - 2026-01-14 - CENTERING FIX (ENTERPRISE DEEP AUDIT): Fixed PublicLayout flex/width conflict affecting /app centering on all breakpoints. PublicLayout now uses proper flex:center pattern (justifyContent:center + alignItems:center) for enterprise-grade centering instead of conflicting mx:auto approach. App.jsx app-container is now just a flex column for layout (no centering styles, no width/maxWidth duplicates). Content naturally centers through PublicLayout. Matches enterprise MUI dashboard pattern and works consistently on xs/sm/md/lg/xl.
  * v2.6.81 - 2026-01-15 - TIMEZONE MODAL BACKDROP FIX: Keep backdrop behind paper and ensure modal sits above AppBar to prevent overlaying the dialog.
@@ -112,25 +134,26 @@
  */
 
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Box, Typography, useMediaQuery, Button, alpha } from '@mui/material';
+import { Box, Typography, useMediaQuery, Button, alpha, IconButton, Tooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
 import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded';
 import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { useSettings } from './contexts/SettingsContext';
 import { useClock } from './hooks/useClock';
 import { useTimeEngine } from './hooks/useTimeEngine';
 import { useClockVisibilitySnap } from './hooks/useClockVisibilitySnap';
-import useFullscreen from './hooks/useFullscreen';
-import useClockFullscreenMode from './hooks/useClockFullscreenMode';
 import { useAuth } from './contexts/AuthContext';
+import { useFavorites } from './hooks/useFavorites';
+import { useEventNotes } from './hooks/useEventNotes';
+import useCustomEvents from './hooks/useCustomEvents';
 import ClockCanvas from './components/ClockCanvas';
 import ClockHandsOverlay from './components/ClockHandsOverlay';
 import SessionLabel from './components/SessionLabel';
 import InstallPromptCTA from './components/InstallPromptCTA';
-import FullscreenModeButton from './components/FullscreenModeButton';
 import { MOBILE_BOTTOM_APPBAR_HEIGHT_PX } from './components/AppBar';
 import PublicLayout from './components/PublicLayout';
 import { isColorDark, normalizeClockSize } from './utils/clockUtils';
@@ -142,8 +165,10 @@ const AuthModal2 = lazy(() => import('./components/AuthModal2'));
 const ClockEventsOverlay = lazy(() => import('./components/ClockEventsOverlay'));
 const ContactModal = lazy(() => import('./components/ContactModal'));
 const EventModal = lazy(() => import('./components/EventModal'));
+const EventNotesDialog = lazy(() => import('./components/EventNotesDialog'));
 const EventsFilters3 = lazy(() => import('./components/EventsFilters3'));
 const TimezoneModal = lazy(() => import('./components/TimezoneModal'));
+const CustomEventDialog = lazy(() => import('./components/CustomEventDialog'));
 
 export default function App() {
   const {
@@ -185,17 +210,19 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [selectedEventFromClock, setSelectedEventFromClock] = useState(null);
+  const [pendingEventFromClock, setPendingEventFromClock] = useState(null);
+  const [noteTarget, setNoteTarget] = useState(null);
   const [calculatedClockSize, setCalculatedClockSize] = useState(clockSize);
   const [hasCalculatedClockSize, setHasCalculatedClockSize] = useState(false);
   const [hasRenderedSettingsDrawer, setHasRenderedSettingsDrawer] = useState(false);
   const [hasRenderedAuthModal, setHasRenderedAuthModal] = useState(false);
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [timezoneModalOpen, setTimezoneModalOpen] = useState(false);
+  const [customDialogOpen, setCustomDialogOpen] = useState(false);
+  const [customEditingEvent, setCustomEditingEvent] = useState(null);
   const [shouldRenderEventsOverlay, setShouldRenderEventsOverlay] = useState(false);
   const [minLoaderElapsed, setMinLoaderElapsed] = useState(false);
   const appContainerRef = useRef(null);
-  const { isFullscreen } = useFullscreen(appContainerRef);
-  const { isFullscreenMode, toggleFullscreenMode } = useClockFullscreenMode(appContainerRef);
   const handAnglesRef = useRef({ hour: 0, minute: 0, second: 0 });
   useClockVisibilitySnap({ handAnglesRef, currentTime, resumeToken: timeEngine?.resumeToken });
   const [overlayLoading, setOverlayLoading] = useState(false);
@@ -204,16 +231,29 @@ export default function App() {
   const [clockShellWidth, setClockShellWidth] = useState(null);
   const clockShellRef = useRef(null);
 
-  // Auto-fullscreen from /calendar query param
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const autoFullscreen = params.get('autoFullscreen');
-    if (autoFullscreen === 'true' && !isFullscreenMode && hasCalculatedClockSize) {
-      toggleFullscreenMode();
-      // Remove query param to clean up URL
-      window.history.replaceState({}, document.title, '/clock');
-    }
-  }, [hasCalculatedClockSize, isFullscreenMode, toggleFullscreenMode]);
+  const {
+    favoritesLoading,
+    isFavorite,
+    toggleFavorite,
+    isFavoritePending,
+  } = useFavorites();
+
+  const {
+    notesError,
+    hasNotes,
+    getNotesForEvent,
+    ensureNotesStream,
+    stopNotesStream,
+    addNote,
+    removeNote,
+    isEventNotesLoading,
+  } = useEventNotes();
+
+  const {
+    createEvent: createCustomEvent,
+    saveEvent: saveCustomEvent,
+    removeEvent: removeCustomEvent,
+  } = useCustomEvents();
 
   const applyThemeColor = useCallback((color) => {
     if (typeof document === 'undefined') return;
@@ -248,11 +288,60 @@ export default function App() {
 
   const handleEventFromClockClick = useCallback((evt) => {
     if (!isAuthenticated()) {
+      setPendingEventFromClock(evt);
       setAuthModalOpen(true);
       return;
     }
     setSelectedEventFromClock(evt);
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!pendingEventFromClock) return;
+    if (!isAuthenticated()) return;
+    setSelectedEventFromClock(pendingEventFromClock);
+    setPendingEventFromClock(null);
+  }, [pendingEventFromClock, isAuthenticated]);
+
+  const handleToggleFavorite = useCallback(async (event) => {
+    const result = await toggleFavorite(event);
+    if (result?.requiresAuth) {
+      setAuthModalOpen(true);
+    }
+  }, [toggleFavorite]);
+
+  const handleOpenNotes = useCallback((event) => {
+    const result = ensureNotesStream(event);
+    if (result?.requiresAuth) {
+      setAuthModalOpen(true);
+      return;
+    }
+    setNoteTarget(event);
+  }, [ensureNotesStream]);
+
+  const handleCloseNotes = useCallback(() => {
+    if (noteTarget) {
+      stopNotesStream(noteTarget);
+    }
+    setNoteTarget(null);
+  }, [noteTarget, stopNotesStream]);
+
+  const handleAddNote = useCallback(async (content) => {
+    if (!noteTarget) return { success: false, requiresAuth: false };
+    const result = await addNote(noteTarget, content);
+    if (result?.requiresAuth) {
+      setAuthModalOpen(true);
+    }
+    return result;
+  }, [addNote, noteTarget]);
+
+  const handleRemoveNote = useCallback(async (noteId) => {
+    if (!noteTarget) return { success: false, requiresAuth: false };
+    const result = await removeNote(noteTarget, noteId);
+    if (result?.requiresAuth) {
+      setAuthModalOpen(true);
+    }
+    return result;
+  }, [noteTarget, removeNote]);
 
   const handleOpenAuth = useCallback(() => {
     setSettingsOpen(false);
@@ -273,6 +362,55 @@ export default function App() {
   const handleApplyFilters = useCallback((nextFilters) => {
     updateEventFilters(nextFilters);
   }, [updateEventFilters]);
+
+  // Custom event dialog handlers
+  const handleOpenCustomDialog = useCallback(() => {
+    if (!isAuthenticated()) {
+      setAuthModalOpen(true);
+      return;
+    }
+    setCustomEditingEvent(null);
+    setCustomDialogOpen(true);
+  }, [isAuthenticated]);
+
+  const handleEditCustomEvent = useCallback((event) => {
+    setSelectedEventFromClock(null); // Close EventModal
+    setCustomEditingEvent(event);
+    setCustomDialogOpen(true); // Open CustomEventDialog for editing
+  }, []);
+
+  const handleCloseCustomDialog = useCallback(() => {
+    setCustomDialogOpen(false);
+    setCustomEditingEvent(null);
+  }, []);
+
+  const handleSaveCustomEvent = useCallback(async (payload) => {
+    if (!isAuthenticated()) {
+      setAuthModalOpen(true);
+      return;
+    }
+
+    const result = customEditingEvent?.id
+      ? await saveCustomEvent(customEditingEvent.id, payload)
+      : await createCustomEvent(payload);
+
+    if (result?.success) {
+      setCustomDialogOpen(false);
+      setCustomEditingEvent(null);
+    }
+  }, [isAuthenticated, createCustomEvent, customEditingEvent, saveCustomEvent]);
+
+  const handleDeleteCustomEvent = useCallback(async (eventToDelete) => {
+    if (!eventToDelete?.id) return;
+    const confirmed = window.confirm('Delete this reminder?');
+    if (!confirmed) return;
+
+    const result = await removeCustomEvent(eventToDelete.id);
+    if (result?.success) {
+      setCustomDialogOpen(false);
+      setCustomEditingEvent(null);
+    }
+  }, [removeCustomEvent]);
 
   const navItems = useMemo(
     () => [
@@ -508,11 +646,6 @@ export default function App() {
   }, [applyThemeColor, effectiveBackground, backgroundBasedOnSession, activeSession]);
 
   useEffect(() => {
-    // Recompute layout when entering/exiting fullscreen to keep sizing accurate.
-    window.dispatchEvent(new Event('resize'));
-  }, [isFullscreen]);
-
-  useEffect(() => {
     if (showHandClock && showEventsOnCanvas && shouldRenderEventsOverlay) {
       setOverlayLoading(true);
     } else {
@@ -598,6 +731,7 @@ export default function App() {
       if (showEventsOnCanvas) {
         import('./components/ClockEventsOverlay');
         import('./components/EventModal');
+        import('./components/EventNotesDialog');
       }
     });
 
@@ -607,13 +741,6 @@ export default function App() {
   const closeEventModal = () => {
     setSelectedEventFromClock(null);
   };
-
-  // Close EventModal when exiting fullscreen mode
-  useEffect(() => {
-    if (!isFullscreenMode && selectedEventFromClock) {
-      closeEventModal();
-    }
-  }, [isFullscreenMode]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setMinLoaderElapsed(true), 450);
@@ -628,6 +755,34 @@ export default function App() {
         navItems={navItems}
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenAuth={() => setAuthModalOpen(true)}
+        mobileHeaderAction={(
+          <Tooltip title="Add reminder" placement="bottom">
+            <Button
+              onClick={handleOpenCustomDialog}
+              size="small"
+              startIcon={<AddRoundedIcon fontSize="small" />}
+              sx={{
+                height: 36,
+                borderRadius: 999,
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                color: 'text.primary',
+                textTransform: 'none',
+                fontWeight: 700,
+                fontSize: '0.8125rem',
+                px: 1.5,
+                minWidth: 0,
+                '&:hover': {
+                  bgcolor: 'action.hover',
+                },
+              }}
+              aria-label="Add custom reminder"
+            >
+              Add
+            </Button>
+          </Tooltip>
+        )}
       >
         <Box
           className="app-container"
@@ -663,7 +818,34 @@ export default function App() {
       navItems={navItems}
       onOpenSettings={() => setSettingsOpen(true)}
       onOpenAuth={() => setAuthModalOpen(true)}
-      isFullscreenMode={isFullscreenMode}
+      mobileHeaderAction={(
+        <Tooltip title="Add reminder" placement="bottom">
+          <Button
+            onClick={handleOpenCustomDialog}
+            size="small"
+            startIcon={<AddRoundedIcon fontSize="small" />}
+            sx={{
+              height: 36,
+              borderRadius: 999,
+              border: '1px solid',
+              borderColor: 'divider',
+              bgcolor: 'background.paper',
+              color: 'text.primary',
+              textTransform: 'none',
+              fontWeight: 700,
+              fontSize: '0.8125rem',
+              px: 1.5,
+              minWidth: 0,
+              '&:hover': {
+                bgcolor: 'action.hover',
+              },
+            }}
+            aria-label="Add custom reminder"
+          >
+            Add
+          </Button>
+        </Tooltip>
+      )}
     >
       <Box
         ref={appContainerRef}
@@ -702,12 +884,13 @@ export default function App() {
             sx={{
               width: '100%',
               maxWidth: 1560,
-              display: isFullscreenMode ? 'none' : 'flex',
+              display: 'flex',
               flexDirection: { xs: 'column', md: 'row' },
-              alignItems: { xs: 'center', md: 'flex-start' },
-              justifyContent: { xs: 'center', md: 'space-between' },
+              alignItems: { xs: 'flex-start', md: 'flex-start' },
+              justifyContent: { xs: 'flex-start', md: 'space-between' },
               gap: { xs: 1.5, md: 2 },
-              mb: { xs: 0, md: 1.25 },
+              mb: { xs: 0.5, md: 1.25 },
+              mt: { xs: 2.5, sm: 2.5, md: 0 },
               px: { xs: 2, sm: 2.75, md: 3.5 },
               mx: 'auto',
               boxSizing: 'border-box',
@@ -718,26 +901,37 @@ export default function App() {
               sx={{
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: { xs: 'center', md: 'flex-start' },
+                alignItems: { xs: 'flex-start', md: 'flex-start' },
                 gap: 0,
                 flex: { xs: 'none', md: 1 },
                 width: { xs: '100%', md: 'auto' },
               }}
             >
-              <Typography
-                component="h1"
-                variant="subtitle1"
+              <Box
                 sx={{
-                  fontWeight: 900,
-                  color: 'text.primary',
-                  fontSize: { xs: '0.95rem', sm: '1rem', md: '1.05rem' },
-                  mb: { xs: 0.5, sm: 0.75 },
-                  lineHeight: 1.2,
-                  textAlign: { xs: 'center', md: 'left' },
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  gap: 1,
                 }}
               >
-                Trading Clock
-              </Typography>
+                <Typography
+                  component="h1"
+                  variant="subtitle1"
+                  sx={{
+                    fontWeight: 900,
+                    color: 'text.primary',
+                    fontSize: { xs: '0.95rem', sm: '1rem', md: '1.05rem' },
+                    mb: { xs: 0.5, sm: 0.75 },
+                    lineHeight: 1.2,
+                    textAlign: { xs: 'left', md: 'left' },
+                    flex: '1 1 auto',
+                  }}
+                >
+                  Trading Clock
+                </Typography>
+              </Box>
               <Typography
                 sx={{
                   fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' },
@@ -745,7 +939,7 @@ export default function App() {
                   fontWeight: 500,
                   letterSpacing: '0.3px',
                   lineHeight: 1.2,
-                  textAlign: { xs: 'center', md: 'left' },
+                  textAlign: { xs: 'left', md: 'left' },
                 }}
               >
                 {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} | {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
@@ -762,7 +956,7 @@ export default function App() {
                     fontWeight: 500,
                     letterSpacing: '0.3px',
                     minWidth: 'auto',
-                    px: { xs: 0.5, md: 0 },
+                    px: 0,
                     py: 0.25,
                     lineHeight: 1.2,
                     mt: { xs: 0.25, sm: 0.25 },
@@ -777,12 +971,14 @@ export default function App() {
               )}
             </Box>
 
-            {/* EventsFilters3 - right aligned on md+, hidden on xs/sm */}
+            {/* EventsFilters3 + Add button row - right aligned on md+, hidden on xs/sm */}
             <Suspense fallback={null}>
               <Box
                 sx={{
                   display: { xs: 'none', md: 'flex' },
                   justifyContent: { md: 'flex-end' },
+                  alignItems: 'center',
+                  gap: 1.5,
                   width: { md: 'auto' },
                   flexShrink: 0,
                 }}
@@ -800,6 +996,32 @@ export default function App() {
                   centerFilters={false}
                   textColor={effectiveTextColor}
                 />
+                <Tooltip title="Add reminder" placement="bottom">
+                  <Button
+                    onClick={handleOpenCustomDialog}
+                    size="small"
+                    startIcon={<AddRoundedIcon fontSize="small" />}
+                    sx={{
+                      height: 40,
+                      borderRadius: 999,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      bgcolor: 'background.paper',
+                      color: 'text.primary',
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      fontSize: '0.8125rem',
+                      px: { md: 2.25 },
+                      minWidth: 0,
+                      '&:hover': {
+                        bgcolor: 'action.hover',
+                      },
+                    }}
+                    aria-label="Add custom reminder"
+                  >
+                    Add
+                  </Button>
+                </Tooltip>
               </Box>
             </Suspense>
           </Box>
@@ -855,7 +1077,6 @@ export default function App() {
                         backgroundBasedOnSession={backgroundBasedOnSession}
                         renderHandsInCanvas={false}
                         handAnglesRef={handAnglesRef}
-                        isFullscreenMode={isFullscreenMode}
                       />
                       <ClockHandsOverlay
                         size={calculatedClockSize}
@@ -873,7 +1094,6 @@ export default function App() {
                             newsSource={newsSource}
                             onEventClick={handleEventFromClockClick}
                             onLoadingStateChange={showHandClock ? setOverlayLoading : undefined}
-                            isFullscreenMode={isFullscreenMode}
                           />
                         </Suspense>
                       ) : null}
@@ -996,6 +1216,30 @@ export default function App() {
               onClose={closeEventModal}
               event={selectedEventFromClock}
               timezone={selectedTimezone}
+              isFavoriteEvent={isFavorite}
+              onToggleFavorite={handleToggleFavorite}
+              isFavoritePending={isFavoritePending}
+              favoritesLoading={favoritesLoading}
+              hasEventNotes={hasNotes}
+              onOpenNotes={handleOpenNotes}
+              isEventNotesLoading={isEventNotesLoading}
+              onEditCustomEvent={handleEditCustomEvent}
+            />
+          </Suspense>
+        )}
+
+        {noteTarget && isAuthenticated() && (
+          <Suspense fallback={null}>
+            <EventNotesDialog
+              open={Boolean(noteTarget)}
+              onClose={handleCloseNotes}
+              event={noteTarget}
+              timezone={selectedTimezone}
+              notes={getNotesForEvent(noteTarget)}
+              loading={isEventNotesLoading(noteTarget)}
+              onAddNote={handleAddNote}
+              onRemoveNote={handleRemoveNote}
+              error={notesError}
             />
           </Suspense>
         )}
@@ -1028,11 +1272,21 @@ export default function App() {
           />
         </Suspense>
 
-        {/* Fullscreen Mode Button - Fixed bottom-left */}
-        <FullscreenModeButton
-          isFullscreenMode={isFullscreenMode}
-          onToggle={toggleFullscreenMode}
-        />
+        {/* Custom Event Dialog - Opens when user clicks Add button */}
+        {(customDialogOpen) && (
+          <Suspense fallback={null}>
+            <CustomEventDialog
+              open={customDialogOpen}
+              onClose={handleCloseCustomDialog}
+              onSave={handleSaveCustomEvent}
+              onDelete={handleDeleteCustomEvent}
+              event={customEditingEvent}
+              defaultTimezone={selectedTimezone}
+              zIndexOverride={customEditingEvent ? 12003 : undefined}
+            />
+          </Suspense>
+        )}
+
       </Box>
     </PublicLayout>
   );

@@ -5,6 +5,9 @@
  * Inspired by modern app shells (Airbnb/ChatGPT) with quick toggles, sectional pills, and responsive cards that mirror existing settings logic.
  * 
  * Changelog:
+ * v1.3.11 - 2026-01-22 - BEP: Improve settings dialog UI with rounded drawer corners, refined shadow, and elevated header styling.
+ * v1.3.10 - 2026-01-21 - Removed fullscreen toggle control from settings header.
+ * v1.3.9 - 2026-01-21 - Add manual JBlanked Forex Factory range sync button for superadmins.
  * v1.3.8 - 2026-01-13 - Updated footer: removed auth-gated copy 'Create a free account' and replaced with always-visible 'Have questions? Contact us' link that opens ContactModal for both authenticated and non-authenticated users.
  * v1.3.7 - 2026-01-13 - Add NFS and JBlanked sync buttons to header for superadmin users; visible left of fullscreen toggle.
  * v1.3.4 - 2026-01-09 - Add Contact us button in About tab for quick support access.
@@ -53,24 +56,22 @@ import CloseIcon from '@mui/icons-material/Close';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import FullscreenRoundedIcon from '@mui/icons-material/FullscreenRounded';
-import FullscreenExitRoundedIcon from '@mui/icons-material/FullscreenExitRounded';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
 import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
+import HistoryIcon from '@mui/icons-material/History';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { triggerNfsWeekSync, triggerJblankedActualsSync } from '../services/economicEventsService';
+import { triggerNfsWeekSync, triggerJblankedActualsSync, triggerJblankedForexFactorySinceSync } from '../services/economicEventsService';
 import AccountModal from './AccountModal';
 import AuthModal2 from './AuthModal2';
 import ConfirmModal from './ConfirmModal';
 import SwitchComponent from './Switch';
-import useFullscreen from '../hooks/useFullscreen';
 import TimezoneSelector from './TimezoneSelector';
 import { useCallback } from 'react';
 import { aboutContent } from '../content/aboutContent';
@@ -186,9 +187,9 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 	const [toggleError, setToggleError] = useState('');
 	const [syncingWeek, setSyncingWeek] = useState(false);
 	const [syncingActuals, setSyncingActuals] = useState(false);
+	const [syncingForexFactoryRange, setSyncingForexFactoryRange] = useState(false);
 	const [syncSuccess, setSyncSuccess] = useState(null);
 
-	const { isFullscreen, canFullscreen, toggleFullscreen } = useFullscreen();
 
 	const handleUserMenuClose = () => setUserMenuAnchor(null);
 
@@ -233,6 +234,27 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 			setSyncingActuals(false);
 		}
 	}, [syncingActuals]);
+
+	const handleSyncForexFactoryRange = useCallback(async () => {
+		if (syncingForexFactoryRange) return;
+		const confirmed = window.confirm('Backfill Forex Factory events since 01/01/26? This may take several minutes.');
+		if (!confirmed) return;
+		setSyncingForexFactoryRange(true);
+		setSyncSuccess(null);
+		try {
+			const result = await triggerJblankedForexFactorySinceSync();
+			if (result.success) {
+				setSyncSuccess('Backfilled Forex Factory events since 01/01/26.');
+			} else {
+				setSyncSuccess(result.error || 'Failed to backfill Forex Factory events.');
+			}
+		} catch {
+			setSyncSuccess('Failed to backfill Forex Factory events.');
+		} finally {
+			setTimeout(() => setSyncSuccess(null), 4000);
+			setSyncingForexFactoryRange(false);
+		}
+	}, [syncingForexFactoryRange]);
 
 	const handleLogoutClick = () => {
 		setShowLogoutConfirmModal(true);
@@ -955,9 +977,12 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 						height: '100vh',
 						display: 'flex',
 						flexDirection: 'column',
-						boxShadow: '-20px 0 40px rgba(0,0,0,0.12)',
+						bgcolor: 'background.paper',
+						boxShadow: '-24px 0 48px rgba(15,23,42,0.12)',
 						borderLeft: 1,
 						borderColor: 'divider',
+						borderTopLeftRadius: { xs: 0, md: 20 },
+						borderBottomLeftRadius: { xs: 0, md: 20 },
 					},
 				}}
 			>
@@ -971,7 +996,8 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 						justifyContent: 'space-between',
 						gap: 1.5,
 						flexShrink: 0,
-						backgroundImage: 'linear-gradient(120deg, rgba(0,0,0,0.02), transparent)',
+						backgroundImage: 'linear-gradient(120deg, rgba(1,135,134,0.12), rgba(1,135,134,0.02))',
+						boxShadow: '0 8px 20px rgba(15,23,42,0.06)',
 					}}
 				>
 					<Box>
@@ -1021,22 +1047,26 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 										</IconButton>
 									</span>
 								</Tooltip>
+								<Tooltip title="Backfill Forex Factory since 01/01/26" arrow>
+									<span>
+										<IconButton
+											size="small"
+											onClick={handleSyncForexFactoryRange}
+											disabled={syncingForexFactoryRange}
+											sx={{ '&:hover': { bgcolor: 'action.hover' } }}
+											aria-label="Backfill Forex Factory"
+										>
+											<HistoryIcon
+												sx={{
+													animation: syncingForexFactoryRange ? 'spin 1s linear infinite' : 'none',
+													'@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } },
+												}}
+											/>
+										</IconButton>
+									</span>
+								</Tooltip>
 							</>
 						)}
-						<Tooltip title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} arrow>
-							<span>
-								<IconButton
-									size="small"
-									onClick={toggleFullscreen}
-									disabled={!canFullscreen}
-									sx={{ '&:hover': { bgcolor: 'action.hover' } }}
-									aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-									aria-pressed={isFullscreen}
-								>
-									{isFullscreen ? <FullscreenExitRoundedIcon /> : <FullscreenRoundedIcon />}
-								</IconButton>
-							</span>
-						</Tooltip>
 						<IconButton
 							size="small"
 							onClick={onClose}

@@ -1,6 +1,27 @@
 # Brand Logo Usage Guide
 
-This document defines the approved usage, variants, and color specifications for the brand logo.
+This document defines the approved usage, variants, and color specifications for the brand logo and UI color palette.
+
+---
+
+## 🎨 Color Palette Overview
+
+### Logo Colors (Brand Identity)
+The multicolor logo maintains specific brand colors for marketing and brand recognition.
+
+### UI Colors (Product Application)
+The product interface uses a refined color palette optimized for accessibility, contrast, and usability.
+
+| Color Role | Hex | Usage |
+|------------|-----|-------|
+| **Primary Main** | `#006064` | Buttons, links, active states, custom event chips |
+| **Primary Light** | `#428E92` | Hover states, accents, lighter backgrounds |
+| **Primary Dark** | `#00363A` | Active states, depth, pressed buttons |
+| **Secondary Main** | `#85b8b7` | Complementary elements, alternative actions |
+| **Secondary Light** | `#a8d8b9` | Subtle accents, soft highlights |
+| **Secondary Dark** | `#5a8988` | Secondary depth, muted states |
+
+**Note:** The logo teal (`#018786`) differs from UI primary (`#006064`) by design—the UI color provides superior contrast and AAA accessibility compliance for interactive elements.
 
 ---
 
@@ -30,8 +51,8 @@ All variants must keep shape, spacing, and stroke proportions intact.
 | Arc Position | Hex                             |
 | ------------ | ------------------------------- |
 | Top Left     | `#4E7DFF` (Blue)                |
-| Bottom Left  | `#FFA85C` (Orange)              |
-| Right Large  | `#018786` (Teal — brand anchor) |
+| Bottom Left  | `#018786` (Teal — brand anchor) |
+| Right Large  | `#FFA85C` (Orange)              |
 | Right Inner  | `#FF6F91` (Pink)                |
 | Bottom Small | `#8B6CFF` (Purple)              |
 
@@ -142,6 +163,19 @@ If unsure which logo to use:
 * If it communicates **brand emotion or story → Multicolor**
 * When absolute clarity or professionalism is required → Mono Teal
 * When creativity and friendliness matter → Multicolor
+
+---
+
+## 🔄 Changelog
+
+**v2.0.0 - 2026-01-22**
+- Added UI Color Palette section distinguishing product colors from logo brand colors
+- Documented primary palette update: UI uses `#006064` (dark teal) for superior AAA accessibility
+- Clarified that logo teal (`#018786`) remains intact for brand identity
+- Primary light adjusted to `#428E92`, primary dark to `#00363A` for cohesive UI system
+
+**v1.0.0 - 2025-09-15**
+- Initial brand guide with logo variants, usage rules, and brand integrity guidelines
 
 ---
 

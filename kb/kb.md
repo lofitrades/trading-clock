@@ -1,7 +1,7 @@
 # Time 2 Trade - Developer Knowledge Base
 
-**Last Updated:** January 6, 2026  
-**Version:** 2.7.0  
+**Last Updated:** January 21, 2026  
+**Version:** 4.0.0  
 **Maintainer:** Lofi Trades Development Team
 
 ---
@@ -1133,6 +1133,113 @@ interface EconomicEvent {
  */
 ```
 
+### Canonical Economic Event Model (v4.0.0+)
+```typescript
+/**
+ * Multi-Source Canonical Economic Event (BEP Refactor v4.0.0)
+ * Stored at: /economicEvents/events/{eventId}
+ * 
+ * PURPOSE: Unified economic event with multi-source redundancy
+ * - Firestore auto-generated IDs (no deterministic hashing)
+ * - Each source's exact name preserved in sources[provider].originalName
+ * - Display name picked from highest priority source (NFS > JBlanked-FF > GPT > etc)
+ * - normalizedName used for fuzzy matching (stable, not for display)
+ * 
+ * SOURCE PRIORITY (Highest to Lowest):
+ * 1. NFS (Forex Factory) - Primary schedule source (quality: 100)
+ * 2. JBlanked-FF (Forex Factory via JBlanked) - Live actuals (quality: 95)
+ * 3. GPT (AI-generated) - Fallback enrichment (quality: 60)
+ * 4. JBlanked-MT (MQL5 via JBlanked) - Alternative actuals (quality: 90)
+ * 5. JBlanked-FXStreet - Fallback actuals (quality: 85)
+ */
+interface CanonicalEconomicEvent {
+  // Identifiers
+  eventId: string;              // Firestore auto-generated ID
+  
+  // Display Names
+  name: string;                 // Display name from highest priority source
+  normalizedName: string;       // Normalized for matching (lowercase, trimmed)
+  
+  // Event Metadata
+  currency: string | null;      // ISO currency code or null for global
+  category: string | null;      // Event category (varies by source)
+  impact: string | null;        // Impact level: "high", "medium", "low"
+  
+  // Timing
+  datetimeUtc: Timestamp;       // Event release time (UTC)
+  timezoneSource: string;       // Provider who set the datetime
+  
+  // Core Values (picked by priority)
+  forecast: string | null;      // Expected value
+  previous: string | null;      // Prior release value
+  actual: string | null;        // Actual released value
+  status: "scheduled" | "released" | "revised" | "cancelled";
+  
+  // Multi-Source Data
+  sources: {
+    [provider: string]: {
+      originalName: string;     // Exact name from this source (NEW v4.0.0)
+      lastSeenAt: Timestamp;    // Last sync timestamp
+      raw: any;                 // Raw API response
+      parsed: {
+        actual?: string | null;
+        forecast?: string | null;
+        previous?: string | null;
+        outcome?: string | null;  // "better"/"worse"/"as expected"
+        strength?: string | null; // Impact indicator
+        quality?: string | null;
+      };
+    };
+  };
+  
+  // Provenance Tracking
+  createdBy?: string;           // Provider who created the document (NEW v4.0.0)
+  winnerSource?: string;        // Provider with winning actual/forecast/previous
+  qualityScore?: number;        // 0-100 based on source reliability
+  
+  // Timestamps
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/**
+ * KEY IMPROVEMENTS (v4.0.0 BEP Refactor):
+ * 
+ * ✅ Firestore Auto IDs - No deterministic hashing, let DB handle IDs
+ * ✅ Source Integrity - Each source's exact name preserved
+ * ✅ Name Priority - Display name dynamically picked from highest priority source
+ * ✅ Fuzzy Matching - normalizedName enables better event matching
+ * ✅ Audit Trail - createdBy tracks document creator
+ * ✅ Backwards Compatible - Handles old events without new fields
+ * 
+ * EXAMPLE EVENT:
+ * {
+ *   eventId: "kL3mP9qR2sT5vW8x",  // Firestore auto ID
+ *   name: "Non-Farm Payrolls",    // From NFS (highest priority)
+ *   normalizedName: "non farm payrolls",
+ *   currency: "USD",
+ *   sources: {
+ *     nfs: {
+ *       originalName: "Non-Farm Payrolls",
+ *       parsed: { forecast: "190K" }
+ *     },
+ *     "jblanked-ff": {
+ *       originalName: "NFP",
+ *       parsed: { actual: "200K", forecast: "190K" }
+ *     },
+ *     gpt: {
+ *       originalName: "United States Non Farm Payrolls",
+ *       parsed: { forecast: "190K" }
+ *     }
+ *   },
+ *   createdBy: "nfs",
+ *   winnerSource: "jblanked-ff",  // Has actual value
+ *   actual: "200K",  // From jblanked-ff
+ *   forecast: "190K"  // From nfs (higher priority than jblanked for forecast)
+ * }
+ */
+```
+
 ### Event Description Model
 ```typescript
 interface EventDescription {
@@ -1153,6 +1260,46 @@ interface EventDescription {
   };
   docId: string;
   uploadedAt: Timestamp;
+}
+```
+
+### Custom Reminder Event Model (BEP)
+```typescript
+/**
+ * Stored at: /users/{uid}/customEvents/{eventId}
+ * Personal reminders (time-specific only) shown in calendar table and clock markers.
+ * Calendar sync reserved fields are included for future ICS integration.
+ */
+interface CustomReminderEvent {
+  title: string;
+  description: string | null;
+  timezone: string;           // IANA timezone (e.g., America/New_York)
+  localDate: string;          // YYYY-MM-DD
+  localTime: string;          // HH:mm (24h)
+  epochMs: number;            // UTC epoch milliseconds
+  impact: string;             // Impact tag (High/Medium/Low/Non-Economic)
+  customColor: string;        // Hex color for custom marker styling
+  customIcon: string;         // Icon key for custom marker styling
+  showOnClock: boolean;
+  reminders: Array<{
+    minutesBefore: number;
+    channels: {
+      inApp: boolean;
+      browser: boolean;
+      email: boolean;         // reserved for phase 2
+      push: boolean;          // reserved for phase 2
+    };
+  }>;
+  source: 'custom';
+  isCustom: true;
+
+  // Calendar sync (future phase)
+  externalId: string | null;
+  syncProvider: string | null;
+  lastSyncedAt: Timestamp | null;
+
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 ```
 
@@ -1964,6 +2111,329 @@ whyDidYouRender(React, {
 
 ## 📝 Change Log
 
+### Version 4.0.46 - January 22, 2026
+**Single-Event Tooltip Subtitle**
+
+#### 🧭 UX
+- Hide the grouped time range subtitle when a tooltip contains only one event.
+
+### Version 4.0.45 - January 22, 2026
+**Clock Marker Tooltip Header Swap**
+
+#### 🧭 UX
+- Display grouped date as tooltip header title and the time range as the subtitle.
+
+### Version 4.0.44 - January 22, 2026
+**Clock Marker Tooltip Time Labels**
+
+#### 🧭 UX
+- Show event time above each tooltip row and display grouped 5-minute time ranges in tooltip headers.
+
+### Version 4.0.43 - January 22, 2026
+**Clock Marker 5-Minute Grouping**
+
+#### 🧭 UX
+- Group clock event markers into 5-minute windows and align tooltip headers to the grouped time.
+
+### Version 4.0.39 - January 22, 2026
+**Clock Marker Z-Index Priority**
+
+#### 🧭 UX
+- Updated event marker layering to prioritize NOW, NEXT, custom reminders, favorites, notes, and impact tiers with non-economic and unknown events lowest.
+
+### Version 4.0.40 - January 22, 2026
+**Hovered Marker Priority**
+
+#### 🧭 UX
+- Ensure hovered event markers render above all others and revert on hover leave.
+
+### Version 4.0.41 - January 22, 2026
+**Clock Marker Key Stability**
+
+#### 🧭 UX
+- Resolve duplicate marker key warnings by appending stable event identifiers to marker keys.
+
+### Version 4.0.42 - January 22, 2026
+**Tooltip Header Time Format**
+
+#### 🧭 UX
+- Switch tooltip header time to 12-hour AM/PM formatting.
+
+### Version 4.0.31 - January 22, 2026
+**Custom Reminder Currency Chip Alignment**
+
+#### 🧭 UX
+- Render custom reminder currency chips with the custom icon + CUS label while keeping impact-based styling consistent with standard currency chips.
+
+### Version 4.0.32 - January 22, 2026
+**Custom Reminder Impact Chip Alignment**
+
+#### 🧭 UX
+- Custom reminder impact chips now use standard impact icons and colors for consistency.
+
+### Version 4.0.33 - January 22, 2026
+**Custom Reminder Icon Expansion**
+
+#### ✨ Features
+- Added nine additional BEP custom reminder icon options and reduced icon picker sizing to match the color selector.
+
+### Version 4.0.34 - January 22, 2026
+**Opposing Icon Pairs**
+
+#### ✨ Features
+- Added four opposing icon pairs (play/pause, watch/hide, sound/mute, expand/collapse) for custom reminder icons.
+
+### Version 4.0.35 - January 22, 2026
+**Lifestyle Icon Swap**
+
+#### ✨ Features
+- Replaced volume/expand icons with lifestyle icons (food, gym, home) and swapped the stacked chart icon for a disabled indicator.
+
+### Version 4.0.36 - January 22, 2026
+**Lifestyle Icon Expansion**
+
+#### ✨ Features
+- Added a dog/pet icon next to the home icon in custom reminder options.
+
+### Version 4.0.37 - January 22, 2026
+**Custom Reminder Channels**
+
+#### 🧭 UX
+- Disabled email and push reminder channels with “Coming soon” tooltips; only in-app and browser channels remain active.
+
+### Version 4.0.38 - January 22, 2026
+**Custom Reminder Channel Update**
+
+#### 🧭 UX
+- Removed email reminder channel and re-enabled push reminders.
+
+### Version 4.0.30 - January 21, 2026
+**Custom Reminder Impact Badge + Menu Priority**
+
+#### 🧭 UX
+- Replaced the global badge with impact-icon badges for custom reminders on the clock when currency is absent.
+- Raised the custom reminder impact dropdown menu above the notes dialog overlay.
+
+### Version 4.0.29 - January 21, 2026
+**Custom Reminder Impact Selector**
+
+#### ✨ Features
+- Added impact selection for custom reminders and surfaced impact tags in the calendar currency column.
+
+### Version 4.0.28 - January 21, 2026
+**Custom Reminder Appearance Controls**
+
+#### ✨ Features
+- Added icon and color pickers for custom reminder events with primary theme defaults.
+
+### Version 4.0.27 - January 21, 2026
+**Custom Reminder Impact Icon Consistency**
+
+#### 🧭 UX
+- Aligned custom reminder impact icons across calendar rows and clock tooltip markers.
+
+### Version 4.0.26 - January 21, 2026
+**Custom Reminder Ordering + Live Markers**
+
+#### 🐛 Fixes
+- Sorted custom reminders by resolved event epoch to keep timeline order consistent.
+- Subscribed clock markers to custom reminders for instant post-CRUD updates.
+
+### Version 4.0.25 - January 21, 2026
+**Custom Reminder Notification Delivery**
+
+#### ✨ Features
+- Added SendGrid-backed email delivery for custom reminder notifications.
+
+#### 🐛 Fixes
+- In-app notification center now only shows in-app reminders (no duplicates for other channels).
+
+### Version 4.0.24 - January 21, 2026
+**Custom Reminder Browser Permissions**
+
+#### 🐛 Fixes
+- Restored browser notification permission gating with in-dialog feedback for the custom reminder checkbox.
+
+### Version 4.0.23 - January 21, 2026
+**Modal Overlay Priority**
+
+#### 🧭 UX
+- Ensured the custom reminder dialog overlays sit above the AppBar layers.
+
+### Version 4.0.22 - January 21, 2026
+**Custom Reminder Dialog Semantics**
+
+#### 🐛 Fixes
+- Resolved DialogTitle heading nesting to prevent hydration warnings in the custom reminder modal.
+
+### Version 4.0.21 - January 21, 2026
+**Clock Auth Handoff**
+
+#### 🐛 Fixes
+- Preserve clock event selection through auth so favorites state renders after login.
+
+### Version 4.0.20 - January 21, 2026
+**Clock Event Modal Parity**
+
+#### 🐛 Fixes
+- Wired favorites and notes support for clock event modal to match calendar behavior.
+
+### Version 4.0.19 - January 21, 2026
+**Marker Filter Transition Motion**
+
+#### ✨ Features
+- Animated marker hide/show during filter transitions on all pages and breakpoints.
+
+### Version 4.0.18 - January 21, 2026
+**Marker Motion Polish**
+
+#### ✨ Features
+- Added lightweight show/hide animation for clock event markers.
+
+### Version 4.0.17 - January 21, 2026
+**Tooltip Motion Polish**
+
+#### ✨ Features
+- Added lightweight Apple-style open/close animation for event tooltips.
+- Refined session tooltip open/close motion for faster, smoother transitions.
+
+### Version 4.0.16 - January 21, 2026
+**Session Tooltip Top-Corner Anchoring**
+
+#### 🧭 UX
+- Session tooltips now anchor from top-left/right corners across all pages and breakpoints.
+
+### Version 4.0.15 - January 21, 2026
+**Session Tooltip Hemisphere Anchoring**
+
+#### 🧭 UX
+- Session tooltips now anchor from the top-left on left hemisphere sessions and top-right on right hemisphere sessions.
+
+### Version 4.0.14 - January 21, 2026
+**Session Tooltip Center Bias**
+
+#### 🧭 UX
+- Session arc tooltips now bias toward the viewport center to reduce side overflow.
+
+### Version 4.0.13 - January 21, 2026
+**Tooltip Close Controls**
+
+#### ✨ Features
+- Added right-aligned close icon buttons to event and session tooltips.
+
+### Version 4.0.12 - January 21, 2026
+**Clock Tooltip Layering Fix (Mobile)**
+
+#### 🐛 Fixes
+- Raised event tooltip z-index to render above AppBar and filter rows on xs/sm.
+
+### Version 4.0.11 - January 21, 2026
+**Clock Marker Time Grouping + Tooltip Header**
+
+#### ✨ Features
+- Group clock markers by exact time only; marker visuals follow current priority.
+- Tooltip header now shows grouped date/time; event rows show impact chips.
+
+#### 🎨 UI
+- Event marker tooltip header uses primary color; impact chips use icons; global currency icon always renders.
+
+#### 🧭 UX
+- Session arc tooltips now open on click only; hover keeps the size change effect.
+- Tooltip coordinator now enforces single active tooltip across session + event markers.
+
+### Version 4.0.10 - January 21, 2026
+**Clock Marker Grouping Refactor**
+
+#### ✨ Features
+- Removed 30-minute bucket grouping for clock markers. Markers now group only by exact time and currency.
+
+### Version 4.0.9 - January 21, 2026
+**JBlanked Forex Factory Range Backfill**
+
+#### ✨ Features
+- Added manual cloud function to backfill Forex Factory events since 2026-01-01 with canonical merge logic.
+- Added superadmin UI control to trigger the backfill from Settings.
+
+### Version 4.0.8 - January 21, 2026
+**JBlanked Currency Normalization Fix**
+
+#### 🐛 Fixes
+- Normalize JBlanked currency values with CURRENCY_ prefix to align matching with NFS events.
+
+### Version 4.0.7 - January 21, 2026
+**JBlanked Actuals Matching Hardening**
+
+#### 🐛 Fixes
+- Added a wider fallback matching pass for JBlanked actuals to reduce misses caused by minor time or name drift.
+- Hardened canonical merge to initialize missing `sources` on legacy documents.
+
+### Version 4.0.6 - January 21, 2026
+**Clock Filter Flicker Fix (Filter Safety Pass)**
+
+#### 🐛 Fixes
+- Added client-side impact/currency/category filter pass in useClockEventsData to ensure cached results never surface unfiltered markers.
+
+### Version 4.0.5 - January 21, 2026
+**Clock Filter Flicker Fix (Data Gate Alignment)**
+
+#### 🐛 Fixes
+- Aligned overlay gating with useClockEventsData requestKey/dataKey to prevent skeletons from persisting and ensure markers render when data matches filters.
+
+### Version 4.0.4 - January 21, 2026
+**Clock Filter Flicker Fix (Data Gate)**
+
+#### 🐛 Fixes
+- Added dataKey gating in ClockEventsOverlay so markers only render when events match the active filters, preventing post-skeleton unfiltered flashes.
+
+### Version 4.0.3 - January 21, 2026
+**Clock Filter Flicker Fix (Loading Gate)**
+
+#### 🐛 Fixes
+- Fetch clock overlay data with live filters and confirm markers only after the new fetch completes to prevent unfiltered flashes on add/remove impact/currency filters.
+
+### Version 4.0.2 - January 21, 2026
+**Clock Filter Flicker Fix (Follow-up)**
+
+#### 🐛 Fixes
+- Cleared marker lifecycle caches on filter changes to prevent stale markers from flashing during impact/currency updates.
+
+### Version 4.0.1 - January 21, 2026
+**Clock Filter Flicker Fix**
+
+#### 🐛 Fixes
+- Derived filter-loading gate in ClockEventsOverlay to prevent one-frame unfiltered marker flash when impact/currency filters change.
+
+### Version 4.0.0 - January 21, 2026
+**BEP Refactor: Firestore Auto IDs + Multi-Source Name Integrity**
+
+#### ✨ Features
+- **Firestore Auto IDs:** Replaced deterministic hash IDs with Firestore auto-generated IDs for better flexibility
+- **Source Name Preservation:** Each source's exact event name now stored in `sources[provider].originalName`
+- **Dynamic Display Names:** Event `name` field now dynamically picked from highest priority source (NFS > JBlanked-FF > GPT > etc)
+- **Normalized Name Matching:** Added `normalizedName` field for stable fuzzy matching across sources
+- **Provenance Tracking:** Added `createdBy` field to track which source created each event
+- **Enhanced Matching:** Improved `findExistingCanonicalEvent` to use `normalizedName` for better accuracy
+
+#### 🔧 Technical Changes
+- Updated `CanonicalEconomicEvent` interface with `normalizedName` and `createdBy` fields
+- Updated `CanonicalSourceData` interface with `originalName` field
+- Refactored `mergeProviderEvent` to store original names and pick display name by priority
+- Added `pickNameByPriority` helper function for highest priority name selection
+- Updated all sync services (NFS, JBlanked, GPT) to pass `originalName` parameter
+- Frontend services updated with backwards compatibility for old events
+
+#### 📚 Documentation
+- Added comprehensive CanonicalEconomicEvent model documentation to kb.md
+- Updated all file headers with v1.2.0+ changelogs
+- Documented source priority order and name selection logic
+
+#### 🎯 Benefits
+- **Better Matching:** Fuzzy matching no longer creates duplicate events from slight name variations
+- **Source Integrity:** Can see exactly what each source called the event
+- **Audit Trail:** Clear provenance of event creation and data updates
+- **Future-Proof:** Firestore auto IDs allow changes to matching logic without breaking existing events
+- **BEP Compliant:** Follows enterprise best practices for multi-source data management
+
 ### Version 2.7.37 - January 16, 2026
 **SEO Route Refactor (/clock launch)**
 
@@ -2060,6 +2530,24 @@ whyDidYouRender(React, {
 #### 🐛 Fixes
 - Raised ForgotPasswordModal backdrop above the AppBar while keeping the paper on top.
 
+### Version 2.7.39 - January 21, 2026
+**Fullscreen Toggle Removal**
+
+#### 🧹 Cleanup
+- Removed fullscreen toggle UI and logic from /clock, settings header, and calendar clock panel.
+
+### Version 2.7.38 - January 21, 2026
+**Clock Mobile Fullscreen Alignment**
+
+#### 🎨 UI
+- Matched the /clock inline fullscreen button size and right padding to the mobile avatar on xs/sm.
+
+### Version 2.7.37 - January 21, 2026
+**Clock Mobile Fullscreen Placement**
+
+#### 🎨 UI
+- Moved the /clock fullscreen toggle into the header row on xs/sm while keeping the fixed button on md+.
+
 ### Version 2.7.36 - January 15, 2026
 **Forgot Password Modal Global Priority**
 
@@ -2132,7 +2620,14 @@ whyDidYouRender(React, {
 #### 🎨 UI
 - Reduced column header vertical padding for cleaner, consistent table header spacing.
 
+### Version 4.1.1 - January 22, 2026
+**Custom reminder impact parity**
+
+#### 🐛 Fixes
+- Preserved raw custom reminder impact values when opening clock tooltips so EventModal and tooltip impact chips render the correct level.
+
 ### Version 2.7.12 - January 15, 2026
+
 **Calendar Column Header Offset**
 
 #### 🐛 Fixes
@@ -2317,6 +2812,18 @@ whyDidYouRender(React, {
 - `index.html` - Added SEO meta tags, structured data, fallback content
 - `src/main.jsx` - Changed to render AppRoutes, removes SEO fallback
 - `package.json` - Added postbuild script
+
+### Version 4.1.0 - January 21, 2026
+**Custom reminders + notifications (BEP)**
+
+#### ✨ New Features
+- Added authenticated custom reminder events stored under users/{uid}/customEvents with timezone-aware scheduling.
+- Custom reminders now render in the /calendar table and today’s clock event markers when enabled.
+- Introduced in-app notification center for custom reminder alerts with browser notification support.
+
+#### 🔄 Changes
+- Merged custom reminders into calendar day grouping and NOW/NEXT calculations for unified UX.
+- Added Firestore rules for customEvents and notifications subcollections.
 
 ### Version 2.5.1 - January 7, 2026
 **Clock events overlay performance**

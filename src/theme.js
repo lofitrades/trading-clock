@@ -15,6 +15,7 @@
  * Backdrop behavior: All modals have explicit z-index > AppBar (1400) to block clicks
  * 
  * Changelog:
+ * v1.3.0 - 2026-01-22 - BEP: Updated primary palette to match custom event chip styling. primary.main changed from #018786 to #006064 (dark teal), with adjusted light (#428E92) and dark (#00363A) variants for consistent brand identity across all components.
  * v1.2.0 - 2026-01-14 - CRITICAL Z-INDEX FIX: Added MuiBackdrop and MuiModal theme config to ensure modal backdrops block clicks and properly layer above AppBar. Set backdrop z-index base to 1300 (below AppBar 1400) so individual modals control their effective z-index via Dialog slotProps.
  * v1.1.0 - 2025-12-18 - Documented brand teal palette usage for primary colors
  * v1.0.0 - 2025-09-15 - Initial implementation
@@ -24,9 +25,9 @@ import { createTheme } from '@mui/material/styles';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#018786',
-      light: '#4FB6AC',
-      dark: '#006064',
+      main: '#006064',
+      light: '#428E92',
+      dark: '#00363A',
     },
     secondary: {
       main: '#85b8b7',

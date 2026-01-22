@@ -500,4 +500,4 @@ npm run deploy           # Build + deploy to Firebase Hosting
 ---
 
 **Additonal instructions or clarifications can be appended here as needed:**
-- 'bep'/'BEP' = 'follow all best React, Firebase, MUI, UI, UX, dev, copywriting, and mobile-first responsive enterprise practices'.
+- 'bep'/'BEP' = 'following all best React, Firebase, MUI, UI, UX, dev, copywriting, security, performance, loading speed, sepparation of concerns, SEO, accesibility and mobile-first-responsive top modern enterprise practices'.

@@ -1,15 +1,18 @@
 /**
  * src/components/ExportEvents.jsx
  * 
- * Purpose: Admin page for exporting economic events calendar data from Firestore.
- * Provides a simple interface to export all events in JSON format with proper
- * error handling, loading states, and authentication.
+ * Purpose: Superadmin-only page for exporting canonical economic events from Firestore.
+ * Exports unified multi-source events with all fields (NFS, JBlanked, GPT) in enterprise JSON format.
+ * Requires superadmin RBAC role.
  * 
  * Changelog:
- * v1.0.0 - 2025-11-30 - Initial implementation
+ * v2.0.0 - 2026-01-21 - Complete redesign for canonical multi-source collection.
+ *                       Export from /economicEvents/events/events/{eventId}.
+ *                       Added superadmin RBAC gating, comprehensive field export, enterprise JSON format.
+ * v1.0.0 - 2025-11-30 - Initial implementation for legacy per-source structure.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -19,41 +22,131 @@ import {
   CircularProgress,
   Container,
   Stack,
-  Chip,
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
+  Card,
+  CardContent,
 } from '@mui/material';
 import {
   Download as DownloadIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   ArrowBack as ArrowBackIcon,
+  Lock as LockIcon,
 } from '@mui/icons-material';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 
-// Multi-source structure: /economicEvents/{source}/events/{eventId}
-const EVENTS_PARENT_COLLECTION = 'economicEvents';
-const NEWS_SOURCES = ['mql5', 'forex-factory', 'fxstreet'];
+const CANONICAL_EVENTS_ROOT = 'economicEvents';
+const CANONICAL_EVENTS_CONTAINER = 'events';
 
 /**
  * ExportEvents Component
  * 
- * Provides interface for exporting economic events data from Firestore.
- * Exports all documents in the economicEventsCalendar collection as JSON.
+ * Superadmin-only interface for exporting canonical economic events data.
+ * Exports unified multi-source collection with all fields (NFS, JBlanked, GPT).
  */
 export default function ExportEvents() {
-  const { user } = useAuth();
+  const { userProfile, loading } = useAuth();
+  const isSuperadmin = useMemo(() => userProfile?.role === 'superadmin', [userProfile?.role]);
   const [exporting, setExporting] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
+  // Access control: Only superadmin can export
+  if (loading) {
+    return (
+      <Container maxWidth="md" sx={{ py: 8 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
+
+  if (!isSuperadmin) {
+    return (
+      <Container maxWidth="md" sx={{ py: 8 }}>
+        <Paper elevation={3} sx={{ p: 4 }}>
+          <Stack spacing={2} alignItems="center">
+            <LockIcon sx={{ fontSize: 48, color: 'error.main' }} />
+            <Typography variant="h5" fontWeight={800}>
+              Access Denied
+            </Typography>
+            <Alert severity="error">
+              This page requires <strong>superadmin</strong> role. You do not have permission to export events.
+            </Alert>
+          </Stack>
+        </Paper>
+      </Container>
+    );
+  }
+
   /**
-   * Export events from all sources to separate JSON files
-   * Exports to: data/{source}-events-{date}.json
+   * Convert Firestore Timestamp to ISO 8601 string
+   */
+  const timestampToIso = (timestamp) => {
+    if (!timestamp) return null;
+    if (timestamp.toDate) {
+      return timestamp.toDate().toISOString();
+    }
+    if (typeof timestamp === 'string') {
+      return timestamp;
+    }
+    return null;
+  };
+
+  /**
+   * Transform canonical event document to exportable format
+   */
+  const transformEvent = (docId, data) => {
+    return {
+      // Core identifiers
+      eventId: data.eventId || docId,
+      docId: docId,
+
+      // Event metadata
+      name: data.name || null,
+      normalizedName: data.normalizedName || data.name || null,
+      currency: data.currency || null,
+      category: data.category || null,
+      impact: data.impact || null,
+
+      // Time
+      datetimeUtc: timestampToIso(data.datetimeUtc),
+      timezoneSource: data.timezoneSource || null,
+
+      // Values (picked from priority source)
+      forecast: data.forecast || null,
+      previous: data.previous || null,
+      actual: data.actual || null,
+      status: data.status || 'scheduled',
+
+      // Multi-source tracking
+      sources: Object.entries(data.sources || {}).reduce((acc, [provider, source]) => {
+        acc[provider] = {
+          originalName: source.originalName || null,
+          lastSeenAt: timestampToIso(source.lastSeenAt),
+          parsed: source.parsed || {},
+          raw: source.raw || {},
+        };
+        return acc;
+      }, {}),
+
+      // Metadata
+      createdBy: data.createdBy || null,
+      winnerSource: data.winnerSource || null,
+      qualityScore: data.qualityScore || 0,
+      createdAt: timestampToIso(data.createdAt),
+      updatedAt: timestampToIso(data.updatedAt),
+    };
+  };
+
+  /**
+   * Export canonical events collection to JSON file
    */
   const handleExport = async () => {
     setExporting(true);
@@ -61,81 +154,69 @@ export default function ExportEvents() {
     setResult(null);
 
     try {
-      const sourceResults = [];
-      let totalEvents = 0;
+      // Query canonical events collection
+      const eventsContainer = collection(
+        db,
+        CANONICAL_EVENTS_ROOT,
+        CANONICAL_EVENTS_CONTAINER,
+        CANONICAL_EVENTS_CONTAINER
+      );
 
-      // Export each source separately
-      for (const source of NEWS_SOURCES) {
-        // Query subcollection: /economicEvents/{source}/events
-        const eventsRef = collection(db, EVENTS_PARENT_COLLECTION, source, 'events');
-        const snapshot = await getDocs(eventsRef);
+      const snapshot = await getDocs(eventsContainer);
 
-        const eventCount = snapshot.size;
-
-        if (snapshot.empty) {
-          console.warn(`⚠️ No events found for ${source}`);
-          sourceResults.push({ source, count: 0, success: false });
-          continue;
-        }
-
-        // Transform documents to JSON format
-        const events = snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            source, // Add source field explicitly
-            ...data,
-            // Convert Firestore Timestamps to serializable format
-            date: data.date?.toDate ? {
-              _seconds: Math.floor(data.date.toDate().getTime() / 1000),
-              _nanoseconds: (data.date.toDate().getTime() % 1000) * 1000000
-            } : data.date,
-            createdAt: data.createdAt?.toDate ? {
-              _seconds: Math.floor(data.createdAt.toDate().getTime() / 1000),
-              _nanoseconds: (data.createdAt.toDate().getTime() % 1000) * 1000000
-            } : data.createdAt,
-            updatedAt: data.updatedAt?.toDate ? {
-              _seconds: Math.floor(data.updatedAt.toDate().getTime() / 1000),
-              _nanoseconds: (data.updatedAt.toDate().getTime() % 1000) * 1000000
-            } : data.updatedAt,
-          };
-        });
-        totalEvents += events.length;
-
-        // Save to data folder using File System Access API
-        const jsonString = JSON.stringify(events, null, 2);
-        const filename = `${source}-events-${new Date().toISOString().split('T')[0]}.json`;
-
-        try {
-          // Create a blob for download
-          const blob = new Blob([jsonString], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          
-          // Create download link
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = filename;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          
-          // Clean up
-          URL.revokeObjectURL(url);
-          
-          sourceResults.push({ source, count: eventCount, success: true, filename });
-        } catch (saveErr) {
-          console.error(`Failed to save ${filename}:`, saveErr);
-          sourceResults.push({ source, count: eventCount, success: false, filename });
-        }
+      if (snapshot.empty) {
+        setError('No events found in canonical collection.');
+        return;
       }
+
+      const eventCount = snapshot.size;
+
+      // Transform documents
+      const events = snapshot.docs.map((doc) => transformEvent(doc.id, doc.data()));
+
+      // Generate export with metadata
+      const exportData = {
+        metadata: {
+          exportedAt: new Date().toISOString(),
+          exportedBy: userProfile?.email || 'superadmin',
+          totalEvents: eventCount,
+          version: '2.0.0',
+          collectionPath: `${CANONICAL_EVENTS_ROOT}/${CANONICAL_EVENTS_CONTAINER}/${CANONICAL_EVENTS_CONTAINER}`,
+          description: 'Canonical economic events with multi-source data (NFS, JBlanked-FF, GPT, JBlanked-MT, JBlanked-FXStreet)',
+        },
+        sources: {
+          priority_order: ['nfs', 'jblanked-ff', 'gpt', 'jblanked-mt', 'jblanked-fxstreet'],
+          description: 'Values are picked from highest-priority source that has data',
+        },
+        events: events,
+      };
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `canonical-events-${timestamp}.json`;
+
+      // Create and download file
+      const jsonString = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json; charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Cleanup
+      URL.revokeObjectURL(url);
 
       setResult({
         success: true,
-        sources: sourceResults,
-        totalCount: totalEvents,
+        filename: filename,
+        eventCount: eventCount,
         timestamp: new Date().toISOString(),
+        collectionPath: `${CANONICAL_EVENTS_ROOT}/${CANONICAL_EVENTS_CONTAINER}/${CANONICAL_EVENTS_CONTAINER}`,
       });
-
     } catch (err) {
       console.error('❌ Export failed:', err);
       setError(err.message || 'Failed to export events');
@@ -165,29 +246,23 @@ export default function ExportEvents() {
             Back
           </Button>
           <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
-            Export Economic Events
+            Export Canonical Events
           </Typography>
         </Stack>
 
-        {/* User Info */}
-        {user && (
-          <Alert severity="info" sx={{ mb: 3 }}>
-            <Typography variant="body2">
-              Logged in as: <strong>{user.email}</strong>
-            </Typography>
-          </Alert>
-        )}
-
         {/* Description */}
         <Typography variant="body1" color="text.secondary" paragraph>
-          Export economic events from all news sources to separate JSON files. This will 
-          download 3 files (one per source) containing all events with their metadata including 
-          dates, currencies, impact levels, and event details.
+          Export all unified economic events from the canonical multi-source collection. Each event
+          includes data from all available sources (NFS, JBlanked-FF, GPT, JBlanked-MT, JBlanked-FXStreet)
+          with values picked from the highest-priority source.
         </Typography>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          <strong>Sources:</strong> {NEWS_SOURCES.map(s => s.toUpperCase()).join(', ')}
-        </Typography>
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="body2">
+            <strong>📊 Canonical Collection:</strong> economicEvents/events/events<br />
+            <strong>📋 Format:</strong> Enterprise JSON with metadata and multi-source tracking
+          </Typography>
+        </Alert>
 
         {/* Export Button */}
         <Box sx={{ my: 4 }}>
@@ -201,81 +276,123 @@ export default function ExportEvents() {
             fullWidth
             sx={{ py: 1.5 }}
           >
-            {exporting ? 'Exporting All Sources...' : 'Export All Sources (3 Files)'}
+            {exporting ? 'Exporting Events...' : 'Download Canonical Events'}
           </Button>
         </Box>
 
         {/* Success Result */}
         {result && (
-          <Alert 
-            severity="success" 
-            icon={<CheckCircleIcon />}
-            sx={{ mb: 2 }}
-          >
-            <Typography variant="subtitle2" gutterBottom>
-              Export completed successfully!
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 2 }}>
-              Downloaded {result.sources.filter(s => s.success).length} files with {result.totalCount.toLocaleString()} total events
-            </Typography>
-            
-            <List dense sx={{ bgcolor: 'success.light', borderRadius: 1, py: 0.5 }}>
-              {result.sources.map(({ source, count, success, filename }) => (
-                <ListItem key={source} dense>
-                  <ListItemIcon sx={{ minWidth: 36 }}>
-                    {success ? <CheckCircleIcon color="success" fontSize="small" /> : <ErrorIcon color="error" fontSize="small" />}
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={
-                      <Typography variant="body2">
-                        <strong>{source.replace('-', ' ').toUpperCase()}:</strong> {count.toLocaleString()} events
-                      </Typography>
-                    }
-                    secondary={filename || `${source}-events-${new Date(result.timestamp).toISOString().split('T')[0]}.json`}
-                  />
-                </ListItem>
-              ))}
-            </List>
-            
-            <Alert severity="info" sx={{ mt: 2 }}>
-              <Typography variant="caption" display="block" gutterBottom>
-                <strong>📥 Files downloaded to your Downloads folder</strong>
-              </Typography>
-              <Typography variant="caption" display="block">
-                Move them to: <code>D:\Lofi Trades\trading-clock\data\</code>
-              </Typography>
-            </Alert>
-          </Alert>
+          <Card sx={{ mb: 3, bgcolor: 'success.light', border: '1px solid', borderColor: 'success.main' }}>
+            <CardContent>
+              <Stack spacing={2}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CheckCircleIcon sx={{ color: 'success.main', fontSize: 28 }} />
+                  <Typography variant="h6" sx={{ color: 'success.dark' }}>
+                    Export Successful
+                  </Typography>
+                </Box>
+
+                <Typography variant="body2">
+                  <strong>📥 Downloaded:</strong> {result.filename}
+                </Typography>
+
+                <List dense sx={{ bgcolor: 'background.paper', borderRadius: 1 }}>
+                  <ListItem>
+                    <ListItemIcon>
+                      <CheckCircleIcon sx={{ color: 'success.main' }} fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Total Events"
+                      secondary={`${result.eventCount.toLocaleString()} events exported`}
+                    />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemIcon>
+                      <CheckCircleIcon sx={{ color: 'success.main' }} fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Collection Path"
+                      secondary={result.collectionPath}
+                    />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemIcon>
+                      <CheckCircleIcon sx={{ color: 'success.main' }} fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Export Time"
+                      secondary={new Date(result.timestamp).toLocaleString()}
+                    />
+                  </ListItem>
+                </List>
+
+                <Alert severity="info" icon={<DownloadIcon />}>
+                  <Typography variant="caption">
+                    File downloaded to Downloads folder. Move to <code>data/</code> folder if needed.
+                  </Typography>
+                </Alert>
+
+                <Button
+                  variant="outlined"
+                  onClick={() => setResult(null)}
+                  fullWidth
+                >
+                  Export Another
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
         )}
 
         {/* Error Display */}
         {error && (
-          <Alert 
-            severity="error" 
+          <Alert
+            severity="error"
             icon={<ErrorIcon />}
             onClose={() => setError(null)}
+            sx={{ mb: 3 }}
           >
             <Typography variant="subtitle2" gutterBottom>
-              Export failed
+              ❌ Export Failed
             </Typography>
-            <Typography variant="body2">
+            <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
               {error}
             </Typography>
           </Alert>
         )}
 
         {/* Info Box */}
-        <Box sx={{ mt: 4, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
-          <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-            <strong>Export Details:</strong>
+        <Box sx={{ mt: 4, p: 3, bgcolor: 'background.default', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 800 }}>
+            📋 Export Specification
           </Typography>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 2 }}>
-            • 3 files will be downloaded (one per source)<br />
-            • Timestamps preserved in Firestore format (_seconds, _nanoseconds)<br />
-            • Files automatically downloaded to your Downloads folder<br />
-            • Move files to <code>data/</code> folder to replace old exports<br />
-            • File naming: <code>{'{source}'}-events-{'{date}'}.json</code>
-          </Typography>
+          <List dense sx={{ ml: 1 }}>
+            <ListItem disableGutters>
+              <Typography variant="caption" component="span">
+                <strong>Path:</strong> economicEvents/events/events/{`{eventId}`}
+              </Typography>
+            </ListItem>
+            <ListItem disableGutters>
+              <Typography variant="caption" component="span">
+                <strong>Fields:</strong> All canonical fields including sources multi-source tracking
+              </Typography>
+            </ListItem>
+            <ListItem disableGutters>
+              <Typography variant="caption" component="span">
+                <strong>Format:</strong> Enterprise JSON with metadata and version
+              </Typography>
+            </ListItem>
+            <ListItem disableGutters>
+              <Typography variant="caption" component="span">
+                <strong>Timestamps:</strong> ISO 8601 format (UTC)
+              </Typography>
+            </ListItem>
+            <ListItem disableGutters>
+              <Typography variant="caption" component="span">
+                <strong>Priority Order:</strong> NFS → JBlanked-FF → GPT → JBlanked-MT → JBlanked-FXStreet
+              </Typography>
+            </ListItem>
+          </List>
         </Box>
       </Paper>
     </Container>

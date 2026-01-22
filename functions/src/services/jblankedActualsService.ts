@@ -3,8 +3,13 @@
  *
  * Purpose: Ingest "today" actuals from JBlanked providers (ForexFactory, MQL5/MT, FXStreet)
  * into the canonical economic events collection, enriching schedule data with outcomes.
+ * Priority: NFS > JBlanked-FF > GPT > JBlanked-MT > JBlanked-FXStreet
  *
  * Changelog:
+ * v1.3.2 - 2026-01-21 - BEP Refactor: Normalize JBlanked currency prefix for matching.
+ * v1.3.1 - 2026-01-21 - BEP Refactor: Add fallback matching window for JBlanked actuals.
+ * v1.3.0 - 2026-01-21 - BEP Refactor: Pass originalName to preserve source-specific event names.
+ * v1.2.0 - 2026-01-21 - Updated priority documentation; JBlanked-FF now ranks 2nd (after NFS).
  * v1.1.0 - 2025-12-16 - Prevent JBlanked from creating new events; only merge into existing NFS documents.
  * v1.0.0 - 2025-12-11 - Added multi-provider JBlanked actuals sync with configurable enablement.
  */
@@ -131,7 +136,9 @@ export async function syncTodayActualsFromJblankedProvider(
     try {
       const rawName = raw.Name || "";
       const normalizedName = normalizeEventName(rawName);
-      const currency = raw.Currency ? String(raw.Currency).trim().toUpperCase() : null;
+      const currency = raw.Currency
+        ? String(raw.Currency).trim().toUpperCase().replace(/^CURRENCY_/, "")
+        : null;
       if (!raw.Date) {
         logger.warn("⚠️ Skipping JBlanked event with missing date", {provider, rawName});
         continue;
@@ -140,11 +147,32 @@ export async function syncTodayActualsFromJblankedProvider(
       const status: CanonicalEconomicEvent["status"] =
         raw.Actual != null && raw.Actual !== "" ? "released" : "scheduled";
 
-      const existingMatch = await findExistingCanonicalEvent({
+      let existingMatch = await findExistingCanonicalEvent({
         normalizedName,
         currency,
         datetimeUtc,
       });
+
+      if (!existingMatch) {
+        const fallbackMatch = await findExistingCanonicalEvent({
+          normalizedName,
+          currency,
+          datetimeUtc,
+          windowMinutes: 180,
+          similarityThreshold: 0.6,
+        });
+
+        if (fallbackMatch) {
+          existingMatch = fallbackMatch;
+          logger.warn("⚠️ JBlanked fallback match used (name/time drift)", {
+            provider,
+            normalizedName,
+            currency,
+            datetimeUtc: datetimeUtc.toDate().toISOString(),
+            matchedEventId: fallbackMatch.eventId,
+          });
+        }
+      }
 
       if (!existingMatch) {
         skippedMissingBase += 1;
@@ -163,6 +191,7 @@ export async function syncTodayActualsFromJblankedProvider(
       const merged = mergeProviderEvent(existingDoc, {
         provider,
         eventId,
+        originalName: rawName,
         normalizedName,
         currency,
         datetimeUtc,

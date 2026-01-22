@@ -5,6 +5,10 @@
  * Adds styling for clock events overlay markers without impacting canvas sizing.
  * 
  * Changelog:
+ * v1.3.3 - 2026-01-21 - Increased flag badge size for clearer visibility.
+ * v1.3.2 - 2026-01-21 - Removed fullscreen mode comment block after fullscreen toggle removal.
+ * v1.3.1 - 2026-01-21 - Adjusted flag badge dimensions to match flag aspect ratio.
+ * v1.3.0 - 2026-01-21 - Added icon badge styling for global currency markers.
  * v1.2.0 - 2025-12-09 - Added flag badge styling for clock event markers.
  * v1.1.0 - 2025-12-09 - Added styles for clock events overlay markers and wrapper.
  * v1.0.0 - 2025-09-15 - Initial implementation
@@ -57,7 +61,26 @@
 	border-radius: 2px;
 	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.32);
 	overflow: hidden;
-	background: #fff;
+	background: transparent;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.clock-event-flag--icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	color: #1f1f1f;
+}
+
+.clock-event-flag--icon svg {
+	display: block;
+	width: 14px;
+	height: 14px;
 }
 
 .clock-event-flag .fi {
@@ -65,10 +88,6 @@
 	width: 100%;
 	height: 100%;
 	border-radius: 2px;
+	background-size: cover;
+	background-position: center;
 }
-
-/* ============================================================================ */
-/* Fullscreen Mode Styles */
-/* ============================================================================ */
-/* v1.0.0 - 2026-01-17 - Fullscreen mode hides AppBar, EventsFilters3, headings,
-   and timezone button. FullscreenModeButton remains visible at fixed bottom-left. */

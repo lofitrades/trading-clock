@@ -17,6 +17,11 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v1.11.4 - 2026-01-22 - BUGFIX: Remove unused imports and variables; add PropTypes validation to all components.
+ * v1.11.3 - 2026-01-22 - BEP: Normalize custom impact values (numeric/string) so /clock modal renders correct impact chip instead of Unknown.
+ * v1.11.2 - 2026-01-22 - BEP: Fix custom event impact badge on /clock by resolving impact from custom event fields and display cache fallback.
+ * v1.11.1 - 2026-01-22 - BEP: Enhanced custom event display with metadata section showing impact badge, 'Custom event' chip, and appearance (custom icon + color). Provides visual consistency with economic events and better context for custom reminders.
+ * v1.11.0 - 2026-01-22 - BEP: Add support for custom events with Edit button. Displays custom event fields (title, description, timezone, reminders, appearance). Edit button opens CustomEventDialog at z-index 12003 (above EventModal at 12001). Dynamic rendering based on event.isCustom flag.
  * v1.10.3 - 2026-01-17 - BUGFIX: Set Dialog z-index to 12001 to appear on top of fullscreen mode (matches AuthModal2 hierarchy)
  * v1.10.2 - 2026-01-16 - Display all-day/tentative time labels when provided.
  * v1.10.1 - 2025-12-18 - Centralize impact color sourcing: low = yellow (#F2C94C), unknown = taupe (#C7B8A4) to avoid session color conflicts across modal chips.
@@ -41,6 +46,7 @@
  */
 
 import React, { useState, useEffect, memo } from 'react';
+import PropTypes from 'prop-types';
 import {
   Dialog,
   DialogTitle,
@@ -54,7 +60,6 @@ import {
   Card,
   CardContent,
   Stack,
-  Divider,
   Skeleton,
   Fade,
   Slide,
@@ -78,11 +83,13 @@ import FavoriteBorderOutlined from '@mui/icons-material/FavoriteBorderOutlined';
 import Favorite from '@mui/icons-material/Favorite';
 import NoteAltOutlined from '@mui/icons-material/NoteAltOutlined';
 import NoteAlt from '@mui/icons-material/NoteAlt';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import { getEventDescription } from '../services/economicEventsService';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { formatTime, formatDate, DATE_FORMAT_OPTIONS } from '../utils/dateUtils';
+import { formatTime, formatDate } from '../utils/dateUtils';
 import { resolveImpactMeta } from '../utils/newsApi';
+import { getCustomEventIconComponent } from '../utils/customEventStyle';
 import {
   formatCountdownHMS,
   NOW_WINDOW_MS,
@@ -186,6 +193,22 @@ const getImpactConfig = (impact) => {
     icon: base.icon || meta.icon,
     label: base.label || meta.label,
   };
+};
+
+const normalizeCustomImpact = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') {
+    if (value >= 3) return 'strong';
+    if (value === 2) return 'moderate';
+    if (value === 1) return 'weak';
+    return null;
+  }
+  const normalized = value.toString().toLowerCase();
+  if (['high', 'strong', '3'].includes(normalized)) return 'strong';
+  if (['medium', 'moderate', '2'].includes(normalized)) return 'moderate';
+  if (['low', 'weak', '1'].includes(normalized)) return 'weak';
+  if (['non-economic', 'none', '0'].includes(normalized)) return 'non-economic';
+  return normalized;
 };
 
 /**
@@ -303,6 +326,9 @@ const ImpactBadge = memo(({ impact }) => {
 });
 
 ImpactBadge.displayName = 'ImpactBadge';
+ImpactBadge.propTypes = {
+  impact: PropTypes.string.isRequired,
+};
 
 /**
  * Currency Flag Component
@@ -442,6 +468,9 @@ const CurrencyFlag = memo(({ currency }) => {
 });
 
 CurrencyFlag.displayName = 'CurrencyFlag';
+CurrencyFlag.propTypes = {
+  currency: PropTypes.string.isRequired,
+};
 
 /**
  * Enhanced Tooltip Component with mobile touch support
@@ -484,6 +513,11 @@ const EnhancedTooltip = memo(({ title, children, placement = 'top' }) => (
 ));
 
 EnhancedTooltip.displayName = 'EnhancedTooltip';
+EnhancedTooltip.propTypes = {
+  title: PropTypes.node.isRequired,
+  children: PropTypes.node.isRequired,
+  placement: PropTypes.string,
+};
 
 /**
  * Data Value Display Component
@@ -534,6 +568,12 @@ const DataValueBox = memo(({ label, value, isPrimary = false, loading = false })
 });
 
 DataValueBox.displayName = 'DataValueBox';
+DataValueBox.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.string,
+  isPrimary: PropTypes.bool,
+  loading: PropTypes.bool,
+};
 
 /**
  * Loading Skeleton for Modal Content
@@ -566,7 +606,7 @@ ModalSkeleton.displayName = 'ModalSkeleton';
  * @param {Function} onOpenNotes - Open notes dialog handler
  * @param {Function} isEventNotesLoading - Check if notes are loading
  */
-export default function EventModal({
+function EventModal({
   open,
   onClose,
   event,
@@ -578,10 +618,10 @@ export default function EventModal({
   hasEventNotes = () => false,
   onOpenNotes = null,
   isEventNotesLoading = () => false,
+  onEditCustomEvent = null,
 }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const fullScreen = isMobile;
 
   // State
@@ -708,7 +748,11 @@ export default function EventModal({
     actualValue = hasValidActual ? currentEvent.actual : '—';
   }
 
-  const impactConfig = getImpactConfig(currentEvent.strength);
+  const customImpactValue = normalizeCustomImpact(
+    currentEvent?.impact
+    || currentEvent?._displayCache?.strengthValue
+    || currentEvent?.strength
+  );
 
   return (
     <Dialog
@@ -856,6 +900,27 @@ export default function EventModal({
             </MuiTooltip>
           )}
 
+          {/* Edit Button (Custom Events Only) */}
+          {currentEvent.isCustom && onEditCustomEvent && (
+            <MuiTooltip title="Edit reminder" arrow placement="bottom">
+              <IconButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditCustomEvent(currentEvent);
+                }}
+                sx={{
+                  color: 'primary.contrastText',
+                  '&:hover': {
+                    bgcolor: alpha('#fff', 0.1),
+                  },
+                }}
+                size="small"
+              >
+                <EditRoundedIcon />
+              </IconButton>
+            </MuiTooltip>
+          )}
+
           {/* Close Button */}
           <IconButton
             onClick={onClose}
@@ -882,7 +947,190 @@ export default function EventModal({
       >
         {loading ? (
           <ModalSkeleton />
+        ) : currentEvent.isCustom ? (
+          /* Custom Event Content */
+          <Stack spacing={3} sx={{ mt: { xs: 2, sm: 3 } }}>
+            {/* Metadata Section - Impact, Type, Appearance */}
+            <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+              <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
+                <Stack spacing={2.5}>
+                  {/* Impact & Type Row */}
+                  <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {/* Impact Badge - Hidden for custom events with Unknown impact */}
+                    {customImpactValue && customImpactValue !== 'unknown' && (
+                      <ImpactBadge impact={customImpactValue} />
+                    )}
+                    {/* Custom Event Type Chip */}
+                    <Chip
+                      label="Custom event"
+                      size="medium"
+                      sx={{
+                        bgcolor: 'primary.dark',
+                        color: '#ffffff',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        height: 28,
+                        '& .MuiChip-label': {
+                          px: 1.5,
+                        },
+                      }}
+                    />
+                  </Box>
+
+                  {/* Appearance - Icon & Color */}
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary' }}>
+                      Appearance
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                      {/* Custom Icon */}
+                      {currentEvent.customIcon && (() => {
+                        const IconComponent = getCustomEventIconComponent(currentEvent.customIcon);
+                        return (
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                              px: 1.5,
+                              py: 0.75,
+                              borderRadius: 1.5,
+                              bgcolor: 'background.default',
+                              border: '1px solid',
+                              borderColor: 'divider',
+                            }}
+                          >
+                            <IconComponent sx={{ fontSize: 24, color: 'text.primary' }} />
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                              Icon
+                            </Typography>
+                          </Box>
+                        );
+                      })()}
+                      {/* Custom Color */}
+                      {currentEvent.customColor && (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            px: 1.5,
+                            py: 0.75,
+                            borderRadius: 1.5,
+                            bgcolor: 'background.default',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: 1,
+                              bgcolor: currentEvent.customColor,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                            }}
+                          />
+                          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                            Color
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+
+            {/* Custom Event Details */}
+            <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+              <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
+                <Stack spacing={2.5}>
+                  {/* Description */}
+                  {currentEvent.description && (
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary' }}>
+                        Notes
+                      </Typography>
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                        {currentEvent.description}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Timezone */}
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary' }}>
+                      Timezone
+                    </Typography>
+                    <Chip
+                      label={currentEvent.timezone?.replace(/_/g, ' ') || 'UTC'}
+                      size="small"
+                      sx={{ fontWeight: 600 }}
+                    />
+                  </Box>
+
+                  {/* Show on Clock */}
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary' }}>
+                      Visibility
+                    </Typography>
+                    <Chip
+                      label={currentEvent.showOnClock !== false ? 'Visible on clock' : 'Hidden from clock'}
+                      size="small"
+                      color={currentEvent.showOnClock !== false ? 'success' : 'default'}
+                      sx={{ fontWeight: 600 }}
+                    />
+                  </Box>
+
+                  {/* Reminders */}
+                  {currentEvent.reminders && currentEvent.reminders.length > 0 && (
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary' }}>
+                        Reminders ({currentEvent.reminders.length})
+                      </Typography>
+                      <Stack spacing={1}>
+                        {currentEvent.reminders.map((reminder, idx) => (
+                          <Box
+                            key={idx}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                              p: 1.5,
+                              bgcolor: 'background.default',
+                              borderRadius: 1.5,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                            }}
+                          >
+                            <AccessTimeIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {reminder.minutesBefore} minutes before
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 0.5, ml: 'auto', flexWrap: 'wrap' }}>
+                              {reminder.channels?.inApp && (
+                                <Chip label="In-app" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                              )}
+                              {reminder.channels?.browser && (
+                                <Chip label="Browser" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                              )}
+                              {reminder.channels?.push && (
+                                <Chip label="Push" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                              )}
+                            </Box>
+                          </Box>
+                        ))}
+                      </Stack>
+                    </Box>
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
+          </Stack>
         ) : (
+          /* Economic Event Content */
           <Stack spacing={3} sx={{ mt: { xs: 2, sm: 3 } }}>
             {/* Metadata Section */}
             <Card
@@ -1959,3 +2207,20 @@ export default function EventModal({
     </Dialog>
   );
 }
+
+EventModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  event: PropTypes.object,
+  timezone: PropTypes.string,
+  isFavoriteEvent: PropTypes.func,
+  onToggleFavorite: PropTypes.func,
+  isFavoritePending: PropTypes.func,
+  favoritesLoading: PropTypes.bool,
+  hasEventNotes: PropTypes.func,
+  onOpenNotes: PropTypes.func,
+  isEventNotesLoading: PropTypes.func,
+  onEditCustomEvent: PropTypes.func,
+};
+
+export default EventModal;

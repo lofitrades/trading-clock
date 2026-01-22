@@ -15,7 +15,10 @@
  * - Fully responsive: wraps on xs/sm, single-row on md+
  * 
  * Changelog:
- * v1.3.28 - 2026-01-17 - RESET BUTTON UX: Exclude date filter from triggering reset button visibility. Reset button now only appears when impacts, currencies, favoritesOnly, or searchQuery are active. Prevents reset button from showing when only date range is changed on /clock page (cleaner UX for users just switching between date presets).
+ * v1.3.32 - 2026-01-22 - Remove boxShadow from filter chips for cleaner, flatter appearance on all breakpoints.
+ * v1.3.31 - 2026-01-22 - BEP CHIP SHADOWS: Add boxShadow (0 2px 4px rgba(0, 0, 0, 0.1)) to all filter chips for depth and visual consistency with CTA buttons.
+ * v1.3.30 - 2026-01-21 - BEP SEARCH PERSISTENCE: Made search bar auto-expand when searchQuery is active (derived state). Search bar stays expanded on page reload if search was previously applied. Clicking search icon when expanded clears search; clicking when collapsed expands and focuses input.
+ * v1.3.29 - 2026-01-21 - BEP SEARCH FIX: Increased search debounce from 400ms to 3 seconds to prevent clock marker flicker while user types. Search now properly impacts ClockEventsOverlay markers via eventFilters. handleClearSearch resets search state immediately for responsive UX.
  * v1.3.27 - 2026-01-16 - Removed 'yesterday' date preset; users now choose between Today, Tomorrow, This Week, Next Week, or This Month.
  * v1.3.26 - 2026-01-16 - Added 'thisMonth' date preset to DATE_PRESETS for full This Month filtering support with timezone awareness.
  * v1.3.25 - 2026-01-16 - Added 'nextWeek' date preset to DATE_PRESETS for full Next Week filtering support with timezone awareness.
@@ -288,7 +291,10 @@ export default function EventsFilters3({
     favoritesOnly: false,
     searchQuery: '',
   });
-  const [searchExpanded, setSearchExpanded] = useState(false);
+  // BEP: Separate state for search expansion to handle both click-to-expand and auto-expand on query
+  // Derived state: expand if user is actively searching OR if search bar was clicked
+  const [searchBarOpen, setSearchBarOpen] = useState(false);
+  const searchExpanded = searchBarOpen || Boolean(localFilters.searchQuery);
   const searchInputRef = useRef(null);
   const searchDebounceTimerRef = useRef(null);
   const [currencies, setCurrencies] = useState([]);
@@ -341,11 +347,13 @@ export default function EventsFilters3({
 
   const applyAndPersist = useCallback(
     (nextFilters) => {
-      // Defer updates to avoid parent state changes during child render
-      Promise.resolve().then(() => {
+      // Use setTimeout(0) instead of Promise to defer to next macrotask
+      // This allows EventsFilters3 render to complete before updating parent state
+      // Prevents React "setState in render" violation while still applying filters quickly
+      setTimeout(() => {
         onFiltersChange(nextFilters);
         if (onApply) onApply(nextFilters);
-      });
+      }, 0);
     },
     [onApply, onFiltersChange],
   );
@@ -365,7 +373,8 @@ export default function EventsFilters3({
     setAnchorImpactPos(null);
     setAnchorCurrencyPos(null);
     setAnchorDatePos(null);
-    setSearchExpanded(false);
+    // BEP: Keep search bar expanded if it was shown before reset (don't collapse it)
+    // This allows user to continue searching after reset
   }, [applyAndPersist, defaultPreset, defaultRange, timezone]);
 
   const setDatePreset = useCallback(
@@ -398,6 +407,11 @@ export default function EventsFilters3({
       setShowAuthModal(true);
       return;
     }
+    // BEP: Clear pending search debounce when impact changes to prevent race condition
+    if (searchDebounceTimerRef.current) {
+      clearTimeout(searchDebounceTimerRef.current);
+      searchDebounceTimerRef.current = null;
+    }
     setLocalFilters((prev) => {
       const exists = prev.impacts.includes(impactValue);
       const impacts = exists ? prev.impacts.filter((v) => v !== impactValue) : [...prev.impacts, impactValue];
@@ -412,6 +426,11 @@ export default function EventsFilters3({
       setAnchorCurrencyPos(null);
       setShowAuthModal(true);
       return;
+    }
+    // BEP: Clear pending search debounce when currency changes to prevent race condition
+    if (searchDebounceTimerRef.current) {
+      clearTimeout(searchDebounceTimerRef.current);
+      searchDebounceTimerRef.current = null;
     }
     setLocalFilters((prev) => {
       const exists = prev.currencies.includes(currency);
@@ -440,6 +459,11 @@ export default function EventsFilters3({
       setShowAuthModal(true);
       return;
     }
+    // BEP: Clear pending search debounce when impacts are cleared to prevent race condition
+    if (searchDebounceTimerRef.current) {
+      clearTimeout(searchDebounceTimerRef.current);
+      searchDebounceTimerRef.current = null;
+    }
     setLocalFilters((prev) => {
       const next = { ...prev, impacts: [] };
       applyAndPersist(next);
@@ -453,6 +477,11 @@ export default function EventsFilters3({
       setShowAuthModal(true);
       return;
     }
+    // BEP: Clear pending search debounce when currencies are cleared to prevent race condition
+    if (searchDebounceTimerRef.current) {
+      clearTimeout(searchDebounceTimerRef.current);
+      searchDebounceTimerRef.current = null;
+    }
     setLocalFilters((prev) => {
       const next = { ...prev, currencies: [] };
       applyAndPersist(next);
@@ -462,49 +491,10 @@ export default function EventsFilters3({
 
   // ========== SEARCH HANDLERS ==========
 
-  const toggleSearchExpanded = useCallback(() => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-    setSearchExpanded((prev) => {
-      const next = !prev;
-      if (next) {
-        // Auto-focus search input when expanded
-        setTimeout(() => {
-          if (searchInputRef.current) {
-            searchInputRef.current.focus();
-          }
-        }, 100);
-      }
-      return next;
-    });
-  }, [user]);
-
-  const handleSearchChange = useCallback((event) => {
-    const value = event.target.value;
-    setLocalFilters((prev) => ({ ...prev, searchQuery: value }));
-
-    // Clear existing debounce timer
-    if (searchDebounceTimerRef.current) {
-      clearTimeout(searchDebounceTimerRef.current);
-    }
-
-    // Debounced auto-apply (enterprise best practice: 400ms for search)
-    searchDebounceTimerRef.current = setTimeout(() => {
-      applyAndPersist({
-        startDate: localFilters.startDate,
-        endDate: localFilters.endDate,
-        impacts: localFilters.impacts,
-        currencies: localFilters.currencies,
-        favoritesOnly: localFilters.favoritesOnly,
-        searchQuery: value,
-      });
-    }, 400);
-  }, [applyAndPersist, localFilters.startDate, localFilters.endDate, localFilters.impacts, localFilters.currencies, localFilters.favoritesOnly]);
-
+  // Define handleClearSearch FIRST so toggleSearchExpanded can reference it
   const handleClearSearch = useCallback(() => {
     setLocalFilters((prev) => ({ ...prev, searchQuery: '' }));
+    setSearchBarOpen(false);
     applyAndPersist({
       startDate: localFilters.startDate,
       endDate: localFilters.endDate,
@@ -517,6 +507,74 @@ export default function EventsFilters3({
       searchInputRef.current.focus();
     }
   }, [applyAndPersist, localFilters.startDate, localFilters.endDate, localFilters.impacts, localFilters.currencies, localFilters.favoritesOnly]);
+
+  const toggleSearchExpanded = useCallback(() => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    // BEP: When search is active (has query), clicking clears search and closes bar
+    // When search is inactive (no query), opens bar and focuses input
+    if (localFilters.searchQuery) {
+      handleClearSearch();
+      setSearchBarOpen(false);
+    } else {
+      // Open search bar and auto-focus input
+      setSearchBarOpen(true);
+      setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }, 100);
+    }
+  }, [user, localFilters.searchQuery, handleClearSearch]);
+
+  const handleSearchChange = useCallback((event) => {
+    const value = event.target.value;
+    setLocalFilters((prev) => ({ ...prev, searchQuery: value }));
+
+    // Clear existing debounce timer
+    if (searchDebounceTimerRef.current) {
+      clearTimeout(searchDebounceTimerRef.current);
+    }
+
+    // BEP: Debounced auto-apply (3 seconds for search to prevent marker flicker while user types)
+    // Enterprise best practice: longer debounce for search filters to reduce re-renders on clock markers
+    // CRITICAL: Use function form of setLocalFilters to read current state at timeout execution time
+    // This prevents stale closures where impact/currency values would be old if they changed during debounce
+    searchDebounceTimerRef.current = setTimeout(() => {
+      setLocalFilters((currentFilters) => {
+        applyAndPersist({
+          startDate: currentFilters.startDate,
+          endDate: currentFilters.endDate,
+          impacts: currentFilters.impacts,
+          currencies: currentFilters.currencies,
+          favoritesOnly: currentFilters.favoritesOnly,
+          searchQuery: value,
+        });
+        return currentFilters;
+      });
+    }, 3000);
+  }, [applyAndPersist]);
+
+  const handleSearchKeyDown = useCallback((event) => {
+    // BEP: Immediate search on Enter key press (bypass debounce for responsive UX)
+    // Clear debounce timer and apply search immediately
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (searchDebounceTimerRef.current) {
+        clearTimeout(searchDebounceTimerRef.current);
+      }
+      applyAndPersist({
+        startDate: localFilters.startDate,
+        endDate: localFilters.endDate,
+        impacts: localFilters.impacts,
+        currencies: localFilters.currencies,
+        favoritesOnly: localFilters.favoritesOnly,
+        searchQuery: localFilters.searchQuery,
+      });
+    }
+  }, [applyAndPersist, localFilters.startDate, localFilters.endDate, localFilters.impacts, localFilters.currencies, localFilters.favoritesOnly, localFilters.searchQuery]);
 
   // Cleanup debounce timer on unmount
   useEffect(() => {
@@ -1012,7 +1070,7 @@ export default function EventsFilters3({
                     spacing={0.5}
                     alignItems="center"
                     sx={{
-                      px: 1,
+                      pl: 1,
                       py: 0.5,
                       borderRadius: 1,
                       color: textColor || 'text.secondary',
@@ -1053,6 +1111,7 @@ export default function EventsFilters3({
             placeholder="Search by name, currency, or notes..."
             value={localFilters.searchQuery}
             onChange={handleSearchChange}
+            onKeyDown={handleSearchKeyDown}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">

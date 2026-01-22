@@ -5,6 +5,14 @@
  * Renders static background + dynamic session donuts + interactive tooltips.
  *
  * Changelog:
+ * v1.3.12 - 2026-01-21 - UX: Refine session tooltip open/close animation for Apple-like motion.
+ * v1.3.11 - 2026-01-21 - UX: Left hemisphere sessions anchor tooltips from top-left; right hemisphere from top-right on all pages/breakpoints.
+ * v1.3.9 - 2026-01-21 - UX: Bias session tooltip placement toward viewport center to reduce side overflow.
+ * v1.3.8 - 2026-01-21 - UX: Session tooltip syncs with global coordinator to enforce single tooltip.
+ * v1.3.7 - 2026-01-21 - UX: Pointer cursor on session hover; outside clicks always close tooltip.
+ * v1.3.6 - 2026-01-21 - UX: Session arc tooltip opens on click only; hover keeps size effect.
+ * v1.3.5 - 2026-01-21 - UX: Position session tooltips toward available viewport space (flip left/up as needed).
+ * v1.3.4 - 2026-01-21 - Removed fullscreen tooltip branching after fullscreen toggle removal.
  * v1.3.3 - 2026-01-17 - FULLSCREEN TOOLTIP POSITIONING FIX: Fixed SessionArcTooltip positioning in fullscreen by (1) adding position:relative to canvas-container, (2) converting viewport coordinates to container-relative coordinates, (3) removing incorrect transform. Tooltips now render at correct position relative to canvas. Added containerRef to track canvas container for coordinate conversion.
  * v1.3.2 - 2026-01-17 - FULLSCREEN TOOLTIP STACKING CONTEXT FIX: When isFullscreenMode is true, tooltips now render with absolute positioning instead of Portal. This keeps tooltips within the fullscreen element's stacking context, fixing visibility issues where Portal-rendered tooltips were hidden behind the fullscreen element. Tooltips now visible on hover in fullscreen mode on all breakpoints.
  * v1.3.1 - 2026-01-17 - FULLSCREEN TOOLTIP Z-INDEX FIX: Increased SessionArcTooltip z-index from 1000 to 1250 so tooltips remain visible during fullscreen mode. Tooltips now render above all clock content and fullscreen button while staying below modals (10001+). Fixes visibility issue where tooltips were hidden behind fullscreen elements on hover.
@@ -29,7 +37,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import SessionArcTooltip from './SessionArcTooltip';
 import { useTooltipCoordinator } from '../contexts/useTooltipCoordinator';
 
-export default function ClockCanvas({ size, time, sessions, handColor, clockStyle = 'normal', showSessionNamesInCanvas = true, showPastSessionsGray = true, showClockNumbers = true, showClockHands = true, activeSession = null, backgroundBasedOnSession = false, renderHandsInCanvas = true, handAnglesRef = null, isFullscreenMode = false }) {
+export default function ClockCanvas({ size, time, sessions, handColor, clockStyle = 'normal', showSessionNamesInCanvas = true, showPastSessionsGray = true, showClockNumbers = true, showClockHands = true, activeSession = null, backgroundBasedOnSession = false, renderHandsInCanvas = true, handAnglesRef = null }) {
   const { selectedTimezone } = useSettings();
   const { openTooltip, closeTooltip: closeGlobalTooltip, isTooltipActive } = useTooltipCoordinator();
   const canvasRef = useRef(null);
@@ -278,8 +286,8 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     // Animate tooltip entrance
     if (tooltipRef.current) {
       tooltipAnimation.current = gsap.fromTo(tooltipRef.current,
-        { opacity: 0, scale: 0.8, y: -10 },
-        { opacity: 1, scale: 1, y: 0, duration: 0.2, ease: "back.out(1.7)" }
+        { opacity: 0, scale: 0.96, y: 6 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.18, ease: "power3.out" }
       );
     }
   };
@@ -293,8 +301,9 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     if (tooltipRef.current) {
       tooltipAnimation.current = gsap.to(tooltipRef.current, {
         opacity: 0,
-        scale: 0.8,
-        duration: 0.15,
+        scale: 0.96,
+        y: 6,
+        duration: 0.14,
         ease: "power2.in",
         onComplete: () => {
           setTooltip(null);
@@ -319,6 +328,14 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     return () => window.clearInterval(tickInterval);
   }, [tooltip]);
 
+  useEffect(() => {
+    if (!tooltip) return;
+    const tooltipId = `session-${tooltip.name}`;
+    if (!isTooltipActive('session', tooltipId)) {
+      hideTooltip();
+    }
+  }, [tooltip, isTooltipActive, hideTooltip]);
+
   const handleMouseMove = (e) => {
     // Disable hover detection for minimalistic style
     if (clockStyle === 'minimalistic') {
@@ -336,14 +353,29 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
       previousHoveredSession.current = hovered;
       setHoveredSession(hovered);
 
-      if (hovered) {
-        showTooltip(e.clientX, e.clientY, hovered);
-      } else {
-        hideTooltip();
-      }
-    } else if (hovered && tooltip) {
-      // Just update tooltip position without re-animating
-      setTooltip(prev => ({ ...prev, x: e.clientX, y: e.clientY }));
+    }
+  };
+
+  const handleCanvasClick = (e) => {
+    // Disable click tooltip for minimalistic style
+    if (clockStyle === 'minimalistic') {
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    const clicked = detectHoveredSession(canvas, clickX, clickY);
+
+    if (clicked) {
+      previousHoveredSession.current = clicked;
+      setHoveredSession(clicked);
+      showTooltip(e.clientX, e.clientY, clicked);
+    } else {
+      hideTooltip();
     }
   };
 
@@ -356,7 +388,6 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
       if (!canvas.contains(e.target)) {
         previousHoveredSession.current = null;
         setHoveredSession(null);
-        hideTooltip();
       }
     };
 
@@ -387,15 +418,15 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     };
 
     // Add event listeners for both mouse and touch
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside, true);
+    document.addEventListener('touchstart', handleClickOutside, true);
 
     // Add touch listener with passive: false to allow preventDefault
     canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside, true);
+      document.removeEventListener('touchstart', handleClickOutside, true);
       canvas.removeEventListener('touchstart', handleTouchStart);
     };
   }, [clockStyle, sessions, size, detectHoveredSession]);
@@ -405,49 +436,22 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
       <canvas
         ref={canvasRef}
         onMouseMove={handleMouseMove}
+        onClick={handleCanvasClick}
         onMouseLeave={() => {
           previousHoveredSession.current = null;
           setHoveredSession(null);
-          hideTooltip();
         }}
-        style={{ touchAction: 'none', width: '100%', height: '100%' }}
+        style={{ touchAction: 'none', width: '100%', height: '100%', cursor: hoveredSession ? 'pointer' : 'default' }}
       />
-      {tooltip && isFullscreenMode ? (
-        // In fullscreen: use absolute positioning with container-relative coordinates
-        (() => {
-          const containerRect = containerRef.current?.getBoundingClientRect();
-          const left = containerRect ? tooltip.x - containerRect.left + 10 : tooltip.x + 10;
-          const top = containerRect ? tooltip.y - containerRect.top + 10 : tooltip.y + 10;
-          return (
-            <div
-              ref={tooltipRef}
-              style={{
-                position: 'absolute',
-                left: `${left}px`,
-                top: `${top}px`,
-                zIndex: 1250,
-                pointerEvents: 'auto',
-              }}
-            >
-              <SessionArcTooltip
-                sessionName={tooltip.name}
-                startTime={tooltip.startNY}
-                endTime={tooltip.endNY}
-                timezone={selectedTimezone}
-                arcColor={tooltip.color}
-              />
-            </div>
-          );
-        })()
-      ) : tooltip && !isFullscreenMode ? (
-        // Not in fullscreen: use Portal for root-level rendering
+      {tooltip ? (
         <Portal>
           <div
             ref={tooltipRef}
             style={{
               position: 'fixed',
-              left: tooltip.x + 10,
-              top: tooltip.y + 10,
+              left: tooltip.x + (typeof window !== 'undefined' && tooltip.x > window.innerWidth * 0.5 ? -12 : 12),
+              top: tooltip.y + 12,
+              transform: `translate(${typeof window !== 'undefined' && tooltip.x > window.innerWidth * 0.5 ? '-100%' : '0%'}, 0%)`,
               zIndex: 1250,
               pointerEvents: 'auto',
             }}
@@ -458,6 +462,7 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
               endTime={tooltip.endNY}
               timezone={selectedTimezone}
               arcColor={tooltip.color}
+              onClose={hideTooltip}
             />
           </div>
         </Portal>
@@ -487,5 +492,4 @@ ClockCanvas.propTypes = {
   handAnglesRef: PropTypes.shape({
     current: PropTypes.object,
   }),
-  isFullscreenMode: PropTypes.bool,
 };

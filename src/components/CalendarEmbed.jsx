@@ -5,6 +5,26 @@
  * and stays embeddable for other pages while keeping Time 2 Trade branding and SEO-friendly copy.
  * 
  * Changelog:
+ * v1.5.58 - 2026-01-22 - BEP: Custom events now open in EventModal (view mode) instead of directly opening CustomEventDialog. Added Edit button in EventModal header for custom events that opens CustomEventDialog at z-index 12003. Improved view/edit flow consistency with economic events.
+ * v1.5.57 - 2026-01-22 - BEP: Null/missing currency now shows CancelRoundedIcon + 'UNK' with 'Unknown' tooltip (instead of world icon + 'ALL'). Custom event tooltip changed from impact label to 'Custom event'. Improved currency badge clarity.
+ * v1.5.56 - 2026-01-22 - BEP: Treat currency 'ALL' the same as null/missing currency - display world icon + 'ALL' text instead of plain chip.
+ * v1.5.55 - 2026-01-22 - BEP: Replace settings gear icon in trading clock panel with Add icon. The Add button opens CustomEventDialog to create new reminders. Settings are still accessible via AppBar or SettingsSidebar2.
+ * v1.5.54 - 2026-01-22 - GLOBAL NOTIFICATION SCOPE: Removed useCustomEventNotifications hook, NotificationCenter component, and related imports. Notifications now managed globally in App.jsx and distributed via PublicLayout to AppBar (md+) and mobile header (xs/sm). Simplifies CalendarEmbed to focus on event data display, improves notification consistency across entire app.
+ * v1.5.53 - 2026-01-22 - BEP: Update "Add custom event" button borderRadius from 1.5 to 999 (pill shape) to match filter chips styling.
+ * v1.5.52 - 2026-01-22 - BEP: Change "Add custom event" button variant from outlined to contained for polished appearance matching filter chips styling.
+ * v1.5.51 - 2026-01-22 - BEP: Add borderRadius: 1.5 to "Add custom event" CTA button to match AppBar nav items styling.
+ * v1.5.50 - 2026-01-22 - BEP: Move notification center (bell icon) to the right of "Add custom event" CTA on all breakpoints for improved visual hierarchy.
+ * v1.5.49 - 2026-01-22 - BEP: Show event count and NEXT/NOW buttons row on all breakpoints (xs, sm, md+) for consistent event status visibility across mobile and desktop.
+ * v1.5.48 - 2026-01-22 - BEP: Make "Add custom event" button full width on xs-sm (md-) for better mobile CTA accessibility.
+ * v1.5.47 - 2026-01-22 - BEP: Move event count and NEXT/NOW buttons to same row below 'Powered by Forex Factory' subtitle on md+ (display:none on xs-sm). Keep notification center and 'Add custom event' button in top-right. Improves information hierarchy following enterprise dashboard patterns.
+ * v1.5.46 - 2026-01-22 - Use custom reminder color for custom currency chips.
+ * v1.5.45 - 2026-01-22 - Align custom reminder impact chips with standard impact icons.
+ * v1.5.44 - 2026-01-22 - Render custom reminder currency chips with custom icon and impact styling.
+ * v1.5.43 - 2026-01-21 - Show custom reminder impact in the currency column.
+ * v1.5.42 - 2026-01-21 - Respect custom reminder icon/color selections in calendar rows.
+ * v1.5.41 - 2026-01-21 - Show custom reminder impact icon consistently in calendar rows.
+ * v1.5.40 - 2026-01-21 - BEP: Add custom reminder events with notification center, custom event dialog, and merged calendar view.
+ * v1.5.39 - 2026-01-17 - BEP PERFORMANCE PHASE 1: Use pre-computed metadata from event._displayCache instead of per-row calculations. Removes useMemo overhead for isSpeechEvent, formatMetricValue, getEventEpochMs, formatRelativeLabel. EventRow now accesses cached values computed once in useCalendarData hook during fetch. Expected impact: -50% EventRow render overhead.
  * v1.5.38 - 2026-01-16 - RESPONSIVE TIME LABEL: Reduced font size on xs/sm/md (0.65rem/0.75rem/0.875rem) with ellipsis overflow for Tentative/All Day labels. GLOBAL CURRENCY ICON: Show MUI PublicIcon for '—' or missing currency (global events) instead of '—' chip.
  * v1.5.37 - 2026-01-16 - Display all-day/tentative time labels for GPT placeholder events.
  * v1.5.36 - 2026-01-15 - TIMEZONE MODAL BACKDROP FIX: Keep backdrop behind paper and ensure modal sits above AppBar.
@@ -234,6 +254,7 @@ import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRe
 import PropTypes from 'prop-types';
 import {
     Alert,
+    Button,
     Box,
     Chip,
     Dialog,
@@ -260,30 +281,35 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import CloseIcon from '@mui/icons-material/Close';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
 import EventsFilters3 from './EventsFilters3';
 const NewsSourceSelector = lazy(() => import('./NewsSourceSelector'));
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import useCalendarData from '../hooks/useCalendarData';
+import useCustomEvents from '../hooks/useCustomEvents';
 import { useTimeEngine } from '../hooks/useTimeEngine';
 import { useEventNotes } from '../hooks/useEventNotes';
 import CalendarGridLayout from './CalendarGridLayout';
 import ClockPanelPaper from './ClockPanelPaper';
 import '../App.css';
+import CustomEventDialog from './CustomEventDialog';
 const EventModal = lazy(() => import('./EventModal'));
 const EventNotesDialog = lazy(() => import('./EventNotesDialog'));
 const TimezoneModal = lazy(() => import('./TimezoneModal'));
 const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
 import { DATE_FORMAT_OPTIONS, formatDate, formatTime } from '../utils/dateUtils';
 import PublicIcon from '@mui/icons-material/Public';
-import { resolveImpactMeta } from '../utils/newsApi';
+import { getCustomEventIconComponent, resolveCustomEventColor } from '../utils/customEventStyle';
+import { resolveImpactMeta, sortEventsByTime } from '../utils/newsApi';
 import { getCurrencyFlag } from '../utils/currencyFlags';
+import { isColorDark } from '../utils/clockUtils';
 import { hasAdConsent, subscribeConsent } from '../utils/consent';
 import {
     NOW_WINDOW_MS,
     computeNowNextState,
     formatCountdownHMS,
-    formatRelativeLabel,
     getEventEpochMs,
     getNowEpochMs,
     isPastToday,
@@ -306,6 +332,15 @@ const eventShape = PropTypes.shape({
     Summary: PropTypes.string,
     currency: PropTypes.string,
     Currency: PropTypes.string,
+    title: PropTypes.string,
+    isCustom: PropTypes.bool,
+    timezone: PropTypes.string,
+    localDate: PropTypes.string,
+    localTime: PropTypes.string,
+    showOnClock: PropTypes.bool,
+    customColor: PropTypes.string,
+    customIcon: PropTypes.string,
+    reminders: PropTypes.arrayOf(PropTypes.object),
     impact: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     importance: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     strength: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -316,6 +351,15 @@ const eventShape = PropTypes.shape({
     Forecast: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     previous: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     Previous: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    _displayCache: PropTypes.shape({
+        isSpeech: PropTypes.bool,
+        actual: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        forecast: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        previous: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        epochMs: PropTypes.number,
+        strengthValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        relativeLabel: PropTypes.string,
+    }),
 });
 
 /**
@@ -343,34 +387,6 @@ const buildEventKey = (event) => {
     const epoch = getEventEpochMs(event);
     const identifier = event.id || event.Event_ID || `${event.name || event.Name || 'event'}`;
     return `${identifier}-${epoch ?? 'na'}`;
-};
-
-const isSpeechLikeEvent = (event) => {
-    if (!event) return false;
-    const textParts = [
-        event.name,
-        event.Name,
-        event.summary,
-        event.Summary,
-        event.description,
-        event.Description,
-        event.category,
-        event.Category,
-    ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-    return ['speak', 'speech', 'press conference', 'testifies', 'testimony'].some((token) => textParts.includes(token));
-};
-
-const formatMetricValue = (value, isSpeechEvent) => {
-    const trimmed = typeof value === 'string' ? value.trim() : value;
-    const isZeroish = trimmed === '' || trimmed === 0 || trimmed === '0' || trimmed === '0.0' || trimmed === 0.0;
-
-    if (isSpeechEvent && isZeroish) return '—';
-
-    return value;
 };
 
 const areSetsEqual = (a, b) => {
@@ -439,10 +455,93 @@ const buildDaySequence = (startDate, endDate, timezone) => {
     return days;
 };
 
-const CurrencyBadge = ({ currency, isPast = false }) => {
+const CurrencyBadge = ({ currency, isPast = false, isCustom = false, customColor, customIcon }) => {
     const code = (currency || '').toUpperCase();
     const countryCode = getCurrencyFlag(code);
-    const isGlobal = !code || code === '—';
+    const isUnknown = !code || code === '—';
+    const isGlobal = code === 'ALL';
+    const theme = useTheme();
+    const badgeColor = isCustom ? resolveCustomEventColor(customColor, theme) : 'background.paper';
+    const badgeTextColor = isCustom
+        ? (isColorDark(badgeColor) ? '#fff' : '#1f1f1f')
+        : 'text.primary';
+    const CustomIcon = isCustom ? getCustomEventIconComponent(customIcon) : null;
+
+    if (isCustom) {
+        return (
+            <Tooltip title="Custom event">
+                <Box
+                    sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        px: 1,
+                        py: 0.25,
+                        borderRadius: 1,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        bgcolor: badgeColor,
+                        color: badgeTextColor,
+                        opacity: isPast ? 0.7 : 1,
+                        filter: isPast ? 'grayscale(1)' : 'none',
+                    }}
+                >
+                    {CustomIcon ? (
+                        <CustomIcon style={{ fontSize: 16, lineHeight: 1, color: badgeTextColor }} />
+                    ) : (
+                        <Box
+                            component="span"
+                            sx={{
+                                width: 16,
+                                height: 16,
+                                borderRadius: 0.75,
+                                bgcolor: badgeTextColor,
+                                opacity: 0.7,
+                            }}
+                        />
+                    )}
+                    <Typography
+                        variant="caption"
+                        sx={{ fontWeight: 700, lineHeight: 1, display: { xs: 'none', sm: 'inline' } }}
+                    >
+                        CUS
+                    </Typography>
+                </Box>
+            </Tooltip>
+        );
+    }
+
+    if (isUnknown) {
+        return (
+            <Tooltip title="Unknown">
+                <Box
+                    sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 0.4,
+                        px: 0.75,
+                        py: 0.25,
+                        borderRadius: 1,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        bgcolor: badgeColor,
+                        color: badgeTextColor,
+                        opacity: isPast ? 0.7 : 1,
+                        filter: isPast ? 'grayscale(1)' : 'none',
+                    }}
+                >
+                    <CancelRoundedIcon sx={{ fontSize: 16, lineHeight: 1, color: 'text.disabled' }} />
+                    <Typography
+                        variant="caption"
+                        sx={{ fontWeight: 700, lineHeight: 1, display: { xs: 'none', sm: 'inline' } }}
+                    >
+                        UNK
+                    </Typography>
+                </Box>
+            </Tooltip>
+        );
+    }
 
     if (isGlobal) {
         return (
@@ -458,12 +557,13 @@ const CurrencyBadge = ({ currency, isPast = false }) => {
                         borderRadius: 1,
                         border: '1px solid',
                         borderColor: 'divider',
-                        bgcolor: 'background.paper',
+                        bgcolor: badgeColor,
+                        color: badgeTextColor,
                         opacity: isPast ? 0.7 : 1,
                         filter: isPast ? 'grayscale(1)' : 'none',
                     }}
                 >
-                    <PublicIcon sx={{ fontSize: 16, lineHeight: 1 }} />
+                    <PublicIcon sx={{ fontSize: 16, lineHeight: 1, color: badgeTextColor }} />
                     <Typography
                         variant="caption"
                         sx={{ fontWeight: 700, lineHeight: 1, display: { xs: 'none', sm: 'inline' } }}
@@ -476,7 +576,19 @@ const CurrencyBadge = ({ currency, isPast = false }) => {
     }
 
     if (!countryCode) {
-        return <Chip label={code} size="small" sx={{ height: 22, fontWeight: 700, opacity: isPast ? 0.7 : 1 }} />;
+        return (
+            <Chip
+                label={code}
+                size="small"
+                sx={{
+                    height: 22,
+                    fontWeight: 700,
+                    opacity: isPast ? 0.7 : 1,
+                    bgcolor: badgeColor,
+                    color: badgeTextColor,
+                }}
+            />
+        );
     }
 
     return (
@@ -491,7 +603,8 @@ const CurrencyBadge = ({ currency, isPast = false }) => {
                     borderRadius: 1,
                     border: '1px solid',
                     borderColor: 'divider',
-                    bgcolor: 'background.paper',
+                    bgcolor: badgeColor,
+                    color: badgeTextColor,
                     opacity: isPast ? 0.7 : 1,
                     filter: isPast ? 'grayscale(1)' : 'none',
                 }}
@@ -511,10 +624,16 @@ const CurrencyBadge = ({ currency, isPast = false }) => {
 CurrencyBadge.propTypes = {
     currency: PropTypes.string,
     isPast: PropTypes.bool,
+    isCustom: PropTypes.bool,
+    customColor: PropTypes.string,
+    impact: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    customIcon: PropTypes.string,
 };
 
 const ImpactBadge = ({ strength, isPast = false }) => {
     const meta = resolveImpactMeta(strength || 'unknown');
+    const baseColor = isPast ? '#9e9e9e' : meta.color;
+    const iconColor = '#fff';
 
     return (
         <Tooltip title={meta.label}>
@@ -524,8 +643,8 @@ const ImpactBadge = ({ strength, isPast = false }) => {
                 sx={{
                     minWidth: 38,
                     height: 22,
-                    bgcolor: isPast ? '#9e9e9e' : meta.color,
-                    color: '#fff',
+                    bgcolor: baseColor,
+                    color: iconColor,
                     fontWeight: 800,
                     fontSize: '0.75rem',
                     fontFamily: 'monospace',
@@ -566,17 +685,14 @@ const EventRow = memo(({
     isNext = false,
     nextCountdownLabel,
     isPast = false,
-    nowEpochMs,
 }) => {
     const name = event.name || event.Name || 'Unnamed event';
     const description = event.description || event.Description || event.summary || event.Summary || '';
-    const isSpeechEvent = useMemo(() => isSpeechLikeEvent(event), [event]);
-    const actualValue = formatMetricValue(event.actual ?? event.Actual, isSpeechEvent);
-    const forecast = formatMetricValue(event.forecast ?? event.Forecast, isSpeechEvent);
-    const previous = formatMetricValue(event.previous ?? event.Previous, isSpeechEvent);
-    const strengthValue = event.strength || event.Strength || event.impact || event.importance || '';
-    const eventEpochMs = getEventEpochMs(event);
-    const nextTooltip = eventEpochMs ? formatRelativeLabel({ eventEpochMs, nowEpochMs }) : 'Upcoming event';
+
+    // BEP: Use pre-computed metadata from _displayCache to avoid per-row calculations
+    const { actual: actualValue, forecast, previous, epochMs: eventEpochMs, strengthValue, relativeLabel } = event._displayCache || {};
+
+    const nextTooltip = eventEpochMs ? relativeLabel : 'Upcoming event';
     const favorite = isFavorite ? isFavorite(event) : false;
     const favoritePending = isFavoritePending ? isFavoritePending(event) : false;
 
@@ -661,7 +777,7 @@ const EventRow = memo(({
                 padding="none"
             >
                 <Stack direction="row" spacing={0} alignItems="center" justifyContent="center" sx={{ minWidth: 0, flexWrap: 'nowrap' }}>
-                    {onToggleFavorite ? (
+                    {onToggleFavorite && !event.isCustom ? (
                         <Tooltip title={favorite ? 'Remove favorite' : 'Add to favorites'}>
                             <span>
                                 <IconButton
@@ -708,32 +824,44 @@ const EventRow = memo(({
             </TableCell>
 
             <TableCell align="center" sx={{ borderColor: 'divider', width: { xs: 52, sm: 68 }, minWidth: { xs: 52, sm: 64 }, px: { xs: 0, sm: 0.85 } }}>
-                <CurrencyBadge currency={event.currency || event.Currency} isPast={isPast && !isNow && !isNext} />
+                <CurrencyBadge
+                    currency={event.currency || event.Currency}
+                    isPast={isPast && !isNow && !isNext}
+                    isCustom={event.isCustom}
+                    customColor={event.customColor}
+                    impact={event.impact || event.strength || event.Strength}
+                    customIcon={event.customIcon}
+                />
             </TableCell>
 
             <TableCell align="center" sx={{ borderColor: 'divider', width: { xs: 52, sm: 68 }, minWidth: { xs: 52, sm: 64 }, px: { xs: 0, sm: 0.85 } }}>
-                <ImpactBadge strength={strengthValue} isPast={isPast && !isNow && !isNext} />
+                <ImpactBadge
+                    strength={strengthValue}
+                    isPast={isPast && !isNow && !isNext}
+                />
             </TableCell>
 
             <TableCell sx={{ borderColor: 'divider', minWidth: { xs: 0, sm: 180 }, px: { xs: 0.6, sm: 1 }, width: '100%', maxWidth: '100%' }}>
                 <Stack direction="row" spacing={{ xs: 0.5, sm: 0.75 }} alignItems="center" sx={{ minWidth: 0, maxWidth: '100%' }}>
                     <Box sx={{ flex: '1 1 auto', minWidth: 0, maxWidth: '100%' }}>
-                        <Typography
-                            variant="body2"
-                            sx={{
-                                fontWeight: 700,
-                                color: isPast ? 'text.secondary' : 'text.primary',
-                                // Prefer wrapping the event name (mobile-style) before requiring horizontal scroll.
-                                overflow: 'hidden',
-                                whiteSpace: 'normal',
-                                wordBreak: 'break-word',
-                                minWidth: 0,
-                                maxWidth: '100%',
-                            }}
-                            title={name}
-                        >
-                            {name}
-                        </Typography>
+                        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0, flexWrap: 'wrap' }}>
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    fontWeight: 700,
+                                    color: isPast ? 'text.secondary' : 'text.primary',
+                                    // Prefer wrapping the event name (mobile-style) before requiring horizontal scroll.
+                                    overflow: 'hidden',
+                                    whiteSpace: 'normal',
+                                    wordBreak: 'break-word',
+                                    minWidth: 0,
+                                    maxWidth: '100%',
+                                }}
+                                title={name}
+                            >
+                                {name}
+                            </Typography>
+                        </Stack>
                         {description ? (
                             <Typography
                                 variant="caption"
@@ -1085,11 +1213,10 @@ export default function CalendarEmbed({
         filters,
         handleFiltersChange,
         applyFilters,
-        events,
+        events: economicEvents,
         loading,
         error,
         lastUpdated,
-        visibleCount,
         timezone,
         newsSource,
         isFavorite,
@@ -1097,6 +1224,15 @@ export default function CalendarEmbed({
         isFavoritePending,
         favoritesLoading,
     } = useCalendarData({ defaultPreset: 'thisWeek' });
+
+    const {
+        events: customEvents,
+        loading: customLoading,
+        error: customError,
+        createEvent,
+        saveEvent,
+        removeEvent,
+    } = useCustomEvents({ startDate: filters.startDate, endDate: filters.endDate });
 
     const {
         sessions,
@@ -1184,13 +1320,16 @@ export default function CalendarEmbed({
 
     // Once loading completes after a range change, stop showing skeletons
     useEffect(() => {
-        if (isLoadingNewRange && !loading) {
+        if (isLoadingNewRange && !loading && !customLoading) {
             setIsLoadingNewRange(false);
         }
-    }, [loading, isLoadingNewRange]);
+    }, [customLoading, isLoadingNewRange, loading]);
+
+    const combinedLoading = loading || customLoading;
+    const combinedError = error || customError;
 
     // Show skeletons ONLY when actively loading, not during scroll or re-renders
-    const showSkeletons = loading && isLoadingNewRange;
+    const showSkeletons = combinedLoading && isLoadingNewRange;
 
     const {
         notesError,
@@ -1203,6 +1342,8 @@ export default function CalendarEmbed({
         isEventNotesLoading,
     } = useEventNotes();
 
+    // Notifications now managed globally in App.jsx and passed via PublicLayout
+
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [noteTarget, setNoteTarget] = useState(null);
     const [settingsOpen, setSettingsOpen] = useState(false);
@@ -1210,10 +1351,39 @@ export default function CalendarEmbed({
     const [timezoneModalOpen, setTimezoneModalOpen] = useState(false);
     const [newsSourceModalOpen, setNewsSourceModalOpen] = useState(false);
     const [forexFactoryModalOpen, setForexFactoryModalOpen] = useState(false);
+    const [customDialogOpen, setCustomDialogOpen] = useState(false);
+    const [customEditingEvent, setCustomEditingEvent] = useState(null);
+    const [customActionError, setCustomActionError] = useState('');
     const [isFiltersStuck, setIsFiltersStuck] = useState(false);
     // isMobileFiltersStuck removed - filters now at layout level
     const overlayEventFilters = useMemo(() => filters || settingsEventFilters, [filters, settingsEventFilters]);
     const overlayNewsSource = newsSource || settingsNewsSource;
+
+    const filteredCustomEvents = useMemo(() => {
+        if (!customEvents || customEvents.length === 0) return [];
+        if (filters?.favoritesOnly) return customEvents;
+
+        const query = (filters?.searchQuery || '').toLowerCase().trim();
+        if (!query) return customEvents;
+
+        return customEvents.filter((evt) => {
+            const name = (evt.title || evt.name || '').toLowerCase();
+            const description = (evt.description || '').toLowerCase();
+            return name.includes(query) || description.includes(query);
+        });
+    }, [customEvents, filters?.favoritesOnly, filters?.searchQuery]);
+
+    const mergedEvents = useMemo(
+        () => sortEventsByTime([...(economicEvents || []), ...filteredCustomEvents]),
+        [economicEvents, filteredCustomEvents]
+    );
+
+    const visibleCount = mergedEvents.length;
+
+    const permissionError = useMemo(() => {
+        const message = combinedError || customActionError || '';
+        return /permission/i.test(message);
+    }, [combinedError, customActionError]);
 
     const dayKeys = useMemo(
         () => buildDaySequence(filters.startDate, filters.endDate, timezone),
@@ -1237,8 +1407,8 @@ export default function CalendarEmbed({
         const grouped = new Map();
         visibleDayKeys.forEach((key) => grouped.set(key, []));
 
-        events.forEach((event) => {
-            const bucket = getDayKey(event.date || event.Date, timezone);
+        mergedEvents.forEach((event) => {
+            const bucket = getDayKey(event.date || event.Date || event.time, timezone);
             if (!bucket) return;
             // Only add to grouped map if this day key is in visibleDayKeys
             if (grouped.has(bucket)) {
@@ -1247,13 +1417,13 @@ export default function CalendarEmbed({
         });
 
         return grouped;
-    }, [events, timezone, visibleDayKeys]);
+    }, [mergedEvents, timezone, visibleDayKeys]);
 
     const todayKey = useMemo(() => getDayKey(new Date(), timezone), [timezone]);
 
     const nowNextState = useMemo(
-        () => computeNowNextState({ events, nowEpochMs: tableNowEpochMs, nowWindowMs: NOW_WINDOW_MS, buildKey: buildEventKey }),
-        [events, tableNowEpochMs],
+        () => computeNowNextState({ events: mergedEvents, nowEpochMs: tableNowEpochMs, nowWindowMs: NOW_WINDOW_MS, buildKey: buildEventKey }),
+        [mergedEvents, tableNowEpochMs],
     );
 
     const prevNowEventIdsRef = useRef(new Set());
@@ -1569,10 +1739,10 @@ export default function CalendarEmbed({
     }, [clearScrollFlash]);
 
     const scrollToNextEvent = useCallback(() => {
-        if (nextEventIds.size === 0 || events.length === 0) return;
+        if (nextEventIds.size === 0 || mergedEvents.length === 0) return;
 
         // Find the first next event in the events array
-        const firstNextEvent = events.find((event) => {
+        const firstNextEvent = mergedEvents.find((event) => {
             const eventKey = buildEventKey(event);
             return nextEventIds.has(eventKey);
         });
@@ -1583,13 +1753,13 @@ export default function CalendarEmbed({
             flashAllNextRows();
             scrollEventIntoView(firstNextEvent);
         }
-    }, [events, flashAllNextRows, nextEventIds, scrollEventIntoView]);
+    }, [mergedEvents, flashAllNextRows, nextEventIds, scrollEventIntoView]);
 
     const scrollToNowEvent = useCallback(() => {
-        if (nowEventIds.size === 0 || events.length === 0) return;
+        if (nowEventIds.size === 0 || mergedEvents.length === 0) return;
 
         // Find the first NOW event in the events array
-        const firstNowEvent = events.find((event) => {
+        const firstNowEvent = mergedEvents.find((event) => {
             const eventKey = buildEventKey(event);
             return nowEventIds.has(eventKey);
         });
@@ -1600,29 +1770,29 @@ export default function CalendarEmbed({
             flashAllNowRows();
             scrollEventIntoView(firstNowEvent);
         }
-    }, [events, flashAllNowRows, nowEventIds, scrollEventIntoView]);
+    }, [mergedEvents, flashAllNowRows, nowEventIds, scrollEventIntoView]);
 
     const nowEventKey = useMemo(() => {
-        if (nowEventIds.size === 0 || events.length === 0) return null;
+        if (nowEventIds.size === 0 || mergedEvents.length === 0) return null;
 
-        const firstNowEvent = events.find((event) => {
+        const firstNowEvent = mergedEvents.find((event) => {
             const eventKey = buildEventKey(event);
             return nowEventIds.has(eventKey);
         });
 
         return firstNowEvent ? buildEventKey(firstNowEvent) : null;
-    }, [events, nowEventIds]);
+    }, [mergedEvents, nowEventIds]);
 
     const nextEventKey = useMemo(() => {
-        if (nextEventIds.size === 0 || events.length === 0) return null;
+        if (nextEventIds.size === 0 || mergedEvents.length === 0) return null;
 
-        const firstNextEvent = events.find((event) => {
+        const firstNextEvent = mergedEvents.find((event) => {
             const eventKey = buildEventKey(event);
             return nextEventIds.has(eventKey);
         });
 
         return firstNextEvent ? buildEventKey(firstNextEvent) : null;
-    }, [events, nextEventIds]);
+    }, [mergedEvents, nextEventIds]);
 
     useEffect(() => {
         if (typeof document === 'undefined') return undefined;
@@ -1764,7 +1934,7 @@ export default function CalendarEmbed({
         };
 
         return trySetupObserver();
-    }, [nowEventKey, nowEventIds, events, visibleDayKeys.length, showSkeletons, isTwoColumn]);
+    }, [nowEventKey, nowEventIds, mergedEvents, visibleDayKeys.length, showSkeletons, isTwoColumn]);
 
     const handleToggleFavorite = useCallback(async (event) => {
         const result = await toggleFavorite(event);
@@ -1809,12 +1979,95 @@ export default function CalendarEmbed({
             scrollEventIntoView(event, { flash: true });
             return;
         }
+
+        if (event?.isCustom) {
+            // Open EventModal for custom events (to view)
+            setSelectedEvent(event);
+            return;
+        }
         setSelectedEvent(event);
     }, [onOpenAuth, scrollEventIntoView, user]);
 
     const handleCloseEvent = useCallback(() => {
         setSelectedEvent(null);
     }, []);
+
+    const handleOpenCustomDialog = useCallback((eventToEdit = null) => {
+        if (!user) {
+            if (onOpenAuth) {
+                onOpenAuth();
+            }
+            return;
+        }
+        setCustomActionError('');
+        setCustomEditingEvent(eventToEdit);
+        setCustomDialogOpen(true);
+    }, [onOpenAuth, user]);
+
+    const handleEditCustomEvent = useCallback((event) => {
+        setSelectedEvent(null); // Close EventModal
+        setCustomEditingEvent(event);
+        setCustomDialogOpen(true); // Open CustomEventDialog for editing
+    }, []);
+
+    const handleCloseCustomDialog = useCallback(() => {
+        setCustomDialogOpen(false);
+        setCustomEditingEvent(null);
+        setCustomActionError('');
+    }, []);
+
+    const handleSaveCustomEvent = useCallback(async (payload) => {
+        setCustomActionError('');
+        if (!user) {
+            if (onOpenAuth) {
+                onOpenAuth();
+            }
+            return;
+        }
+
+        const result = customEditingEvent?.id
+            ? await saveEvent(customEditingEvent.id, payload)
+            : await createEvent(payload);
+
+        if (result?.requiresAuth) {
+            if (onOpenAuth) {
+                onOpenAuth();
+            }
+            return;
+        }
+
+        if (!result?.success) {
+            setCustomActionError(result?.error || 'Unable to save reminder.');
+            return;
+        }
+
+        setCustomDialogOpen(false);
+        setCustomEditingEvent(null);
+    }, [createEvent, customEditingEvent, onOpenAuth, saveEvent, user]);
+
+    const handleDeleteCustomEvent = useCallback(async (eventToDelete) => {
+        if (!eventToDelete?.id) return;
+        const confirmed = window.confirm('Delete this reminder?');
+        if (!confirmed) return;
+
+        setCustomActionError('');
+        const result = await removeEvent(eventToDelete.id);
+
+        if (result?.requiresAuth) {
+            if (onOpenAuth) {
+                onOpenAuth();
+            }
+            return;
+        }
+
+        if (!result?.success) {
+            setCustomActionError(result?.error || 'Unable to delete reminder.');
+            return;
+        }
+
+        setCustomDialogOpen(false);
+        setCustomEditingEvent(null);
+    }, [onOpenAuth, removeEvent]);
 
     const handleOpenNotes = useCallback((event) => {
         const { key, requiresAuth } = ensureNotesStream(event);
@@ -1877,6 +2130,7 @@ export default function CalendarEmbed({
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenTimezone={() => setTimezoneModalOpen(true)}
             onOpenEvent={handleOpenEvent}
+            onOpenAddEvent={() => handleOpenCustomDialog()}
         />
     );
 
@@ -1905,7 +2159,7 @@ export default function CalendarEmbed({
                             filters={filters}
                             onFiltersChange={handleFiltersChangeGuard}
                             onApply={handleApplyFiltersGuard}
-                            loading={loading}
+                            loading={combinedLoading}
                             timezone={timezone}
                             newsSource={newsSource}
                             actionOffset={0}
@@ -1917,7 +2171,7 @@ export default function CalendarEmbed({
                 </Stack>
             </Box >
         ),
-        [visibleCount, filters, loading, timezone, newsSource, handleFiltersChangeGuard, handleApplyFiltersGuard],
+        [filters, combinedLoading, timezone, newsSource, handleFiltersChangeGuard, handleApplyFiltersGuard],
     );
 
     const calendarContent = (
@@ -1948,6 +2202,7 @@ export default function CalendarEmbed({
             >
                 {showSeoCopy && (
                     <Stack spacing={1} sx={{ mb: 0, position: 'relative', width: '100%' }}>
+                        {/* Top row: Title/Subtitle on left, Notification + Add custom event on right */}
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.25, sm: 2 }} alignItems={{ xs: 'flex-start', sm: 'flex-start' }} justifyContent="space-between" sx={{ width: '100%' }}>
                             <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
                                 <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.2 }}>
@@ -1976,75 +2231,103 @@ export default function CalendarEmbed({
                                     </Link>
                                 </Typography>
                             </Stack>
+                            {/* Right side: Add custom event button + Notification center */}
                             <Stack
-                                direction={{ xs: 'row', sm: 'column' }}
-                                spacing={0.5}
-                                alignItems={{ xs: 'center', sm: 'flex-end' }}
-                                justifyContent={{ xs: 'space-between', sm: 'flex-start' }}
+                                direction="row"
+                                spacing={0.75}
+                                alignItems="center"
+                                justifyContent="flex-end"
                                 sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' }, pt: { xs: 0, sm: 0.25 } }}
                             >
-                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: { xs: '0.75rem', sm: '0.8125rem' }, whiteSpace: 'nowrap', lineHeight: 1.4 }}>
-                                    {visibleCount.toLocaleString()} events
-                                </Typography>
-                                <Stack
-                                    direction="row"
-                                    spacing={{ xs: 1, md: 0.75 }}
-                                    alignItems="center"
-                                    flexWrap={{ xs: 'nowrap', md: 'nowrap' }}
-                                    justifyContent={{ xs: 'flex-end', md: 'flex-end' }}
-                                    sx={{ whiteSpace: 'nowrap' }}
+                                <Button
+                                    size="small"
+                                    variant="contained"
+                                    color="primary"
+                                    startIcon={<AddRoundedIcon fontSize="small" />}
+                                    onClick={() => handleOpenCustomDialog()}
+                                    sx={{ textTransform: 'none', fontWeight: 600, width: { xs: '100%', sm: 'auto' }, borderRadius: 999 }}
                                 >
-                                    {nextCountdownLabel ? (
-                                        <Stack
-                                            direction="row"
-                                            spacing={0.5}
-                                            alignItems="center"
-                                            onClick={scrollToNextEvent}
-                                            sx={{
-                                                cursor: 'pointer',
-                                                borderRadius: 1.5,
-                                                transition: 'background-color 0.2s',
-                                                '&:hover': {
-                                                    bgcolor: alpha('#4caf50', 0.1),
-                                                },
-                                            }}
-                                        >
-                                            <AccessTimeIcon sx={{ fontSize: { xs: 12, sm: 14 }, color: 'success.main' }} />
-                                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.main', fontSize: { xs: '0.75rem', sm: '0.8125rem' } }}>
-                                                Next in {nextCountdownLabel}
-                                            </Typography>
-                                        </Stack>
-                                    ) : nowEventIds.size ? (
-                                        <Stack
-                                            direction="row"
-                                            spacing={0.5}
-                                            alignItems="center"
-                                            onClick={scrollToNowEvent}
-                                            sx={{
-                                                cursor: 'pointer',
-                                                borderRadius: 1.5,
-                                                transition: 'background-color 0.2s',
-                                                '&:hover': {
-                                                    bgcolor: alpha('#2196f3', 0.1),
-                                                },
-                                            }}
-                                        >
-                                            <AccessTimeIcon sx={{ fontSize: { xs: 12, sm: 14 }, color: 'info.main' }} />
-                                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main', fontSize: { xs: '0.75rem', sm: '0.8125rem' } }}>
-                                                Events in progress
-                                            </Typography>
-                                        </Stack>
-                                    ) : null}
-                                </Stack>
+                                    Add custom event
+                                </Button>
                             </Stack>
                         </Stack>
+
+                        {/* Bottom row: Event count + NEXT/NOW buttons below subtitle on all breakpoints */}
+                        <Stack
+                            direction="row"
+                            spacing={1.25}
+                            alignItems="center"
+                            sx={{ width: '100%', display: 'flex' }}
+                        >
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.8125rem', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
+                                {visibleCount.toLocaleString()} events
+                            </Typography>
+                            <Stack
+                                direction="row"
+                                spacing={0.75}
+                                alignItems="center"
+                                flexWrap="nowrap"
+                                sx={{ whiteSpace: 'nowrap' }}
+                            >
+                                {nextCountdownLabel ? (
+                                    <Stack
+                                        direction="row"
+                                        spacing={0.5}
+                                        alignItems="center"
+                                        onClick={scrollToNextEvent}
+                                        sx={{
+                                            cursor: 'pointer',
+                                            borderRadius: 1.5,
+                                            transition: 'background-color 0.2s',
+                                            '&:hover': {
+                                                bgcolor: alpha('#4caf50', 0.1),
+                                            },
+                                        }}
+                                    >
+                                        <AccessTimeIcon sx={{ fontSize: 14, color: 'success.main' }} />
+                                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.main', fontSize: '0.8125rem' }}>
+                                            Next in {nextCountdownLabel}
+                                        </Typography>
+                                    </Stack>
+                                ) : nowEventIds.size ? (
+                                    <Stack
+                                        direction="row"
+                                        spacing={0.5}
+                                        alignItems="center"
+                                        onClick={scrollToNowEvent}
+                                        sx={{
+                                            cursor: 'pointer',
+                                            borderRadius: 1.5,
+                                            transition: 'background-color 0.2s',
+                                            '&:hover': {
+                                                bgcolor: alpha('#2196f3', 0.1),
+                                            },
+                                        }}
+                                    >
+                                        <AccessTimeIcon sx={{ fontSize: 14, color: 'info.main' }} />
+                                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main', fontSize: '0.8125rem' }}>
+                                            Events in progress
+                                        </Typography>
+                                    </Stack>
+                                ) : null}
+                            </Stack>
+                        </Stack>
+
                         <Divider sx={{ borderColor: alpha('#3c4d63', 0.12) }} />
                     </Stack>
                 )}
 
-                {error ? (
-                    <Alert severity="error" sx={{ borderRadius: 2 }}>
-                        {error}
+                {combinedError || customActionError ? (
+                    <Alert
+                        severity="error"
+                        sx={{ borderRadius: 2 }}
+                        action={permissionError && onOpenAuth && !user ? (
+                            <Button color="inherit" size="small" onClick={onOpenAuth}>
+                                Sign in
+                            </Button>
+                        ) : null}
+                    >
+                        {combinedError || customActionError}
                     </Alert>
                 ) : null}
 
@@ -2129,6 +2412,16 @@ export default function CalendarEmbed({
                 stickyFiltersNode={stickyFiltersNode}
             />
 
+            <CustomEventDialog
+                open={customDialogOpen}
+                onClose={handleCloseCustomDialog}
+                onSave={handleSaveCustomEvent}
+                onDelete={handleDeleteCustomEvent}
+                event={customEditingEvent}
+                defaultTimezone={clockTimezone}
+                zIndexOverride={customEditingEvent ? 12003 : undefined}
+            />
+
             <Suspense fallback={null}>
                 <EventModal
                     open={Boolean(selectedEvent)}
@@ -2142,6 +2435,7 @@ export default function CalendarEmbed({
                     hasEventNotes={hasNotes}
                     onOpenNotes={handleOpenNotes}
                     isEventNotesLoading={isEventNotesLoading}
+                    onEditCustomEvent={handleEditCustomEvent}
                 />
             </Suspense>
 

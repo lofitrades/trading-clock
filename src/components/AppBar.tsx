@@ -5,6 +5,9 @@
  * Renders a sticky sub-header on md+ and an Airbnb-style bottom navigation on xs/sm.
  * 
  * Changelog:
+ * v1.4.12 - 2026-01-22 - BEP UX: Added notificationEvents prop to pass custom events array to NotificationCenter. Enables EventModal opening on notification click for seamless reminder-to-event navigation.
+ * v1.4.11 - 2026-01-22 - NOTIFICATION CENTER ON DESKTOP: Added NotificationCenter component to desktop nav (md+) positioned right of Settings button and left of user avatar. Accepts notification props (notifications, unreadCount, onMarkRead, onMarkAllRead, onClearAll) from PublicLayout. Enables global notification scope with consistent UI across all breakpoints: md+ in sticky AppBar nav, xs/sm in mobile header.
+ * v1.4.10 - 2026-01-21 - Z-INDEX: Keep AppBar layers below modal overlays while aligning with the global stack.
  * v1.4.9 - 2026-01-16 - NAV ORDER: Reordered nav items so Trading Clock appears before Calendar on all breakpoints.
  * v1.4.8 - 2026-01-15 - DESKTOP SETTINGS VISIBILITY: Show Settings button for non-auth users on md+ when AppBar is visible.
  * v1.4.7 - 2026-01-15 - CRITICAL CSS VARIABLE FIX: Changed isMobile from useMediaQuery(theme.breakpoints.down('sm'))
@@ -66,6 +69,7 @@ import ChecklistRtlIcon from '@mui/icons-material/ChecklistRtl';
 import LockIcon from '@mui/icons-material/Lock';
 import { useAuth } from '../contexts/AuthContext';
 import UserAvatar from './UserAvatar';
+import NotificationCenter from './NotificationCenter';
 import RoadmapModal from './RoadmapModal';
 
 export const MOBILE_BOTTOM_APPBAR_HEIGHT_PX = 64;
@@ -97,6 +101,12 @@ export type AppBarProps = {
   sx?: SxProps<Theme>;
   onOpenSettings?: () => void;
   onOpenAuth?: () => void;
+  notifications?: any[];
+  unreadCount?: number;
+  onMarkRead?: (notificationId: string) => void;
+  onMarkAllRead?: () => void;
+  onClearAll?: () => void;
+  notificationEvents?: any[];
 };
 
 const clampItems = (items: AppBarNavItem[]) => {
@@ -143,7 +153,7 @@ const isItemActive = (pathname: string, item: AppBarNavItem) => {
   return pathname === item.to || pathname.startsWith(`${item.to}/`);
 };
 
-export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigation', sx, onOpenSettings, onOpenAuth }: AppBarProps) {
+export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigation', sx, onOpenSettings, onOpenAuth, notifications, unreadCount, onMarkRead, onMarkAllRead, onClearAll, notificationEvents }: AppBarProps) {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -308,7 +318,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
             boxShadow: '0 10px 26px rgba(15,23,42,0.06)',
             overflow: 'hidden',
             maxHeight: 72,
-            zIndex: 100,
+            zIndex: theme.zIndex.appBar,
           }}
         >
           <Stack
@@ -380,8 +390,9 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
               </Typography>
             </Stack>
 
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              {safeItems.map((item) => {
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, justifyContent: 'flex-end', minWidth: 0 }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0 }}>
+                {safeItems.map((item) => {
                 const variant = item.primary ? 'contained' : 'text';
                 const color = item.primary ? 'primary' : 'inherit';
                 const active = isItemActive(location.pathname, item);
@@ -445,12 +456,27 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
                     <Box component="span">{button}</Box>
                   </Tooltip>
                 );
-              })}
-              
-              {/* User Avatar - show only for authenticated users on md+ */}
-              {(isAuthenticated ? isAuthenticated() : false) && user && (
-                <UserAvatar user={user} />
-              )}
+                })}
+              </Stack>
+
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+                {/* Notification Center - left of user avatar on md+ */}
+                {notifications && unreadCount !== undefined && (
+                  <NotificationCenter
+                    notifications={notifications}
+                    unreadCount={unreadCount}
+                    onMarkRead={onMarkRead}
+                    onMarkAllRead={onMarkAllRead}
+                    onClearAll={onClearAll}
+                    events={notificationEvents}
+                  />
+                )}
+
+                {/* User Avatar - show only for authenticated users on md+ */}
+                {(isAuthenticated ? isAuthenticated() : false) && user && (
+                  <UserAvatar user={user} />
+                )}
+              </Stack>
             </Stack>
           </Stack>
         </Paper>
@@ -467,7 +493,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
           left: 0,
           right: 0,
           bottom: 0,
-          zIndex: 100,
+          zIndex: theme.zIndex.appBar,
           borderTop: '1px solid',
           borderColor: 'divider',
           bgcolor: 'rgba(255,255,255,0.98)',

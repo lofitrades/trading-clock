@@ -5,6 +5,7 @@
  * Provides mobile-first full-screen mode, note creation, and deletion with timezone-aware timestamps.
  * 
  * Changelog:
+ * v1.0.2 - 2026-01-21 - Raise notes dialog z-index above EventModal.
  * v1.0.1 - 2026-01-16 - Prefer event time labels for all-day/tentative GPT placeholders.
  * v1.0.0 - 2025-12-12 - Initial implementation with responsive dialog, add/remove controls, and timestamp formatting.
  */
@@ -103,7 +104,7 @@ export default function EventNotesDialog({
 	};
 
 	return (
-		<Dialog open={open} onClose={onClose} fullScreen={fullScreen} maxWidth="sm" fullWidth slotProps={{ backdrop: { sx: BACKDROP_OVERLAY_SX } }}>
+		<Dialog open={open} onClose={onClose} fullScreen={fullScreen} maxWidth="sm" fullWidth sx={{ zIndex: 12005 }} slotProps={{ backdrop: { sx: BACKDROP_OVERLAY_SX } }}>
 			{fullScreen ? (
 				<AppBar sx={{ position: 'relative' }} color="primary">
 					<Toolbar>

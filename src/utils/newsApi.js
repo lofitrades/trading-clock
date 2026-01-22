@@ -5,12 +5,15 @@
  * Handles API calls, authentication headers, and provides centralized impact color/label helpers for UI consistency.
  *
  * Changelog:
+ * v1.3.2 - 2026-01-21 - Sort events by resolved epoch to keep custom reminders in correct timeline order.
  * v1.3.1 - 2025-12-18 - Updated impact palette: low = yellow (#F2C94C), unknown = taupe (#C7B8A4) to mirror Forex Factory-style cues and avoid session conflicts.
  * v1.3.0 - 2025-12-18 - Centralized impact palette/meta helpers and updated low-impact color to taupe (#C7B8A4) to avoid session color conflicts.
  * v1.2.0 - 2025-12-01 - Added caching helpers and event transformation utilities.
  * v1.1.0 - 2025-11-30 - Added filter helpers and pagination support for economic events.
  * v1.0.0 - 2025-11-29 - Initial implementation for JBlanked News API.
  */
+
+import { getEventEpochMs } from './eventTimeEngine';
 
 // Centralized impact palette (enterprise-safe, avoids collisions with clock session colors)
 export const IMPACT_COLORS = {
@@ -515,8 +518,9 @@ export const formatEventData = (event) => {
  */
 export const sortEventsByTime = (events) => {
   return events.sort((a, b) => {
-    if (!a.dateTime || !b.dateTime) return 0;
-    return a.dateTime - b.dateTime;
+    const aEpoch = getEventEpochMs(a) ?? a.dateTime ?? a.date ?? 0;
+    const bEpoch = getEventEpochMs(b) ?? b.dateTime ?? b.date ?? 0;
+    return aEpoch - bEpoch;
   });
 };
 

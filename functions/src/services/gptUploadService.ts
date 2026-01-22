@@ -2,9 +2,12 @@
  * functions/src/services/gptUploadService.ts
  *
  * Purpose: Ingest GPT-generated economic events into the canonical collection.
- * Performs matching, prevents overwriting NFS/JBlanked sources, and merges as fallback only.
+ * Performs matching, prevents overwriting primary sources (NFS, JBlanked), and merges as fallback only.
+ * Priority: NFS > JBlanked-FF > JBlanked-MT > JBlanked-FXStreet > GPT
  *
  * Changelog:
+ * v1.2.0 - 2026-01-21 - BEP Refactor: Use Firestore auto IDs, pass originalName, remove computeEventId.
+ * v1.1.0 - 2026-01-21 - Updated PREFERRED_SOURCES to match new priority order.
  * v1.0.0 - 2026-01-16 - Initial GPT uploader with canonical merge logic.
  */
 
@@ -12,7 +15,6 @@ import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import {
   CanonicalEconomicEvent,
-  computeEventId,
   findExistingCanonicalEvent,
   getCanonicalEventsCollection,
   mergeProviderEvent,
@@ -47,6 +49,7 @@ export interface GptUploadEventInput {
 
 const PREFERRED_SOURCES = ["nfs", "jblanked-ff", "jblanked-mt", "jblanked-fxstreet"] as const;
 
+// GPT is skipped because it's the lowest priority source; prevent overwriting primary data
 const isPreferredSourcePresent = (event?: CanonicalEconomicEvent) => {
   if (!event?.sources) return false;
   return PREFERRED_SOURCES.some((key) => Boolean(event.sources[key]));
@@ -125,8 +128,8 @@ export async function uploadGptEventsBatch(events: GptUploadEventInput[]) {
         continue;
       }
 
-      const eventId = existingMatch?.eventId ||
-        computeEventId({ currency, normalizedName, datetimeUtc });
+      // Use Firestore auto ID if no match, otherwise use existing event ID
+      const eventId = existingMatch?.eventId || collection.doc().id;
 
       const existingDoc = existingMatch?.event ||
         (await collection.doc(eventId).get()).data() as CanonicalEconomicEvent | undefined;
@@ -139,6 +142,7 @@ export async function uploadGptEventsBatch(events: GptUploadEventInput[]) {
       const mergedEvent = mergeProviderEvent(existingDoc, {
         provider: "gpt",
         eventId,
+        originalName: name,
         normalizedName,
         currency,
         datetimeUtc,

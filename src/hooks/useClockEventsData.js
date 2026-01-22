@@ -8,9 +8,14 @@
  * 
  * Filter Sync: This hook automatically re-fetches when eventFilters (impacts, currencies)
  * change in SettingsContext, ensuring the clock canvas reflects user filter preferences
- * set on the /calendar page.
+ * set on the /calendar page. Search filtering applied client-side with 3-second debounce
+ * to prevent marker flicker while user types.
  *
  * Changelog:
+ * v1.3.3 - 2026-01-21 - Live subscribe to custom reminders for instant marker updates.
+ * v1.3.2 - 2026-01-21 - BEP: Merge custom reminder events into clock marker data for today.
+ * v1.3.1 - 2026-01-21 - FILTER SAFETY: Added client-side impact/currency/category filtering pass to guarantee events list matches active filters even when cached results return unfiltered.
+ * v1.3.0 - 2026-01-21 - BEP Refactor: Added searchQuery support with client-side fuzzy matching, included searchQuery in filterKey for proper memoization, and debounce constraint for enterprise UX.
  * v1.2.1 - 2026-01-13 - CRITICAL FIX: Removed nowEpochMs from effect deps to prevent infinite re-fetch loop causing LoadingScreen blink; dayKey handles day rollover correctly.
  * v1.2.0 - 2026-01-13 - Ensure filter changes from SettingsContext trigger re-fetch; added favoritesOnly filtering; improved filterKey stability.
  * v1.1.0 - 2026-01-08 - Refreshes automatically on timezone-based day rollover using caller-provided nowEpochMs.
@@ -18,8 +23,12 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { getEventsByDateRange } from '../services/economicEventsService';
+import { subscribeToCustomEventsByRange } from '../services/customEventsService';
 import { sortEventsByTime } from '../utils/newsApi';
+import { getUtcDayRangeForTimezone } from '../utils/dateUtils';
+import { getEventEpochMs } from '../utils/eventTimeEngine';
 
 const buildDayKey = (timezone, nowEpochMs) => {
   const now = new Date(nowEpochMs ?? Date.now());
@@ -46,6 +55,27 @@ const buildTodayRange = (timezone, nowEpochMs) => {
   return { start, end };
 };
 
+const normalizeImpactValue = (impact) => {
+  if (!impact) return 'Data Not Loaded';
+
+  const value = String(impact).toLowerCase();
+
+  if (value.includes('strong') || value.includes('high') || value.includes('!!!')) {
+    return 'Strong Data';
+  }
+  if (value.includes('moderate') || value.includes('medium') || value.includes('!!')) {
+    return 'Moderate Data';
+  }
+  if (value.includes('weak') || value.includes('low') || value.includes('!')) {
+    return 'Weak Data';
+  }
+  if (value.includes('non-eco') || value.includes('non-economic') || value.includes('none')) {
+    return 'Non-Economic';
+  }
+
+  return 'Data Not Loaded';
+};
+
 export function useClockEventsData({
   events: providedEvents = null,
   timezone,
@@ -53,8 +83,11 @@ export function useClockEventsData({
   newsSource,
   nowEpochMs = Date.now(),
 }) {
-  const [events, setEvents] = useState(() => (Array.isArray(providedEvents) ? providedEvents : []));
+  const { user } = useAuth();
+  const [economicEvents, setEconomicEvents] = useState(() => (Array.isArray(providedEvents) ? providedEvents : []));
+  const [customEvents, setCustomEvents] = useState([]);
   const [loading, setLoading] = useState(!providedEvents);
+  const [dataKey, setDataKey] = useState('');
 
   const dayKey = useMemo(() => buildDayKey(timezone, nowEpochMs), [timezone, nowEpochMs]);
 
@@ -72,18 +105,73 @@ export function useClockEventsData({
     [eventFilters?.currencies]
   );
 
-  const filterKey = useMemo(
-    () => [timezone || 'na', newsSource || 'na', impactsKey, eventTypesKey, currenciesKey, dayKey].join('::'),
-    [timezone, newsSource, impactsKey, eventTypesKey, currenciesKey, dayKey],
+  const searchQuery = useMemo(
+    () => (eventFilters?.searchQuery || '').trim().toLowerCase(),
+    [eventFilters?.searchQuery]
   );
+
+  const filterKey = useMemo(
+    () => [timezone || 'na', newsSource || 'na', impactsKey, eventTypesKey, currenciesKey, searchQuery, dayKey, user?.uid || 'guest'].join('::'),
+    [timezone, newsSource, impactsKey, eventTypesKey, currenciesKey, searchQuery, dayKey, user?.uid],
+  );
+
+  const mergedEvents = useMemo(() => {
+    const hasProvided = Array.isArray(providedEvents);
+    if (hasProvided) {
+      return sortEventsByTime([...providedEvents]);
+    }
+
+    const eventKey = (evt) => {
+      const epoch = getEventEpochMs(evt);
+      return evt.id || evt.Event_ID || `${evt.title || evt.name || evt.Name || 'event'}-${epoch ?? 'na'}`;
+    };
+
+    const customFiltered = (customEvents || [])
+      .filter((evt) => evt.showOnClock !== false)
+      .filter((evt) => {
+        if (!searchQuery) return true;
+        const name = (evt.title || evt.name || '').toLowerCase();
+        const description = (evt.description || '').toLowerCase();
+        return name.includes(searchQuery) || description.includes(searchQuery);
+      });
+
+    const existingKeys = new Set((economicEvents || []).map(eventKey));
+    const dedupedCustom = customFiltered.filter((evt) => !existingKeys.has(eventKey(evt)));
+
+    return sortEventsByTime([...(economicEvents || []), ...dedupedCustom]);
+  }, [customEvents, economicEvents, providedEvents, searchQuery]);
+
+  useEffect(() => {
+    setDataKey(filterKey);
+  }, [filterKey]);
 
   useEffect(() => {
     if (providedEvents) {
-      setEvents(providedEvents);
+      setEconomicEvents(providedEvents);
       setLoading(false);
-      return;
     }
+  }, [providedEvents]);
 
+  useEffect(() => {
+    if (!user || providedEvents) return undefined;
+
+    const anchorDate = new Date(nowEpochMs ?? Date.now());
+    const { startDate, endDate } = getUtcDayRangeForTimezone(timezone, anchorDate);
+
+    return subscribeToCustomEventsByRange(
+      user.uid,
+      startDate,
+      endDate,
+      (eventsSnapshot) => {
+        setCustomEvents(eventsSnapshot || []);
+      },
+      () => {
+        setCustomEvents([]);
+      }
+    );
+  }, [nowEpochMs, providedEvents, timezone, user]);
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
 
@@ -98,13 +186,55 @@ export function useClockEventsData({
           currencies: eventFilters?.currencies || [],
         });
 
-        if (cancelled) return;
-
         if (result.success) {
-          const withDates = (result.data || []).filter((evt) => evt.date || evt.dateTime || evt.Date);
-          setEvents(sortEventsByTime(withDates));
+          let filtered = (result.data || []).filter((evt) => evt.date || evt.dateTime || evt.Date);
+          
+          // BEP: Client-side search filtering with fuzzy matching on event name
+          if (searchQuery) {
+            filtered = filtered.filter((evt) => {
+              const eventName = (evt.name || evt.Name || '').toLowerCase();
+              const eventCategory = (evt.category || evt.Category || '').toLowerCase();
+
+              // Simple fuzzy match: check if search query appears in name or category
+              return eventName.includes(searchQuery) || eventCategory.includes(searchQuery);
+            });
+
+          }
+
+          // Safety pass: ensure cached results match active filters (impacts, categories, currencies)
+          const impacts = eventFilters?.impacts || [];
+          const eventTypes = eventFilters?.eventTypes || [];
+          const currencies = eventFilters?.currencies || [];
+
+          if (impacts.length > 0) {
+            const normalizedImpactFilters = impacts.map(normalizeImpactValue);
+            filtered = filtered.filter((evt) => {
+              const impact = normalizeImpactValue(evt.strength || evt.Strength || evt.impact);
+              return normalizedImpactFilters.includes(impact);
+            });
+          }
+
+          if (eventTypes.length > 0) {
+            filtered = filtered.filter((evt) => {
+              const category = evt.category || evt.Category;
+              if (!category || category === 'null') return false;
+              return eventTypes.includes(category);
+            });
+          }
+
+          if (currencies.length > 0) {
+            filtered = filtered.filter((evt) => {
+              const currency = evt.currency || evt.Currency;
+              if (currency === null || currency === 'All') return true;
+              return currencies.includes(currency);
+            });
+          }
+          
+          setEconomicEvents(filtered);
+          setDataKey(filterKey);
         } else {
-          setEvents([]);
+          setEconomicEvents([]);
+          setDataKey(filterKey);
         }
       } finally {
         if (!cancelled) {
@@ -118,11 +248,11 @@ export function useClockEventsData({
     return () => {
       cancelled = true;
     };
-    // filterKey captures all filter state changes including dayKey for day rollover
+    // filterKey captures all filter state changes including dayKey for day rollover AND searchQuery
     // CRITICAL: Do NOT include nowEpochMs here - it changes every second and would cause infinite re-fetches
-  }, [filterKey, providedEvents, timezone, newsSource, eventFilters?.impacts, eventFilters?.eventTypes, eventFilters?.currencies]);
+  }, [filterKey, providedEvents, timezone, newsSource, eventFilters?.impacts, eventFilters?.eventTypes, eventFilters?.currencies, searchQuery, user]);
 
-  return { events, loading };
+  return { events: mergedEvents, loading, dataKey, requestKey: filterKey };
 }
 
 export default useClockEventsData;

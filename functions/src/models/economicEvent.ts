@@ -6,6 +6,9 @@
  * and Firestore helpers to unify NFS weekly schedules with JBlanked actuals.
  *
  * Changelog:
+ * v1.2.1 - 2026-01-21 - BEP Refactor: Defensive source initialization for legacy canonical docs.
+ * v1.2.0 - 2026-01-21 - BEP Refactor: Added Firestore auto IDs, normalizedName field, originalName per source, name priority picker, dual-mode backwards compatibility.
+ * v1.1.0 - 2026-01-21 - Updated source priority: NFS (highest), JBlanked-FF, GPT, JBlanked-MT, JBlanked-FXStreet (lowest).
  * v1.0.1 - 2026-01-16 - Added GPT as lowest-priority provider for fallback-only canonical merges.
  * v1.0.0 - 2025-12-11 - Initial canonical model, normalization, merge utilities, and helpers.
  */
@@ -22,6 +25,7 @@ export type ProviderSourceName =
   | string;
 
 export interface CanonicalSourceData {
+  originalName: string;
   lastSeenAt: FirebaseFirestore.Timestamp;
   raw: any;
   parsed?: {
@@ -37,6 +41,7 @@ export interface CanonicalSourceData {
 export interface CanonicalEconomicEvent {
   eventId: string;
   name: string;
+  normalizedName: string;
   currency: string | null;
   category: string | null;
   impact: string | null;
@@ -49,26 +54,34 @@ export interface CanonicalEconomicEvent {
   sources: {
     [key in ProviderSourceName]?: CanonicalSourceData;
   };
+  createdBy?: ProviderSourceName;
   winnerSource?: ProviderSourceName;
   qualityScore?: number;
   createdAt: FirebaseFirestore.Timestamp;
   updatedAt: FirebaseFirestore.Timestamp;
 }
 
+// Priority order for picking values: lower index = higher priority
+// 1. NFS (Forex Factory) - primary schedule source
+// 2. JBlanked-FF (Forex Factory) - live actuals updates
+// 3. GPT (generated) - fallback enrichment
+// 4. JBlanked-MT (MQL5) - alternative actuals
+// 5. JBlanked-FXStreet - fallback actuals
 const PROVIDER_PRIORITY: ProviderSourceName[] = [
+  "nfs",
   "jblanked-ff",
+  "gpt",
   "jblanked-mt",
   "jblanked-fxstreet",
-  "nfs",
-  "gpt",
 ];
 
+// Quality scores for each provider (informational, ordered by priority)
 const PROVIDER_QUALITY: Record<ProviderSourceName, number> = {
-  "jblanked-ff": 100,
-  "jblanked-mt": 95,
-  "jblanked-fxstreet": 95,
-  nfs: 80,
-  gpt: 40,
+  nfs: 100,
+  "jblanked-ff": 95,
+  gpt: 60,
+  "jblanked-mt": 90,
+  "jblanked-fxstreet": 85,
 };
 
 const STATUS_ORDER: Record<CanonicalEconomicEvent["status"], number> = {
@@ -97,6 +110,7 @@ export function createEmptyCanonicalEvent(
   return {
     eventId,
     name: "",
+    normalizedName: "",
     currency: null,
     category: null,
     impact: null,
@@ -107,6 +121,7 @@ export function createEmptyCanonicalEvent(
     actual: null,
     status: "scheduled",
     sources: {},
+    createdBy: undefined,
     winnerSource: undefined,
     qualityScore: 0,
     createdAt: now,
@@ -176,11 +191,26 @@ function pickValueByPriority(
   return {value: null, source: canonical.winnerSource};
 }
 
+function pickNameByPriority(
+  canonical: CanonicalEconomicEvent
+): {name: string; source?: ProviderSourceName} {
+  // Pick display name from highest priority source with originalName
+  for (const provider of PROVIDER_PRIORITY) {
+    const originalName = canonical.sources?.[provider]?.originalName;
+    if (originalName) {
+      return {name: originalName, source: provider};
+    }
+  }
+  // Fallback to existing name or normalizedName
+  return {name: canonical.name || canonical.normalizedName || "", source: canonical.createdBy};
+}
+
 export function mergeProviderEvent(
   canonical: CanonicalEconomicEvent | undefined,
   incoming: {
     provider: ProviderSourceName;
     eventId: string;
+    originalName: string;
     normalizedName: string;
     currency: string | null;
     datetimeUtc: FirebaseFirestore.Timestamp;
@@ -203,11 +233,17 @@ export function mergeProviderEvent(
 
   let merged = canonical ??
     createEmptyCanonicalEvent(incoming.eventId, {
-      name: incoming.normalizedName,
+      name: incoming.originalName,
+      normalizedName: incoming.normalizedName,
       currency: normalizedCurrency,
       datetimeUtc: incoming.datetimeUtc,
       timezoneSource: incoming.provider,
+      createdBy: incoming.provider,
     });
+
+  if (!merged.sources) {
+    merged = {...merged, sources: {}};
+  }
 
   // Currency reconciliation
   if (!merged.currency && normalizedCurrency) {
@@ -229,15 +265,9 @@ export function mergeProviderEvent(
     }
   }
 
-  // Name reconciliation
-  if (!merged.name) {
-    merged = {...merged, name: incoming.normalizedName};
-  } else {
-    const currentSimilarity = computeStringSimilarity(merged.name, incoming.normalizedName);
-    const incomingPriority = PROVIDER_PRIORITY.indexOf(incoming.provider);
-    if (currentSimilarity < 0.6 && incomingPriority !== -1 && incomingPriority < PROVIDER_PRIORITY.indexOf("nfs")) {
-      merged = {...merged, name: incoming.normalizedName};
-    }
+  // NormalizedName reconciliation (for backwards compatibility with old events)
+  if (!merged.normalizedName) {
+    merged = {...merged, normalizedName: incoming.normalizedName};
   }
 
   // Category/impact updates (prefer non-null from higher-priority source)
@@ -253,6 +283,7 @@ export function mergeProviderEvent(
   merged.sources = {
     ...merged.sources,
     [incoming.provider]: {
+      originalName: incoming.originalName,
       lastSeenAt: now,
       raw: incoming.raw,
       parsed: {
@@ -280,6 +311,10 @@ export function mergeProviderEvent(
 
   // Winner source: whichever provided the first non-null root field
   merged.winnerSource = actualPick.source || forecastPick.source || previousPick.source || merged.winnerSource || incoming.provider;
+
+  // Display name: pick from highest priority source with originalName
+  const namePick = pickNameByPriority(merged);
+  merged.name = namePick.name;
 
   // Quality score preference
   merged.qualityScore = PROVIDER_QUALITY[merged.winnerSource || incoming.provider] ?? 50;
@@ -316,7 +351,9 @@ export async function findExistingCanonicalEvent(params: {
 
   snapshot.forEach((doc) => {
     const data = doc.data() as CanonicalEconomicEvent;
-    const score = computeStringSimilarity(data.name, params.normalizedName);
+    // Use normalizedName for matching (backwards compatible - falls back to name)
+    const matchAgainst = data.normalizedName || data.name;
+    const score = computeStringSimilarity(matchAgainst, params.normalizedName);
     if (!bestMatch || score > bestMatch.score) {
       bestMatch = {eventId: doc.id, event: data, score};
     }

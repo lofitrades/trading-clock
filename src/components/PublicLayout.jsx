@@ -5,6 +5,11 @@
  * Centers the navigation chrome, preserves mobile bottom nav behavior, and keeps the layout banner-free by default.
  * 
  * Changelog:
+ * v1.0.46 - 2026-01-22 - BEP UX: Add optional mobileHeaderAction slot to render actions left of the notification bell on xs/sm.
+ * v1.0.45 - 2026-01-22 - BEP UX: Pass customEvents to NotificationCenter so clicking notifications opens EventModal for the associated custom event. Improves reminder-to-event navigation flow.
+ * v1.0.44 - 2026-01-22 - GLOBAL NOTIFICATION SCOPE: PublicLayout now owns notification hooks (useCustomEvents + useCustomEventNotifications) and provides effective props to mobile header + AppBar. Ensures bell icon renders on all routes (calendar, clock, landing) without per-page wiring.
+ * v1.0.43 - 2026-01-22 - NOTIFICATION CENTER ON MOBILE: Added NotificationCenter component to mobile header on xs/sm, positioned left of user avatar or main CTA button. Accepts notification props (notifications, unreadCount, onMarkRead, onMarkAllRead, onClearAll) and passes them to DashboardAppBar for desktop rendering. Enables global notification scope across all breakpoints.
+ * v1.0.42 - 2026-01-21 - Removed fullscreen mode prop and related AppBar hiding logic.
  * v1.0.41 - 2026-01-17 - FULLSCREEN MODE SUPPORT: Added isFullscreenMode prop to conditionally hide AppBar when fullscreen is active. AppBar display now checks isFullscreenMode first, hiding all navigation chrome for immersive clock-only experience. Updated PropTypes and defaultProps to include isFullscreenMode (defaults to false).
  * v1.0.40 - 2026-01-14 - LOGOUT MODAL REFACTOR: Replaced inline ConfirmModal with standalone LogoutModal component.
  * PublicLayout now passes the logout modal to mobile brand lockup UserAvatar but delegates logout flow to LogoutModal.
@@ -61,13 +66,44 @@ import { Link as RouterLink } from 'react-router-dom';
 import LockIcon from '@mui/icons-material/Lock';
 import DashboardAppBar from './AppBar';
 import UserAvatar from './UserAvatar';
+import NotificationCenter from './NotificationCenter';
 import { useAuth } from '../contexts/AuthContext';
+import useCustomEvents from '../hooks/useCustomEvents';
+import useCustomEventNotifications from '../hooks/useCustomEventNotifications';
 
 const LogoutModal = lazy(() => import('./LogoutModal'));
 
-const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavOnMobile, isFullscreenMode = false }) => {
+const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavOnMobile, notifications, unreadCount, onMarkRead, onMarkAllRead, onClearAll, mobileHeaderAction }) => {
     const hasNavItems = useMemo(() => Array.isArray(navItems) && navItems.length > 0, [navItems]);
     const { user } = useAuth();
+
+    const notificationRange = useMemo(() => {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        const end = new Date();
+        end.setDate(end.getDate() + 30);
+        end.setHours(23, 59, 59, 999);
+        return { start, end };
+    }, []);
+
+    const { events: customEvents } = useCustomEvents({
+        startDate: notificationRange.start,
+        endDate: notificationRange.end,
+    });
+
+    const {
+        notifications: localNotifications,
+        unreadCount: localUnreadCount,
+        markRead: localMarkRead,
+        markAllRead: localMarkAllRead,
+        clearAll: localClearAll,
+    } = useCustomEventNotifications({ events: customEvents });
+
+    const effectiveNotifications = notifications ?? localNotifications;
+    const effectiveUnreadCount = unreadCount ?? localUnreadCount;
+    const handleMarkRead = onMarkRead ?? localMarkRead;
+    const handleMarkAllRead = onMarkAllRead ?? localMarkAllRead;
+    const handleClearAll = onClearAll ?? localClearAll;
 
     const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -148,32 +184,47 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                         </Typography>
                     </Box>
 
-                    {/* Mobile CTA button - shows "Unlock all features" for guests, user avatar for auth users */}
-                    {user ? (
-                        <UserAvatar
-                            user={user}
-                            onLogout={() => setShowLogoutModal(true)}
-                        />
-                    ) : (
-                        <Button
-                            variant="contained"
-                            size="small"
-                            startIcon={<LockIcon sx={{ fontSize: '1rem' }} />}
-                            onClick={onOpenAuth}
-                            sx={{
-                                textTransform: 'none',
-                                fontWeight: 600,
-                                fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                                py: { xs: 0.75, sm: 1 },
-                                px: { xs: 1.5, sm: 2 },
-                                whiteSpace: 'nowrap',
-                                flexShrink: 0,
-                                borderRadius: 999,
-                            }}
-                        >
-                            Unlock all features
-                        </Button>
-                    )}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+                        {mobileHeaderAction}
+                        {/* Notification Center - left of user avatar/CTA on mobile */}
+                        {effectiveNotifications && effectiveUnreadCount !== undefined && (
+                            <NotificationCenter
+                                notifications={effectiveNotifications}
+                                unreadCount={effectiveUnreadCount}
+                                onMarkRead={handleMarkRead}
+                                onMarkAllRead={handleMarkAllRead}
+                                onClearAll={handleClearAll}
+                                events={customEvents}
+                            />
+                        )}
+
+                        {/* Mobile CTA button - shows "Unlock all features" for guests, user avatar for auth users */}
+                        {user ? (
+                            <UserAvatar
+                                user={user}
+                                onLogout={() => setShowLogoutModal(true)}
+                            />
+                        ) : (
+                            <Button
+                                variant="contained"
+                                size="small"
+                                startIcon={<LockIcon sx={{ fontSize: '1rem' }} />}
+                                onClick={onOpenAuth}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                                    py: { xs: 0.75, sm: 1 },
+                                    px: { xs: 1.5, sm: 2 },
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0,
+                                    borderRadius: 999,
+                                }}
+                            >
+                                Unlock all features
+                            </Button>
+                        )}
+                    </Box>
                 </Box>
 
                 {hasNavItems ? (
@@ -183,7 +234,7 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                             top: 0,
                             zIndex: 1400,
                             width: '100%',
-                            display: isFullscreenMode ? 'none' : { xs: hideNavOnMobile ? 'none' : 'flex', md: 'flex' },
+                            display: { xs: hideNavOnMobile ? 'none' : 'flex', md: 'flex' },
                             justifyContent: 'center',
                             mb: { xs: 0, md: 2 },
                         }}
@@ -201,6 +252,12 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                                 sx={{ mt: { xs: 1, md: 2 } }}
                                 onOpenSettings={onOpenSettings}
                                 onOpenAuth={onOpenAuth}
+                                notifications={effectiveNotifications}
+                                unreadCount={effectiveUnreadCount}
+                                onMarkRead={handleMarkRead}
+                                onMarkAllRead={handleMarkAllRead}
+                                onClearAll={handleClearAll}
+                                notificationEvents={customEvents}
                             />
                         </Box>
                     </Box>
@@ -279,13 +336,23 @@ PublicLayout.propTypes = {
     onOpenSettings: PropTypes.func,
     onOpenAuth: PropTypes.func,
     hideNavOnMobile: PropTypes.bool,
-    isFullscreenMode: PropTypes.bool,
+    notifications: PropTypes.arrayOf(PropTypes.object),
+    unreadCount: PropTypes.number,
+    onMarkRead: PropTypes.func,
+    onMarkAllRead: PropTypes.func,
+    onClearAll: PropTypes.func,
+    mobileHeaderAction: PropTypes.node,
 };
 
 PublicLayout.defaultProps = {
     navItems: [],
     hideNavOnMobile: false,
-    isFullscreenMode: false,
+    notifications: undefined,
+    unreadCount: undefined,
+    onMarkRead: null,
+    onMarkAllRead: null,
+    onClearAll: null,
+    mobileHeaderAction: null,
 };
 
 export default PublicLayout;

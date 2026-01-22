@@ -10,10 +10,11 @@
  * - Responsive clock sizing with container-aware calculations
  * - Session-based dynamic background color support
  * - Lazy-loaded ClockEventsOverlay for performance
- * - Bottom-left fullscreen button redirects to /clock with autoFullscreen=true param
  *
  * Changelog:
- * v1.0.2 - 2026-01-17 - FULLSCREEN SHORTCUT: Added minimalistic fullscreen icon button positioned at bottom-left corner of the clock paper. Button is borderless, shadowless, and uses low opacity until hover. Clicking navigates to /clock page with ?autoFullscreen=true query param to automatically activate fullscreen mode. Uses useNavigate from react-router-dom and FullscreenRoundedIcon from MUI. Tooltip shows "View fullscreen on /clock page". Responsive padding on all breakpoints.
+ * v1.0.5 - 2026-01-22 - BEP: Add circular border to Add reminder button with hover state (1.5px solid border with alpha transparency).
+ * v1.0.4 - 2026-01-22 - BEP: Replace settings gear icon with Add icon that opens CustomEventDialog for creating new reminders.
+ * v1.0.3 - 2026-01-21 - Removed fullscreen shortcut button from the calendar clock panel.
  * v1.0.1 - 2026-01-15 - BORDER & DIVIDER COLOR CONSISTENCY: Changed border and divider colors from
  *   dynamic alpha(clockPaperTextColor, 0.18/0.2) to fixed alpha('#3c4d63', 0.12) to match the economic
  *   calendar paper styling. This ensures consistent UI colors across the /calendar page regardless of
@@ -26,7 +27,6 @@
 
 import { Suspense, lazy, memo, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
 import {
     Box,
     Button,
@@ -39,8 +39,7 @@ import {
     useMediaQuery,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
-import FullscreenRoundedIcon from '@mui/icons-material/FullscreenRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 
 import ClockCanvas from './ClockCanvas';
 import ClockHandsOverlay from './ClockHandsOverlay';
@@ -78,9 +77,9 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
     onOpenSettings,
     onOpenTimezone,
     onOpenEvent,
+    onOpenAddEvent,
 }) {
     const theme = useTheme();
-    const navigate = useNavigate();
     const isXs = useMediaQuery(theme.breakpoints.only('xs'));
     const { currentTime, activeSession, nextSession, timeToEnd, timeToStart } = useClock(clockTimezone, sessions, timeEngine);
     const handAnglesRef = useRef({ hour: 0, minute: 0, second: 0 });
@@ -233,20 +232,27 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
                 <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
                     Trading Clock
                 </Typography>
-                <Tooltip title="Open settings" placement="left">
+                <Tooltip title="Add reminder" placement="left">
                     <IconButton
                         size="medium"
-                        onClick={onOpenSettings}
+                        onClick={onOpenAddEvent}
                         sx={{
                             position: 'absolute',
                             top: -2,
                             right: 0,
                             color: alpha(clockPaperTextColor, 0.9),
                             p: 0.75,
+                            border: '1.5px solid',
+                            borderColor: alpha(clockPaperTextColor, 0.2),
+                            borderRadius: '50%',
+                            '&:hover': {
+                                borderColor: alpha(clockPaperTextColor, 0.4),
+                                bgcolor: alpha(clockPaperTextColor, 0.08),
+                            },
                         }}
-                        aria-label="Open settings"
+                        aria-label="Add reminder"
                     >
-                        <SettingsRoundedIcon fontSize="medium" />
+                        <AddRoundedIcon fontSize="medium" />
                     </IconButton>
                 </Tooltip>
                 <Typography variant="body2" sx={{ color: alpha(clockPaperTextColor, 0.72) }}>
@@ -464,28 +470,6 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
                 ) : null}
             </Stack>
 
-            {/* Fullscreen button - bottom-left corner, minimalistic */}
-            <Tooltip title="View fullscreen on /clock page" placement="top">
-                <IconButton
-                    onClick={() => navigate('/clock?autoFullscreen=true')}
-                    sx={{
-                        position: 'absolute',
-                        bottom: { xs: 8, sm: 10, md: 12 },
-                        left: { xs: 8, sm: 10, md: 12 },
-                        color: alpha(clockPaperTextColor, 0.6),
-                        '&:hover': {
-                            color: alpha(clockPaperTextColor, 0.9),
-                            bgcolor: 'transparent',
-                        },
-                        p: 0.75,
-                        zIndex: 10,
-                    }}
-                    aria-label="View fullscreen"
-                    size="small"
-                >
-                    <FullscreenRoundedIcon fontSize="small" />
-                </IconButton>
-            </Tooltip>
         </Paper>
     );
 });
@@ -512,6 +496,7 @@ ClockPanelPaper.propTypes = {
     onOpenSettings: PropTypes.func,
     onOpenTimezone: PropTypes.func,
     onOpenEvent: PropTypes.func,
+    onOpenAddEvent: PropTypes.func,
 };
 
 ClockPanelPaper.displayName = 'ClockPanelPaper';
