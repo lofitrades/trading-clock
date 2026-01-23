@@ -10,8 +10,31 @@
 
 # Time 2 Trade - Performance Optimization Report
 **Date:** January 23, 2026  
-**Version:** 1.0.0  
+**Version:** 1.1.0  
 **Focus:** FCP/LCP/TBT reduction per Lighthouse audit
+
+---
+
+## 🔴 CRITICAL BUG FIX (v1.1.0)
+
+### Issue: React/Emotion Version Mismatch
+**Error:** `Cannot set properties of undefined (setting 'AsyncMode')`
+
+**Root Cause:**
+- `@vitejs/plugin-react@1.3.2` (from 2022) was severely outdated
+- The old plugin uses `react-is` internals that try to access `AsyncMode` 
+- `AsyncMode` was removed in React 18+ (project uses React 19)
+- Emotion's CSS-in-JS runtime inherits this broken detection
+
+**Fix Applied:**
+```bash
+npm install @vitejs/plugin-react@latest --save-dev --legacy-peer-deps
+```
+
+**Result:**
+- Updated from `@vitejs/plugin-react@1.3.2` → `@5.1.2`
+- Build and production console errors resolved
+- Note: `react-helmet-async@2.0.5` has peer warning for React 19 (works with `--legacy-peer-deps`)
 
 ---
 

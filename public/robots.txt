@@ -1,16 +1,37 @@
 # robots.txt for Time 2 Trade
 # https://time2.trade
+# 
+# SEO Policy: Allow search indexing, block AI training crawlers
+# Managed by: GitHub Copilot + Cloudflare Bot Controls
 
-# Allow all crawlers
+# Allow general web crawlers (Google, Bing, etc.)
 User-agent: *
 Allow: /
 
-# Explicitly allow key landing and content surfaces
-Allow: /clock
-Allow: /calendar
-Allow: /about
-Allow: /privacy
-Allow: /terms
+# Block AI training bots explicitly
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: meta-externalagent
+Disallow: /
 
 # Sitemap location
 Sitemap: https://time2.trade/sitemap.xml

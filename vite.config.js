@@ -5,6 +5,8 @@
  * Key responsibility and main functionality: Configures code-splitting, lazy loading, and vendor chunking to reduce initial payload and improve FCP/LCP metrics.
  *
  * Changelog:
+ * v1.5.0 - 2026-01-23 - CRITICAL FIX: Remove emotion/react-is manual chunking - causes circular dependency. Let Vite handle naturally.
+ * v1.4.0 - 2026-01-23 - CRITICAL FIX: Remove aggressive manualChunks causing react-is/emotion AsyncMode error. Use simpler vendor splitting.
  * v1.3.0 - 2026-01-23 - BEP PERFORMANCE: Add advanced code-splitting with route-based chunks. Lazy load Firebase features, separate MUI components. Set chunk size warnings and minification. Preload critical chunks only.
  * v1.2.0 - 2025-12-17 - Added manual chunks for React/MUI/Firebase vendors to shrink initial payload and improve first paint.
  * v1.1.0 - 2025-12-16 - Switched base to root for Firebase Hosting custom domain deployment.
@@ -22,42 +24,22 @@ export default defineConfig({
     minify: 'esbuild',
     rollupOptions: {
       output: {
-        // BEP: Aggressive code-splitting to reduce initial payload
+        // BEP: Conservative chunking - only split large independent vendors
+        // DO NOT split emotion/react-is - causes circular dependency errors
         manualChunks: (id) => {
-          // React and React-DOM separate chunk
-          if (id.includes('node_modules/react')) {
-            return 'react-vendor';
-          }
-          
-          // MUI Material UI - separate large vendor
-          if (id.includes('node_modules/@mui/material')) {
-            return 'mui-vendor';
-          }
-          
-          // MUI Icons - separate as it's large
+          // MUI Icons - large and independent, safe to split
           if (id.includes('node_modules/@mui/icons-material')) {
             return 'mui-icons';
           }
           
-          // Firebase - split into auth and firestore chunks
-          if (id.includes('node_modules/firebase/auth')) {
-            return 'firebase-auth';
-          }
+          // Firebase Firestore - largest chunk, lazy loaded anyway
           if (id.includes('node_modules/firebase/firestore')) {
             return 'firebase-firestore';
           }
+          
+          // Firebase core (app, auth, analytics)
           if (id.includes('node_modules/firebase/')) {
             return 'firebase-core';
-          }
-          
-          // Emotion CSS-in-JS
-          if (id.includes('node_modules/@emotion')) {
-            return 'emotion-vendor';
-          }
-          
-          // React Router
-          if (id.includes('node_modules/react-router')) {
-            return 'router-vendor';
           }
         },
       },
@@ -73,8 +55,8 @@ export default defineConfig({
         target: 'https://www.jblanked.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/news/, '/news/api'),
-        configure: (proxy, options) => {
-          proxy.on('error', (err, req, res) => {
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
             console.error('proxy error', err);
           });
         }
