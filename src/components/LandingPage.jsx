@@ -4,6 +4,14 @@
  * Purpose: High-performance landing page with a live hero clock for futures and forex day traders.
  * Highlights Time 2 Trade value props with brand-safe visuals and responsive hero layout.
  * 
+ * v1.6.9 - 2026-01-22 - BEP: Allow non-auth users to open CustomEventDialog and fill values. Auth check on save - shows AuthModal2 when trying to save without auth.
+ * v1.6.8 - 2026-01-22 - BEP UI CONSISTENCY: Removed custom mobileHeaderAction prop. Add reminder button now uses MobileHeader's default styling for consistent UI (add, bell, avatar) across all pages. Fixes size mismatch on xs/sm breakpoints.
+ * v1.6.7 - 2026-01-22 - BEP: Add small touch tooltip delay on mobile hero clock to avoid tooltips during scroll.
+ * v1.6.6 - 2026-01-22 - BEP: Enable vertical swipe scrolling over the hero clock on mobile while preserving session tooltips.
+ * v1.6.5 - 2026-01-22 - BEP: Landing hero clock guest behavior updated: session arc clicks show tooltips, event markers open AuthModal2, canvas background does nothing.
+ * v1.6.4 - 2026-01-22 - BEP: Landing hero clock now matches full clock behavior for authenticated users; guests see AuthModal2 on any clock click.
+ * v1.6.3 - 2026-01-22 - BEP: Mobile header now uses standalone MobileHeader component via PublicLayout. Ensures consistent mobile UX across all pages (landing, clock, calendar, about). Removed duplicate mobile header logic, mobileHeaderAction still passed through to MobileHeader.
+ * v1.6.2 - 2026-01-22 - BEP: Add icon-only "Add custom event" button on xs/sm mobile header for non-authenticated users. Opens AuthModal2 when clicked. Matches /clock and /calendar mobile header styling.
  * v1.6.1 - 2026-01-16 - Landing hero clock: marker clicks open AuthModal2/EventModal; background clicks route to /clock.
  * v1.6.0 - 2026-01-16 - Updated homepage SEO meta, routed primary CTAs to /clock, and promoted hero heading to the single H1.
  * v1.5.13 - 2026-01-15 - TOP SPACING ALIGNMENT: Remove extra top padding/margin on landing main content so it aligns with PublicLayout like /about.
@@ -80,6 +88,7 @@ import {
     SvgIcon,
     Stack,
     Typography,
+    Tooltip,
     useTheme,
 } from '@mui/material';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -92,12 +101,14 @@ import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import InfoIcon from '@mui/icons-material/Info';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { siX } from 'simple-icons';
 import ClockCanvas from './ClockCanvas';
 import ClockHandsOverlay from './ClockHandsOverlay';
 const ClockEventsOverlay = lazy(() => import('./ClockEventsOverlay'));
 const EventModal = lazy(() => import('./EventModal'));
 const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
+const CustomEventDialog = lazy(() => import('./CustomEventDialog'));
 import LoadingScreen from './LoadingScreen';
 import ContactModal from './ContactModal';
 import AuthModal2 from './AuthModal2';
@@ -336,6 +347,7 @@ export default function HomePage2() {
     const [showBackToTop, setShowBackToTop] = useState(false);
     const [showInitialLoader, setShowInitialLoader] = useState(true);
     const [authModalOpen, setAuthModalOpen] = useState(false);
+    const [customDialogOpen, setCustomDialogOpen] = useState(false);
     // Scroll reveal animations removed; sections render without animated entrance.
     // No ad overlay on landing; image-only banner
 
@@ -483,6 +495,22 @@ export default function HomePage2() {
                     onOpenContact={openContactModal}
                 />
             </Suspense>
+            <Suspense fallback={null}>
+                <CustomEventDialog
+                    open={customDialogOpen}
+                    onClose={() => setCustomDialogOpen(false)}
+                    onSave={() => {
+                        // BEP: Auth check on save - show AuthModal2 if not authenticated
+                        if (!isAuthenticated) {
+                            setCustomDialogOpen(false);
+                            setAuthModalOpen(true);
+                            return;
+                        }
+                        setCustomDialogOpen(false);
+                    }}
+                    defaultTimezone={selectedTimezone}
+                />
+            </Suspense>
 
             {/* Loading screen with full coverage */}
             <LoadingScreen isLoading={showInitialLoader && !authModalOpen} clockSize={96} />
@@ -496,7 +524,7 @@ export default function HomePage2() {
                     { id: 'signin', label: 'Settings', shortLabel: 'Settings', icon: <SettingsRoundedIcon fontSize="small" /> },
                 ];
                 return (
-                    <PublicLayout navItems={navItems} onOpenSettings={openSettings} onOpenAuth={openAuthModal}>
+                    <PublicLayout navItems={navItems} onOpenSettings={openSettings} onOpenAuth={openAuthModal} onOpenAddReminder={() => setCustomDialogOpen(true)}>
                         {/* NOTE: PublicLayout handles centering with flex:center pattern.
                              Content flows within centered container (width:100%, maxWidth:1560, px:responsive).
                              Just provide vertical padding and flex fill. No additional width constraints. */}
@@ -723,9 +751,8 @@ export default function HomePage2() {
                                                         width: '100%',
                                                         maxWidth: heroClockSize,
                                                         aspectRatio: '1 / 1',
-                                                        cursor: 'pointer',
+                                                        cursor: 'default',
                                                     }}
-                                                    onClick={openApp}
                                                 >
                                                     <Box
                                                         sx={{
@@ -751,6 +778,8 @@ export default function HomePage2() {
                                                                 backgroundBasedOnSession={backgroundBasedOnSession}
                                                                 renderHandsInCanvas={false}
                                                                 handAnglesRef={handAnglesRef}
+                                                                allowTouchScroll
+                                                                touchTooltipDelayMs={140}
                                                             />
                                                             <ClockHandsOverlay
                                                                 size={renderedClockSize}
@@ -766,9 +795,9 @@ export default function HomePage2() {
                                                                         timezone={selectedTimezone}
                                                                         eventFilters={eventFilters}
                                                                         newsSource={newsSource}
-                                                                        disableTooltips
+                                                                        disableTooltips={!isAuthenticated}
                                                                         onEventClick={handleHeroEventClick}
-                                                                        suppressTooltipAutoscroll
+                                                                        suppressTooltipAutoscroll={!isAuthenticated}
                                                                     />
                                                                 </Suspense>
                                                             )}

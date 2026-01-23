@@ -149,7 +149,7 @@ export function computeEventId(params: {
   normalizedName: string;
   datetimeUtc: FirebaseFirestore.Timestamp;
 }): string {
-  const c = (params.currency || "UNK").toUpperCase();
+  const c = (params.currency || "N/A").toUpperCase();
   const name = params.normalizedName.trim().toLowerCase();
   const millis = params.datetimeUtc.toMillis().toString();
   const key = `${c}|${name}|${millis}`;

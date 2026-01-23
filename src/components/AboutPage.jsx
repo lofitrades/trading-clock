@@ -6,6 +6,8 @@
  * Includes proper SEO metadata, structured data, and mobile-first responsive design.
  * 
  * Changelog:
+ * v1.2.34 - 2026-01-22 - BEP: Allow non-auth users to open CustomEventDialog and fill values. Auth check on save - shows AuthModal2 when trying to save without auth.
+ * v1.2.33 - 2026-01-22 - BEP REFACTOR: Mobile header now uses standalone MobileHeader component via PublicLayout. Consistent mobile UX across all pages. No changes needed in AboutPage - MobileHeader integrated transparently.
  * v1.2.32 - 2026-01-16 - Updated trading clock navigation target to /clock for new public route.
  * v1.2.31 - 2026-01-14 - MOBILE SCROLL PADDING FIX: Added responsive pb (padding-bottom) to Paper for xs/sm to ensure content scrolls all the way to the bottom without being clipped. Formula: xs uses calc(3 * 8px + 48px) = 72px, sm uses calc(4 * 8px + 48px) = 80px, md+ uses default 5 units (40px). The +48px accounts for PublicLayout mobile logo row height (32px logo + 16px pb). This matches CalendarEmbedLayout pattern for consistent scrollability across all pages on mobile.
  * v1.2.30 - 2026-01-14 - MOBILE SPACING FIX: Added pt (padding-top) for xs/sm breakpoints (8 units = 64px) to content Paper so About text appears below the fixed PublicLayout mobile logo without overlap. On md+, pt is unset so normal padding applies. Ensures proper vertical spacing on mobile while maintaining responsive layout behavior.
@@ -59,9 +61,11 @@ import SEO from './SEO';
 import ContactModal from './ContactModal';
 import PublicLayout from './PublicLayout';
 import { aboutContent, aboutMeta, aboutStructuredData } from '../content/aboutContent';
+import { useAuth } from '../contexts/AuthContext';
 
 const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
 const AuthModal2 = lazy(() => import('./AuthModal2'));
+const CustomEventDialog = lazy(() => import('./CustomEventDialog'));
 
 /**
  * Render content block based on type
@@ -149,9 +153,11 @@ ContentBlock.propTypes = {
  * - Shared content source with Settings Drawer
  */
 export default function AboutPage() {
+  const { isAuthenticated } = useAuth();
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [customDialogOpen, setCustomDialogOpen] = useState(false);
 
   const handleOpenSettings = () => {
     setSettingsOpen(true);
@@ -168,6 +174,16 @@ export default function AboutPage() {
 
   const handleCloseAuth = () => {
     setAuthModalOpen(false);
+  };
+
+  // BEP: Auth check on save - show AuthModal2 if not authenticated
+  const handleSaveCustomEvent = () => {
+    if (!isAuthenticated()) {
+      setCustomDialogOpen(false);
+      setAuthModalOpen(true);
+      return;
+    }
+    setCustomDialogOpen(false);
   };
 
   const navItems = useMemo(
@@ -218,6 +234,7 @@ export default function AboutPage() {
       navItems={navItems}
       onOpenAuth={handleOpenAuth}
       onOpenSettings={handleOpenSettings}
+      onOpenAddReminder={() => setCustomDialogOpen(true)}
     >
       <SEO {...aboutMeta} structuredData={[aboutStructuredData]} />
       {/* NOTE: PublicLayout handles centering (width:100%, maxWidth:1560, px:responsive).
@@ -351,6 +368,14 @@ export default function AboutPage() {
       </Suspense>
       <Suspense fallback={null}>
         <SettingsSidebar2 open={settingsOpen} onClose={handleCloseSettings} onOpenAuth={handleOpenAuth} onOpenContact={() => setContactModalOpen(true)} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <CustomEventDialog
+          open={customDialogOpen}
+          onClose={() => setCustomDialogOpen(false)}
+          onSave={handleSaveCustomEvent}
+          defaultTimezone={Intl.DateTimeFormat().resolvedOptions().timeZone}
+        />
       </Suspense>
     </PublicLayout>
   );

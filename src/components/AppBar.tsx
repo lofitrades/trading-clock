@@ -5,6 +5,11 @@
  * Renders a sticky sub-header on md+ and an Airbnb-style bottom navigation on xs/sm.
  * 
  * Changelog:
+ * v1.4.17 - 2026-01-22 - BEP UX: Close notification menu when avatar menu opens and vice versa.
+ * v1.4.16 - 2026-01-22 - BEP BUGFIX: Fixed duplicate notification bell rendering on lg+ for non-auth users. Changed condition from checking all unlock buttons (unlock-md OR unlock-lg) to only checking first unlock button (unlock-md). Prevents notification from rendering twice when both unlock buttons exist in items array. Now renders single bell before first unlock button regardless of breakpoint.
+ * v1.4.15 - 2026-01-22 - BEP BUGFIX: Fixed persistent duplicate notification bells on md+. Added explicit isAuthenticated() check to right-stack notification condition alongside user object check. Ensures notifications only appear once: before Unlock button for non-auth users, right of nav for auth users only.
+ * v1.4.14 - 2026-01-22 - BEP BUGFIX: Fixed duplicate notification bell on md+. Changed right-stack condition from isAuthenticated() function check to direct `user` object check. Ensures non-auth users on md+ only see notification bell before Unlock button (not duplicated in right stack).
+ * v1.4.13 - 2026-01-22 - BEP NOTIFICATION BELL POSITIONING: For non-auth users on md+, moved NotificationCenter from right side (after nav) to left of Unlock button. Shows bell icon immediately before the primary CTA for non-authenticated visitors. Auth users still see bell right of nav, left of avatar (unchanged).
  * v1.4.12 - 2026-01-22 - BEP UX: Added notificationEvents prop to pass custom events array to NotificationCenter. Enables EventModal opening on notification click for seamless reminder-to-event navigation.
  * v1.4.11 - 2026-01-22 - NOTIFICATION CENTER ON DESKTOP: Added NotificationCenter component to desktop nav (md+) positioned right of Settings button and left of user avatar. Accepts notification props (notifications, unreadCount, onMarkRead, onMarkAllRead, onClearAll) from PublicLayout. Enables global notification scope with consistent UI across all breakpoints: md+ in sticky AppBar nav, xs/sm in mobile header.
  * v1.4.10 - 2026-01-21 - Z-INDEX: Keep AppBar layers below modal overlays while aligning with the global stack.
@@ -160,6 +165,8 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, isAuthenticated } = useAuth();
   const [roadmapModalOpen, setRoadmapModalOpen] = useState(false);
+  const [notificationCloseSignal, setNotificationCloseSignal] = useState(0);
+  const [avatarCloseSignal, setAvatarCloseSignal] = useState(0);
 
   // Build processed items: remove 'contact', handle 'about' and 'roadmap', then reorder to: Clock, Calendar, Roadmap, About, Settings/Unlock
   const processedItems = useMemo(() => {
@@ -392,10 +399,20 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
 
             <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, justifyContent: 'flex-end', minWidth: 0 }}>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0 }}>
-                {safeItems.map((item) => {
+                {safeItems.map((item, index) => {
                 const variant = item.primary ? 'contained' : 'text';
                 const color = item.primary ? 'primary' : 'inherit';
                 const active = isItemActive(location.pathname, item);
+                
+                // BEP: For non-auth users, show notification bell left of FIRST Unlock button only (unlock-md) on md+
+                // This prevents duplicate bells when both unlock-md and unlock-lg exist in the items array
+                const isFirstUnlockButton = item.id === 'unlock-md';
+                const shouldShowNotificationBeforeUnlock = 
+                  isFirstUnlockButton && 
+                  !(isAuthenticated ? isAuthenticated() : false) &&
+                  notifications && 
+                  unreadCount !== undefined;
+                
                 const button = (
                   <Button
                     key={item.id}
@@ -449,19 +466,41 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
                   </Button>
                 );
 
-                return item.primary ? (
+                const buttonElement = item.primary ? (
                   button
                 ) : (
                   <Tooltip key={item.id} title={item.label} arrow>
                     <Box component="span">{button}</Box>
                   </Tooltip>
                 );
+                
+                // BEP: Insert notification bell before Unlock button for non-auth users
+                if (shouldShowNotificationBeforeUnlock) {
+                  return (
+                    <React.Fragment key={item.id}>
+                      <NotificationCenter
+                        notifications={notifications}
+                        unreadCount={unreadCount}
+                        onMarkRead={onMarkRead}
+                        onMarkAllRead={onMarkAllRead}
+                        onClearAll={onClearAll}
+                        events={notificationEvents}
+                        closeSignal={notificationCloseSignal}
+                        onMenuOpen={() => setAvatarCloseSignal((prev) => prev + 1)}
+                      />
+                      {buttonElement}
+                    </React.Fragment>
+                  );
+                }
+
+                return buttonElement;
                 })}
               </Stack>
 
               <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
-                {/* Notification Center - left of user avatar on md+ */}
-                {notifications && unreadCount !== undefined && (
+                {/* Notification Center - right of settings/nav items, left of user avatar for authenticated users on md+ ONLY */}
+                {/* BEP: Only show here for auth users; non-auth users see it before Unlock button in nav */}
+                {notifications && unreadCount !== undefined && user && (isAuthenticated ? isAuthenticated() : false) && (
                   <NotificationCenter
                     notifications={notifications}
                     unreadCount={unreadCount}
@@ -469,12 +508,18 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
                     onMarkAllRead={onMarkAllRead}
                     onClearAll={onClearAll}
                     events={notificationEvents}
+                    closeSignal={notificationCloseSignal}
+                    onMenuOpen={() => setAvatarCloseSignal((prev) => prev + 1)}
                   />
                 )}
 
                 {/* User Avatar - show only for authenticated users on md+ */}
-                {(isAuthenticated ? isAuthenticated() : false) && user && (
-                  <UserAvatar user={user} />
+                {user && (isAuthenticated ? isAuthenticated() : false) && (
+                  <UserAvatar
+                    user={user}
+                    onOpen={() => setNotificationCloseSignal((prev) => prev + 1)}
+                    closeSignal={avatarCloseSignal}
+                  />
                 )}
               </Stack>
             </Stack>

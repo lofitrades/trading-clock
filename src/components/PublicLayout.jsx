@@ -1,10 +1,21 @@
 /**
  * src/components/PublicLayout.jsx
  * 
- * Purpose: Shared public-page shell that renders the responsive DashboardAppBar with sticky positioning and shared sizing.
- * Centers the navigation chrome, preserves mobile bottom nav behavior, and keeps the layout banner-free by default.
+ * Purpose: Public layout wrapper with responsive AppBar navigation and mobile header.
+ * Routes receive an optional navItems prop to populate the fixed sticky nav on md+ (DashboardAppBar)
+ * and bottom nav on xs/sm. Includes notification center integration and standalone MobileHeader.
+ * 
+ * Features:
+ * - Standalone MobileHeader component for xs/sm with brand lockup, add reminder, notifications, and auth CTA
+ * - Sticky DashboardAppBar (md+) and bottom nav (xs/sm) with customizable navItems
+ * - Global notification support via useCustomEventNotifications hook or parent-provided notifications
+ * - Add reminder button visible on all pages for both auth and non-auth users
  * 
  * Changelog:
+ * v1.0.50 - 2026-01-22 - BEP BUGFIX: Fixed critical issue where clock content was clipped on mobile after auth redirect. The maxHeight calculation for xs/sm was only subtracting bottom nav height (64px) but not the fixed MobileHeader height (~48px). Content was being hidden due to overflow:hidden + incorrect maxHeight. Now subtracts both: 'calc(100vh - var(--t2t-bottom-nav-height, 64px) - 48px)' for xs/sm. This ensures ClockCanvas and all main content renders correctly after authentication redirect to /clock.
+ * v1.0.49 - 2026-01-22 - BEP: Add onOpenAddReminder prop to pass through to MobileHeader. Enables add reminder functionality on all pages with auth gating for non-auth users.
+ * v1.0.48 - 2026-01-22 - BEP REFACTOR: Extracted mobile header logic into standalone MobileHeader component. PublicLayout now imports and renders MobileHeader for xs/sm, improving separation of concerns, maintainability, and ensuring consistent mobile UX across all pages (clock, calendar, landing). Removed 100+ lines of mobile header code from PublicLayout, keeping it lean and focused on layout orchestration.
+ * v1.0.47 - 2026-01-22 - BEP: Update mobile header CTA text with granular responsive pattern: "Unlock" on xs/md, "Unlock all features" on sm/lg+. Alternates between concise copy (xs/md) and full value prop (sm/lg+) to optimize mobile UX and desktop messaging based on actual screen real estate availability.
  * v1.0.46 - 2026-01-22 - BEP UX: Add optional mobileHeaderAction slot to render actions left of the notification bell on xs/sm.
  * v1.0.45 - 2026-01-22 - BEP UX: Pass customEvents to NotificationCenter so clicking notifications opens EventModal for the associated custom event. Improves reminder-to-event navigation flow.
  * v1.0.44 - 2026-01-22 - GLOBAL NOTIFICATION SCOPE: PublicLayout now owns notification hooks (useCustomEvents + useCustomEventNotifications) and provides effective props to mobile header + AppBar. Ensures bell icon renders on all routes (calendar, clock, landing) without per-page wiring.
@@ -59,21 +70,16 @@
  * v1.0.0 - 2026-01-13 - Created public layout wrapper with default referral banner and responsive dashboard AppBar.
  */
 
-import { useMemo, useState, Suspense, lazy } from 'react';
+import { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { Box, Typography, Button } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
-import LockIcon from '@mui/icons-material/Lock';
+import { Box } from '@mui/material';
 import DashboardAppBar from './AppBar';
-import UserAvatar from './UserAvatar';
-import NotificationCenter from './NotificationCenter';
+import MobileHeader from './MobileHeader';
 import { useAuth } from '../contexts/AuthContext';
 import useCustomEvents from '../hooks/useCustomEvents';
 import useCustomEventNotifications from '../hooks/useCustomEventNotifications';
 
-const LogoutModal = lazy(() => import('./LogoutModal'));
-
-const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavOnMobile, notifications, unreadCount, onMarkRead, onMarkAllRead, onClearAll, mobileHeaderAction }) => {
+const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavOnMobile, notifications, unreadCount, onMarkRead, onMarkAllRead, onClearAll, mobileHeaderAction, onOpenAddReminder }) => {
     const hasNavItems = useMemo(() => Array.isArray(navItems) && navItems.length > 0, [navItems]);
     const { user } = useAuth();
 
@@ -105,8 +111,6 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
     const handleMarkAllRead = onMarkAllRead ?? localMarkAllRead;
     const handleClearAll = onClearAll ?? localClearAll;
 
-    const [showLogoutModal, setShowLogoutModal] = useState(false);
-
     return (
         <>
             <Box
@@ -120,112 +124,19 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                     overflow: 'hidden',
                 }}
             >
-                {/* Mobile brand lockup - fixed on xs/sm ONLY (matching AboutPage pattern) */}
-                <Box
-                    sx={{
-                        display: { xs: 'inline-flex', sm: 'inline-flex', md: 'none' },
-                        alignItems: 'center',
-                        gap: 1,
-                        width: { xs: '100%', sm: '100%', md: 'auto' },
-                        px: { xs: 2.5, sm: 2.75, md: 0 },
-                        bgcolor: { xs: 'background.default', sm: 'background.default', md: 'transparent' },
-                        py: { xs: 1, sm: 1, md: 'unset' },
-                        mb: 2,
-                        position: { xs: 'fixed', sm: 'fixed', md: 'relative' },
-                        top: 0,
-                        left: { xs: 0, sm: 0, md: 'auto' },
-                        zIndex: { xs: 100, sm: 100, md: 'auto' },
-                        boxSizing: 'border-box',
-                        justifyContent: 'space-between',
-                    }}
-                    aria-label="Time 2 Trade home"
-                >
-                    <Box
-                        component={RouterLink}
-                        to="/"
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            textDecoration: 'none',
-                            color: 'inherit',
-                            '&:focus-visible': {
-                                outline: '2px solid rgba(15,23,42,0.35)',
-                                outlineOffset: 4,
-                                borderRadius: 1,
-                            },
-                        }}
-                    >
-                        <Box
-                            component="img"
-                            src="/logos/favicon/favicon.ico"
-                            alt="Time 2 Trade logo"
-                            sx={{
-                                display: 'block',
-                                height: 32,
-                                width: 'auto',
-                                maxWidth: '32vw',
-                                objectFit: 'contain',
-                                flexShrink: 0,
-                            }}
-                        />
-                        <Typography
-                            variant="subtitle1"
-                            sx={{
-                                fontWeight: 900,
-                                lineHeight: 1.1,
-                                color: 'text.primary',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                            }}
-                        >
-                            Time 2 Trade
-                        </Typography>
-                    </Box>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
-                        {mobileHeaderAction}
-                        {/* Notification Center - left of user avatar/CTA on mobile */}
-                        {effectiveNotifications && effectiveUnreadCount !== undefined && (
-                            <NotificationCenter
-                                notifications={effectiveNotifications}
-                                unreadCount={effectiveUnreadCount}
-                                onMarkRead={handleMarkRead}
-                                onMarkAllRead={handleMarkAllRead}
-                                onClearAll={handleClearAll}
-                                events={customEvents}
-                            />
-                        )}
-
-                        {/* Mobile CTA button - shows "Unlock all features" for guests, user avatar for auth users */}
-                        {user ? (
-                            <UserAvatar
-                                user={user}
-                                onLogout={() => setShowLogoutModal(true)}
-                            />
-                        ) : (
-                            <Button
-                                variant="contained"
-                                size="small"
-                                startIcon={<LockIcon sx={{ fontSize: '1rem' }} />}
-                                onClick={onOpenAuth}
-                                sx={{
-                                    textTransform: 'none',
-                                    fontWeight: 600,
-                                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                                    py: { xs: 0.75, sm: 1 },
-                                    px: { xs: 1.5, sm: 2 },
-                                    whiteSpace: 'nowrap',
-                                    flexShrink: 0,
-                                    borderRadius: 999,
-                                }}
-                            >
-                                Unlock all features
-                            </Button>
-                        )}
-                    </Box>
-                </Box>
+                {/* Mobile Header - extracted to standalone component for consistency across all pages */}
+                <MobileHeader
+                    user={user}
+                    onOpenAuth={onOpenAuth}
+                    notifications={effectiveNotifications}
+                    unreadCount={effectiveUnreadCount}
+                    onMarkRead={handleMarkRead}
+                    onMarkAllRead={handleMarkAllRead}
+                    onClearAll={handleClearAll}
+                    mobileHeaderAction={mobileHeaderAction}
+                    customEvents={customEvents}
+                    onOpenAddReminder={onOpenAddReminder}
+                />
 
                 {hasNavItems ? (
                     <Box
@@ -274,12 +185,14 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                         minHeight: 0,
                         overflow: 'hidden',
                         pt: { xs: 6, sm: 6, md: 0 },
-                        // Mobile-first: account for fixed top logo on xs/sm (64px = 32px img + 32px py)
+                        // Mobile-first: account for fixed top MobileHeader on xs/sm (~48px = 32px img + 16px py)
                         // Desktop: no top padding (AppBar mb handles gap)
                         // Constrain height so inner content can scroll without hiding behind nav
+                        // CRITICAL: maxHeight must subtract BOTH top header (48px) AND bottom nav (64px) on xs/sm
+                        // Previous bug: only subtracted bottom nav, causing 48px of content to be clipped
                         maxHeight: {
-                            xs: 'calc(100vh - var(--t2t-bottom-nav-height, 64px))',
-                            sm: 'calc(100vh - var(--t2t-bottom-nav-height, 64px))',
+                            xs: 'calc(100vh - var(--t2t-bottom-nav-height, 64px) - 48px)',
+                            sm: 'calc(100vh - var(--t2t-bottom-nav-height, 64px) - 48px)',
                             md: '100%', // md+ has sticky top AppBar, flex handles layout
                         },
                     }}
@@ -304,15 +217,6 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                     </Box>
                 </Box>
             </Box>
-            {/* Logout Modal */}
-            {showLogoutModal && (
-                <Suspense fallback={null}>
-                    <LogoutModal
-                        open={showLogoutModal}
-                        onClose={() => setShowLogoutModal(false)}
-                    />
-                </Suspense>
-            )}
         </>
     );
 };
@@ -341,7 +245,7 @@ PublicLayout.propTypes = {
     onMarkRead: PropTypes.func,
     onMarkAllRead: PropTypes.func,
     onClearAll: PropTypes.func,
-    mobileHeaderAction: PropTypes.node,
+    onOpenAddReminder: PropTypes.func,
 };
 
 PublicLayout.defaultProps = {
@@ -353,6 +257,7 @@ PublicLayout.defaultProps = {
     onMarkAllRead: null,
     onClearAll: null,
     mobileHeaderAction: null,
+    onOpenAddReminder: null,
 };
 
 export default PublicLayout;

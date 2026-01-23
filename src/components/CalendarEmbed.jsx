@@ -5,8 +5,18 @@
  * and stays embeddable for other pages while keeping Time 2 Trade branding and SEO-friendly copy.
  * 
  * Changelog:
+ * v1.5.69 - 2026-01-22 - BEP UX: Show skeletons immediately on filter apply by setting isLoadingNewRange=true synchronously in handleApplyFiltersGuard. Prevents "No events" flash during filter transitions.
+ * v1.5.68 - 2026-01-22 - BEP FIX: Pass hasCustomEvents={customEvents?.length > 0} to EventsFilters3 so CUS currency option appears when custom events exist. Added handleOpenCustomDialog to useMemo dependencies.
+ * v1.5.67 - 2026-01-22 - BEP FIX: Apply currency filter to custom events. Custom events now only show when CUS is selected or no currency filter is active. Prevents N/A filter from showing custom events.
+ * v1.5.64 - 2026-01-22 - BEP: Allow non-auth users to open CustomEventDialog and fill values. Auth check moved from handleOpenCustomDialog to handleSaveCustomEvent. Shows AuthModal2 when trying to save without auth.
+ * v1.5.63 - 2026-01-22 - BEP: Show 'Add event' text on xs breakpoint (shorter label for mobile), 'Add custom event' on sm+. Icon+text centered with startIcon and proper flex alignment.
+ * v1.5.62 - 2026-01-22 - BEP: Show 'Add custom event' button on xs/sm/md breakpoints (lg+ shows in EventsFilters3). Icon-only on xs (36px pill), icon+text on sm/md (40px pill). Responsive sizing for mobile-first UX.
+ * v1.5.61 - 2026-01-22 - BEP: Show 'Add custom event' button in header top-right on md breakpoint (absolute positioned). On lg+, button appears in EventsFilters3 filter row (right-aligned). Hides on xs/sm for cleaner mobile layout. Responsive behavior optimized for each breakpoint.
+ * v1.5.60 - 2026-01-22 - BEP: Move 'Add custom event' button from top-right section to EventsFilters3 component aligned right on lg+ breakpoints. Button now uses primary.main chip styling (contained variant, pill shape, icon+text). Removes button from CalendarEmbed header and passes handleOpenCustomDialog callback to EventsFilters3 via onOpenAddEvent prop. Cleaner layout, consistent button styling.
+ * v1.5.59 - 2026-01-22 - BEP: Hide the Add custom event button on xs to reduce visual clutter on extra-small screens.
  * v1.5.58 - 2026-01-22 - BEP: Custom events now open in EventModal (view mode) instead of directly opening CustomEventDialog. Added Edit button in EventModal header for custom events that opens CustomEventDialog at z-index 12003. Improved view/edit flow consistency with economic events.
- * v1.5.57 - 2026-01-22 - BEP: Null/missing currency now shows CancelRoundedIcon + 'UNK' with 'Unknown' tooltip (instead of world icon + 'ALL'). Custom event tooltip changed from impact label to 'Custom event'. Improved currency badge clarity.
+ * v1.5.57 - 2026-01-22 - BEP: Null/missing currency now shows CancelRoundedIcon + 'N/A' with 'Unknown' tooltip (instead of world icon + 'ALL'). Custom event tooltip changed from impact label to 'Custom event'. Improved currency badge clarity.
+ * v1.5.57 - 2026-01-22 - BEP: Change "Add custom event" button to show icon-only on xs/sm and text+icon on sm+. Responsive display improves mobile UX without sacrificing clarity on desktop.
  * v1.5.56 - 2026-01-22 - BEP: Treat currency 'ALL' the same as null/missing currency - display world icon + 'ALL' text instead of plain chip.
  * v1.5.55 - 2026-01-22 - BEP: Replace settings gear icon in trading clock panel with Add icon. The Add button opens CustomEventDialog to create new reminders. Settings are still accessible via AppBar or SettingsSidebar2.
  * v1.5.54 - 2026-01-22 - GLOBAL NOTIFICATION SCOPE: Removed useCustomEventNotifications hook, NotificationCenter component, and related imports. Notifications now managed globally in App.jsx and distributed via PublicLayout to AppBar (md+) and mobile header (xs/sm). Simplifies CalendarEmbed to focus on event data display, improves notification consistency across entire app.
@@ -536,7 +546,7 @@ const CurrencyBadge = ({ currency, isPast = false, isCustom = false, customColor
                         variant="caption"
                         sx={{ fontWeight: 700, lineHeight: 1, display: { xs: 'none', sm: 'inline' } }}
                     >
-                        UNK
+                        N/A
                     </Typography>
                 </Box>
             </Tooltip>
@@ -1361,6 +1371,19 @@ export default function CalendarEmbed({
 
     const filteredCustomEvents = useMemo(() => {
         if (!customEvents || customEvents.length === 0) return [];
+
+        // BEP: Apply currency filter to custom events
+        // Custom events should only show when:
+        // 1. No currency filter is applied (show all)
+        // 2. CUS is explicitly selected in the currency filter
+        const currencyFilters = filters?.currencies || [];
+        if (currencyFilters.length > 0) {
+            const normalizedFilters = currencyFilters.map((c) => String(c).toUpperCase().trim());
+            const hasCusFilter = normalizedFilters.includes('CUS');
+            // If currency filter is active but CUS is not selected, hide all custom events
+            if (!hasCusFilter) return [];
+        }
+
         if (filters?.favoritesOnly) return customEvents;
 
         const query = (filters?.searchQuery || '').toLowerCase().trim();
@@ -1371,7 +1394,7 @@ export default function CalendarEmbed({
             const description = (evt.description || '').toLowerCase();
             return name.includes(query) || description.includes(query);
         });
-    }, [customEvents, filters?.favoritesOnly, filters?.searchQuery]);
+    }, [customEvents, filters?.currencies, filters?.favoritesOnly, filters?.searchQuery]);
 
     const mergedEvents = useMemo(
         () => sortEventsByTime([...(economicEvents || []), ...filteredCustomEvents]),
@@ -1960,6 +1983,8 @@ export default function CalendarEmbed({
             }
             return;
         }
+        // BEP: Set loading state synchronously to show skeletons immediately on filter apply
+        setIsLoadingNewRange(true);
         applyFilters(nextFilters);
     }, [applyFilters, onOpenAuth, user]);
 
@@ -1993,16 +2018,12 @@ export default function CalendarEmbed({
     }, []);
 
     const handleOpenCustomDialog = useCallback((eventToEdit = null) => {
-        if (!user) {
-            if (onOpenAuth) {
-                onOpenAuth();
-            }
-            return;
-        }
+        // BEP: Allow non-auth users to open the dialog and fill values
+        // Auth check happens on save (handleSaveCustomEvent)
         setCustomActionError('');
         setCustomEditingEvent(eventToEdit);
         setCustomDialogOpen(true);
-    }, [onOpenAuth, user]);
+    }, []);
 
     const handleEditCustomEvent = useCallback((event) => {
         setSelectedEvent(null); // Close EventModal
@@ -2166,12 +2187,14 @@ export default function CalendarEmbed({
                             defaultPreset="thisWeek"
                             stickyZIndex={1000}
                             stickyTop={0}
+                            onOpenAddEvent={() => handleOpenCustomDialog()}
+                            hasCustomEvents={customEvents?.length > 0}
                         />
                     </Box>
                 </Stack>
             </Box >
         ),
-        [filters, combinedLoading, timezone, newsSource, handleFiltersChangeGuard, handleApplyFiltersGuard],
+        [filters, combinedLoading, timezone, newsSource, handleFiltersChangeGuard, handleApplyFiltersGuard, customEvents, handleOpenCustomDialog],
     );
 
     const calendarContent = (
@@ -2203,7 +2226,7 @@ export default function CalendarEmbed({
                 {showSeoCopy && (
                     <Stack spacing={1} sx={{ mb: 0, position: 'relative', width: '100%' }}>
                         {/* Top row: Title/Subtitle on left, Notification + Add custom event on right */}
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.25, sm: 2 }} alignItems={{ xs: 'flex-start', sm: 'flex-start' }} justifyContent="space-between" sx={{ width: '100%' }}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.25, sm: 2 }} alignItems={{ xs: 'flex-start', sm: 'flex-start' }} justifyContent="space-between" sx={{ width: '100%', position: 'relative' }}>
                             <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
                                 <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.2 }}>
                                     {title}
@@ -2231,25 +2254,41 @@ export default function CalendarEmbed({
                                     </Link>
                                 </Typography>
                             </Stack>
-                            {/* Right side: Add custom event button + Notification center */}
-                            <Stack
-                                direction="row"
-                                spacing={0.75}
-                                alignItems="center"
-                                justifyContent="flex-end"
-                                sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' }, pt: { xs: 0, sm: 0.25 } }}
-                            >
-                                <Button
-                                    size="small"
-                                    variant="contained"
-                                    color="primary"
-                                    startIcon={<AddRoundedIcon fontSize="small" />}
-                                    onClick={() => handleOpenCustomDialog()}
-                                    sx={{ textTransform: 'none', fontWeight: 600, width: { xs: '100%', sm: 'auto' }, borderRadius: 999 }}
-                                >
-                                    Add custom event
-                                </Button>
-                            </Stack>
+                            {/* Right side: Add custom event button on xs/sm/md (lg+ shows in EventsFilters3) */}
+                            <Box sx={{ display: { xs: 'flex', sm: 'flex', md: 'flex', lg: 'none' }, position: 'absolute', top: 0, right: 0 }}>
+                                <Tooltip title="Add custom event">
+                                    <Button
+                                        onClick={() => handleOpenCustomDialog()}
+                                        variant="outlined"
+                                        color="default"
+                                        size="small"
+                                        startIcon={<AddRoundedIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />}
+                                        sx={{
+                                            textTransform: 'none',
+                                            fontWeight: 700,
+                                            borderRadius: 999,
+                                            height: 40,
+                                            px: 2,
+                                            whiteSpace: 'nowrap',
+                                            boxShadow: 'none',
+                                            bgcolor: '#fff',
+                                            color: 'text.primary',
+                                            borderColor: 'divider',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0,
+                                        }}
+                                    >
+                                        <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                                            Add event
+                                        </Box>
+                                        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                                            Add custom event
+                                        </Box>
+                                    </Button>
+                                </Tooltip>
+                            </Box>
                         </Stack>
 
                         {/* Bottom row: Event count + NEXT/NOW buttons below subtitle on all breakpoints */}

@@ -5,6 +5,8 @@
  * Supports multi-source economic calendar data (mql5, forex-factory, fxstreet)
  * 
  * Changelog:
+ * v2.10.0 - 2026-01-22 - BEP FIX: getEventCurrencies now properly detects and adds CUS for custom events. N/A detection excludes custom events to prevent overlap. Both canonical and legacy paths updated.
+ * v2.9.0 - 2026-01-22 - BEP: Add dynamic N/A/CUS currency detection and filtering. getEventCurrencies now supports includeSpecial option to detect events with unknown/null currency. Currency filter logic updated to handle ALL (global), N/A (unknown), and CUS (custom) special currency types.
  * v2.8.0 - 2026-01-21 - Add manual JBlanked Forex Factory range sync helper (since 2026-01-01).
  * v2.7.0 - 2026-01-17 - BEP PERFORMANCE PHASE 1: Add optional options parameter with enrichDescriptions flag to getEventsByDateRange. Skip description enrichment when enrichDescriptions: false for faster initial load (30-40% improvement). Descriptions already lazy-loaded in EventModal on open.
  * v2.6.0 - 2026-01-21 - BEP FIX: Removed formatEventName() transformation for canonical events to preserve exact original names from winning sources (pickNameByPriority). Fixes 'M/M' vs 'm/m' normalization issue.
@@ -555,17 +557,41 @@ export const getEventsByDateRange = async (startDate, endDate, filters = {}, opt
     }
 
     // Apply currency filter (support both lowercase and PascalCase)
-    // IMPORTANT: Include global events (currency === null or currency === 'All') when any currency filter is applied
-    // Global events are part of ALL currencies, so they should always appear regardless of filter
+    // BEP: Handle special currencies: ALL (global), N/A (unknown/null), CUS (custom events)
     if (filters.currencies && filters.currencies.length > 0) {
+      const normalizedFilters = filters.currencies.map(c => String(c).toUpperCase().trim());
+      const hasAllFilter = normalizedFilters.includes('ALL');
+      const hasUnkFilter = normalizedFilters.includes('N/A');
+      const hasCusFilter = normalizedFilters.includes('CUS');
+      
       events = events.filter(event => {
         const currency = event.currency || event.Currency;
-        // Always include global events (null or 'All')
-        if (currency === null || currency === 'All') {
+        const isCustom = Boolean(event.isCustom);
+        const normalizedCurrency = currency ? String(currency).toUpperCase().trim() : null;
+        
+        // CUS filter: match custom user events
+        if (hasCusFilter && isCustom) {
           return true;
         }
-        // Include events matching any selected currency
-        return filters.currencies.includes(currency);
+        
+        // ALL filter: match global events (currency === 'ALL' or 'GLOBAL')
+        if (hasAllFilter && (normalizedCurrency === 'ALL' || normalizedCurrency === 'GLOBAL')) {
+          return true;
+        }
+        
+        // N/A filter: match events with null/empty/missing currency (but not custom events)
+        if (hasUnkFilter && !isCustom) {
+          if (normalizedCurrency === null || normalizedCurrency === '' || normalizedCurrency === '—' || normalizedCurrency === '-' || normalizedCurrency === 'N/A') {
+            return true;
+          }
+        }
+        
+        // Standard currency: exact match
+        if (normalizedCurrency && normalizedFilters.includes(normalizedCurrency)) {
+          return true;
+        }
+        
+        return false;
       });
     }
 
@@ -800,13 +826,19 @@ export const getEventCategories = async (options = DEFAULT_NEWS_SOURCE) => {
  * Uses cache for performance, falls back to Firestore
  * 
  * NOTE: All sources (MQL5, Forex Factory, FXStreet) provide currency data
+ * BEP: Now supports includeSpecial option to detect and include N/A (unknown) and CUS (custom) currencies
  * 
- * @param {string} source - News source (defaults to user's preferred source)
+ * @param {string|Object} options - News source string or options object
+ * @param {string} options.source - News source (defaults to user's preferred source)
+ * @param {boolean} options.useCanonical - Whether to use canonical collection (default: true)
+ * @param {boolean} options.includeSpecial - Whether to detect and include N/A/CUS currencies (default: false)
  * @returns {Promise<Object>} Unique currencies array
  */
 export const getEventCurrencies = async (options = DEFAULT_NEWS_SOURCE) => {
   const source = typeof options === 'string' ? options : (options?.source || DEFAULT_NEWS_SOURCE);
   const useCanonical = typeof options === 'object' ? options?.useCanonical !== false : true;
+  const includeSpecial = typeof options === 'object' ? options?.includeSpecial === true : false;
+  
   try {
     // Canonical path: query unified collection
     if (useCanonical) {
@@ -815,15 +847,47 @@ export const getEventCurrencies = async (options = DEFAULT_NEWS_SOURCE) => {
       const snapshot = await getDocs(query(canonicalRef, limit(5000)));
 
       const currencies = new Set();
+      let hasUnknown = false;
+      let hasCustom = false;
+      
       snapshot.docs.forEach((docSnap) => {
         const data = docSnap.data();
         const currency = data.currency || data.Currency;
-        if (currency) currencies.add(currency.toUpperCase());
+        const isCustom = Boolean(data.isCustom);
+        
+        // BEP: Detect custom events
+        if (includeSpecial && isCustom) {
+          hasCustom = true;
+        }
+        
+        // BEP: Detect unknown/null/empty currencies (exclude custom events from N/A)
+        if (includeSpecial) {
+          if (!isCustom && (currency === null || currency === undefined || currency === '' || currency === '—' || currency === '-')) {
+            hasUnknown = true;
+          } else if (currency && !isCustom) {
+            currencies.add(currency.toUpperCase());
+          } else if (currency && isCustom) {
+            // Custom events with currency still add their currency to list
+            currencies.add(currency.toUpperCase());
+          }
+        } else {
+          if (currency) currencies.add(currency.toUpperCase());
+        }
       });
+      
+      const sortedCurrencies = Array.from(currencies).sort();
+      
+      // BEP: Add special currencies at the end if detected
+      if (includeSpecial && hasUnknown) {
+        sortedCurrencies.push('N/A');
+      }
+      if (includeSpecial && hasCustom) {
+        sortedCurrencies.push('CUS');
+      }
 
       return {
         success: true,
-        data: Array.from(currencies).sort(),
+        data: sortedCurrencies,
         cached: false,
         source: 'canonical',
       };
@@ -848,14 +912,44 @@ export const getEventCurrencies = async (options = DEFAULT_NEWS_SOURCE) => {
     const snapshot = await getDocs(q);
     
     const currencies = new Set();
+    let hasUnknown = false;
+    let hasCustom = false;
+    
     snapshot.docs.forEach(doc => {
       const data = doc.data();
       // Support both lowercase (Firestore) and PascalCase (legacy)
       const currency = data.currency || data.Currency;
-      if (currency) currencies.add(currency.toUpperCase());
+      const isCustom = Boolean(data.isCustom);
+      
+      // BEP: Detect custom events
+      if (includeSpecial && isCustom) {
+        hasCustom = true;
+      }
+      
+      // BEP: Detect unknown/null/empty currencies (exclude custom events from N/A)
+      if (includeSpecial) {
+        if (!isCustom && (currency === null || currency === undefined || currency === '' || currency === '—' || currency === '-')) {
+          hasUnknown = true;
+        } else if (currency && !isCustom) {
+          currencies.add(currency.toUpperCase());
+        } else if (currency && isCustom) {
+          // Custom events with currency still add their currency to list
+          currencies.add(currency.toUpperCase());
+        }
+      } else {
+        if (currency) currencies.add(currency.toUpperCase());
+      }
     });
 
     const sortedCurrencies = Array.from(currencies).sort();
+    
+    // BEP: Add special currencies at the end if detected
+    if (includeSpecial && hasUnknown) {
+      sortedCurrencies.push('N/A');
+    }
+    if (includeSpecial && hasCustom) {
+      sortedCurrencies.push('CUS');
+    }
 
     return {
       success: true,

@@ -5,6 +5,7 @@
  * Key responsibility and main functionality: Captures the deferred install prompt, renders a safe-area-aware floating button, and triggers the install flow while hiding itself once the user accepts or dismisses.
  * 
  * Changelog:
+ * v1.0.1 - 2026-01-22 - BEP: Increase z-index from 1300 to 12100 to render above all other modals (AuthModal2, WelcomeModal, etc.) following enterprise z-index stacking.
  * v1.0.0 - 2025-12-17 - Initial implementation with beforeinstallprompt capture, appinstalled handling, and safe-area positioning.
  */
 
@@ -85,7 +86,7 @@ export default function InstallPromptCTA({ isBusy = false }) {
                     position: 'fixed',
                     bottom: 'calc(16px + var(--t2t-safe-bottom, 0px))',
                     left: 'max(12px, env(safe-area-inset-left, 0px))',
-                    zIndex: 1300,
+                    zIndex: 12100,
                 }}
             >
                 <Paper

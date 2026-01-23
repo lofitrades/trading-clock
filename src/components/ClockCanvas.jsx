@@ -5,6 +5,10 @@
  * Renders static background + dynamic session donuts + interactive tooltips.
  *
  * Changelog:
+ * v1.3.16 - 2026-01-22 - BEP: Close session arc tooltip on outside click/tap.
+ * v1.3.15 - 2026-01-22 - BEP: Disable mobile tap highlight on the clock canvas.
+ * v1.3.14 - 2026-01-22 - BEP: Add optional touch tooltip delay to avoid showing tooltips during scroll.
+ * v1.3.13 - 2026-01-22 - BEP: Allow opt-in vertical scroll on touch devices (landing hero canvas).
  * v1.3.12 - 2026-01-21 - UX: Refine session tooltip open/close animation for Apple-like motion.
  * v1.3.11 - 2026-01-21 - UX: Left hemisphere sessions anchor tooltips from top-left; right hemisphere from top-right on all pages/breakpoints.
  * v1.3.9 - 2026-01-21 - UX: Bias session tooltip placement toward viewport center to reduce side overflow.
@@ -37,7 +41,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import SessionArcTooltip from './SessionArcTooltip';
 import { useTooltipCoordinator } from '../contexts/useTooltipCoordinator';
 
-export default function ClockCanvas({ size, time, sessions, handColor, clockStyle = 'normal', showSessionNamesInCanvas = true, showPastSessionsGray = true, showClockNumbers = true, showClockHands = true, activeSession = null, backgroundBasedOnSession = false, renderHandsInCanvas = true, handAnglesRef = null }) {
+export default function ClockCanvas({ size, time, sessions, handColor, clockStyle = 'normal', showSessionNamesInCanvas = true, showPastSessionsGray = true, showClockNumbers = true, showClockHands = true, activeSession = null, backgroundBasedOnSession = false, renderHandsInCanvas = true, handAnglesRef = null, allowTouchScroll = false, touchTooltipDelayMs = 0 }) {
   const { selectedTimezone } = useSettings();
   const { openTooltip, closeTooltip: closeGlobalTooltip, isTooltipActive } = useTooltipCoordinator();
   const canvasRef = useRef(null);
@@ -52,6 +56,8 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
   const tooltipRef = useRef(null);
   const previousHoveredSession = useRef(null);
   const tooltipAnimation = useRef(null);
+  const touchTooltipTimerRef = useRef(null);
+  const touchHasMovedRef = useRef(false);
 
   // Clock hand animation states (shared with overlay when provided)
   const internalHandAngles = useRef({
@@ -385,9 +391,21 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     if (!canvas) return;
 
     const handleClickOutside = (e) => {
-      if (!canvas.contains(e.target)) {
-        previousHoveredSession.current = null;
-        setHoveredSession(null);
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+      const inCanvas = canvas.contains(target);
+      const inTooltip = tooltipRef.current?.contains(target) ?? false;
+      if (inCanvas || inTooltip) return;
+
+      previousHoveredSession.current = null;
+      setHoveredSession(null);
+      hideTooltip();
+    };
+
+    const clearTouchTooltipTimer = () => {
+      if (touchTooltipTimerRef.current) {
+        window.clearTimeout(touchTooltipTimerRef.current);
+        touchTooltipTimerRef.current = null;
       }
     };
 
@@ -404,32 +422,53 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
       const tapped = detectHoveredSession(canvas, touchX, touchY);
 
       if (tapped) {
-        // Prevent default only when we detect a donut tap
-        e.preventDefault();
+        // Prevent default only when we detect a donut tap and touch scrolling is disabled
+        if (!allowTouchScroll) {
+          e.preventDefault();
+        }
         previousHoveredSession.current = tapped;
         setHoveredSession(tapped);
-        showTooltip(touch.clientX, touch.clientY, tapped);
+        clearTouchTooltipTimer();
+        touchHasMovedRef.current = false;
+
+        if (touchTooltipDelayMs > 0) {
+          touchTooltipTimerRef.current = window.setTimeout(() => {
+            if (touchHasMovedRef.current) return;
+            showTooltip(touch.clientX, touch.clientY, tapped);
+          }, touchTooltipDelayMs);
+        } else {
+          showTooltip(touch.clientX, touch.clientY, tapped);
+        }
       } else {
         // Tapped outside - hide tooltip
         previousHoveredSession.current = null;
         setHoveredSession(null);
+        clearTouchTooltipTimer();
         hideTooltip();
       }
+    };
+
+    const handleTouchMove = () => {
+      touchHasMovedRef.current = true;
+      clearTouchTooltipTimer();
     };
 
     // Add event listeners for both mouse and touch
     document.addEventListener('mousedown', handleClickOutside, true);
     document.addEventListener('touchstart', handleClickOutside, true);
 
-    // Add touch listener with passive: false to allow preventDefault
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    // Add touch listeners with passive set for scroll friendliness when enabled
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: allowTouchScroll });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: true });
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside, true);
       document.removeEventListener('touchstart', handleClickOutside, true);
       canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      clearTouchTooltipTimer();
     };
-  }, [clockStyle, sessions, size, detectHoveredSession]);
+  }, [allowTouchScroll, clockStyle, sessions, size, detectHoveredSession, touchTooltipDelayMs]);
 
   return (
     <div ref={containerRef} className="canvas-container" style={{ width: '100%', height: '100%', aspectRatio: '1 / 1', position: 'relative' }}>
@@ -441,7 +480,7 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
           previousHoveredSession.current = null;
           setHoveredSession(null);
         }}
-        style={{ touchAction: 'none', width: '100%', height: '100%', cursor: hoveredSession ? 'pointer' : 'default' }}
+        style={{ touchAction: allowTouchScroll ? 'pan-y' : 'none', width: '100%', height: '100%', cursor: hoveredSession ? 'pointer' : 'default', WebkitTapHighlightColor: 'transparent', outline: 'none' }}
       />
       {tooltip ? (
         <Portal>
@@ -492,4 +531,6 @@ ClockCanvas.propTypes = {
   handAnglesRef: PropTypes.shape({
     current: PropTypes.object,
   }),
+  allowTouchScroll: PropTypes.bool,
+  touchTooltipDelayMs: PropTypes.number,
 };

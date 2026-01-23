@@ -551,7 +551,7 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
                 </Typography>
               </Box>
               <Typography variant="h5" fontWeight="700" gutterBottom>
-                {isSignup ? 'Get free instant access' : 'Sign in to continue'}
+                {isSignup ? 'Unlock all features' : 'Sign in to continue'}
               </Typography>
               {/* Account Toggle */}
               <Box sx={{ textAlign: 'left', mb: 3 }}>

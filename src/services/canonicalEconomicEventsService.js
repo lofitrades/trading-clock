@@ -6,6 +6,7 @@
  * values based on user preference.
  *
  * Changelog:
+ * v1.4.0 - 2026-01-22 - Added N/A/CUS currency filter support with normalized comparison.
  * v1.3.0 - 2026-01-21 - BEP Refactor: Add normalizedName to DTO, backwards compatibility for old events.
  * v1.2.0 - 2026-01-16 - Include GPT fallback sources, expose time labels, and surface GPT-only placeholders.
  * v1.1.0 - 2025-12-16 - Filter to NFS-backed events only; preserve enrichment while blocking JBlanked-only documents.
@@ -124,18 +125,41 @@ export async function fetchCanonicalEconomicEvents({ from, to, currencies = [], 
       })
       .filter(Boolean);
 
-    // Apply client-side currency filter to include global events
-    // IMPORTANT: Always include events with currency === null or 'All' when any currency filter is applied
-    // Global events are part of ALL currencies and should appear regardless of filter
+    // BEP: Apply client-side currency filter with special currency support (ALL, N/A, CUS)
     const filteredDocs = currencies?.length > 0
       ? docs.filter((d) => {
-          const currency = d.currency;
-          // Always include global events (null or 'All')
-          if (currency === null || currency === 'All') {
+          const normalizedFilters = currencies.map((c) => String(c).toUpperCase().trim());
+          const hasAllFilter = normalizedFilters.includes('ALL');
+          const hasUnkFilter = normalizedFilters.includes('N/A');
+          const hasCusFilter = normalizedFilters.includes('CUS');
+          
+          const eventCurrency = d.currency;
+          const isCustom = Boolean(d.isCustom);
+          const normalizedCurrency = eventCurrency ? String(eventCurrency).toUpperCase().trim() : null;
+          
+          // CUS filter: match custom user events
+          if (hasCusFilter && isCustom) {
             return true;
           }
-          // Include events matching any selected currency
-          return currencies.includes(currency);
+          
+          // ALL filter: match global events (currency === 'ALL' or 'GLOBAL')
+          if (hasAllFilter && (normalizedCurrency === 'ALL' || normalizedCurrency === 'GLOBAL')) {
+            return true;
+          }
+          
+          // N/A filter: match events with null/empty/missing currency (but not custom)
+          if (hasUnkFilter && !isCustom) {
+            if (normalizedCurrency === null || normalizedCurrency === '' || normalizedCurrency === '—' || normalizedCurrency === '-' || normalizedCurrency === 'N/A') {
+              return true;
+            }
+          }
+          
+          // Standard currency: exact match
+          if (normalizedCurrency && normalizedFilters.includes(normalizedCurrency)) {
+            return true;
+          }
+          
+          return false;
         })
       : docs;
 

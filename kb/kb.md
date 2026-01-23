@@ -2111,6 +2111,48 @@ whyDidYouRender(React, {
 
 ## 📝 Change Log
 
+### Version 4.0.53 - January 22, 2026
+**Notification Persistence Upgrade**
+
+#### 🔔 Notifications
+- Persist authenticated reminder notifications in Firestore with read/deleted status handling for cross-session consistency.
+
+### Version 4.0.47 - January 22, 2026
+**Landing Hero Clock Auth Behavior**
+
+#### 🧭 UX
+- Authenticated users get full clock canvas interactions on the landing page; guests see AuthModal2 on any clock click.
+
+### Version 4.0.48 - January 22, 2026
+**Landing Hero Clock Guest Click Rules**
+
+#### 🧭 UX
+- Guests can open session tooltips via session arc clicks; event markers open AuthModal2; canvas background clicks do nothing.
+
+### Version 4.0.49 - January 22, 2026
+**Landing Marker Hover/Click Restore**
+
+#### 🧭 UX
+- Restore hover/pointer cursor and marker click handling when clock event tooltips are disabled (landing guest flow).
+
+### Version 4.0.50 - January 22, 2026
+**Landing Hero Clock Swipe Scroll**
+
+#### 🧭 UX
+- Allow vertical swipe scrolling over the landing hero clock on mobile while keeping session arc tooltips.
+
+### Version 4.0.51 - January 22, 2026
+**Landing Mobile Tooltip Delay**
+
+#### 🧭 UX
+- Add a short touch tooltip delay on the landing hero clock to prevent tooltips during scroll.
+
+### Version 4.0.52 - January 22, 2026
+**Session Tooltip Outside Click Close**
+
+#### 🧭 UX
+- Close session arc tooltips on outside click/tap (matches event marker tooltip behavior).
+
 ### Version 4.0.46 - January 22, 2026
 **Single-Event Tooltip Subtitle**
 

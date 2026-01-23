@@ -3,18 +3,27 @@
  * 
  * Purpose: Chip-based dropdown filter bar for economic events with always-on date range,
  * quick preset selection, streamlined multi-select impacts/currencies, and search functionality.
+ * Also includes optional 'Add custom event' button aligned right on lg+ breakpoints.
  * 
  * Key Features:
  * - Single-row filter chips with dropdown popovers
  * - Timezone-aware date presets (Today, Tomorrow, This Week, Next Week, This Month)
  * - Multi-select impacts and currencies with instant apply on every change
+ * - Dynamic N/A/CUS currency options based on available events
  * - Search functionality with debounced auto-search (400ms)
  * - Expandable search row with accordion-like UX
  * - Persistent settings via SettingsContext and parent callbacks
+ * - Optional 'Add custom event' button styled as primary filter chip (lg+ only)
  * - Filter changes sync to /app clock canvas (impacts, currencies, favorites)
  * - Fully responsive: wraps on xs/sm, single-row on md+
  * 
  * Changelog:
+ * v1.3.44 - 2026-01-22 - BEP FIX: selectAllImpacts now uses IMPACT_LEVELS.map() to get all 5 impact values (Strong Data, Moderate Data, Weak Data, Data Not Loaded, Non-Economic) instead of hardcoded ['high','medium','low']. Fixed disabled condition to check against IMPACT_LEVELS.length.
+ * v1.3.43 - 2026-01-22 - BEP UX: Added 'Select All' button next to 'Clear' in currency and impact filter popovers. Allows quick selection of all options with one click.
+ * v1.3.41 - 2026-01-22 - BEP UX: N/A currency option now displays as 'UNKNOWN' instead of 'N/A' in chip summary and popover list for clarity.
+ * v1.3.38 - 2026-01-22 - BEP FIX: Added hasCustomEvents prop to receive custom events existence from parent components. Parent must pass hasCustomEvents={customEvents?.length > 0} since getEventCurrencies can only query canonical collection, not user-specific custom events collection.
+ * v1.3.37 - 2026-01-22 - BEP FIX: CUS currency option now always shows for authenticated users (custom events are user-specific and stored separately). Re-fetches currencies when user auth state changes.
+ * v1.3.33 - 2026-01-22 - BEP: Add optional onOpenAddEvent prop to EventsFilters3. When provided, renders 'Add custom event' button (AddRoundedIcon) styled as primary chip on lg+ breakpoints, aligned to right of filter row. Button inherits primary.main color and pill shape (borderRadius:999) to match filter chip styling. Hides on sm/md for cleaner mobile/tablet layout.
  * v1.3.32 - 2026-01-22 - Remove boxShadow from filter chips for cleaner, flatter appearance on all breakpoints.
  * v1.3.31 - 2026-01-22 - BEP CHIP SHADOWS: Add boxShadow (0 2px 4px rgba(0, 0, 0, 0.1)) to all filter chips for depth and visual consistency with CTA buttons.
  * v1.3.30 - 2026-01-21 - BEP SEARCH PERSISTENCE: Made search bar auto-expand when searchQuery is active (derived state). Search bar stays expanded on page reload if search was previously applied. Clicking search icon when expanded clears search; clicking when collapsed expands and focuses input.
@@ -86,10 +95,14 @@ import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import PublicIcon from '@mui/icons-material/Public';
+import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
+import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
 import { getEventCurrencies } from '../services/economicEventsService';
 import { getDatePartsInTimezone, getUtcDateForTimezone } from '../utils/dateUtils';
 import { isColorDark } from '../utils/clockUtils';
-import { getCurrencyFlag } from '../utils/currencyFlags';
+import { getCurrencyFlag, CURRENCY_ALL, CURRENCY_UNK, CURRENCY_CUS } from '../utils/currencyFlags';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal2 from './AuthModal2';
 
@@ -213,7 +226,7 @@ const getAnchorPosition = (target) => {
   if (!target || !(target instanceof Element)) return null;
   const rect = target.getBoundingClientRect?.();
   if (!rect) return null;
-  return { top: rect.bottom + window.scrollY, left: rect.left + window.scrollX };
+  return { top: rect.bottom + window.scrollY, left: rect.left + rect.width / 2 + window.scrollX };
 };
 
 function ChipButton({ label, onClick, active, colorOverride }) {
@@ -229,7 +242,7 @@ function ChipButton({ label, onClick, active, colorOverride }) {
         borderRadius: 999,
         fontWeight: 700,
         height: 40,
-        px: 0.75,
+        px: 1,
         flexShrink: 0,
         bgcolor: customActive ? colorOverride.background : (active ? 'primary.main' : '#fff'),
         color: customActive ? colorOverride.text : (active ? '#fff' : 'text.primary'),
@@ -280,6 +293,8 @@ export default function EventsFilters3({
   showSearchFilter = true,
   centerFilters = false,
   textColor = null,
+  onOpenAddEvent = null,
+  hasCustomEvents = false,
 }) {
   const { user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -325,11 +340,33 @@ export default function EventsFilters3({
     const fetchOptions = async () => {
       setOptionsLoading(true);
       try {
-        const currenciesResult = await getEventCurrencies({ source: newsSource, useCanonical: true });
+        const currenciesResult = await getEventCurrencies({ source: newsSource, useCanonical: true, includeSpecial: true });
         if (currenciesResult?.success) {
           const data = currenciesResult.data || [];
           const unique = Array.from(new Set(data));
-          const reordered = ['USD', ...unique.filter((c) => c !== 'USD')];
+          const sanitized = unique.filter((currency) => Boolean(currency));
+
+          // BEP: Separate special currencies from standard currencies
+          const specialCurrencies = [CURRENCY_ALL, CURRENCY_UNK, CURRENCY_CUS];
+          const standardCurrencies = sanitized.filter(
+            (c) => !specialCurrencies.includes(String(c).toUpperCase())
+          );
+
+          // Check which special currencies are present in the data
+          const hasUnk = sanitized.some((c) => String(c).toUpperCase() === CURRENCY_UNK);
+          // BEP: Show CUS when user has custom events (passed from parent) OR when user is authenticated
+          // hasCustomEvents prop indicates if custom events exist in the user's subcollection
+          const hasCus = hasCustomEvents || Boolean(user);
+
+          // BEP: Build ordered list: ALL first, CUS second, then USD, then other standard currencies, then N/A at end
+          const orderedStandard = ['USD', ...standardCurrencies.filter((c) => String(c).toUpperCase() !== 'USD')];
+          const reordered = [
+            CURRENCY_ALL, // Always include ALL for global events
+            ...(hasCus ? [CURRENCY_CUS] : []), // CUS second when user has custom events or is authenticated
+            ...orderedStandard,
+            ...(hasUnk ? [CURRENCY_UNK] : []), // Only show N/A if events with unknown currency exist
+          ];
+
           setCurrencies(reordered);
         } else {
           setCurrencies([]);
@@ -343,7 +380,7 @@ export default function EventsFilters3({
     };
 
     fetchOptions();
-  }, [newsSource]);
+  }, [newsSource, user, hasCustomEvents]);
 
   const applyAndPersist = useCallback(
     (nextFilters) => {
@@ -489,6 +526,42 @@ export default function EventsFilters3({
     });
   }, [applyAndPersist, user]);
 
+  const selectAllImpacts = useCallback(() => {
+    if (!user) {
+      setAnchorImpactPos(null);
+      setShowAuthModal(true);
+      return;
+    }
+    if (searchDebounceTimerRef.current) {
+      clearTimeout(searchDebounceTimerRef.current);
+      searchDebounceTimerRef.current = null;
+    }
+    const allImpacts = IMPACT_LEVELS.map((level) => level.value);
+    setLocalFilters((prev) => {
+      const next = { ...prev, impacts: allImpacts };
+      applyAndPersist(next);
+      return next;
+    });
+  }, [applyAndPersist, user]);
+
+  const selectAllCurrencies = useCallback(() => {
+    if (!user) {
+      setAnchorCurrencyPos(null);
+      setShowAuthModal(true);
+      return;
+    }
+    if (searchDebounceTimerRef.current) {
+      clearTimeout(searchDebounceTimerRef.current);
+      searchDebounceTimerRef.current = null;
+    }
+    // Select all available currencies
+    setLocalFilters((prev) => {
+      const next = { ...prev, currencies: [...currencies] };
+      applyAndPersist(next);
+      return next;
+    });
+  }, [applyAndPersist, user, currencies]);
+
   // ========== SEARCH HANDLERS ==========
 
   // Define handleClearSearch FIRST so toggleSearchExpanded can reference it
@@ -590,8 +663,6 @@ export default function EventsFilters3({
     [localFilters.startDate, localFilters.endDate, timezone],
   );
 
-  const activePresetKey = activePreset?.key || null;
-
   const hasActiveFilters = useMemo(() => {
     // Only count non-date filters as "active" for reset button visibility
     // This prevents reset button from showing when only date filter is applied
@@ -623,21 +694,42 @@ export default function EventsFilters3({
   const currencyLabel = useMemo(() => {
     if (!localFilters.currencies?.length) return 'All currencies';
     const first = localFilters.currencies[0];
+    const upperFirst = String(first).toUpperCase();
+    const isAllCurrency = upperFirst === CURRENCY_ALL;
+    const isUnkCurrency = upperFirst === CURRENCY_UNK;
+    const isCusCurrency = upperFirst === CURRENCY_CUS;
     const flagCode = getCurrencyFlag(first);
-    const flag = flagCode ? (
-      <Box
-        component="span"
-        className={`fi fi-${flagCode}`}
-        sx={{ fontSize: 16, lineHeight: 1, mr: 0.5 }}
-      />
-    ) : null;
+
+    // Determine icon based on currency type
+    let flag = null;
+    if (isAllCurrency) {
+      flag = <PublicIcon sx={{ fontSize: 16 }} />;
+    } else if (isUnkCurrency) {
+      flag = <CancelRoundedIcon sx={{ fontSize: 16, color: 'common.white' }} />;
+    } else if (isCusCurrency) {
+      flag = <EventNoteRoundedIcon sx={{ fontSize: 16 }} />;
+    } else if (flagCode) {
+      flag = (
+        <Box
+          component="span"
+          className={`fi fi-${flagCode}`}
+          sx={{ fontSize: 16, lineHeight: 1, mr: 0.5 }}
+        />
+      );
+    }
+
+    // Determine display label
+    let displayLabel = first;
+    if (isAllCurrency) displayLabel = 'ALL';
+    else if (isUnkCurrency) displayLabel = 'N/A';
+    else if (isCusCurrency) displayLabel = 'CUSTOM';
 
     if (localFilters.currencies.length === 1) {
       return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           {flag}
           <Typography variant="body2" fontWeight={700} component="span">
-            {first}
+            {displayLabel}
           </Typography>
         </Box>
       );
@@ -660,15 +752,15 @@ export default function EventsFilters3({
       anchorPosition={anchorDatePos || undefined}
       anchorEl={null}
       onClose={() => setAnchorDatePos(null)}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      transformOrigin={{ vertical: 'top', horizontal: 'center' }}
       slotProps={{
         root: { sx: { zIndex: 1700 } },
       }}
       PaperProps={{
         sx: {
           p: 2,
-          width: 360,
-          maxWidth: '90vw',
+          maxWidth: '95vw',
           borderRadius: 2,
           boxShadow: 6,
           border: '1px solid',
@@ -680,10 +772,7 @@ export default function EventsFilters3({
         <Typography variant="subtitle1" fontWeight={800}>
           Date Range
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Pick a preset to immediately update the calendar.
-        </Typography>
-        <Stack direction="column" spacing={0.75} sx={{ width: '100%' }}>
+        <Stack direction="column" spacing={0.75} sx={{ width: 'fit-content', maxWidth: '100%', mx: 'auto' }}>
           {DATE_PRESETS.map((preset) => {
             const isActive = activePreset?.key === preset.key;
             return (
@@ -698,7 +787,7 @@ export default function EventsFilters3({
                 color={isActive ? 'primary' : 'default'}
                 variant={isActive ? 'filled' : 'outlined'}
                 onClick={() => setDatePreset(preset.key)}
-                sx={{ fontWeight: 700, height: 36, width: '100%', justifyContent: 'flex-start' }}
+                sx={{ fontWeight: 700, height: 36, justifyContent: 'flex-start' }}
               />
             );
           })}
@@ -714,15 +803,15 @@ export default function EventsFilters3({
       anchorPosition={anchorImpactPos || undefined}
       anchorEl={null}
       onClose={() => setAnchorImpactPos(null)}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      transformOrigin={{ vertical: 'top', horizontal: 'center' }}
       slotProps={{
         root: { sx: { zIndex: 1700 } },
       }}
       PaperProps={{
         sx: {
           p: 2,
-          width: 360,
-          maxWidth: '90vw',
+          maxWidth: '95vw',
           borderRadius: 2,
           boxShadow: 6,
           border: '1px solid',
@@ -740,6 +829,9 @@ export default function EventsFilters3({
             gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(2, minmax(0, 1fr))' },
             columnGap: 0.75,
             alignItems: 'start',
+            width: 'fit-content',
+            maxWidth: '100%',
+            mx: 'auto',
           }}
         >
           <Stack spacing={0.75} sx={{ width: '100%' }}>
@@ -813,15 +905,25 @@ export default function EventsFilters3({
         </Box>
         <Divider />
         <Stack direction="row" spacing={1} justifyContent="space-between">
-          <Button
-            size="small"
-            onClick={clearImpacts}
-            color="error"
-            sx={{ textTransform: 'none' }}
-            disabled={!localFilters.impacts.length}
-          >
-            Clear
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button
+              size="small"
+              onClick={selectAllImpacts}
+              sx={{ textTransform: 'none' }}
+              disabled={localFilters.impacts.length === IMPACT_LEVELS.length}
+            >
+              Select All
+            </Button>
+            <Button
+              size="small"
+              onClick={clearImpacts}
+              color="error"
+              sx={{ textTransform: 'none' }}
+              disabled={!localFilters.impacts.length}
+            >
+              Clear
+            </Button>
+          </Stack>
           <Button onClick={() => setAnchorImpactPos(null)} size="small" sx={{ textTransform: 'none' }}>
             Close
           </Button>
@@ -837,15 +939,15 @@ export default function EventsFilters3({
       anchorPosition={anchorCurrencyPos || undefined}
       anchorEl={null}
       onClose={() => setAnchorCurrencyPos(null)}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      transformOrigin={{ vertical: 'top', horizontal: 'center' }}
       slotProps={{
         root: { sx: { zIndex: 1700 } },
       }}
       PaperProps={{
         sx: {
           p: 2,
-          width: 420,
-          maxWidth: '90vw',
+          maxWidth: '95vw',
           borderRadius: 2,
           boxShadow: 6,
           border: '1px solid',
@@ -869,25 +971,51 @@ export default function EventsFilters3({
               gridTemplateColumns: { xs: 'repeat(3, minmax(0, 1fr))', sm: 'repeat(3, minmax(0, 1fr))' },
               columnGap: 0.75,
               rowGap: 0.75,
+              width: 'fit-content',
+              maxWidth: '100%',
+              mx: 'auto',
             }}
           >
             {currencies.map((currency) => {
               const active = localFilters.currencies.includes(currency);
               const flagCode = getCurrencyFlag(currency);
+              const upperCurrency = String(currency).toUpperCase();
+              const isAllCurrency = upperCurrency === CURRENCY_ALL;
+              const isUnkCurrency = upperCurrency === CURRENCY_UNK;
+              const isCusCurrency = upperCurrency === CURRENCY_CUS;
+
+              // Determine icon based on currency type
+              let currencyIcon = null;
+              if (isAllCurrency) {
+                currencyIcon = <PublicIcon sx={{ fontSize: 16, lineHeight: 1 }} />;
+              } else if (isUnkCurrency) {
+                currencyIcon = <CancelRoundedIcon sx={{ fontSize: 16, lineHeight: 1, color: active ? 'inherit' : 'text.disabled' }} />;
+              } else if (isCusCurrency) {
+                currencyIcon = <EventNoteRoundedIcon sx={{ fontSize: 16, lineHeight: 1 }} />;
+              } else if (flagCode) {
+                currencyIcon = (
+                  <Box
+                    component="span"
+                    className={`fi fi-${flagCode}`}
+                    sx={{ fontSize: 16, lineHeight: 1 }}
+                  />
+                );
+              }
+
+              // Determine display label
+              let displayLabel = currency;
+              if (isAllCurrency) displayLabel = 'ALL';
+              else if (isUnkCurrency) displayLabel = 'N/A';
+              else if (isCusCurrency) displayLabel = 'CUSTOM';
+
               return (
                 <Chip
                   key={currency}
                   label={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      {flagCode && (
-                        <Box
-                          component="span"
-                          className={`fi fi-${flagCode}`}
-                          sx={{ fontSize: 16, lineHeight: 1 }}
-                        />
-                      )}
+                      {currencyIcon}
                       <Typography variant="body2" fontWeight={700} component="span">
-                        {currency}
+                        {displayLabel}
                       </Typography>
                     </Box>
                   }
@@ -907,15 +1035,25 @@ export default function EventsFilters3({
         )}
         <Divider />
         <Stack direction="row" spacing={1} justifyContent="space-between">
-          <Button
-            size="small"
-            onClick={clearCurrencies}
-            color="error"
-            sx={{ textTransform: 'none' }}
-            disabled={!localFilters.currencies.length}
-          >
-            Clear
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button
+              size="small"
+              onClick={selectAllCurrencies}
+              sx={{ textTransform: 'none' }}
+              disabled={localFilters.currencies.length === currencies.length}
+            >
+              Select All
+            </Button>
+            <Button
+              size="small"
+              onClick={clearCurrencies}
+              color="error"
+              sx={{ textTransform: 'none' }}
+              disabled={!localFilters.currencies.length}
+            >
+              Clear
+            </Button>
+          </Stack>
           <Button onClick={() => setAnchorCurrencyPos(null)} size="small" sx={{ textTransform: 'none' }}>
             Close
           </Button>
@@ -978,10 +1116,12 @@ export default function EventsFilters3({
           direction="row"
           spacing={{ xs: 0.5, sm: 0.75, md: 1 }}
           sx={{
+            flex: 1,
             flexWrap: 'nowrap',
             alignItems: 'center',
-            justifyContent: 'flex-start',
+            justifyContent: centerFilters ? 'center' : 'flex-start',
             width: 'auto',
+            minWidth: 0,
           }}
         >
           {showSearchFilter && (
@@ -1093,6 +1233,36 @@ export default function EventsFilters3({
             </Tooltip>
           )}
         </Stack>
+
+        {/* Add custom event button - aligned right on lg+ */}
+        {onOpenAddEvent && (
+          <Box sx={{ display: { xs: 'none', sm: 'none', md: 'none', lg: 'flex' }, ml: 'auto', flexShrink: 0 }}>
+            <Tooltip title="Add custom event">
+              <Button
+                onClick={onOpenAddEvent}
+                variant="outlined"
+                color="default"
+                size="small"
+                startIcon={<AddRoundedIcon />}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  borderRadius: 999,
+                  height: 40,
+                  px: 2,
+                  whiteSpace: 'nowrap',
+                  boxShadow: 'none',
+                  bgcolor: '#fff',
+                  color: 'text.primary',
+                  borderColor: 'divider',
+                  flexShrink: 0,
+                }}
+              >
+                Add custom event
+              </Button>
+            </Tooltip>
+          </Box>
+        )}
       </Stack>
 
       {/* Expandable Search Row */}
@@ -1183,6 +1353,8 @@ EventsFilters3.propTypes = {
   textColor: PropTypes.string,
   stickyZIndex: PropTypes.number,
   stickyTop: PropTypes.oneOfType([PropTypes.number, PropTypes.string, PropTypes.object]),
+  onOpenAddEvent: PropTypes.func,
+  hasCustomEvents: PropTypes.bool,
 };
 
 EventsFilters3.defaultProps = {
@@ -1199,4 +1371,6 @@ EventsFilters3.defaultProps = {
   textColor: null,
   stickyZIndex: 1000,
   stickyTop: 0,
+  onOpenAddEvent: null,
+  hasCustomEvents: false,
 };

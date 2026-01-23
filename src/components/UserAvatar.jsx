@@ -5,9 +5,14 @@
  * Displays user profile photo with fallback icon, opens Popover menu for account and logout actions.
  * Mobile-first design: 32x32px on xs/sm, 40x40px on md+. Manages account modal internally.
  * Follows enterprise best practices: proper focus/hover states, accessibility attributes, lazy-loaded modals,
- * consistent z-index stacking (Popover: 1700, Modals: 10001+), and semantic button structure.
+ * consistent z-index stacking (Popover: 1300, Modals: 10001+), and semantic button structure.
  * 
  * Changelog:
+ * v1.0.7 - 2026-01-23 - BEP FIX: Increase Popover z-index from 1100 (AppBar level) to 1300 to render above AppBar shadow. Ensures user menu visually appears over the sticky header.
+ * v1.0.6 - 2026-01-22 - BEP FIX: Only react to closeSignal changes to prevent immediate re-close.
+ * v1.0.5 - 2026-01-22 - BEP UX: Add open/close coordination hooks for AppBar menu stacking.
+ * v1.0.4 - 2026-01-22 - BEP: Add AppBar-matching border styling to user menu popover.
+ * v1.0.3 - 2026-01-22 - BEP: Align user menu popover z-index with AppBar layer for consistent stacking.
  * v1.0.2 - 2026-01-14 - LOGOUT MODAL REFACTOR: Replaced inline ConfirmModal with standalone LogoutModal component.
  * LogoutModal now handles full logout flow (Firebase sign-out, settings reset, navigation) with loading state
  * to prevent double-clicks. UserAvatar focuses on avatar UI and account modal, delegating logout flow to LogoutModal.
@@ -22,29 +27,41 @@
  * Props: user (Firebase user object), onLogout (callback for logout completion).
  */
 
-import { useState, Suspense, lazy, useCallback } from 'react';
+import { useEffect, useRef, useState, Suspense, lazy, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { Box, Avatar, IconButton, Popover, Button } from '@mui/material';
+import { Box, Avatar, IconButton, Popover, Button, useTheme } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 const AccountModal = lazy(() => import('./AccountModal'));
 const LogoutModal = lazy(() => import('./LogoutModal'));
 
-const UserAvatar = ({ user, onLogout }) => {
+const UserAvatar = ({ user, onLogout, onOpen, closeSignal }) => {
+    const theme = useTheme();
     // User avatar menu state
     const [userMenuAnchor, setUserMenuAnchor] = useState(null);
     const [showAccountModal, setShowAccountModal] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const lastCloseSignalRef = useRef(closeSignal || 0);
 
     // Handle popover open
     const handleUserMenuOpen = useCallback((event) => {
         setUserMenuAnchor(event.currentTarget);
-    }, []);
+        onOpen?.();
+    }, [onOpen]);
 
     // Handle popover close
     const handleUserMenuClose = useCallback(() => {
         setUserMenuAnchor(null);
     }, []);
+
+    useEffect(() => {
+        if (closeSignal === undefined || closeSignal === null) return;
+        if (closeSignal === lastCloseSignalRef.current) return;
+        lastCloseSignalRef.current = closeSignal;
+        if (userMenuAnchor) {
+            setUserMenuAnchor(null);
+        }
+    }, [closeSignal, userMenuAnchor]);
 
     // Handle "My Account" click - open account modal and close menu
     const handleOpenAccount = useCallback(() => {
@@ -118,7 +135,7 @@ const UserAvatar = ({ user, onLogout }) => {
                     )}
                 </IconButton>
 
-                {/* User Menu Popover - enterprise z-index stacking (1700 for Popover layer) */}
+                {/* User Menu Popover - align with AppBar z-index for consistent nav stacking */}
                 <Popover
                     id="user-menu-popover"
                     open={Boolean(userMenuAnchor)}
@@ -136,11 +153,13 @@ const UserAvatar = ({ user, onLogout }) => {
                         paper: {
                             elevation: 8,
                             sx: {
-                                borderRadius: 2,
+                                borderRadius: 3,
+                                border: '1px solid',
+                                borderColor: 'divider',
                                 boxShadow: '0 10px 26px rgba(15,23,42,0.12)',
                                 mt: 1,
                                 minWidth: { xs: 160, sm: 180 },
-                                zIndex: 1700, // Explicit z-index for Popover layer
+                                zIndex: 1300, // Above AppBar (1100) for proper visual stacking
                             },
                         },
                     }}
@@ -250,10 +269,14 @@ UserAvatar.propTypes = {
      * Optional - provided for parent component notification if needed
      */
     onLogout: PropTypes.func,
+    onOpen: PropTypes.func,
+    closeSignal: PropTypes.number,
 };
 
 UserAvatar.defaultProps = {
     onLogout: null,
+    onOpen: null,
+    closeSignal: 0,
 };
 
 export default UserAvatar;

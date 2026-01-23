@@ -5,6 +5,7 @@
  * Renders impact-based icons on AM (inner) and PM (outer) rings using current filters and news source.
  *
  * Changelog:
+ * v1.18.20 - 2026-01-22 - BEP: Restore hover/pointer and marker clicks when tooltips are disabled (landing guest auth flow).
  * v1.18.19 - 2026-01-22 - Group clock event markers into 5-minute windows and pass grouped time to tooltips.
  * v1.18.18 - 2026-01-22 - BEP: Apply contrast-aware text color to custom marker icons for accessibility (matches custom currency chip behavior).
  * v1.18.17 - 2026-01-22 - Ensure unique marker keys by appending stable event identifiers.
@@ -628,6 +629,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
           ? (isColorDark(markerBackground) ? '#fff' : '#1f1f1f')
           : (marker.isTodayPast ? '#424242' : '#fff');
 
+        const isMarkerInteractive = !disableTooltips || Boolean(onEventClick);
         const markerStyle = {
           position: 'absolute',
           left: x,
@@ -641,7 +643,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
           color: markerTextColor,
           border: `2px solid ${marker.isTodayPast ? '#7a7a7a' : alpha('#000', 0.32)}`,
           boxShadow: marker.isTodayPast ? 'none' : '0 4px 12px rgba(0,0,0,0.2)',
-          cursor: disableTooltips ? 'default' : 'pointer',
+          cursor: isMarkerInteractive ? 'pointer' : 'default',
           userSelect: 'none',
           opacity: marker.exiting ? 0 : 1,
           transition: `transform ${MARKER_TRANSITION_MS}ms ease-in-out, opacity ${MARKER_TRANSITION_MS}ms ease-in-out`,
@@ -706,10 +708,10 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
                 },
               },
             }}
-            style={{ pointerEvents: disableTooltips ? 'none' : 'auto' }}
+            style={{ pointerEvents: isMarkerInteractive ? 'auto' : 'none' }}
             data-t2t-event-marker-key={markerKey}
-            onMouseEnter={disableTooltips ? undefined : () => setHoveredMarkerKey(markerKey)}
-            onMouseLeave={disableTooltips ? undefined : () => setHoveredMarkerKey((prev) => (prev === markerKey ? null : prev))}
+            onMouseEnter={isMarkerInteractive ? () => setHoveredMarkerKey(markerKey) : undefined}
+            onMouseLeave={isMarkerInteractive ? () => setHoveredMarkerKey((prev) => (prev === markerKey ? null : prev)) : undefined}
             onFocus={undefined}
             onBlur={undefined}
             onClick={(() => {

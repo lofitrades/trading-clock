@@ -12,6 +12,8 @@
  * to prevent marker flicker while user types.
  *
  * Changelog:
+ * v1.3.5 - 2026-01-22 - BEP FIX: Apply currency filter to custom events. Custom events now only show when CUS is selected or no currency filter is active. Prevents N/A filter from showing custom events.
+ * v1.3.4 - 2026-01-22 - BEP: Add N/A/CUS currency filter support. Currency filtering now handles ALL (global), N/A (unknown/null), and CUS (custom events) special currency types correctly.
  * v1.3.3 - 2026-01-21 - Live subscribe to custom reminders for instant marker updates.
  * v1.3.2 - 2026-01-21 - BEP: Merge custom reminder events into clock marker data for today.
  * v1.3.1 - 2026-01-21 - FILTER SAFETY: Added client-side impact/currency/category filtering pass to guarantee events list matches active filters even when cached results return unfiltered.
@@ -126,7 +128,22 @@ export function useClockEventsData({
       return evt.id || evt.Event_ID || `${evt.title || evt.name || evt.Name || 'event'}-${epoch ?? 'na'}`;
     };
 
-    const customFiltered = (customEvents || [])
+    // BEP: Apply currency filter to custom events
+    // Custom events should only show when:
+    // 1. No currency filter is applied (show all)
+    // 2. CUS is explicitly selected in the currency filter
+    const currencies = eventFilters?.currencies || [];
+    let currencyFilteredCustom = customEvents || [];
+    if (currencies.length > 0) {
+      const normalizedFilters = currencies.map((c) => String(c).toUpperCase().trim());
+      const hasCusFilter = normalizedFilters.includes('CUS');
+      // If currency filter is active but CUS is not selected, hide all custom events
+      if (!hasCusFilter) {
+        currencyFilteredCustom = [];
+      }
+    }
+
+    const customFiltered = currencyFilteredCustom
       .filter((evt) => evt.showOnClock !== false)
       .filter((evt) => {
         if (!searchQuery) return true;
@@ -139,7 +156,7 @@ export function useClockEventsData({
     const dedupedCustom = customFiltered.filter((evt) => !existingKeys.has(eventKey(evt)));
 
     return sortEventsByTime([...(economicEvents || []), ...dedupedCustom]);
-  }, [customEvents, economicEvents, providedEvents, searchQuery]);
+  }, [customEvents, economicEvents, eventFilters?.currencies, providedEvents, searchQuery]);
 
   useEffect(() => {
     setDataKey(filterKey);
@@ -222,11 +239,41 @@ export function useClockEventsData({
             });
           }
 
+          // BEP: Handle special currencies: ALL (global), N/A (unknown/null), CUS (custom events)
           if (currencies.length > 0) {
+            const normalizedFilters = currencies.map((c) => String(c).toUpperCase().trim());
+            const hasAllFilter = normalizedFilters.includes('ALL');
+            const hasUnkFilter = normalizedFilters.includes('N/A');
+            const hasCusFilter = normalizedFilters.includes('CUS');
+            
             filtered = filtered.filter((evt) => {
               const currency = evt.currency || evt.Currency;
-              if (currency === null || currency === 'All') return true;
-              return currencies.includes(currency);
+              const isCustom = Boolean(evt.isCustom);
+              const normalizedCurrency = currency ? String(currency).toUpperCase().trim() : null;
+              
+              // CUS filter: match custom user events
+              if (hasCusFilter && isCustom) {
+                return true;
+              }
+              
+              // ALL filter: match global events (currency === 'ALL' or 'GLOBAL')
+              if (hasAllFilter && (normalizedCurrency === 'ALL' || normalizedCurrency === 'GLOBAL')) {
+                return true;
+              }
+              
+              // N/A filter: match events with null/empty/missing currency (but not custom events)
+              if (hasUnkFilter && !isCustom) {
+                if (normalizedCurrency === null || normalizedCurrency === '' || normalizedCurrency === '—' || normalizedCurrency === '-' || normalizedCurrency === 'N/A') {
+                  return true;
+                }
+              }
+              
+              // Standard currency: exact match
+              if (normalizedCurrency && normalizedFilters.includes(normalizedCurrency)) {
+                return true;
+              }
+              
+              return false;
             });
           }
           

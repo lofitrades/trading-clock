@@ -6,11 +6,17 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
+ * v2.7.21 - 2026-01-22 - BEP FIX: Pass hasCustomEvents to EventsFilters3 so CUS currency option appears when custom events exist. Added todayDateRange useMemo to scope useCustomEvents to today only. Both EventsFilters3 instances now receive hasCustomEvents prop.
+ * v2.7.20 - 2026-01-22 - BEP: Allow non-auth users to open CustomEventDialog and fill values. Auth check moved from handleOpenCustomDialog to handleSaveCustomEvent. Shows AuthModal2 when trying to save without auth.
+ * v2.7.19 - 2026-01-22 - BEP UI CONSISTENCY: Removed custom mobileHeaderAction prop. Add reminder button now uses MobileHeader's default styling for consistent UI (add, bell, avatar) across all pages including /clock. Fixes size mismatch on xs/sm breakpoints.
+ * v2.7.17 - 2026-01-22 - BEP: Replaced mobileHeaderAction prop with onOpenAddReminder prop. Add reminder button now managed by MobileHeader component globally across all pages. Removed IconButton inline rendering from PublicLayout; cleaner code and consistent add reminder UX.
+ * v2.7.16 - 2026-01-22 - BUGFIX: Sync loading state mobileHeaderAction to use IconButton (icon-only) matching ready state. Prevents flash of text button "Add" during initial page load on /clock. Both states now show consistent icon-only button with same styling.
  * v2.7.15 - 2026-01-22 - BEP: Remove box shadows from Add button across breakpoints.
  * v2.7.14 - 2026-01-22 - BEP: Match Add button font styling to filter chips.
  * v2.7.13 - 2026-01-22 - BEP: Match md+ Add button height and border color to filter chips.
  * v2.7.12 - 2026-01-22 - BEP: Match Add button styling to notification bell on all breakpoints while keeping label.
  * v2.7.11 - 2026-01-22 - BEP: Add "Add" label to reminder button on all breakpoints.
+ * v2.7.11 - 2026-01-22 - BEP: Change xs/sm mobile header Add reminder button from text+icon to icon-only (uses IconButton instead of Button). Improves mobile UX with cleaner header layout.
  * v2.7.10 - 2026-01-22 - BEP: Match xs/sm Add reminder button styling to md+ outlined button.
  * v2.7.9 - 2026-01-22 - BEP: Move xs/sm Add reminder button to mobile header, left of notifications.
  * v2.7.8 - 2026-01-22 - BEP: Align xs/sm Add reminder button below header, right-aligned with header padding.
@@ -134,7 +140,7 @@
  */
 
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Box, Typography, useMediaQuery, Button, alpha, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, useMediaQuery, Button, alpha, Tooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
@@ -150,6 +156,7 @@ import { useAuth } from './contexts/AuthContext';
 import { useFavorites } from './hooks/useFavorites';
 import { useEventNotes } from './hooks/useEventNotes';
 import useCustomEvents from './hooks/useCustomEvents';
+import { getUtcDayRangeForTimezone } from './utils/dateUtils';
 import ClockCanvas from './components/ClockCanvas';
 import ClockHandsOverlay from './components/ClockHandsOverlay';
 import SessionLabel from './components/SessionLabel';
@@ -249,11 +256,19 @@ export default function App() {
     isEventNotesLoading,
   } = useEventNotes();
 
+  // BEP: Calculate today's date range for custom events subscription
+  const todayDateRange = useMemo(() => {
+    return getUtcDayRangeForTimezone(selectedTimezone, new Date());
+  }, [selectedTimezone]);
+
   const {
+    events: customEvents,
     createEvent: createCustomEvent,
     saveEvent: saveCustomEvent,
     removeEvent: removeCustomEvent,
-  } = useCustomEvents();
+  } = useCustomEvents({ startDate: todayDateRange.startDate, endDate: todayDateRange.endDate });
+
+  const hasCustomEvents = customEvents?.length > 0;
 
   const applyThemeColor = useCallback((color) => {
     if (typeof document === 'undefined') return;
@@ -272,7 +287,6 @@ export default function App() {
   const renderSkeleton = !hasCalculatedClockSize;
   // Loader shows during initialization; auth modals render above via higher z-index
   const showLoadingScreen = (isLoading || overlayLoading || !minLoaderElapsed || !hasCalculatedClockSize);
-  const suppressInstallPrompt = showLoadingScreen || authModalOpen || settingsOpen;
 
   // showAuthCta retained for future guest CTA reuse; lint-ignore to avoid unused warning
   // eslint-disable-next-line no-unused-vars
@@ -365,13 +379,11 @@ export default function App() {
 
   // Custom event dialog handlers
   const handleOpenCustomDialog = useCallback(() => {
-    if (!isAuthenticated()) {
-      setAuthModalOpen(true);
-      return;
-    }
+    // BEP: Allow non-auth users to open the dialog and fill values
+    // Auth check happens on save (handleSaveCustomEvent)
     setCustomEditingEvent(null);
     setCustomDialogOpen(true);
-  }, [isAuthenticated]);
+  }, []);
 
   const handleEditCustomEvent = useCallback((event) => {
     setSelectedEventFromClock(null); // Close EventModal
@@ -747,7 +759,11 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  const ready = !isLoading && hasCalculatedClockSize && minLoaderElapsed;
+  // CRITICAL: ready state must include authLoading and profileLoading in dependencies.
+  // After successful auth, isLoading from useSettings() may briefly spike as user-specific settings reload.
+  // We should only block on auth loading, not settings loading, to prevent showing loading screen after auth completes.
+  // Once hasCalculatedClockSize is true and auth is done loading, we're ready to show the app.
+  const ready = !authLoading && !profileLoading && hasCalculatedClockSize && minLoaderElapsed;
 
   if (!ready) {
     return (
@@ -755,34 +771,7 @@ export default function App() {
         navItems={navItems}
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenAuth={() => setAuthModalOpen(true)}
-        mobileHeaderAction={(
-          <Tooltip title="Add reminder" placement="bottom">
-            <Button
-              onClick={handleOpenCustomDialog}
-              size="small"
-              startIcon={<AddRoundedIcon fontSize="small" />}
-              sx={{
-                height: 36,
-                borderRadius: 999,
-                border: '1px solid',
-                borderColor: 'divider',
-                bgcolor: 'background.paper',
-                color: 'text.primary',
-                textTransform: 'none',
-                fontWeight: 700,
-                fontSize: '0.8125rem',
-                px: 1.5,
-                minWidth: 0,
-                '&:hover': {
-                  bgcolor: 'action.hover',
-                },
-              }}
-              aria-label="Add custom reminder"
-            >
-              Add
-            </Button>
-          </Tooltip>
-        )}
+        onOpenAddReminder={handleOpenCustomDialog}
       >
         <Box
           className="app-container"
@@ -818,133 +807,89 @@ export default function App() {
       navItems={navItems}
       onOpenSettings={() => setSettingsOpen(true)}
       onOpenAuth={() => setAuthModalOpen(true)}
-      mobileHeaderAction={(
-        <Tooltip title="Add reminder" placement="bottom">
-          <Button
-            onClick={handleOpenCustomDialog}
-            size="small"
-            startIcon={<AddRoundedIcon fontSize="small" />}
-            sx={{
-              height: 36,
-              borderRadius: 999,
-              border: '1px solid',
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
-              color: 'text.primary',
-              textTransform: 'none',
-              fontWeight: 700,
-              fontSize: '0.8125rem',
-              px: 1.5,
-              minWidth: 0,
-              '&:hover': {
-                bgcolor: 'action.hover',
-              },
-            }}
-            aria-label="Add custom reminder"
-          >
-            Add
-          </Button>
-        </Tooltip>
-      )}
+      onOpenAddReminder={handleOpenCustomDialog}
     >
       <Box
-        ref={appContainerRef}
-        className="app-container"
         sx={{
-          flex: 1,
+          overflow: 'auto',
+          overscrollBehavior: 'contain',
           display: 'flex',
           flexDirection: 'column',
+          justifyContent: 'center',
           alignItems: 'center',
-          overflow: 'hidden',
-          backgroundColor: effectiveBackground,
+          flex: 1,
+          pb: { xs: 'calc(8 * 8px + 48px)', sm: 'calc(8 * 8px + 48px)', md: contentPaddingBottom },
+          width: '100%',
+          boxSizing: 'border-box',
         }}
       >
-        <InstallPromptCTA isBusy={suppressInstallPrompt} />
-
+        {/* Header Section: Headings (left) + Add button (right) on all breakpoints */}
         <Box
           sx={{
-            backgroundColor: effectiveBackground,
-            opacity: 1,
-            pointerEvents: 'auto',
-            transition: 'opacity 0.6s ease',
-            overflow: 'auto',
-            overscrollBehavior: 'contain',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            flex: 1,
-            pb: { xs: 'calc(8 * 8px + 48px)', sm: 'calc(8 * 8px + 48px)', md: contentPaddingBottom },
             width: '100%',
+            maxWidth: 1560,
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 1.5,
+            mb: { xs: 0.5, md: 1.25 },
+            mt: { xs: 2.5, sm: 2.5, md: 0 },
+            px: { xs: 2, sm: 2.75, md: 3.5 },
+            mx: 'auto',
             boxSizing: 'border-box',
           }}
         >
-          {/* Header Section: Headings (left) + Filters (right) on md+, stacked on xs/sm */}
+          {/* Headings - left aligned */}
           <Box
             sx={{
-              width: '100%',
-              maxWidth: 1560,
               display: 'flex',
-              flexDirection: { xs: 'column', md: 'row' },
-              alignItems: { xs: 'flex-start', md: 'flex-start' },
-              justifyContent: { xs: 'flex-start', md: 'space-between' },
-              gap: { xs: 1.5, md: 2 },
-              mb: { xs: 0.5, md: 1.25 },
-              mt: { xs: 2.5, sm: 2.5, md: 0 },
-              px: { xs: 2, sm: 2.75, md: 3.5 },
-              mx: 'auto',
-              boxSizing: 'border-box',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: 0,
+              flex: 1,
+              minWidth: 0,
             }}
           >
-            {/* Headings - left aligned on md+, centered on xs/sm */}
             <Box
               sx={{
                 display: 'flex',
-                flexDirection: 'column',
-                alignItems: { xs: 'flex-start', md: 'flex-start' },
-                gap: 0,
-                flex: { xs: 'none', md: 1 },
-                width: { xs: '100%', md: 'auto' },
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                gap: 1,
               }}
             >
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  width: '100%',
-                  gap: 1,
-                }}
-              >
-                <Typography
-                  component="h1"
-                  variant="subtitle1"
-                  sx={{
-                    fontWeight: 900,
-                    color: 'text.primary',
-                    fontSize: { xs: '0.95rem', sm: '1rem', md: '1.05rem' },
-                    mb: { xs: 0.5, sm: 0.75 },
-                    lineHeight: 1.2,
-                    textAlign: { xs: 'left', md: 'left' },
-                    flex: '1 1 auto',
-                  }}
-                >
-                  Trading Clock
-                </Typography>
-              </Box>
               <Typography
+                component="h1"
+                variant="subtitle1"
                 sx={{
-                  fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' },
-                  color: alpha(effectiveTextColor, 0.6),
-                  fontWeight: 500,
-                  letterSpacing: '0.3px',
+                  fontWeight: 900,
+                  color: 'text.primary',
+                  fontSize: { xs: '0.95rem', sm: '1rem', md: '1.05rem' },
+                  mb: { xs: 0.5, sm: 0.75 },
                   lineHeight: 1.2,
                   textAlign: { xs: 'left', md: 'left' },
+                  flex: '1 1 auto',
                 }}
               >
-                {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} | {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                Trading Clock
               </Typography>
-              {timezoneLabelActive && timezoneLabelText && (
+            </Box>
+            <Typography
+              sx={{
+                fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' },
+                color: alpha(effectiveTextColor, 0.6),
+                fontWeight: 500,
+                letterSpacing: '0.3px',
+                lineHeight: 1.2,
+                textAlign: { xs: 'left', md: 'left' },
+              }}
+            >
+              {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} | {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+            </Typography>
+            {
+              timezoneLabelActive && timezoneLabelText && (
                 <Button
                   variant="text"
                   size="small"
@@ -968,19 +913,218 @@ export default function App() {
                 >
                   {timezoneLabelText}
                 </Button>
-              )}
-            </Box>
+              )
+            }
+          </Box>
 
-            {/* EventsFilters3 + Add button row - right aligned on md+, hidden on xs/sm */}
+          {/* Add button - visible on all breakpoints in top right */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              flexShrink: 0,
+            }}
+          >
+            <Tooltip title="Add reminder" placement="bottom">
+              <Button
+                onClick={handleOpenCustomDialog}
+                size="small"
+                startIcon={<AddRoundedIcon fontSize="small" />}
+                sx={{
+                  height: 40,
+                  borderRadius: 999,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: '#fff',
+                  color: 'text.primary',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.8125rem',
+                  px: 1.25,
+                  minWidth: 0,
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                  },
+                }}
+                aria-label="Add custom reminder"
+              >
+                Add custom event
+              </Button>
+            </Tooltip>
+          </Box>
+        </Box>
+
+        {/* EventsFilters3 row - right aligned on md+, fixed at bottom on xs/sm */}
+        <Box
+          sx={{
+            display: { xs: 'none', md: 'flex' },
+            width: '100%',
+            maxWidth: 1560,
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 1.5,
+            mb: { xs: 0.5, md: 1.25 },
+            px: { xs: 2, sm: 2.75, md: 3.5 },
+            mx: 'auto',
+            boxSizing: 'border-box',
+          }}
+        >
+          <Suspense fallback={null}>
+            <EventsFilters3
+              filters={eventFilters}
+              onFiltersChange={handleFiltersChange}
+              onApply={handleApplyFilters}
+              loading={overlayLoading}
+              timezone={selectedTimezone}
+              newsSource={newsSource}
+              defaultPreset="today"
+              showDateFilter={false}
+              showSearchFilter={false}
+              centerFilters={true}
+              textColor={effectiveTextColor}
+              hasCustomEvents={hasCustomEvents}
+            />
+          </Suspense>
+        </Box>
+
+        <Box
+          component="div"
+          className="clock-elements-container"
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flex: 1,
+            width: '100%',
+            minHeight: 0,
+          }}
+        >
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: { xs: 420, sm: 480, md: 560 },
+              mx: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: { xs: 1.25, sm: 1.5 },
+            }}
+          >
+            {showHandClock && (
+              <Box
+                className="hand-clock"
+                ref={clockShellRef}
+                sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}
+              >
+                {renderSkeleton ? (
+                  <Box sx={{ width: calculatedClockSize, maxWidth: '100%', aspectRatio: '1 / 1' }} />
+                ) : (
+                  <Box
+                    className="hand-clock-wrapper"
+                    sx={{ position: 'relative', width: '100%', maxWidth: calculatedClockSize, aspectRatio: '1 / 1' }}
+                  >
+                    <ClockCanvas
+                      size={calculatedClockSize}
+                      time={currentTime}
+                      sessions={sessions}
+                      handColor={canvasHandColor}
+                      clockStyle={clockStyle}
+                      showSessionNamesInCanvas={showSessionNamesInCanvas}
+                      showPastSessionsGray={showPastSessionsGray}
+                      showClockNumbers={showClockNumbers}
+                      showClockHands={showClockHands}
+                      activeSession={activeSession}
+                      backgroundBasedOnSession={backgroundBasedOnSession}
+                      renderHandsInCanvas={false}
+                      handAnglesRef={handAnglesRef}
+                    />
+                    <ClockHandsOverlay
+                      size={calculatedClockSize}
+                      handAnglesRef={handAnglesRef}
+                      handColor={canvasHandColor}
+                      time={currentTime}
+                      showSecondsHand={showClockHands}
+                    />
+                    {showEventsOnCanvas && shouldRenderEventsOverlay ? (
+                      <Suspense fallback={null}>
+                        <ClockEventsOverlay
+                          size={calculatedClockSize}
+                          timezone={selectedTimezone}
+                          eventFilters={eventFilters}
+                          newsSource={newsSource}
+                          onEventClick={handleEventFromClockClick}
+                          onLoadingStateChange={showHandClock ? setOverlayLoading : undefined}
+                        />
+                      </Suspense>
+                    ) : null}
+                  </Box>
+                )}
+              </Box>
+            )}
+
+            {/* Enterprise Digital Clock - below canvas */}
+            {showDigitalClock && !renderSkeleton && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: { xs: 0.5, sm: 0.75 },
+                  mt: { xs: 1, sm: 1.5, md: 2 },
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontFamily: '"Roboto Mono", monospace',
+                    fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+                    fontWeight: 300,
+                    letterSpacing: '0.05em',
+                    color: 'text.primary',
+                    lineHeight: 1.1,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' },
+                    color: alpha(effectiveTextColor, 0.6),
+                    fontWeight: 400,
+                    letterSpacing: '0.3px',
+                    textTransform: 'uppercase',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </Typography>
+              </Box>
+            )}
+
+            {/* EventsFilters3 - filter controls fixed at bottom on xs/sm (above mobile AppBar), shown above clock on md+ */}
             <Suspense fallback={null}>
               <Box
                 sx={{
-                  display: { xs: 'none', md: 'flex' },
-                  justifyContent: { md: 'flex-end' },
-                  alignItems: 'center',
-                  gap: 1.5,
-                  width: { md: 'auto' },
-                  flexShrink: 0,
+                  display: { xs: 'flex', md: 'none' },
+                  position: { xs: 'fixed', md: 'static' },
+                  left: { xs: '50%', md: 'auto' },
+                  transform: { xs: 'translateX(-50%)', md: 'none' },
+                  bottom: { xs: MOBILE_BOTTOM_APPBAR_HEIGHT_PX, md: 'auto' },
+                  width: { xs: '100%', md: 'auto' },
+                  maxWidth: { xs: '100vw', md: '100%', lg: 560 },
+                  zIndex: 1401,
+                  px: { xs: 1, sm: 1.25, md: 0 },
+                  py: { xs: 0.5, sm: 0.75, md: 0 },
+                  borderTop: { xs: 'none', md: 'none' },
+                  borderColor: { xs: 'transparent', md: 'transparent' },
+                  bgcolor: { xs: 'transparent', md: 'transparent' },
+                  backdropFilter: { xs: 'none', md: 'none' },
+                  boxShadow: { xs: 'none', md: 'none' },
+                  boxSizing: 'border-box',
+                  justifyContent: { xs: 'center', md: 'flex-start' },
+                  mb: { md: 1.25 },
                 }}
               >
                 <EventsFilters3
@@ -993,223 +1137,44 @@ export default function App() {
                   defaultPreset="today"
                   showDateFilter={false}
                   showSearchFilter={false}
-                  centerFilters={false}
+                  centerFilters={true}
                   textColor={effectiveTextColor}
+                  hasCustomEvents={hasCustomEvents}
                 />
-                <Tooltip title="Add reminder" placement="bottom">
-                  <Button
-                    onClick={handleOpenCustomDialog}
-                    size="small"
-                    startIcon={<AddRoundedIcon fontSize="small" />}
-                    sx={{
-                      height: 40,
-                      borderRadius: 999,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      bgcolor: 'background.paper',
-                      color: 'text.primary',
-                      textTransform: 'none',
-                      fontWeight: 700,
-                      fontSize: '0.8125rem',
-                      px: { md: 2.25 },
-                      minWidth: 0,
-                      '&:hover': {
-                        bgcolor: 'action.hover',
-                      },
-                    }}
-                    aria-label="Add custom reminder"
-                  >
-                    Add
-                  </Button>
-                </Tooltip>
               </Box>
             </Suspense>
-          </Box>
 
-          <Box
-            component="div"
-            className="clock-elements-container"
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flex: 1,
-              width: '100%',
-              minHeight: 0,
-            }}
-          >
-            <Box
-              sx={{
-                width: '100%',
-                maxWidth: { xs: 420, sm: 480, md: 560 },
-                mx: 'auto',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: { xs: 1.25, sm: 1.5 },
-              }}
-            >
-              {showHandClock && (
-                <Box
-                  className="hand-clock"
-                  ref={clockShellRef}
-                  sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}
-                >
-                  {renderSkeleton ? (
-                    <Box sx={{ width: calculatedClockSize, maxWidth: '100%', aspectRatio: '1 / 1' }} />
-                  ) : (
-                    <Box
-                      className="hand-clock-wrapper"
-                      sx={{ position: 'relative', width: '100%', maxWidth: calculatedClockSize, aspectRatio: '1 / 1' }}
-                    >
-                      <ClockCanvas
-                        size={calculatedClockSize}
-                        time={currentTime}
-                        sessions={sessions}
-                        handColor={canvasHandColor}
-                        clockStyle={clockStyle}
-                        showSessionNamesInCanvas={showSessionNamesInCanvas}
-                        showPastSessionsGray={showPastSessionsGray}
-                        showClockNumbers={showClockNumbers}
-                        showClockHands={showClockHands}
-                        activeSession={activeSession}
-                        backgroundBasedOnSession={backgroundBasedOnSession}
-                        renderHandsInCanvas={false}
-                        handAnglesRef={handAnglesRef}
-                      />
-                      <ClockHandsOverlay
-                        size={calculatedClockSize}
-                        handAnglesRef={handAnglesRef}
-                        handColor={canvasHandColor}
-                        time={currentTime}
-                        showSecondsHand={showClockHands}
-                      />
-                      {showEventsOnCanvas && shouldRenderEventsOverlay ? (
-                        <Suspense fallback={null}>
-                          <ClockEventsOverlay
-                            size={calculatedClockSize}
-                            timezone={selectedTimezone}
-                            eventFilters={eventFilters}
-                            newsSource={newsSource}
-                            onEventClick={handleEventFromClockClick}
-                            onLoadingStateChange={showHandClock ? setOverlayLoading : undefined}
-                          />
-                        </Suspense>
-                      ) : null}
-                    </Box>
-                  )}
-                </Box>
-              )}
-
-              {/* Enterprise Digital Clock - below canvas */}
-              {showDigitalClock && !renderSkeleton && (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: { xs: 0.5, sm: 0.75 },
-                    mt: { xs: 1, sm: 1.5, md: 2 },
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontFamily: '"Roboto Mono", monospace',
-                      fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
-                      fontWeight: 300,
-                      letterSpacing: '0.05em',
-                      color: 'text.primary',
-                      lineHeight: 1.1,
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                  >
-                    {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
-                  </Typography>
-                  <Typography
-                    sx={{
-                      fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' },
-                      color: alpha(effectiveTextColor, 0.6),
-                      fontWeight: 400,
-                      letterSpacing: '0.3px',
-                      textTransform: 'uppercase',
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                  </Typography>
-                </Box>
-              )}
-
-              {/* EventsFilters3 - filter controls fixed at bottom on xs/sm (above mobile AppBar), shown above clock on md+ */}
-              <Suspense fallback={null}>
-                <Box
-                  sx={{
-                    display: { xs: 'block', md: 'none' },
-                    position: { xs: 'fixed', md: 'static' },
-                    left: { xs: 0, md: 'auto' },
-                    right: { xs: 0, md: 'auto' },
-                    bottom: { xs: MOBILE_BOTTOM_APPBAR_HEIGHT_PX, md: 'auto' },
-                    width: { xs: 'auto', md: 'auto' },
-                    maxWidth: { md: '100%', lg: 560 },
-                    zIndex: 1300,
-                    px: { xs: 1, sm: 1.25, md: 0 },
-                    py: { xs: 0.5, sm: 0.75, md: 0 },
-                    borderTop: { xs: 'none', md: 'none' },
-                    borderColor: { xs: 'transparent', md: 'transparent' },
-                    bgcolor: { xs: 'transparent', md: 'transparent' },
-                    backdropFilter: { xs: 'none', md: 'none' },
-                    boxShadow: { xs: 'none', md: 'none' },
-                    boxSizing: 'border-box',
-                    mb: { md: 1.25 },
-                  }}
-                >
-                  <EventsFilters3
-                    filters={eventFilters}
-                    onFiltersChange={handleFiltersChange}
-                    onApply={handleApplyFilters}
-                    loading={overlayLoading}
-                    timezone={selectedTimezone}
-                    newsSource={newsSource}
-                    defaultPreset="today"
-                    showDateFilter={false}
-                    showSearchFilter={false}
-                    centerFilters={true}
-                    textColor={effectiveTextColor}
-                  />
-                </Box>
-              </Suspense>
-
-              {sessionLabelActive && !renderSkeleton && (
-                <SessionLabel
-                  activeSession={activeSession}
-                  showTimeToEnd={showTimeToEnd}
-                  timeToEnd={timeToEnd}
-                  showTimeToStart={showTimeToStart}
-                  nextSession={nextSession}
-                  timeToStart={timeToStart}
-                  clockSize={calculatedClockSize}
-                  contrastTextColor={effectiveTextColor}
-                  backgroundBasedOnSession={backgroundBasedOnSession}
-                />
-              )}
-            </Box>
+            {sessionLabelActive && !renderSkeleton && (
+              <SessionLabel
+                activeSession={activeSession}
+                showTimeToEnd={showTimeToEnd}
+                timeToEnd={timeToEnd}
+                showTimeToStart={showTimeToStart}
+                nextSession={nextSession}
+                timeToStart={timeToStart}
+                clockSize={calculatedClockSize}
+                contrastTextColor={effectiveTextColor}
+                backgroundBasedOnSession={backgroundBasedOnSession}
+              />
+            )}
           </Box>
         </Box>
+      </Box>
 
-        {(hasRenderedSettingsDrawer || settingsOpen) && (
-          <Suspense fallback={null}>
-            <SettingsSidebar2
-              open={settingsOpen && !authModalOpen}
-              onClose={() => setSettingsOpen(false)}
-              onOpenAuth={handleOpenAuth}
-              onOpenContact={openContactModal}
-            />
-          </Suspense>
-        )}
+      {(hasRenderedSettingsDrawer || settingsOpen) && (
+        <Suspense fallback={null}>
+          <SettingsSidebar2
+            open={settingsOpen && !authModalOpen}
+            onClose={() => setSettingsOpen(false)}
+            onOpenAuth={handleOpenAuth}
+            onOpenContact={openContactModal}
+          />
+        </Suspense>
+      )}
 
-        {/* Event Modal - Opens when auth user clicks clock event */}
-        {selectedEventFromClock && isAuthenticated() && (
+      {/* Event Modal - Opens when auth user clicks clock event */}
+      {
+        selectedEventFromClock && isAuthenticated() && (
           <Suspense fallback={null}>
             <EventModal
               open={Boolean(selectedEventFromClock)}
@@ -1226,9 +1191,11 @@ export default function App() {
               onEditCustomEvent={handleEditCustomEvent}
             />
           </Suspense>
-        )}
+        )
+      }
 
-        {noteTarget && isAuthenticated() && (
+      {
+        noteTarget && isAuthenticated() && (
           <Suspense fallback={null}>
             <EventNotesDialog
               open={Boolean(noteTarget)}
@@ -1242,10 +1209,12 @@ export default function App() {
               error={notesError}
             />
           </Suspense>
-        )}
+        )
+      }
 
-        {/* Standalone Auth Modal - Conversion-optimized with benefits showcase */}
-        {(hasRenderedAuthModal || authModalOpen) && (
+      {/* Standalone Auth Modal - Conversion-optimized with benefits showcase */}
+      {
+        (hasRenderedAuthModal || authModalOpen) && (
           <Suspense fallback={null}>
             <AuthModal2
               open={authModalOpen}
@@ -1254,26 +1223,30 @@ export default function App() {
               redirectPath="/clock"
             />
           </Suspense>
-        )}
+        )
+      }
 
-        {contactModalOpen && (
+      {
+        contactModalOpen && (
           <Suspense fallback={null}>
             <ContactModal open={contactModalOpen} onClose={closeContactModal} />
           </Suspense>
-        )}
+        )
+      }
 
-        {/* Timezone Modal - Opens when user clicks timezone label button */}
-        <Suspense fallback={null}>
-          <TimezoneModal
-            open={timezoneModalOpen}
-            onClose={() => setTimezoneModalOpen(false)}
-            onOpenAuth={handleOpenAuth}
-            zIndex={1701}
-          />
-        </Suspense>
+      {/* Timezone Modal - Opens when user clicks timezone label button */}
+      <Suspense fallback={null}>
+        <TimezoneModal
+          open={timezoneModalOpen}
+          onClose={() => setTimezoneModalOpen(false)}
+          onOpenAuth={handleOpenAuth}
+          zIndex={1701}
+        />
+      </Suspense>
 
-        {/* Custom Event Dialog - Opens when user clicks Add button */}
-        {(customDialogOpen) && (
+      {/* Custom Event Dialog - Opens when user clicks Add button */}
+      {
+        (customDialogOpen) && (
           <Suspense fallback={null}>
             <CustomEventDialog
               open={customDialogOpen}
@@ -1285,9 +1258,8 @@ export default function App() {
               zIndexOverride={customEditingEvent ? 12003 : undefined}
             />
           </Suspense>
-        )}
-
-      </Box>
+        )
+      }
     </PublicLayout>
   );
 }

@@ -6,6 +6,8 @@
  * Relies on app-level providers to ensure AppBar stays mounted during route navigation.
  * 
  * Changelog:
+ * v1.3.3 - 2026-01-22 - BEP: Allow non-auth users to open CustomEventDialog and fill values. Auth check on save - shows AuthModal2 when trying to save without auth. Uses useAuth hook to check authentication status.
+ * v1.3.2 - 2026-01-22 - BEP REFACTOR: Mobile header now uses standalone MobileHeader component via PublicLayout. Consistent mobile UX across all pages. No changes needed in CalendarPage - MobileHeader integrated transparently.
  * v1.3.1 - 2026-01-16 - Updated trading clock navigation target to /clock for new public route.
  * v1.3.0 - 2026-01-15 - PROVIDER REFACTOR: Removed duplicate ThemeProvider, AuthProvider, SettingsProvider, BrowserRouter, and CssBaseline. These are already provided at app level in main.jsx/AppBootstrap. CalendarPageShell now only handles page-specific state (auth modal, settings, contact modal) and navigation. This fixes the "white screen flash" issue where CalendarPage remounted on navigation, breaking AppBar persistence. PublicLayout now stays mounted across route changes, ensuring consistent navigation chrome.
  * v1.2.2 - 2026-01-14 - Close settings drawer before showing AuthModal2 and hide the drawer while AuthModal2 is open on /calendar to prevent z-index overlap with the unlock CTA.
@@ -33,19 +35,23 @@ import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
 import { setupViewportCssVars } from '../app/clientEffects';
 import CalendarEmbed from './CalendarEmbed';
 import PublicLayout from './PublicLayout';
+import { useAuth } from '../contexts/AuthContext';
 
 const AuthModal2 = lazy(() => import('./AuthModal2'));
 const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
 const ContactModal = lazy(() => import('./ContactModal'));
+const CustomEventDialog = lazy(() => import('./CustomEventDialog'));
 
 export default function CalendarPage() {
     useEffect(() => {
         setupViewportCssVars();
     }, []);
 
+    const { isAuthenticated } = useAuth();
     const [authModalOpen, setAuthModalOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [contactModalOpen, setContactModalOpen] = useState(false);
+    const [customDialogOpen, setCustomDialogOpen] = useState(false);
 
     const handleOpenAuth = useCallback(() => {
         setSettingsOpen(false);
@@ -67,6 +73,25 @@ export default function CalendarPage() {
     const handleCloseContact = useCallback(() => {
         setContactModalOpen(false);
     }, []);
+
+    const handleOpenCustomDialog = useCallback(() => {
+        setCustomDialogOpen(true);
+    }, []);
+
+    const handleCloseCustomDialog = useCallback(() => {
+        setCustomDialogOpen(false);
+    }, []);
+
+    // BEP: Auth check on save - show AuthModal2 if not authenticated
+    const handleSaveCustomEvent = useCallback(() => {
+        if (!isAuthenticated()) {
+            setCustomDialogOpen(false);
+            setAuthModalOpen(true);
+            return;
+        }
+        // If authenticated, dialog will be handled by CalendarEmbed's save logic
+        setCustomDialogOpen(false);
+    }, [isAuthenticated]);
 
     const handleCloseSettings = useCallback(() => {
         setSettingsOpen(false);
@@ -116,6 +141,7 @@ export default function CalendarPage() {
                 navItems={navItems}
                 onOpenAuth={handleOpenAuth}
                 onOpenSettings={handleOpenSettings}
+                onOpenAddReminder={handleOpenCustomDialog}
             >
                 <CalendarEmbed onOpenAuth={handleOpenAuth} isCalendarRoute />
             </PublicLayout>
@@ -132,6 +158,14 @@ export default function CalendarPage() {
             </Suspense>
             <Suspense fallback={null}>
                 <ContactModal open={contactModalOpen} onClose={handleCloseContact} />
+            </Suspense>
+            <Suspense fallback={null}>
+                <CustomEventDialog
+                    open={customDialogOpen}
+                    onClose={handleCloseCustomDialog}
+                    onSave={handleSaveCustomEvent}
+                    defaultTimezone={Intl.DateTimeFormat().resolvedOptions().timeZone}
+                />
             </Suspense>
         </>
     );

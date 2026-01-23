@@ -5,6 +5,7 @@
  * Applies indexable SEO metadata and renders the exact clock UI provided by App.
  * 
  * Changelog:
+ * v1.0.1 - 2026-01-22 - BEP REFACTOR: App now renders via PublicLayout which uses standalone MobileHeader component. Mobile header consistency integrated transparently across /clock and all pages.
  * v1.0.0 - 2026-01-16 - Added public /clock wrapper with SEO metadata and App UI.
  */
 

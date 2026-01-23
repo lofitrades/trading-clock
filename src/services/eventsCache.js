@@ -13,6 +13,7 @@
  * - Multi-source support (forex-factory, mql5, fxstreet)
  * 
  * Changelog:
+ * v2.2.0 - 2026-01-22 - BEP: Add N/A/CUS currency filter support. Currency filtering now handles ALL (global), N/A (unknown/null), and CUS (custom events) special currency types.
  * v2.1.2 - 2025-12-08 - Best practice confirmed: cache persists across filter changes for performance, only refreshes when stale/outdated
  * v2.1.1 - 2025-12-08 - Fixed date calculations: always use fresh Date() on every call, added detailed logging for cache date range debugging
  * v2.1.0 - 2025-12-01 - Optimized to fetch only 14d back + 8d forward (not all events)
@@ -487,17 +488,35 @@ export async function getFilteredEvents(filters = {}) {
     if (startDate && event.date < startDate.getTime()) return false;
     if (endDate && event.date > endDate.getTime()) return false;
     
-    // Currency filter
-    // IMPORTANT: Include global events (currency === null or currency === 'All') when any currency filter is applied
-    // Global events are part of ALL currencies, so they should always appear regardless of filter
+    // BEP: Currency filter with special currency support (ALL, N/A, CUS)
     if (currencies.length > 0) {
+      const normalizedFilters = currencies.map((c) => String(c).toUpperCase().trim());
+      const hasAllFilter = normalizedFilters.includes('ALL');
+      const hasUnkFilter = normalizedFilters.includes('N/A');
+      const hasCusFilter = normalizedFilters.includes('CUS');
+      
       const eventCurrency = event.currency;
-      // Always include global events (null or 'All')
-      if (eventCurrency !== null && eventCurrency !== 'All') {
-        // Not a global event, so check if it matches any selected currency
-        if (!currencies.includes(eventCurrency)) {
-          return false;
-        }
+      const isCustom = Boolean(event.isCustom);
+      const normalizedCurrency = eventCurrency ? String(eventCurrency).toUpperCase().trim() : null;
+      
+      // CUS filter: match custom user events
+      if (hasCusFilter && isCustom) {
+        // Match - continue to next filter
+      }
+      // ALL filter: match global events
+      else if (hasAllFilter && (normalizedCurrency === 'ALL' || normalizedCurrency === 'GLOBAL')) {
+        // Match - continue to next filter
+      }
+      // N/A filter: match events with null/empty/missing currency (but not custom)
+      else if (hasUnkFilter && !isCustom && (normalizedCurrency === null || normalizedCurrency === '' || normalizedCurrency === '—' || normalizedCurrency === '-' || normalizedCurrency === 'N/A')) {
+        // Match - continue to next filter
+      }
+      // Standard currency: exact match
+      else if (normalizedCurrency && normalizedFilters.includes(normalizedCurrency)) {
+        // Match - continue to next filter
+      }
+      else {
+        return false; // No match
       }
     }
     
