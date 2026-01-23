@@ -71,8 +71,13 @@
     </script>
     
     <!-- Poppins Font for MUI (non-blocking) -->
+    <!-- Preconnect to critical origins for performance (BEP: 320ms savings each) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firebaseinstallations.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://firebase.googleapis.com" crossorigin>
+    
+    <!-- Poppins Font for MUI (non-blocking with swap for instant text visibility) -->
     <link
       rel="preload"
       as="style"
