@@ -12,12 +12,14 @@
  * - Permission requests integrated into save flow
  * 
  * Changelog:
+ * v2.2.0 - 2026-01-24 - BEP i18n migration: Added useTranslation hook, converted 35+ hardcoded strings to t() calls
  * v2.1.0 - 2026-01-23 - Limit to one reminder per event (both custom and non-custom events)
  * v2.0.0 - 2026-01-24 - Complete BEP refactor: Individual save buttons, inline scope selector, view/edit modes, Google-like cards
  */
 
 import PropTypes from 'prop-types';
 import { useMemo, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Alert,
     Box,
@@ -50,9 +52,9 @@ import { getReminderPolicyWarnings } from '../utils/remindersPolicy';
 
 const DEFAULT_REMINDER = { minutesBefore: 5, channels: { inApp: true, browser: false, push: false }, leadUnit: 'minutes', leadValue: 5 };
 const LEAD_UNIT_OPTIONS = [
-    { value: 'minutes', label: 'Minutes', max: 59, multiplier: 1 },
-    { value: 'hours', label: 'Hours', max: 23, multiplier: 60 },
-    { value: 'days', label: 'Day', max: 1, multiplier: 1440 },
+    { value: 'minutes', labelKey: 'reminders:units.minutes', max: 59, multiplier: 1 },
+    { value: 'hours', labelKey: 'reminders:units.hours', max: 23, multiplier: 60 },
+    { value: 'days', labelKey: 'reminders:units.days', max: 1, multiplier: 1440 },
 ];
 
 /**
@@ -75,6 +77,7 @@ function ReminderCard({
     onRequestBrowserPermission,
     onRequestPushPermission,
 }) {
+    const { t } = useTranslation();
     const theme = useTheme();
     const [localReminder, setLocalReminder] = useState(reminder);
     const [localScope, setLocalScope] = useState(scope);
@@ -128,10 +131,10 @@ function ReminderCard({
     const formatChannels = (rem) => {
         const channels = rem?.channels || {};
         const active = [];
-        if (channels.inApp) active.push('In-app');
-        if (channels.browser) active.push('Browser');
-        if (channels.push) active.push('Push');
-        return active.length > 0 ? active.join(', ') : 'No channels';
+        if (channels.inApp) active.push(t('reminders:channels.inApp'));
+        if (channels.browser) active.push(t('reminders:channels.browser'));
+        if (channels.push) active.push(t('reminders:channels.push'));
+        return active.length > 0 ? active.join(', ') : t('reminders:labels.noChannels');
     };
 
     const handleFieldChange = (key, value) => {
@@ -159,15 +162,15 @@ function ReminderCard({
                     allowChecked = false;
                     setPermissionNotice(
                         result === 'denied'
-                            ? 'Browser notifications are blocked. Enable them in your browser settings.'
+                            ? t('reminders:permissions.browserBlocked')
                             : result === 'unsupported'
-                                ? 'Browser notifications are not supported.'
-                                : 'Please allow browser notifications to enable this channel.'
+                                ? t('reminders:permissions.browserUnsupported')
+                                : t('reminders:permissions.browserDismissed')
                     );
                 }
             } catch {
                 allowChecked = false;
-                setPermissionNotice('Unable to request browser notification permission.');
+                setPermissionNotice(t('reminders:permissions.browserError'));
             }
         }
 
@@ -175,22 +178,22 @@ function ReminderCard({
             try {
                 const result = await onRequestPushPermission();
                 if (result === 'token-missing' || result === 'token-pending') {
-                    setPermissionNotice('Push is enabled, but the device token is still registering.');
+                    setPermissionNotice(t('reminders:permissions.pushPending'));
                 } else if (result !== 'granted') {
                     allowChecked = false;
                     setPermissionNotice(
                         result === 'auth-required'
-                            ? 'Sign in to enable push notifications.'
+                            ? t('reminders:permissions.pushAuthRequired')
                             : result === 'permission-default'
-                                ? 'Notification permission was dismissed. Allow notifications in Chrome.'
+                                ? t('reminders:permissions.pushDismissed')
                                 : result === 'missing-vapid'
-                                    ? 'Push setup is incomplete. Contact support.'
-                                    : 'Unable to enable push notifications. Check your browser settings.'
+                                    ? t('reminders:permissions.pushIncomplete')
+                                    : t('reminders:permissions.pushError')
                     );
                 }
             } catch {
                 allowChecked = false;
-                setPermissionNotice('Unable to enable push notifications.');
+                setPermissionNotice(t('reminders:permissions.pushFailure'));
             }
         }
 
@@ -215,10 +218,10 @@ function ReminderCard({
     };
 
     const scopeLabel = localScope === 'series' && seriesLabel
-        ? `All ${seriesLabel}`
+        ? t('reminders:scope.allSeries', { label: seriesLabel })
         : localScope === 'series'
-            ? 'All matching events'
-            : 'This event only';
+            ? t('reminders:scope.allMatching')
+            : t('reminders:scope.eventOnly');
 
     // View Mode - Saved Reminder
     if (isSaved && !isEditing) {
@@ -243,7 +246,7 @@ function ReminderCard({
                             <NotificationsActiveIcon sx={{ fontSize: 20, color: 'warning.main' }} />
                             <Stack direction="column" spacing={0.5}>
                                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                    {formatLeadTime(reminder)} before
+                                    {formatLeadTime(reminder)} {t('reminders:labels.before')}
                                 </Typography>
                                 <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
                                     <Chip
@@ -272,6 +275,7 @@ function ReminderCard({
                                 size="small"
                                 onClick={() => onEdit(index)}
                                 disabled={disabled}
+                                title={t('reminders:actions.edit')}
                                 sx={{
                                     color: 'primary.main',
                                     '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) },
@@ -283,6 +287,7 @@ function ReminderCard({
                                 size="small"
                                 onClick={() => onDelete(index)}
                                 disabled={disabled}
+                                title={t('reminders:actions.delete')}
                                 sx={{
                                     color: 'error.main',
                                     '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08) },
@@ -313,7 +318,7 @@ function ReminderCard({
                     {/* Lead Time Input */}
                     <Stack direction="row" spacing={1.5} alignItems="flex-start">
                         <TextField
-                            label="Lead time"
+                            label={t('reminders:labels.leadTime')}
                             type="number"
                             value={resolveLeadValue(localReminder)}
                             onChange={(e) => handleFieldChange('leadValue', Number(e.target.value))}
@@ -327,7 +332,7 @@ function ReminderCard({
                         />
                         <TextField
                             select
-                            label="Unit"
+                            label={t('reminders:labels.unit')}
                             value={resolveLeadUnit(localReminder)}
                             onChange={(e) => handleFieldChange('leadUnit', e.target.value)}
                             size="small"
@@ -341,7 +346,7 @@ function ReminderCard({
                         >
                             {LEAD_UNIT_OPTIONS.map((option) => (
                                 <MenuItem key={option.value} value={option.value}>
-                                    {option.label}
+                                    {t(option.labelKey)}
                                 </MenuItem>
                             ))}
                         </TextField>
@@ -350,7 +355,7 @@ function ReminderCard({
                     {/* Channels */}
                     <Box>
                         <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', display: 'block', mb: 0.75 }}>
-                            NOTIFICATION CHANNELS
+                            {t('reminders:sections.channels')}
                         </Typography>
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                             <FormControlLabel
@@ -362,7 +367,7 @@ function ReminderCard({
                                         size="small"
                                     />
                                 }
-                                label={<Typography variant="body2">In-app</Typography>}
+                                label={<Typography variant="body2">{t('reminders:channels.inApp')}</Typography>}
                             />
                             <FormControlLabel
                                 control={
@@ -373,7 +378,7 @@ function ReminderCard({
                                         size="small"
                                     />
                                 }
-                                label={<Typography variant="body2">Browser</Typography>}
+                                label={<Typography variant="body2">{t('reminders:channels.browser')}</Typography>}
                             />
                             <FormControlLabel
                                 control={
@@ -384,7 +389,7 @@ function ReminderCard({
                                         size="small"
                                     />
                                 }
-                                label={<Typography variant="body2">Push</Typography>}
+                                label={<Typography variant="body2">{t('reminders:channels.push')}</Typography>}
                             />
                         </Stack>
                     </Box>
@@ -393,7 +398,7 @@ function ReminderCard({
                     {seriesKey && isEditing && (
                         <Box>
                             <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', display: 'block', mb: 1 }}>
-                                APPLY TO
+                                {t('reminders:sections.applyTo')}
                             </Typography>
                             <ToggleButtonGroup
                                 value={localScope}
@@ -442,11 +447,11 @@ function ReminderCard({
                             >
                                 <ToggleButton value="event">
                                     <EventIcon />
-                                    This event only
+                                    {t('reminders:scope.eventOnly')}
                                 </ToggleButton>
                                 <ToggleButton value="series">
                                     <EventRepeatIcon />
-                                    All {seriesLabel || 'matching events'}
+                                    {t('reminders:scope.allSeries', { label: seriesLabel || t('reminders:scope.matchingEvents') })}
                                 </ToggleButton>
                             </ToggleButtonGroup>
                         </Box>
@@ -468,7 +473,7 @@ function ReminderCard({
                             disabled={disabled || isSaving}
                             sx={{ borderRadius: 999 }}
                         >
-                            Cancel
+                            {t('common:actions.cancel')}
                         </Button>
                         <Button
                             variant="contained"
@@ -478,13 +483,14 @@ function ReminderCard({
                             disabled={disabled || isSaving}
                             sx={{ borderRadius: 999 }}
                         >
-                            {isSaving ? 'Saving...' : 'Save'}
+                            {isSaving ? t('reminders:actions.saving') : t('common:actions.save')}
                         </Button>
                         {isSaved && (
                             <IconButton
                                 size="small"
                                 onClick={() => onDelete(index)}
                                 disabled={disabled || isSaving}
+                                title={t('reminders:actions.delete')}
                                 sx={{
                                     color: 'error.main',
                                     '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08) },
@@ -619,14 +625,14 @@ export default function RemindersEditor2({
                         fontWeight: 600,
                     }}
                 >
-                    Add reminder
+                    {t('reminders:actions.addReminder')}
                 </Button>
             )}
 
             {/* Empty State */}
             {!hasReminder && !isEditing && (
                 <Typography variant="body2" sx={{ color: 'text.secondary', py: 1 }}>
-                    Add a reminder to receive alerts before this event.
+                    {t('reminders:empty.noReminders')}
                 </Typography>
             )}
 
