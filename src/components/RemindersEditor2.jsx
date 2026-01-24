@@ -541,6 +541,7 @@ export default function RemindersEditor2({
     onRequestPushPermission,
     onUnsavedChanges,
 }) {
+    const { t } = useTranslation();
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
