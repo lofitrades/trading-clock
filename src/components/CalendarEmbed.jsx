@@ -714,13 +714,14 @@ const EventRow = memo(({
     nextCountdownLabel,
     isPast = false,
 }) => {
-    const name = event.name || event.Name || 'Unnamed event';
+    const { t } = useTranslation(['calendar', 'common']);
+    const name = event.name || event.Name || t('calendar:event.unnamed');
     const description = event.description || event.Description || event.summary || event.Summary || '';
 
     // BEP: Use pre-computed metadata from _displayCache to avoid per-row calculations
     const { actual: actualValue, forecast, previous, epochMs: eventEpochMs, strengthValue, relativeLabel } = event._displayCache || {};
 
-    const nextTooltip = eventEpochMs ? relativeLabel : 'Upcoming event';
+    const nextTooltip = eventEpochMs ? relativeLabel : t('calendar:event.upcoming');
     const favorite = isFavorite ? isFavorite(event) : false;
     const favoritePending = isFavoritePending ? isFavoritePending(event) : false;
 
@@ -927,9 +928,9 @@ const EventRow = memo(({
                         ) : null}
                     </Box>
                     {isNow ? (
-                        <Tooltip title="Event in progress">
+                        <Tooltip title={t('calendar:badges.eventInProgress')}>
                             <Chip
-                                label="NOW"
+                                label={t('calendar:badges.now')}
                                 size="small"
                                 sx={{
                                     bgcolor: (theme) => alpha(theme.palette.info.main, 0.12),
@@ -947,9 +948,9 @@ const EventRow = memo(({
                         </Tooltip>
                     ) : null}
                     {isNext ? (
-                        <Tooltip title={`In: ${nextCountdownLabel || nextTooltip}`}>
+                        <Tooltip title={t('calendar:badges.nextCountdown', { time: nextCountdownLabel || nextTooltip })}>
                             <Chip
-                                label="NEXT"
+                                label={t('calendar:badges.next')}
                                 size="small"
                                 sx={{
                                     bgcolor: (theme) => alpha(theme.palette.success.main, 0.12),
@@ -2418,7 +2419,7 @@ export default function CalendarEmbed({
                         sx={{ borderRadius: 2 }}
                         action={permissionError && onOpenAuth && !user ? (
                             <Button color="inherit" size="small" onClick={onOpenAuth}>
-                                Sign in
+                                {t('common:auth.signIn')}
                             </Button>
                         ) : null}
                     >
@@ -2436,7 +2437,7 @@ export default function CalendarEmbed({
                     {visibleDayKeys.length === 0 ? (
                         <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                             <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                Select a date range to view events.
+                                {t('calendar:empty.selectDateRange')}
                             </Typography>
                         </Paper>
                     ) : (
@@ -2482,7 +2483,7 @@ export default function CalendarEmbed({
                             fontSize: '0.75rem',
                         }}
                     >
-                        {lastUpdatedLabel ? `Updated ${lastUpdatedLabel}` : 'Awaiting first sync'}
+                        {lastUpdatedLabel ? t('calendar:sync.updated', { time: lastUpdatedLabel }) : t('calendar:sync.awaitingSync')}
                     </Typography>
                 </Stack>
             </Paper>
