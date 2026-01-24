@@ -17,6 +17,7 @@
  * - Accessibility compliant
  * 
  * Changelog:
+ * v1.11.0 - 2026-01-30 - BEP i18n migration: Added useTranslation hook, converted 8 column headers (COLUMNS), 5 impact labels (IMPACT_CONFIG), and associated strings to t() calls for calendar namespace
  * v1.10.2 - 2026-01-24 - Phase 2 prep: File header updated, scheduled for i18n migration (requires memoized column header component for t() integration)
  * v1.10.1 - 2026-01-16 - Default auth redirect to /calendar instead of /app for the public clock route.
  * v1.10.0 - 2026-01-16 - Show GPT all-day/tentative time labels when available.
@@ -52,6 +53,7 @@
 
 import React, { useState, useMemo, useCallback, memo, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Paper,
@@ -111,14 +113,14 @@ import { resolveImpactMeta } from '../utils/newsApi';
  * Table columns configuration
  */
 const COLUMNS = [
-  { id: 'action', label: '', labelExpanded: '', sortable: false, align: 'center' },
-  { id: 'time', label: 'Time', labelExpanded: 'Time', sortable: true, align: 'left' },
-  { id: 'currency', label: 'Cur', labelExpanded: 'Cur', sortable: true, align: 'center' },
-  { id: 'impact', label: 'Imp', labelExpanded: 'Imp', sortable: true, align: 'center' },
-  { id: 'name', label: 'Event Name', labelExpanded: 'Event Name', sortable: true, align: 'left' },
-  { id: 'actual', label: 'A', labelExpanded: 'Actual', sortable: false, align: 'center' },
-  { id: 'forecast', label: 'F', labelExpanded: 'Forecast', sortable: false, align: 'center' },
-  { id: 'previous', label: 'P', labelExpanded: 'Previous', sortable: false, align: 'center' },
+  { id: 'action', label: '', labelExpanded: '', labelKey: '', sortable: false, align: 'center' },
+  { id: 'time', label: 'Time', labelExpanded: 'Time', labelKey: 'calendar:table.headers.time', sortable: true, align: 'left' },
+  { id: 'currency', label: 'Cur', labelExpanded: 'Cur', labelKey: 'calendar:table.headers.currency', sortable: true, align: 'center' },
+  { id: 'impact', label: 'Imp', labelExpanded: 'Imp', labelKey: 'calendar:table.headers.impact', sortable: true, align: 'center' },
+  { id: 'name', label: 'Event Name', labelExpanded: 'Event Name', labelKey: 'calendar:table.headers.event', sortable: true, align: 'left' },
+  { id: 'actual', label: 'A', labelExpanded: 'Actual', labelKey: 'calendar:table.headers.actual', sortable: false, align: 'center' },
+  { id: 'forecast', label: 'F', labelExpanded: 'Forecast', labelKey: 'calendar:table.headers.forecast', sortable: false, align: 'center' },
+  { id: 'previous', label: 'P', labelExpanded: 'Previous', labelKey: 'calendar:table.headers.previous', sortable: false, align: 'center' },
 ];
 
 /**
@@ -143,12 +145,12 @@ const CURRENCY_TO_COUNTRY = {
  * Impact configuration
  */
 const IMPACT_CONFIG = {
-  strong: { icon: '!!!', label: 'High' },
-  moderate: { icon: '!!', label: 'Medium' },
-  weak: { icon: '!', label: 'Low' },
-  'not-loaded': { icon: '?', label: 'Data Not Loaded' },
-  'non-economic': { icon: '~', label: 'Non-Economic' },
-  unknown: { icon: '?', label: 'Unknown' },
+  strong: { icon: '!!!', label: 'High', labelKey: 'calendar:impact.high.label' },
+  moderate: { icon: '!!', label: 'Medium', labelKey: 'calendar:impact.medium.label' },
+  weak: { icon: '!', label: 'Low', labelKey: 'calendar:impact.low.label' },
+  'not-loaded': { icon: '?', label: 'Data Not Loaded', labelKey: 'calendar:impact.notLoaded.label' },
+  'non-economic': { icon: '~', label: 'Non-Economic', labelKey: 'calendar:impact.nonEconomic.label' },
+  unknown: { icon: '?', label: 'Unknown', labelKey: 'calendar:impact.unknown.label' },
 };
 
 const SPEECH_TITLE_REGEX = /(speaks|remarks|address|testifies|statement|press conference|hearing|meeting|vote)/i;
@@ -435,6 +437,7 @@ export default function EventsTable({
 }) {
   const theme = useTheme();
   const { user } = useAuth();
+  const { t } = useTranslation(['calendar', 'common']);
   // Force the compact mobile layout for all breakpoints
   const isMobile = true;
 
@@ -896,10 +899,10 @@ export default function EventsTable({
                       direction={orderBy === column.id ? order : 'asc'}
                       onClick={() => handleSort(column.id)}
                     >
-                      {column.label}
+                      {column.labelKey ? t(column.labelKey) : column.label}
                     </TableSortLabel>
                   ) : (
-                    column.label
+                    column.labelKey ? t(column.labelKey) : column.label
                   )}
                 </TableCell>
               ))}
@@ -1136,7 +1139,7 @@ export default function EventsTable({
                                   {column.id === 'action' && (
                                     <Stack direction="row" spacing={0.25} alignItems="center" justifyContent="center">
                                       <MuiTooltip
-                                        title={isEventNotesLoading(event) ? 'Loading notes...' : (hasEventNotes(event) ? 'View notes' : 'Add note')}
+                                        title={isEventNotesLoading(event) ? t('calendar:tooltip.loadingNotes') : (hasEventNotes(event) ? t('calendar:tooltip.viewNotes') : t('calendar:tooltip.addNote'))}
                                         arrow
                                         placement="top"
                                       >
@@ -1169,7 +1172,7 @@ export default function EventsTable({
                                       </MuiTooltip>
 
                                       <MuiTooltip
-                                        title={favoritesLoading ? 'Loading favorites...' : (isFavoriteEvent(event) ? 'Remove from favorites' : 'Save to favorites')}
+                                        title={favoritesLoading ? t('calendar:tooltip.loadingFavorites') : (isFavoriteEvent(event) ? t('calendar:tooltip.removeFromFavorites') : t('calendar:tooltip.saveToFavorites'))}
                                         arrow
                                         placement="top"
                                       >
@@ -1284,7 +1287,7 @@ export default function EventsTable({
               }}
             >
               <MuiTooltip
-                title={`${hasNow ? 'Scroll to Now Event' : 'Scroll to Next Event'} ${isNextAbove ? '(Above)' : '(Below)'}`}
+                title={`${hasNow ? t('calendar:tooltip.scrollToNow') : t('calendar:tooltip.scrollToNext')} ${isNextAbove ? t('calendar:tooltip.above') : t('calendar:tooltip.below')}`}
                 arrow
                 placement="left"
               >
