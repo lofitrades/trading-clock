@@ -18,6 +18,7 @@
  * - Fully responsive: wraps on xs/sm, single-row on md+
  * 
  * Changelog:
+ * v1.3.45 - 2026-01-29 - BEP i18n migration: Added useTranslation hook, replaced 40+ hardcoded strings with t() calls for filter namespace (date presets, impact labels, chip summaries, popover headers, action buttons)
  * v1.3.44 - 2026-01-22 - BEP FIX: selectAllImpacts now uses IMPACT_LEVELS.map() to get all 5 impact values (Strong Data, Moderate Data, Weak Data, Data Not Loaded, Non-Economic) instead of hardcoded ['high','medium','low']. Fixed disabled condition to check against IMPACT_LEVELS.length.
  * v1.3.43 - 2026-01-22 - BEP UX: Added 'Select All' button next to 'Clear' in currency and impact filter popovers. Allows quick selection of all options with one click.
  * v1.3.41 - 2026-01-22 - BEP UX: N/A currency option now displays as 'UNKNOWN' instead of 'N/A' in chip summary and popover list for clarity.
@@ -75,6 +76,7 @@
 
 import PropTypes from 'prop-types';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Chip,
@@ -111,23 +113,23 @@ import AuthModal2 from './AuthModal2';
 // ============================================================================
 
 const DATE_PRESETS = [
-  { key: 'today', label: 'Today', icon: '📅' },
-  { key: 'tomorrow', label: 'Tomorrow', icon: '📆' },
-  { key: 'thisWeek', label: 'This Week', icon: '🗓️' },
-  { key: 'nextWeek', label: 'Next Week', icon: '📅' },
-  { key: 'thisMonth', label: 'This Month', icon: '📆' },
+  { key: 'today', labelKey: 'filter:datePresets.today', icon: '📅' },
+  { key: 'tomorrow', labelKey: 'filter:datePresets.tomorrow', icon: '📆' },
+  { key: 'thisWeek', labelKey: 'filter:datePresets.thisWeek', icon: '🗓️' },
+  { key: 'nextWeek', labelKey: 'filter:datePresets.nextWeek', icon: '📅' },
+  { key: 'thisMonth', labelKey: 'filter:datePresets.thisMonth', icon: '📆' },
 ];
 
 const IMPACT_LEVELS = [
-  { value: 'Strong Data', label: 'High', icon: '!!!' },
-  { value: 'Moderate Data', label: 'Medium', icon: '!!' },
-  { value: 'Weak Data', label: 'Low', icon: '!' },
-  { value: 'Data Not Loaded', label: 'Unknown', icon: '?' },
-  { value: 'Non-Economic', label: 'Non-Eco', icon: '~' },
+  { value: 'Strong Data', labelKey: 'filter:impacts.strongData', icon: '!!!' },
+  { value: 'Moderate Data', labelKey: 'filter:impacts.moderateData', icon: '!!' },
+  { value: 'Weak Data', labelKey: 'filter:impacts.weakData', icon: '!' },
+  { value: 'Data Not Loaded', labelKey: 'filter:impacts.dataNotLoaded', icon: '?' },
+  { value: 'Non-Economic', labelKey: 'filter:impacts.nonEconomic', icon: '~' },
 ];
 
 const impactLabelMap = IMPACT_LEVELS.reduce((acc, curr) => {
-  acc[curr.value] = curr.label;
+  acc[curr.value] = curr.labelKey;
   return acc;
 }, {});
 
@@ -297,6 +299,7 @@ export default function EventsFilters3({
   hasCustomEvents = false,
 }) {
   const { user } = useAuth();
+  const { t } = useTranslation(['filter', 'events', 'common']);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [localFilters, setLocalFilters] = useState({
     startDate: null,
@@ -677,22 +680,22 @@ export default function EventsFilters3({
 
   const showResetInline = hasActiveFilters && !anchorOpen;
 
-  const dateLabel = activePreset ? `${activePreset.icon} ${activePreset.label}` : 'Date Range';
+  const dateLabel = activePreset ? `${activePreset.icon} ${t(activePreset.labelKey)}` : t('filter:labels.dateRange');
 
-  const resetLabel = 'Reset filters';
+  const resetLabel = t('filter:actions.reset');
 
   const impactsLabel = useMemo(() => {
-    if (!localFilters.impacts?.length) return 'All impacts';
+    if (!localFilters.impacts?.length) return t('filter:summaries.allImpacts');
     if (localFilters.impacts.length <= 2) {
-      return localFilters.impacts.map((i) => impactLabelMap[i] || i).join(', ');
+      return localFilters.impacts.map((i) => t(impactLabelMap[i]) || i).join(', ');
     }
-    return `${localFilters.impacts.length} impacts`;
+    return t('filter:summaries.impactCount', { count: localFilters.impacts.length });
   }, [localFilters.impacts]);
 
   const impactSummaryColors = useMemo(() => getImpactSummaryColors(localFilters.impacts), [localFilters.impacts]);
 
   const currencyLabel = useMemo(() => {
-    if (!localFilters.currencies?.length) return 'All currencies';
+    if (!localFilters.currencies?.length) return t('filter:summaries.allCurrencies');
     const first = localFilters.currencies[0];
     const upperFirst = String(first).toUpperCase();
     const isAllCurrency = upperFirst === CURRENCY_ALL;
@@ -720,9 +723,9 @@ export default function EventsFilters3({
 
     // Determine display label
     let displayLabel = first;
-    if (isAllCurrency) displayLabel = 'ALL';
-    else if (isUnkCurrency) displayLabel = 'N/A';
-    else if (isCusCurrency) displayLabel = 'CUSTOM';
+    if (isAllCurrency) displayLabel = t('filter:currency.all');
+    else if (isUnkCurrency) displayLabel = t('filter:currency.unknown');
+    else if (isCusCurrency) displayLabel = t('filter:currency.custom');
 
     if (localFilters.currencies.length === 1) {
       return (
@@ -739,7 +742,7 @@ export default function EventsFilters3({
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
         {flag}
         <Typography variant="body2" fontWeight={700} component="span">
-          {`${localFilters.currencies.length} currencies`}
+          {t('filter:summaries.currencyCount', { count: localFilters.currencies.length })}
         </Typography>
       </Box>
     );
@@ -770,7 +773,7 @@ export default function EventsFilters3({
     >
       <Stack spacing={1.25}>
         <Typography variant="subtitle1" fontWeight={800}>
-          Date Range
+          {t('filter:labels.dateRange')}
         </Typography>
         <Stack direction="column" spacing={0.75} sx={{ width: 'fit-content', maxWidth: '100%', mx: 'auto' }}>
           {DATE_PRESETS.map((preset) => {
@@ -781,7 +784,7 @@ export default function EventsFilters3({
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <span>{preset.icon}</span>
-                    <span>{preset.label}</span>
+                    <span>{t(preset.labelKey)}</span>
                   </Box>
                 }
                 color={isActive ? 'primary' : 'default'}
@@ -821,7 +824,7 @@ export default function EventsFilters3({
     >
       <Stack spacing={1.25}>
         <Typography variant="subtitle1" fontWeight={800}>
-          Impact Levels
+          {t('filter:labels.impacts')}
         </Typography>
         <Box
           sx={{
@@ -838,7 +841,7 @@ export default function EventsFilters3({
             {['Strong Data', 'Moderate Data', 'Weak Data'].map((impactValue) => (
               <Chip
                 key={impactValue}
-                label={`${impactIconMap[impactValue] || ''} ${impactLabelMap[impactValue] || impactValue}`.trim()}
+                label={`${impactIconMap[impactValue] || ''} ${t(impactLabelMap[impactValue]) || impactValue}`.trim()}
                 color="default"
                 variant={localFilters.impacts.includes(impactValue) ? 'filled' : 'outlined'}
                 onClick={() => toggleImpact(impactValue)}
@@ -873,7 +876,7 @@ export default function EventsFilters3({
             {['Non-Economic', 'Data Not Loaded'].map((impactValue) => (
               <Chip
                 key={impactValue}
-                label={`${impactIconMap[impactValue] || ''} ${impactLabelMap[impactValue] || impactValue}`.trim()}
+                label={`${impactIconMap[impactValue] || ''} ${t(impactLabelMap[impactValue]) || impactValue}`.trim()}
                 color="default"
                 variant={localFilters.impacts.includes(impactValue) ? 'filled' : 'outlined'}
                 onClick={() => toggleImpact(impactValue)}
@@ -912,7 +915,7 @@ export default function EventsFilters3({
               sx={{ textTransform: 'none' }}
               disabled={localFilters.impacts.length === IMPACT_LEVELS.length}
             >
-              Select All
+              {t('filter:actions.selectAll')}
             </Button>
             <Button
               size="small"
@@ -921,11 +924,11 @@ export default function EventsFilters3({
               sx={{ textTransform: 'none' }}
               disabled={!localFilters.impacts.length}
             >
-              Clear
+              {t('filter:actions.clear')}
             </Button>
           </Stack>
           <Button onClick={() => setAnchorImpactPos(null)} size="small" sx={{ textTransform: 'none' }}>
-            Close
+            {t('common:actions.close')}
           </Button>
         </Stack>
       </Stack>
@@ -957,12 +960,12 @@ export default function EventsFilters3({
     >
       <Stack spacing={1.25}>
         <Typography variant="subtitle1" fontWeight={800}>
-          Currencies
+          {t('filter:labels.currencies')}
         </Typography>
         {optionsLoading ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CircularProgress size={18} />
-            <Typography variant="body2">Loading currencies...</Typography>
+            <Typography variant="body2">{t('filter:currency.loading')}</Typography>
           </Box>
         ) : (
           <Box
@@ -1004,9 +1007,9 @@ export default function EventsFilters3({
 
               // Determine display label
               let displayLabel = currency;
-              if (isAllCurrency) displayLabel = 'ALL';
-              else if (isUnkCurrency) displayLabel = 'N/A';
-              else if (isCusCurrency) displayLabel = 'CUSTOM';
+              if (isAllCurrency) displayLabel = t('filter:currency.all');
+              else if (isUnkCurrency) displayLabel = t('filter:currency.unknown');
+              else if (isCusCurrency) displayLabel = t('filter:currency.custom');
 
               return (
                 <Chip
@@ -1028,7 +1031,7 @@ export default function EventsFilters3({
             })}
             {currencies.length === 0 && (
               <Typography variant="body2" color="text.secondary">
-                No currencies available.
+                {t('filter:currency.noCurrencies')}
               </Typography>
             )}
           </Box>
@@ -1042,7 +1045,7 @@ export default function EventsFilters3({
               sx={{ textTransform: 'none' }}
               disabled={localFilters.currencies.length === currencies.length}
             >
-              Select All
+              {t('filter:actions.selectAll')}
             </Button>
             <Button
               size="small"
@@ -1051,11 +1054,11 @@ export default function EventsFilters3({
               sx={{ textTransform: 'none' }}
               disabled={!localFilters.currencies.length}
             >
-              Clear
+              {t('filter:actions.clear')}
             </Button>
           </Stack>
           <Button onClick={() => setAnchorCurrencyPos(null)} size="small" sx={{ textTransform: 'none' }}>
-            Close
+            {t('common:actions.close')}
           </Button>
         </Stack>
       </Stack>
