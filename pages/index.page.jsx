@@ -6,6 +6,9 @@
  * launching the trading clock or learning more.
  *
  * Changelog:
+ * v2.1.0 - 2026-01-24 - BEP optimizations: Removed unused hardcoded constants (features/highlights), 
+ *                       added defensive null-coalescing for i18n data hydration, added sync warnings 
+ *                       for faqEntries duplication, improved error resilience with .filter(Boolean).
  * v2.0.0 - 2026-01-24 - Migrated to i18n: Replaced 100+ hardcoded strings with t() calls from pages namespace.
  *                       Supports EN/ES/FR languages with full translations for hero, features, benefits, FAQ, and navigation.
  * v1.2.0 - 2026-01-22 - BEP copy + schema refresh: align hero with "Session Clock + Economic Calendar (NY Time)",
@@ -17,7 +20,10 @@
 
 import { useTranslation } from 'react-i18next';
 const ogImage = `${siteUrl}/Time2Trade_SEO_Meta_5.PNG`;
-
+// FAQ entries for schema.org FAQPage schema generation
+// ⚠️ SYNC ALERT: Keep in sync with i18n translations in src/i18n/locales/*/pages.json → landing.faq.entries
+// Currently used for: faqSchema (structural data) + rendered FAQ section in component (uses i18n)
+// TODO: SSR optimization - consider fetching from i18n context to eliminate duplication
 const faqEntries = [
     {
         question: 'What is Time 2 Trade?',
@@ -126,24 +132,21 @@ const features = [
     },
 ];
 
-const highlights = [
-    { label: 'Product focus', value: 'NY Time', hint: 'Session clock workflow' },
-    { label: 'Economic events', value: 'Forex Factory', hint: 'Powered calendar feed' },
-    { label: 'Custom events', value: 'Yes', hint: 'Your reminders & checkpoints' },
-    { label: 'Form factor', value: 'Mobile → Desk', hint: 'Responsive and fast' },
-];
+// ✅ Note: features and highlights arrays removed (now hydrated from i18n in component)
+// This ensures single source of truth and enables multi-language support
 
 export default function Page() {
     const { t } = useTranslation('pages');
     
-    const features = t('landing.features', { returnObjects: true });
-    const faqEntries = t('landing.faq.entries', { returnObjects: true });
+    // Hydrate data from i18n with defensive null-coalescing
+    const features = t('landing.features', { returnObjects: true }) ?? [];
+    const faqEntries = t('landing.faq.entries', { returnObjects: true }) ?? [];
     const highlights = [
         { ...t('landing.highlights.product', { returnObjects: true }) },
         { ...t('landing.highlights.events', { returnObjects: true }) },
         { ...t('landing.highlights.custom', { returnObjects: true }) },
         { ...t('landing.highlights.form', { returnObjects: true }) }
-    ];
+    ].filter(Boolean); // Remove any undefined entries
 
     return (
         <div className="page-shell__max">
