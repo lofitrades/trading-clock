@@ -306,18 +306,20 @@ const SlideTransition = React.forwardRef(function Transition(props, ref) {
 /**
  * Impact Badge Component
  */
-const ImpactBadge = memo(({ impact }) => {
+const ImpactBadge = memo(({ impact, label, description }) => {
   const config = getImpactConfig(impact);
+  const displayLabel = label || config.label;
+  const displayDescription = description || config.description;
 
   return (
     <MuiTooltip
       title={
         <Box sx={{ p: 0.5 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
-            {config.label}
+            {displayLabel}
           </Typography>
           <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.4 }}>
-            {config.description}
+            {displayDescription}
           </Typography>
         </Box>
       }
@@ -358,7 +360,7 @@ const ImpactBadge = memo(({ impact }) => {
               {config.icon}
             </Box>
             <Box sx={{ fontWeight: 600 }}>
-              {config.label}
+              {displayLabel}
             </Box>
           </Box>
         }
@@ -382,19 +384,23 @@ const ImpactBadge = memo(({ impact }) => {
 ImpactBadge.displayName = 'ImpactBadge';
 ImpactBadge.propTypes = {
   impact: PropTypes.string.isRequired,
+  label: PropTypes.string,
+  description: PropTypes.string,
 };
 
 /**
  * Currency Flag Component
  */
-const CurrencyFlag = memo(({ currency }) => {
+const CurrencyFlag = memo(({ currency, affectsMessage, impactMessage }) => {
   const countryCode = getCurrencyFlag(currency);
   const currencyName = CURRENCY_NAMES[currency] || currency;
+  const affectsText = affectsMessage || 'Economic data affects this currency';
+  const impactText = impactMessage || `This event impacts ${currency} valuation`;
 
   if (!countryCode) {
     return (
       <MuiTooltip
-        title={`${currencyName} - Economic data affects this currency`}
+        title={`${currencyName} - ${affectsText}`}
         arrow
         placement="top"
         enterTouchDelay={100}
@@ -450,7 +456,7 @@ const CurrencyFlag = memo(({ currency }) => {
             {currencyName}
           </Typography>
           <Typography variant="caption" sx={{ fontSize: '0.75rem', opacity: 0.8, display: 'block', mt: 0.5 }}>
-            This event impacts {currency} valuation
+            {impactText}
           </Typography>
         </Box>
       }
@@ -524,6 +530,8 @@ const CurrencyFlag = memo(({ currency }) => {
 CurrencyFlag.displayName = 'CurrencyFlag';
 CurrencyFlag.propTypes = {
   currency: PropTypes.string.isRequired,
+  affectsMessage: PropTypes.string,
+  impactMessage: PropTypes.string,
 };
 
 /**
@@ -1490,7 +1498,11 @@ function EventModal({
                   <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
                     {/* Impact Badge - Hidden for custom events with Unknown impact */}
                     {customImpactValue && customImpactValue !== 'unknown' && (
-                      <ImpactBadge impact={customImpactValue} />
+                      <ImpactBadge 
+                        impact={customImpactValue}
+                        label={t(`events:impacts.${customImpactValue === 'strong' ? 'highImpact' : customImpactValue === 'moderate' ? 'mediumImpact' : customImpactValue === 'weak' ? 'lowImpact' : 'unknown'}`)}
+                        description={t(`events:impacts.${customImpactValue === 'strong' ? 'highImpactDesc' : customImpactValue === 'moderate' ? 'mediumImpactDesc' : customImpactValue === 'weak' ? 'lowImpactDesc' : 'unknownDesc'}`)}
+                      />
                     )}
                     {/* Custom Event Type Chip */}
                     <Chip
@@ -1709,9 +1721,24 @@ function EventModal({
                       gap: 1.5,
                     }}
                   >
-                    <ImpactBadge impact={currentEvent.strength || currentEvent.impact} />
+                    {(() => {
+                      const config = getImpactConfig(currentEvent.strength || currentEvent.impact);
+                      return (
+                        <ImpactBadge 
+                          impact={currentEvent.strength || currentEvent.impact}
+                          label={config.labelKey ? t(config.labelKey) : undefined}
+                          description={config.descriptionKey ? t(config.descriptionKey) : undefined}
+                        />
+                      );
+                    })()}
 
-                    {currentEvent.currency && <CurrencyFlag currency={currentEvent.currency} />}
+                    {currentEvent.currency && (
+                      <CurrencyFlag 
+                        currency={currentEvent.currency}
+                        affectsMessage={t('events:tooltips.currencyAffects')}
+                        impactMessage={t('events:tooltips.eventImpactsCurrency', { currency: currentEvent.currency })}
+                      />
+                    )}
 
                     {currentEvent.category && (
                       <MuiTooltip
