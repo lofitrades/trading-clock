@@ -3,8 +3,9 @@
  * 
  * Purpose: Live-preview friendly settings drawer that keeps the canvas visible while users tweak general, session, and account preferences.
  * Inspired by modern app shells (Airbnb/ChatGPT) with quick toggles, sectional pills, and responsive cards that mirror existing settings logic.
- * 
+ *
  * Changelog:
+ * v2.0.0 - 2026-01-24 - BEP: Complete i18n migration - replaced 56 hardcoded strings with useTranslation hook; navigation, toggles, forms, modals all localized (EN/ES/FR).
  * v1.3.11 - 2026-01-22 - BEP: Improve settings dialog UI with rounded drawer corners, refined shadow, and elevated header styling.
  * v1.3.10 - 2026-01-21 - Removed fullscreen toggle control from settings header.
  * v1.3.9 - 2026-01-21 - Add manual JBlanked Forex Factory range sync button for superadmins.
@@ -38,6 +39,7 @@
 
 import PropTypes from 'prop-types';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
 	Alert,
 	Avatar,
@@ -75,12 +77,6 @@ import SwitchComponent from './Switch';
 import TimezoneSelector from './TimezoneSelector';
 import { useCallback } from 'react';
 import { aboutContent } from '../content/aboutContent';
-
-const navItems = [
-	{ key: 'general', label: 'General', icon: <SettingsRoundedIcon fontSize="small" /> },
-	{ key: 'session', label: 'Sessions', icon: <AccessTimeRoundedIcon fontSize="small" /> },
-	{ key: 'about', label: 'About', icon: <InfoRoundedIcon fontSize="small" /> },
-];
 
 function SectionCard({ title, subtitle, children, dense }) {
 	return (
@@ -145,6 +141,14 @@ function SettingRow({ label, description, children, helperText, dense }) {
 }
 
 export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenContact }) {
+	const { t } = useTranslation(['settings', 'common']);
+
+	const navItems = [
+		{ key: 'general', label: t('settings:navigation.general'), icon: <SettingsRoundedIcon fontSize="small" /> },
+		{ key: 'session', label: t('settings:navigation.sessions'), icon: <AccessTimeRoundedIcon fontSize="small" /> },
+		{ key: 'about', label: t('settings:navigation.about'), icon: <InfoRoundedIcon fontSize="small" /> },
+	];
+
 	const { user, hasRole } = useAuth();
 	const {
 		sessions,
@@ -395,7 +399,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 	const quickToggles = (
 		<SectionCard dense>
 			<Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.4, color: 'text.secondary' }}>
-				Visibility
+				{t('settings:general.visibility.title')}
 			</Typography>
 			<Paper
 				elevation={0}
@@ -420,10 +424,10 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 				>
 					<Box sx={{ flex: 1, minWidth: 0 }}>
 						<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
-							Analog Hand Clock
+							{t('settings:general.visibility.analogClock.label')}
 						</Typography>
 						<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-							Analog with sessions
+							{t('settings:general.visibility.analogClock.description')}
 						</Typography>
 					</Box>
 					<SwitchComponent checked={showHandClock} onChange={() => handleToggle(toggleShowHandClock)} />
@@ -461,10 +465,10 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 						>
 							<Box sx={{ flex: 1, minWidth: 0 }}>
 								<Typography variant="body2" sx={{ fontWeight: 600 }}>
-									Events on canvas
+									{t('settings:general.visibility.eventsOnCanvas.label')}
 								</Typography>
 								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-									Display economic event markers on the analog face
+									{t('settings:general.visibility.eventsOnCanvas.description')}
 								</Typography>
 							</Box>
 							<SwitchComponent
@@ -487,10 +491,10 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 						>
 							<Box sx={{ flex: 1, minWidth: 0 }}>
 								<Typography variant="body2" sx={{ fontWeight: 600 }}>
-									Session names
+									{t('settings:general.visibility.sessionNames.label')}
 								</Typography>
 								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-									Display session names curved along the session donuts
+									{t('settings:general.visibility.sessionNames.description')}
 								</Typography>
 							</Box>
 							<SwitchComponent
@@ -513,10 +517,10 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 						>
 							<Box sx={{ flex: 1, minWidth: 0 }}>
 								<Typography variant="body2" sx={{ fontWeight: 600 }}>
-									Gray past sessions
+									{t('settings:general.visibility.pastSessionsGray.label')}
 								</Typography>
 								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-									Dim session donuts that have already ended today
+									{t('settings:general.visibility.pastSessionsGray.description')}
 								</Typography>
 							</Box>
 							<SwitchComponent
@@ -539,10 +543,10 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 						>
 							<Box sx={{ flex: 1, minWidth: 0 }}>
 								<Typography variant="body2" sx={{ fontWeight: 600 }}>
-									Numbers
+									{t('settings:general.visibility.clockNumbers.label')}
 								</Typography>
 								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-									Display 1-12 clock numbers on the analog face
+									{t('settings:general.visibility.clockNumbers.description')}
 								</Typography>
 							</Box>
 							<SwitchComponent
@@ -565,10 +569,10 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 						>
 							<Box sx={{ flex: 1, minWidth: 0 }}>
 								<Typography variant="body2" sx={{ fontWeight: 600 }}>
-									Seconds Hand
+									{t('settings:general.visibility.secondsHand.label')}
 								</Typography>
 								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-									Display seconds hand on the clock (hour and minute hands always visible)
+									{t('settings:general.visibility.secondsHand.description')}
 								</Typography>
 							</Box>
 							<SwitchComponent
@@ -592,10 +596,10 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 				>
 					<Box sx={{ flex: 1, minWidth: 0 }}>
 						<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
-							Digital Clock
+							{t('settings:general.visibility.digitalClock.label')}
 						</Typography>
 						<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-							Readable digits
+							{t('settings:general.visibility.digitalClock.description')}
 						</Typography>
 					</Box>
 					<SwitchComponent checked={showDigitalClock} onChange={() => handleToggle(toggleShowDigitalClock)} />
@@ -709,7 +713,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 
 			<SectionCard>
 				<Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.4, color: 'text.secondary', display: 'block', mb: 1 }}>
-					Background
+					{t('settings:general.background.title')}
 				</Typography>
 				<Paper
 					elevation={0}
@@ -722,8 +726,8 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 				>
 					<Box sx={{ px: 1.75, py: 1.25 }}>
 						<SettingRow
-							label="Session-based Background"
-							description="Automatically shift background color to match the active session"
+							label={t('settings:general.background.sessionBased.label')}
+							description={t('settings:general.background.sessionBased.description')}
 						>
 							<SwitchComponent
 								checked={backgroundBasedOnSession}
@@ -741,7 +745,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 					onClick={() => setShowResetConfirmModal(true)}
 					sx={{ textTransform: 'none', borderRadius: 2, px: 3, py: 1.25 }}
 				>
-					Reset to Default Settings
+					{t('settings:general.resetButton')}
 				</Button>
 			</Box>
 		</>
@@ -750,11 +754,11 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 	const renderSessionSection = (
 		<>
 			<SectionCard
-				title="Session schedule"
-				subtitle="Edit your trading sessions. Auth is required to sync changes."
+				title={t('settings:sessions.title')}
+				subtitle={t('settings:sessions.subtitle')}
 			>
 				<Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.4, color: 'text.secondary', display: 'block', mb: 1 }}>
-					Sessions
+					{t('settings:sessions.sectionLabel')}
 				</Typography>
 				<Paper
 					elevation={0}
@@ -1307,7 +1311,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 					open={showResetConfirmModal}
 					onClose={() => setShowResetConfirmModal(false)}
 					onConfirm={handleResetSettings}
-					title="Reset to Default Settings?"
+					title={t('settings:modals.confirmReset')}
 					message="This will reset all settings including sessions, colors, and preferences to their default values. This action cannot be undone."
 					confirmText="Reset Settings"
 					cancelText="Cancel"
@@ -1318,8 +1322,8 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 					open={showClearSessionConfirm}
 					onClose={handleCancelClearSession}
 					onConfirm={handleConfirmClearSession}
-					title="Clear this session?"
-					message="This will clear the name, start, end, and color fields for this session. Continue?"
+					title={t('settings:modals.clearSession')}
+					message={t('settings:modals.clearSessionInfo')}
 					confirmText="Clear session"
 					cancelText="Cancel"
 				/>
@@ -1329,7 +1333,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 					open={showLogoutConfirmModal}
 					onClose={() => setShowLogoutConfirmModal(false)}
 					onConfirm={handleLogout}
-					title="Log out?"
+					title={t('settings:account.logoutConfirm')}
 					message="Are you sure you want to log out? You'll need to sign in again to access your saved settings."
 					confirmText="Log out"
 					cancelText="Cancel"
