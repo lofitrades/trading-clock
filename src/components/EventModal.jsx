@@ -17,6 +17,7 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v2.2.0 - 2026-01-24 - BEP i18n migration: Added useTranslation hook, converted IMPACT_CONFIG to labelKey pattern, replaced 35+ hardcoded strings with t() calls for events namespace
  * v2.1.0 - 2026-01-23 - BEP: Enable series reminders for recurring custom events. seriesKey now returns custom-series:${seriesId} for recurring custom events, allowing "Apply to all occurrences" functionality.
  * v2.0.0 - 2026-01-24 - BEP MAJOR REFACTOR: Migrated to RemindersEditor2 with Google-like UI. Individual save/cancel buttons per reminder, inline scope selector, view/edit modes, immediate deletion. Removed global save/reset buttons. Max 3 reminders per event.
  * v1.13.17 - 2026-01-24 - BEP FIX: RemindersEditor v1.6.1 - Restored missing if (isSaved) conditional that prevented new reminders from showing edit options. Formatter had removed the conditional check, causing all reminders to render as read-only.
@@ -69,6 +70,7 @@
 
 import React, { useMemo, useState, useEffect, memo } from 'react';
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogTitle,
@@ -170,33 +172,33 @@ const CURRENCY_NAMES = {
 const IMPACT_CONFIG = {
   strong: {
     icon: '!!!',
-    label: 'High Impact',
-    description: 'Major market-moving event that typically causes significant volatility and price action'
+    labelKey: 'events:impacts.highImpact',
+    descriptionKey: 'events:impacts.highImpactDesc'
   },
   moderate: {
     icon: '!!',
-    label: 'Medium Impact',
-    description: 'Notable event that can influence market direction with moderate price movements'
+    labelKey: 'events:impacts.mediumImpact',
+    descriptionKey: 'events:impacts.mediumImpactDesc'
   },
   weak: {
     icon: '!',
-    label: 'Low Impact',
-    description: 'Minor event with limited market impact and minimal expected volatility'
+    labelKey: 'events:impacts.lowImpact',
+    descriptionKey: 'events:impacts.lowImpactDesc'
   },
   'not-loaded': {
     icon: '?',
-    label: 'Data Not Loaded',
-    description: 'Impact data not yet available; will update when feed loads'
+    labelKey: 'events:impacts.dataNotLoaded',
+    descriptionKey: 'events:impacts.dataNotLoadedDesc'
   },
   'non-economic': {
     icon: '~',
-    label: 'Non-Economic',
-    description: 'Non-economic event or announcement with indirect market influence'
+    labelKey: 'events:impacts.nonEconomic',
+    descriptionKey: 'events:impacts.nonEconomicDesc'
   },
   unknown: {
     icon: '?',
-    label: 'Unknown',
-    description: 'Impact level not yet classified or unavailable'
+    labelKey: 'events:impacts.unknown',
+    descriptionKey: 'events:impacts.unknownDesc'
   },
 };
 
@@ -232,7 +234,6 @@ const getImpactConfig = (impact) => {
     ...base,
     color: meta.color,
     icon: base.icon || meta.icon,
-    label: base.label || meta.label,
   };
 };
 
@@ -677,6 +678,7 @@ function EventModal({
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const fullScreen = isMobile;
   const { user } = useAuth();
+  const { t } = useTranslation(['events', 'common']);
 
   // Centralized reminder actions hook
   const {
@@ -1432,7 +1434,7 @@ function EventModal({
 
           {/* Edit Button (Custom Events Only) */}
           {currentEvent.isCustom && onEditCustomEvent && (
-            <MuiTooltip title="Edit reminder" arrow placement="bottom">
+            <MuiTooltip title={t('events:modal.actions.editReminder')} arrow placement="bottom">
               <IconButton
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1607,7 +1609,7 @@ function EventModal({
                       Visibility
                     </Typography>
                     <Chip
-                      label={currentEvent.showOnClock !== false ? 'Visible on clock' : 'Hidden from clock'}
+                      label={currentEvent.showOnClock !== false ? t('events:modal.custom.visibleOnClock') : t('events:modal.custom.hiddenFromClock')}
                       size="small"
                       color={currentEvent.showOnClock !== false ? 'success' : 'default'}
                       sx={{ fontWeight: 600 }}
@@ -1637,12 +1639,12 @@ function EventModal({
                     />
                     {remindersDisabled && (
                       <Alert severity="info" sx={{ borderRadius: 2, mt: 1.5 }}>
-                        Sign in to save reminders across devices.
+                        {t('events:modal.reminders.signInRequired')}
                       </Alert>
                     )}
                     {!remindersDisabled && !reminderBase && (
                       <Alert severity="info" sx={{ borderRadius: 2, mt: 1.5 }}>
-                        Reminder details are still loading. Reopen this event if Save stays disabled.
+                        {t('events:modal.reminders.detailsLoading')}
                       </Alert>
                     )}
                     {reminderError && (
@@ -1658,7 +1660,7 @@ function EventModal({
                     {showReminderDebug && (
                       <Alert severity="info" sx={{ borderRadius: 2, mt: 1.5 }}>
                         <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, mb: 0.5 }}>
-                          Reminder Debug
+                          {t('events:modal.debug.reminderDebug')}
                         </Typography>
                         <Typography variant="caption" sx={{ display: 'block' }}>
                           Event key: {reminderBase?.eventKey || '—'}
@@ -1962,7 +1964,7 @@ function EventModal({
                         }}
                       >
                         <Chip
-                          label="Past Event"
+                          label={t('events:modal.economic.pastEvent')}
                           size="small"
                           sx={{
                             height: 24,
@@ -2230,18 +2232,18 @@ function EventModal({
                     }}
                   >
                     <DataValueBox
-                      label="Actual"
+                      label={t('events:modal.economic.actual')}
                       value={actualValue}
                       isPrimary={true}
                       loading={refreshingEvent}
                     />
                     <DataValueBox
-                      label="Forecast"
+                      label={t('events:modal.economic.forecast')}
                       value={currentEvent.forecast === '-' ? '—' : currentEvent.forecast}
                       loading={refreshingEvent}
                     />
                     <DataValueBox
-                      label="Previous"
+                      label={t('events:modal.economic.previous')}
                       value={currentEvent.previous === '-' ? '—' : currentEvent.previous}
                       loading={refreshingEvent}
                     />
@@ -2276,8 +2278,8 @@ function EventModal({
                     }}
                   >
                     <InfoOutlinedIcon sx={{ fontSize: 18 }} />
-                    About This Event
-                    <EnhancedTooltip title="Comprehensive overview of what this economic indicator measures and why it matters">
+                    {t('events:modal.economic.aboutTitle')}
+                    <EnhancedTooltip title={t('events:tooltips.aboutDescription')}>
                       <HelpOutlineIcon
                         sx={{
                           fontSize: { xs: 14, sm: 16 },
@@ -2328,8 +2330,8 @@ function EventModal({
                       letterSpacing: 0.5,
                     }}
                   >
-                    💡 Trading Implication
-                    <EnhancedTooltip title="How this event typically impacts markets and trading strategies to consider">
+                    💡 {t('events:modal.economic.tradingImplicationTitle')}
+                    <EnhancedTooltip title={t('events:tooltips.tradingImplication')}>
                       <HelpOutlineIcon
                         sx={{
                           fontSize: { xs: 14, sm: 16 },
@@ -2379,8 +2381,8 @@ function EventModal({
                       gap: 0.75,
                     }}
                   >
-                    📊 Key Thresholds
-                    <EnhancedTooltip title="Critical levels that trigger significant market reactions and volatility">
+                    📊 {t('events:modal.economic.keyThresholdsTitle')}
+                    <EnhancedTooltip title={t('events:tooltips.keyThresholds')}>
                       <HelpOutlineIcon
                         sx={{
                           fontSize: { xs: 14, sm: 16 },
@@ -2473,8 +2475,8 @@ function EventModal({
                             letterSpacing: 0.5,
                           }}
                         >
-                          Frequency
-                          <EnhancedTooltip title="How often this economic indicator is released">
+                          {t('events:modal.economic.frequency')}
+                          <EnhancedTooltip title={t('events:tooltips.frequency')}>
                             <HelpOutlineIcon
                               sx={{
                                 fontSize: 12,
@@ -2513,8 +2515,8 @@ function EventModal({
                             letterSpacing: 0.5,
                           }}
                         >
-                          Source
-                          <EnhancedTooltip title="Official organization that publishes this data">
+                          {t('events:modal.economic.source')}
+                          <EnhancedTooltip title={t('events:tooltips.source')}>
                             <HelpOutlineIcon
                               sx={{
                                 fontSize: 12,
@@ -2577,8 +2579,8 @@ function EventModal({
                               letterSpacing: 0.5,
                             }}
                           >
-                            Outcome
-                            <EnhancedTooltip title="Market sentiment and directional bias based on the event result">
+                            {t('events:modal.economic.outcome')}
+                            <EnhancedTooltip title={t('events:tooltips.outcome')}>
                               <HelpOutlineIcon
                                 sx={{
                                   fontSize: 12,
