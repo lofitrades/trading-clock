@@ -17,6 +17,7 @@
  * - Accessibility compliant
  * 
  * Changelog:
+ * v1.10.2 - 2026-01-24 - Phase 2 prep: File header updated, scheduled for i18n migration (requires memoized column header component for t() integration)
  * v1.10.1 - 2026-01-16 - Default auth redirect to /calendar instead of /app for the public clock route.
  * v1.10.0 - 2026-01-16 - Show GPT all-day/tentative time labels when available.
    * v1.9.9 - 2026-01-08 - Render table row skeletons during filter-triggered loading with page-sized (capped) skeleton count for fast, stable UX.
