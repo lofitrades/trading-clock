@@ -1,41 +1,112 @@
 {
-  "title": "Paramètres",
-  "clock": {
-    "title": "Paramètres de l'Horloge",
-    "size": "Taille de l'Horloge",
-    "style": "Style de l'Horloge",
-    "showDigital": "Afficher l'Horloge Numérique",
-    "showHand": "Afficher l'Horloge Analogique",
-    "showLabels": "Afficher les Étiquettes de Session",
-    "showCountdown": "Afficher le Temps Restant"
+  "navigation": {
+    "general": "Général",
+    "sessions": "Sessions",
+    "about": "À Propos"
+  },
+  "general": {
+    "visibility": {
+      "title": "Visibilité",
+      "analogClock": {
+        "label": "Horloge Analogique",
+        "description": "Analogique avec sessions"
+      },
+      "digitalClock": {
+        "label": "Horloge Numérique",
+        "description": "Affichage 24 heures"
+      },
+      "clockNumbers": {
+        "label": "Afficher les Nombres",
+        "description": "Afficher les nombres sur le cadran de l'horloge"
+      },
+      "clockHands": {
+        "label": "Aiguille des Secondes",
+        "description": "Afficher l'aiguille des secondes"
+      },
+      "eventsOnCanvas": {
+        "label": "Événements sur le canevas",
+        "description": "Afficher les marqueurs d'événements économiques sur le cadran"
+      },
+      "sessionNames": {
+        "label": "Noms des sessions",
+        "description": "Afficher les noms des sessions en arc de cercle sur les donuts de session"
+      },
+      "sessionLabel": {
+        "label": "Étiquette de session",
+        "description": "Afficher le nom de la session actuelle"
+      },
+      "timeToStart": {
+        "label": "Temps jusqu'au début",
+        "description": "Afficher le compte à rebours jusqu'à la prochaine session"
+      },
+      "timeToEnd": {
+        "label": "Temps jusqu'à la fin",
+        "description": "Afficher le temps restant dans la session actuelle"
+      },
+      "pastSessionsGray": {
+        "label": "Sessions passées en gris",
+        "description": "Afficher les sessions complétées en gris"
+      },
+      "timezoneLabel": {
+        "label": "Étiquette de fuseau horaire",
+        "description": "Afficher le fuseau horaire actuel"
+      }
+    },
+    "background": {
+      "title": "Arrière-Plan",
+      "sessionBased": {
+        "label": "Arrière-plan Basé sur la Session",
+        "description": "Changer automatiquement la couleur d'arrière-plan pour correspondre à la session active"
+      }
+    },
+    "resetButton": "Réinitialiser les Paramètres par Défaut"
   },
   "sessions": {
-    "title": "Séances de Trading",
-    "customize": "Personnaliser les Séances",
-    "enabled": "Activé",
-    "timezone": "Fuseau Horaire",
-    "openTime": "Heure d'Ouverture",
-    "closeTime": "Heure de Fermeture"
+    "title": "Calendrier des sessions",
+    "subtitle": "Modifiez vos sessions de trading. L'authentification est requise pour synchroniser les modifications.",
+    "sectionLabel": "Sessions",
+    "sessionLabel": "Session {{number}}",
+    "clearButtonLabel": "Effacer la session {{number}}",
+    "form": {
+      "nameLabel": "Nom",
+      "namePlaceholder": "Nom Session {{number}}",
+      "startTimeLabel": "Heure de Début",
+      "endTimeLabel": "Heure de Fin",
+      "deleteConfirm": "Supprimer cette session ?"
+    }
   },
-  "notifications": {
-    "title": "Notifications",
-    "enabled": "Activer les Notifications",
-    "eventAlerts": "Alertes d'Événements",
-    "sessionReminders": "Rappels de Séance",
-    "customReminders": "Rappels Personnalisés"
-  },
-  "display": {
-    "title": "Affichage",
-    "theme": "Thème",
-    "light": "Clair",
-    "dark": "Sombre",
-    "fontSize": "Taille de la Police"
+  "about": {
+    "title": "À Propos"
   },
   "account": {
     "title": "Compte",
-    "email": "Email",
-    "profile": "Profil",
-    "logout": "Déconnexion",
-    "deleteAccount": "Supprimer le Compte"
+    "logoutConfirm": "Se déconnecter et perdre les paramètres locaux ?",
+    "logoutButton": "Se Déconnecter"
+  },
+  "admin": {
+    "syncWeekNFS": "Synchroniser la Semaine NFS",
+    "syncActualsJBlanked": "Synchroniser les Données de JBlanked",
+    "syncForexFactory": "Remplir Forex Factory",
+    "confirmSyncNFS": "Synchroniser cette semaine depuis NFS maintenant ? Cela peut prendre quelques secondes.",
+    "confirmSyncActuals": "Synchroniser les données d'aujourd'hui depuis JBlanked (toutes les sources) ? Cela peut prendre quelques secondes.",
+    "confirmSyncForexFactory": "Remplir les événements de Forex Factory depuis le 01/01/26 ? Cela peut prendre plusieurs minutes.",
+    "successSyncNFS": "Calendrier hebdomadaire NFS synchronisé.",
+    "successSyncActuals": "Données de JBlanked synchronisées.",
+    "successSyncForexFactory": "Événements de Forex Factory remplis depuis le 01/01/26.",
+    "errorSyncNFS": "Erreur lors de la synchronisation de la semaine NFS.",
+    "errorSyncActuals": "Erreur lors de la synchronisation des données de JBlanked.",
+    "errorSyncForexFactory": "Erreur lors du remplissage des événements de Forex Factory."
+  },
+  "modals": {
+    "confirmReset": "Réinitialiser tous les paramètres aux valeurs par défaut ?",
+    "clearSession": "Effacer la session {{number}} ?",
+    "clearSessionInfo": "Cela réinitialisera le nom de la session, l'heure de début et l'heure de fin.",
+    "contact": "Avez-vous des questions ? Contactez-nous"
+  },
+  "errors": {
+    "minimumToggle": "Au moins l'un des éléments principaux de l'horloge doit être activé."
+  },
+  "footer": {
+    "contactLink": "Avez-vous des questions ? Contactez-nous"
   }
 }

@@ -1,41 +1,112 @@
 {
-  "title": "Configuración",
-  "clock": {
-    "title": "Configuración del Reloj",
-    "size": "Tamaño del Reloj",
-    "style": "Estilo del Reloj",
-    "showDigital": "Mostrar Reloj Digital",
-    "showHand": "Mostrar Reloj Analógico",
-    "showLabels": "Mostrar Etiquetas de Sesión",
-    "showCountdown": "Mostrar Tiempo Restante"
+  "navigation": {
+    "general": "General",
+    "sessions": "Sesiones",
+    "about": "Acerca de"
+  },
+  "general": {
+    "visibility": {
+      "title": "Visibilidad",
+      "analogClock": {
+        "label": "Reloj Analógico",
+        "description": "Analógico con sesiones"
+      },
+      "digitalClock": {
+        "label": "Reloj Digital",
+        "description": "Pantalla de 24 horas"
+      },
+      "clockNumbers": {
+        "label": "Mostrar Números",
+        "description": "Mostrar números en la esfera del reloj"
+      },
+      "clockHands": {
+        "label": "Manecilla de Segundos",
+        "description": "Mostrar la manecilla de segundos"
+      },
+      "eventsOnCanvas": {
+        "label": "Eventos en el lienzo",
+        "description": "Mostrar marcadores de eventos económicos en la esfera"
+      },
+      "sessionNames": {
+        "label": "Nombres de sesiones",
+        "description": "Mostrar nombres de sesiones curvados en los donuts de sesión"
+      },
+      "sessionLabel": {
+        "label": "Etiqueta de sesión",
+        "description": "Mostrar el nombre de la sesión actual"
+      },
+      "timeToStart": {
+        "label": "Tiempo hasta inicio",
+        "description": "Mostrar cuenta regresiva hacia la próxima sesión"
+      },
+      "timeToEnd": {
+        "label": "Tiempo hasta fin",
+        "description": "Mostrar tiempo restante en la sesión actual"
+      },
+      "pastSessionsGray": {
+        "label": "Sesiones pasadas en gris",
+        "description": "Mostrar sesiones completadas en gris"
+      },
+      "timezoneLabel": {
+        "label": "Etiqueta de zona horaria",
+        "description": "Mostrar zona horaria actual"
+      }
+    },
+    "background": {
+      "title": "Fondo",
+      "sessionBased": {
+        "label": "Fondo Basado en Sesión",
+        "description": "Cambiar automáticamente el color de fondo para coincidir con la sesión activa"
+      }
+    },
+    "resetButton": "Restablecer Configuración Predeterminada"
   },
   "sessions": {
-    "title": "Sesiones de Trading",
-    "customize": "Personalizar Sesiones",
-    "enabled": "Habilitado",
-    "timezone": "Zona Horaria",
-    "openTime": "Hora de Apertura",
-    "closeTime": "Hora de Cierre"
+    "title": "Horario de sesiones",
+    "subtitle": "Edita tus sesiones de negociación. Se requiere autenticación para sincronizar cambios.",
+    "sectionLabel": "Sesiones",
+    "sessionLabel": "Sesión {{number}}",
+    "clearButtonLabel": "Limpiar sesión {{number}}",
+    "form": {
+      "nameLabel": "Nombre",
+      "namePlaceholder": "Nombre Sesión {{number}}",
+      "startTimeLabel": "Hora de Inicio",
+      "endTimeLabel": "Hora de Cierre",
+      "deleteConfirm": "¿Eliminar esta sesión?"
+    }
   },
-  "notifications": {
-    "title": "Notificaciones",
-    "enabled": "Habilitar Notificaciones",
-    "eventAlerts": "Alertas de Eventos",
-    "sessionReminders": "Recordatorios de Sesión",
-    "customReminders": "Recordatorios Personalizados"
-  },
-  "display": {
-    "title": "Pantalla",
-    "theme": "Tema",
-    "light": "Claro",
-    "dark": "Oscuro",
-    "fontSize": "Tamaño de Fuente"
+  "about": {
+    "title": "Acerca de"
   },
   "account": {
     "title": "Cuenta",
-    "email": "Correo Electrónico",
-    "profile": "Perfil",
-    "logout": "Cerrar Sesión",
-    "deleteAccount": "Eliminar Cuenta"
+    "logoutConfirm": "¿Cerrar sesión y perder configuración local?",
+    "logoutButton": "Cerrar Sesión"
+  },
+  "admin": {
+    "syncWeekNFS": "Sincronizar Semana NFS",
+    "syncActualsJBlanked": "Sincronizar Datos de JBlanked",
+    "syncForexFactory": "Rellenar Forex Factory",
+    "confirmSyncNFS": "¿Sincronizar esta semana desde NFS ahora? Esto puede tomar algunos segundos.",
+    "confirmSyncActuals": "¿Sincronizar datos de hoy desde JBlanked (todas las fuentes)? Esto puede tomar algunos segundos.",
+    "confirmSyncForexFactory": "¿Rellenar eventos de Forex Factory desde 01/01/26? Esto puede tomar varios minutos.",
+    "successSyncNFS": "Horario semanal NFS sincronizado.",
+    "successSyncActuals": "Datos de JBlanked sincronizados.",
+    "successSyncForexFactory": "Eventos de Forex Factory rellenados desde 01/01/26.",
+    "errorSyncNFS": "Error al sincronizar semana NFS.",
+    "errorSyncActuals": "Error al sincronizar datos de JBlanked.",
+    "errorSyncForexFactory": "Error al rellenar eventos de Forex Factory."
+  },
+  "modals": {
+    "confirmReset": "¿Restablecer toda la configuración a valores predeterminados?",
+    "clearSession": "¿Limpiar sesión {{number}}?",
+    "clearSessionInfo": "Esto restablecerá el nombre de sesión, hora de inicio y hora de cierre.",
+    "contact": "¿Tienes preguntas? Contáctanos"
+  },
+  "errors": {
+    "minimumToggle": "Al menos uno de los elementos principales del reloj debe estar habilitado."
+  },
+  "footer": {
+    "contactLink": "¿Tienes preguntas? Contáctanos"
   }
 }

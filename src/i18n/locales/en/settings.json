@@ -1,41 +1,112 @@
 {
-  "title": "Settings",
-  "clock": {
-    "title": "Clock Settings",
-    "size": "Clock Size",
-    "style": "Clock Style",
-    "showDigital": "Show Digital Clock",
-    "showHand": "Show Hand Clock",
-    "showLabels": "Show Session Labels",
-    "showCountdown": "Show Time Remaining"
+  "navigation": {
+    "general": "General",
+    "sessions": "Sessions",
+    "about": "About"
+  },
+  "general": {
+    "visibility": {
+      "title": "Visibility",
+      "analogClock": {
+        "label": "Analog Hand Clock",
+        "description": "Analog with sessions"
+      },
+      "digitalClock": {
+        "label": "Digital Clock",
+        "description": "24-hour time display"
+      },
+      "clockNumbers": {
+        "label": "Show Numbers",
+        "description": "Display numbers on the clock face"
+      },
+      "clockHands": {
+        "label": "Seconds Hand",
+        "description": "Display the seconds hand"
+      },
+      "eventsOnCanvas": {
+        "label": "Events on canvas",
+        "description": "Display economic event markers on the analog face"
+      },
+      "sessionNames": {
+        "label": "Session names",
+        "description": "Display session names curved along the session donuts"
+      },
+      "sessionLabel": {
+        "label": "Session label",
+        "description": "Display the current session name"
+      },
+      "timeToStart": {
+        "label": "Time to start",
+        "description": "Show countdown to next session"
+      },
+      "timeToEnd": {
+        "label": "Time to end",
+        "description": "Show time remaining in current session"
+      },
+      "pastSessionsGray": {
+        "label": "Gray past sessions",
+        "description": "Display completed sessions in gray"
+      },
+      "timezoneLabel": {
+        "label": "Timezone label",
+        "description": "Display current timezone"
+      }
+    },
+    "background": {
+      "title": "Background",
+      "sessionBased": {
+        "label": "Session-based Background",
+        "description": "Automatically shift background color to match the active session"
+      }
+    },
+    "resetButton": "Reset to Default Settings"
   },
   "sessions": {
-    "title": "Trading Sessions",
-    "customize": "Customize Sessions",
-    "enabled": "Enabled",
-    "timezone": "Timezone",
-    "openTime": "Open Time",
-    "closeTime": "Close Time"
+    "title": "Session schedule",
+    "subtitle": "Edit your trading sessions. Auth is required to sync changes.",
+    "sectionLabel": "Sessions",
+    "sessionLabel": "Session {{number}}",
+    "clearButtonLabel": "Clear session {{number}}",
+    "form": {
+      "nameLabel": "Name",
+      "namePlaceholder": "Session {{number}} Name",
+      "startTimeLabel": "Start Time",
+      "endTimeLabel": "End Time",
+      "deleteConfirm": "Delete this session?"
+    }
   },
-  "notifications": {
-    "title": "Notifications",
-    "enabled": "Enable Notifications",
-    "eventAlerts": "Event Alerts",
-    "sessionReminders": "Session Reminders",
-    "customReminders": "Custom Reminders"
-  },
-  "display": {
-    "title": "Display",
-    "theme": "Theme",
-    "light": "Light",
-    "dark": "Dark",
-    "fontSize": "Font Size"
+  "about": {
+    "title": "About"
   },
   "account": {
     "title": "Account",
-    "email": "Email",
-    "profile": "Profile",
-    "logout": "Log Out",
-    "deleteAccount": "Delete Account"
+    "logoutConfirm": "Logout and lose local settings?",
+    "logoutButton": "Logout"
+  },
+  "admin": {
+    "syncWeekNFS": "Sync NFS Week",
+    "syncActualsJBlanked": "Sync JBlanked Actuals",
+    "syncForexFactory": "Backfill Forex Factory",
+    "confirmSyncNFS": "Sync this week from NFS now? This may take a few seconds.",
+    "confirmSyncActuals": "Sync today's actuals from JBlanked (all sources)? This may take a few seconds.",
+    "confirmSyncForexFactory": "Backfill Forex Factory events since 01/01/26? This may take several minutes.",
+    "successSyncNFS": "Synced NFS weekly schedule.",
+    "successSyncActuals": "Synced JBlanked actuals.",
+    "successSyncForexFactory": "Backfilled Forex Factory events since 01/01/26.",
+    "errorSyncNFS": "Failed to sync NFS week.",
+    "errorSyncActuals": "Failed to sync JBlanked actuals.",
+    "errorSyncForexFactory": "Failed to backfill Forex Factory events."
+  },
+  "modals": {
+    "confirmReset": "Reset all settings to defaults?",
+    "clearSession": "Clear session {{number}}?",
+    "clearSessionInfo": "This will reset session name, start, and end times.",
+    "contact": "Have questions? Contact us"
+  },
+  "errors": {
+    "minimumToggle": "At least one of the main clock elements must be enabled."
+  },
+  "footer": {
+    "contactLink": "Have questions? Contact us"
   }
 }
