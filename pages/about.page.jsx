@@ -1,56 +1,87 @@
 /**
  * pages/about.page.jsx
- * 
+ *
  * Purpose: Prerendered About page for Time 2 Trade with semantic content,
  * structured data, and lean markup for SEO and accessibility.
- * 
+ *
  * Changelog:
+ * v1.2.0 - 2026-01-22 - Updated positioning to match BEP SEO: Session Clock + Forex Factory-powered economic calendar (NY time),
+ *                       added custom events + notifications pillars, removed “overlaps/PWA install/JBlanked” claims, added /calendar CTAs,
+ *                       expanded structured data (WebPage + WebApplication).
  * v1.1.0 - 2026-01-16 - Updated /clock CTAs and refreshed About meta title/description.
  * v1.0.0 - 2025-12-18 - Initial SSR About page implementation.
  */
 
-
 const siteUrl = 'https://time2.trade';
 const ogImage = `${siteUrl}/Time2Trade_SEO_Meta_5.PNG`;
 
-const aboutSchema = {
+const aboutWebPageSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: 'About Time 2 Trade',
     url: `${siteUrl}/about`,
     description:
-        'Time 2 Trade helps futures and forex day traders track global sessions, overlay economic events, and stay aligned across timezones.',
+        'Time 2 Trade is an intraday timing workspace for futures and forex day traders: a NY-time session clock with countdowns plus a Forex Factory-powered economic calendar, custom events, and notifications.',
     primaryImageOfPage: ogImage,
+    isPartOf: { '@type': 'WebSite', name: 'Time 2 Trade', url: siteUrl },
     publisher: { '@type': 'Organization', name: 'Lofi Trades', url: siteUrl },
+};
+
+const aboutAppSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'Time 2 Trade',
+    applicationCategory: 'FinanceApplication',
+    operatingSystem: 'Web',
+    isAccessibleForFree: true,
+    url: siteUrl,
+    image: ogImage,
+    description:
+        'A New York time-first intraday timing workspace for futures and forex day traders: session countdowns + a Forex Factory-powered economic calendar with impact/currency filters, custom events, and notifications. Built for awareness, not trading signals.',
+    creator: { '@type': 'Organization', name: 'Lofi Trades', url: siteUrl },
+    featureList: [
+        'Session clock with New York time-first session awareness and countdowns',
+        'Forex Factory-powered economic calendar for scheduled releases',
+        'Fast filters for impact, currency, and search',
+        'Custom events for personal timing windows and reminders',
+        'Notifications for upcoming events (where supported)',
+        'Favorites and personal notes for authenticated users',
+        'Designed for intraday awareness and event-avoidance (not trading signals)',
+    ],
+    screenshot: ogImage,
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const documentProps = {
-    title: 'About Time 2 Trade | Trading Clock for Futures & Forex',
+    title: 'About Time 2 Trade | Session Clock + Forex Factory Calendar (NY Time)',
     description:
-        'Time 2 Trade: a lightweight trading clock + economic calendar for futures and forex day traders. Visualize sessions, overlaps, and economic events with timezone-aware countdowns and fast PWA install.',
+        'Why Time 2 Trade exists: a NY-time-first session clock with countdowns plus a Forex Factory-powered economic calendar, custom events, and notifications for intraday futures and forex traders.',
     canonical: `${siteUrl}/about`,
-    robots: 'index,follow',
+    robots: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1',
     ogImage,
-    structuredData: [aboutSchema],
+    structuredData: [aboutWebPageSchema, aboutAppSchema],
 };
 
 const pillars = [
     {
-        title: 'Session clarity',
-        body: 'A dual-circle AM/PM clock keeps London, New York, and Asia rotations readable at a glance with midnight-safe math.',
+        title: 'Session clarity (NY time-first)',
+        body:
+            'A visual session clock makes New York, London, and Asia timing obvious, with clean countdowns to key transitions—so you stop doing timezone math mid-trade.',
     },
     {
-        title: 'Events in your lane',
-        body: 'Economic releases sync from JBlanked data and can be pinned on the clock or reviewed in a timeline, so catalysts never sneak up.',
+        title: 'Forex Factory-powered event awareness',
+        body:
+            'Scheduled releases are surfaced in a familiar format. Filter by impact and currency to focus on what actually moves your instruments before you press buy or sell.',
     },
     {
-        title: 'Timezone confidence',
-        body: 'Switch timezones instantly without recalculating entries or overlaps. Countdown timers and labels stay accurate wherever you trade.',
+        title: 'Custom events + notifications',
+        body:
+            'Add your own timing rules (no-trade windows, routine checkpoints, session reminders) and enable notifications (where supported) so your routine stays consistent under pressure.',
     },
     {
-        title: 'Performance-first delivery',
-        body: 'Static marketing pages for SEO, a dedicated /clock workspace for the interactive clock, and lean bundles to keep LCP fast.',
+        title: 'Trustworthy, lightweight delivery',
+        body:
+            'Lean, crawlable marketing pages for SEO, and dedicated interactive workspaces (/clock and /calendar) for daily use—built to stay fast, readable, and mobile-first.',
     },
 ];
 
@@ -58,26 +89,55 @@ export default function Page() {
     return (
         <div className="page-shell__max">
             <header className="header" aria-label="Site navigation">
-                <div className="logo" aria-label="Time 2 Trade home">
+                <a className="logo" href="/" aria-label="Time 2 Trade home">
                     <span className="logo__dot" aria-hidden="true" />
                     <span>Time 2 Trade</span>
-                </div>
-                <nav className="nav">
-                    <a href="/clock" aria-label="Open the trading clock">Open clock</a>
-                    <a href="/" aria-label="Return to landing page">Home</a>
+                </a>
+
+                <nav className="nav" aria-label="Primary">
+                    <a href="/clock" aria-label="Open the session clock">
+                        Open clock
+                    </a>
+                    <a href="/calendar" aria-label="Open the economic calendar">
+                        Open calendar
+                    </a>
+                    <a href="/" aria-label="Return to landing page">
+                        Home
+                    </a>
                 </nav>
             </header>
 
             <main>
                 <section className="section" aria-labelledby="about-heading">
-                    <h1 id="about-heading" className="heading-xl">Why we built Time 2 Trade</h1>
+                    <h1 id="about-heading" className="heading-xl">
+                        About Time 2 Trade
+                    </h1>
                     <p className="text-lead">
-                        Time 2 Trade exists to make market sessions and catalysts obvious. Futures and forex traders move fast; we keep session timing, event risk, and timezone alignment frictionless so you can focus on execution.
+                        Time 2 Trade is an intraday timing workspace for futures and forex day traders: a{' '}
+                        <strong>Session Clock + Economic Calendar (NY Time)</strong>. It pairs session context and countdowns with a{' '}
+                        <strong>Forex Factory-powered</strong> calendar, plus custom events and notifications, so you can make timing decisions
+                        with clarity—not guesses.
+                    </p>
+                </section>
+
+                <section className="section" aria-labelledby="mission-heading">
+                    <h2 id="mission-heading" className="heading-lg">
+                        Why we built it
+                    </h2>
+                    <p className="text-lead">
+                        Intraday trading moves fast. But most traders still waste focus on the same friction: timezone confusion, missed session
+                        transitions, and surprise volatility from scheduled releases. Time 2 Trade exists to remove that friction—so you can
+                        execute a repeatable routine next to your charts.
+                    </p>
+                    <p className="text-lead" style={{ marginTop: 12 }}>
+                        This is not a signal tool. It’s a timing layer built for awareness: sessions + scheduled catalysts + your personal rules.
                     </p>
                 </section>
 
                 <section className="section" aria-labelledby="pillar-heading">
-                    <h2 id="pillar-heading" className="heading-lg">What guides the product</h2>
+                    <h2 id="pillar-heading" className="heading-lg">
+                        What guides the product
+                    </h2>
                     <div className="feature-grid">
                         {pillars.map((pillar) => (
                             <div className="card" key={pillar.title} style={{ padding: '18px' }}>
@@ -90,27 +150,69 @@ export default function Page() {
                     </div>
                 </section>
 
-                <section className="section" aria-labelledby="cta-heading">
-                    <h2 id="cta-heading" className="heading-lg">Try the clock in under 10 seconds</h2>
+                <section className="section" aria-labelledby="founder-heading">
+                    <h2 id="founder-heading" className="heading-lg">
+                        Founder note (non-personal)
+                    </h2>
                     <p className="text-lead">
-                        No paywalls. Open the app, pick your timezone, and start tracking sessions and economic events. Sign in to sync settings; stay in guest mode if you prefer.
+                        Time 2 Trade is built by an independent founder with a product philosophy centered on enterprise-grade practices:
+                        predictable UX, mobile-first performance, secure-by-default architecture, and copy that avoids hype. The goal is to ship a
+                        tool traders can trust daily—clear, consistent, and focused on timing.
+                    </p>
+                    <p className="text-lead" style={{ marginTop: 12 }}>
+                        The product is intentionally narrow: it aims to be the fastest way to answer “where are we in the trading day?” and “what’s
+                        coming next?”—without turning into a noisy dashboard.
+                    </p>
+                </section>
+
+                <section className="section" aria-labelledby="cta-heading">
+                    <h2 id="cta-heading" className="heading-lg">
+                        Start with the clock, then check the calendar
+                    </h2>
+                    <p className="text-lead">
+                        Use guest mode for immediate value. Create a free account if you want to sync preferences and personalize your workflow
+                        with favorites, notes, reminders, and custom events.
                     </p>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                        <a className="btn btn-primary" href="/clock" aria-label="Launch Time 2 Trade clock">Open the clock</a>
-                        <a className="btn btn-secondary" href="/" aria-label="Return to landing page">Back to home</a>
+                        <a className="btn btn-primary" href="/clock" aria-label="Launch the session clock">
+                            Open the clock
+                        </a>
+                        <a className="btn btn-secondary" href="/calendar" aria-label="Open the economic calendar">
+                            Open the calendar
+                        </a>
+                        <a className="btn btn-secondary" href="/" aria-label="Return to landing page">
+                            Back to home
+                        </a>
                     </div>
                 </section>
             </main>
 
             <footer className="footer">
-                <div className="page-shell__max" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
-                    <div className="logo" aria-label="Time 2 Trade footer">
+                <div
+                    className="page-shell__max"
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '12px',
+                        alignItems: 'center',
+                    }}
+                >
+                    <a className="logo" href="/" aria-label="Time 2 Trade footer home">
                         <span className="logo__dot" aria-hidden="true" />
                         <span>Time 2 Trade</span>
-                    </div>
+                    </a>
+
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                        <a className="btn btn-secondary" href="/clock" aria-label="Open the clock from footer">Open clock</a>
-                        <a className="btn btn-secondary" href="/" aria-label="Go to landing page">Home</a>
+                        <a className="btn btn-secondary" href="/clock" aria-label="Open the clock from footer">
+                            Open clock
+                        </a>
+                        <a className="btn btn-secondary" href="/calendar" aria-label="Open the calendar from footer">
+                            Open calendar
+                        </a>
+                        <a className="btn btn-secondary" href="/" aria-label="Go to landing page">
+                            Home
+                        </a>
                     </div>
                 </div>
             </footer>

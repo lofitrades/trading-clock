@@ -1,0 +1,41 @@
+{
+  "title": "Configuración",
+  "clock": {
+    "title": "Configuración del Reloj",
+    "size": "Tamaño del Reloj",
+    "style": "Estilo del Reloj",
+    "showDigital": "Mostrar Reloj Digital",
+    "showHand": "Mostrar Reloj Analógico",
+    "showLabels": "Mostrar Etiquetas de Sesión",
+    "showCountdown": "Mostrar Tiempo Restante"
+  },
+  "sessions": {
+    "title": "Sesiones de Trading",
+    "customize": "Personalizar Sesiones",
+    "enabled": "Habilitado",
+    "timezone": "Zona Horaria",
+    "openTime": "Hora de Apertura",
+    "closeTime": "Hora de Cierre"
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "enabled": "Habilitar Notificaciones",
+    "eventAlerts": "Alertas de Eventos",
+    "sessionReminders": "Recordatorios de Sesión",
+    "customReminders": "Recordatorios Personalizados"
+  },
+  "display": {
+    "title": "Pantalla",
+    "theme": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "fontSize": "Tamaño de Fuente"
+  },
+  "account": {
+    "title": "Cuenta",
+    "email": "Correo Electrónico",
+    "profile": "Perfil",
+    "logout": "Cerrar Sesión",
+    "deleteAccount": "Eliminar Cuenta"
+  }
+}

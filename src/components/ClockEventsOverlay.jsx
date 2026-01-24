@@ -5,6 +5,11 @@
  * Renders impact-based icons on AM (inner) and PM (outer) rings using current filters and news source.
  *
  * Changelog:
+ * v1.18.25 - 2026-01-23 - BEP: Migrate to useReminderActions hook for centralized reminder subscription (removes duplicate subscription).
+ * v1.18.24 - 2026-01-23 - Reduce badge sizes for reminders, notes, and favorites.
+ * v1.18.23 - 2026-01-23 - Position reminder bell badge bottom-left for parity with other badges.
+ * v1.18.22 - 2026-01-23 - Live subscribe to reminders for marker badge updates.
+ * v1.18.21 - 2026-01-23 - Add reminder bell badge on markers with reminders.
  * v1.18.20 - 2026-01-22 - BEP: Restore hover/pointer and marker clicks when tooltips are disabled (landing guest auth flow).
  * v1.18.19 - 2026-01-22 - Group clock event markers into 5-minute windows and pass grouped time to tooltips.
  * v1.18.18 - 2026-01-22 - BEP: Apply contrast-aware text color to custom marker icons for accessibility (matches custom currency chip behavior).
@@ -113,6 +118,8 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import PublicIcon from '@mui/icons-material/Public';
 import { useEventNotes } from '../hooks/useEventNotes';
 import NoteAltIcon from '@mui/icons-material/NoteAlt';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import { useReminderActions } from '../hooks/useReminderActions';
 import useClockEventsData from '../hooks/useClockEventsData';
 import useClockEventMarkers from '../hooks/useClockEventMarkers';
 import EventMarkerTooltip from './EventMarkerTooltip';
@@ -141,6 +148,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
   const [measuredSize, setMeasuredSize] = useState(size);
   const { isFavorite } = useFavorites();
   const { hasNotes } = useEventNotes();
+  const { reminders } = useReminderActions();
   const appearedAtRef = useRef(new Map());
   const exitingMarkersRef = useRef(new Map());
   const prevMarkersRef = useRef(new Map());
@@ -359,6 +367,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
     nowEpochMs,
     isFavorite,
     hasNotes,
+    reminders,
   });
 
   // Track marker lifecycle in refs to avoid setState render loops
@@ -736,10 +745,10 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
               <Box
                 sx={{
                   position: 'absolute',
-                  top: -6,
-                  left: -6,
-                  width: 18,
-                  height: 18,
+                  top: -5,
+                  left: -5,
+                  width: 14,
+                  height: 14,
                   borderRadius: '50%',
                   bgcolor: (marker.isTodayPast || !marker.hasNoteMarker) ? '#616161' : 'primary.main',
                   display: 'flex',
@@ -749,17 +758,17 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
                   pointerEvents: 'none',
                 }}
               >
-                <NoteAltIcon sx={{ fontSize: 12, color: '#fff', opacity: (marker.isTodayPast || !marker.hasNoteMarker) ? 0.9 : 1 }} />
+                <NoteAltIcon sx={{ fontSize: 10, color: '#fff', opacity: (marker.isTodayPast || !marker.hasNoteMarker) ? 0.9 : 1 }} />
               </Box>
             )}
             {(marker.isFavoriteMarker || marker.isFavoriteMarkerAny) && (
               <Box
                 sx={{
                   position: 'absolute',
-                  top: -6,
-                  right: -6,
-                  width: 18,
-                  height: 18,
+                  top: -5,
+                  right: -5,
+                  width: 14,
+                  height: 14,
                   borderRadius: '50%',
                   bgcolor: (marker.isTodayPast || !marker.isFavoriteMarker) ? '#616161' : 'error.main',
                   display: 'flex',
@@ -769,7 +778,27 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
                   pointerEvents: 'none',
                 }}
               >
-                <FavoriteIcon sx={{ fontSize: 12, color: '#fff', opacity: (marker.isTodayPast || !marker.isFavoriteMarker) ? 0.9 : 1 }} />
+                <FavoriteIcon sx={{ fontSize: 10, color: '#fff', opacity: (marker.isTodayPast || !marker.isFavoriteMarker) ? 0.9 : 1 }} />
+              </Box>
+            )}
+            {(marker.hasReminderMarker || marker.hasReminderMarkerAny) && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: -5,
+                  left: -5,
+                  width: 14,
+                  height: 14,
+                  borderRadius: '50%',
+                  bgcolor: (marker.isTodayPast || !marker.hasReminderMarker) ? '#616161' : 'warning.main',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
+                  pointerEvents: 'none',
+                }}
+              >
+                <NotificationsActiveIcon sx={{ fontSize: 10, color: '#fff', opacity: (marker.isTodayPast || !marker.hasReminderMarker) ? 0.9 : 1 }} />
               </Box>
             )}
             {markerIconNode}

@@ -1,0 +1,41 @@
+{
+  "event": "Event",
+  "impact": "Impact",
+  "currency": "Currency",
+  "source": "Source",
+  "description": "Description",
+  "actual": "Actual",
+  "forecast": "Forecast",
+  "previous": "Previous",
+  "impactLevels": {
+    "high": "High Impact",
+    "medium": "Medium Impact",
+    "low": "Low Impact",
+    "nonEconomic": "Non-Economic"
+  },
+  "customEvent": {
+    "title": "Custom Event",
+    "newEvent": "New Custom Event",
+    "editEvent": "Edit Custom Event",
+    "titleLabel": "Event Title",
+    "descriptionLabel": "Description",
+    "dateLabel": "Date",
+    "timeLabel": "Time",
+    "timezoneLabel": "Timezone",
+    "repeatLabel": "Repeat",
+    "impactLabel": "Impact",
+    "showOnClock": "Show on Clock",
+    "noRepeat": "Does not repeat",
+    "everyDay": "Every day",
+    "everyWeek": "Every week",
+    "everyMonth": "Every month",
+    "everyQuarter": "Every quarter",
+    "everyYear": "Every year"
+  },
+  "reminders": {
+    "title": "Reminders",
+    "addReminder": "Add Reminder",
+    "timeBeforeLabel": "Time Before Event",
+    "notificationLabel": "Notification Type"
+  }
+}

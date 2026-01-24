@@ -1,0 +1,11 @@
+{
+  "required": "Este campo es obligatorio",
+  "invalidEmail": "Por favor, ingrese una dirección de correo válida",
+  "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
+  "fieldRequired": "{{field}} es obligatorio",
+  "errorOccurred": "Ocurrió un error. Por favor, intente nuevamente.",
+  "notFound": "No encontrado",
+  "unauthorized": "No autorizado",
+  "forbidden": "Acceso prohibido",
+  "serverError": "Error del servidor. Por favor, intente más tarde."
+}

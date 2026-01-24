@@ -1,10 +1,13 @@
 /**
  * pages/clock.page.jsx
- * 
+ *
  * Purpose: Prerendered /clock entry that loads the interactive clock workspace
  * while providing indexable metadata for the public trading clock route.
- * 
+ *
  * Changelog:
+ * v1.1.0 - 2026-01-22 - BEP SEO/copy refresh: align with "Session Clock + Economic Calendar (NY Time)",
+ *                       emphasize Forex Factory-powered events, custom events + notifications, and remove "overlaps"
+ *                       from primary positioning (kept optional/secondary).
  * v1.0.0 - 2026-01-16 - Added /clock SSR page with SEO metadata and app hydration.
  */
 
@@ -20,51 +23,52 @@ export const prerender = () => ['/clock'];
 const clockSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'Trading Clock | Time 2 Trade',
+    name: 'Session Clock | Time 2 Trade',
     url: `${siteUrl}/clock`,
     description:
-        'Live trading clock with market sessions (NY, London, Asia), overlaps, countdowns, and economic events overlay for futures and forex day traders.',
+        'Session Clock + Economic Calendar (NY Time) for futures and forex day traders. Real-time market sessions, countdowns, Forex Factory-powered events, custom events, and reminders.',
     primaryImageOfPage: ogImage,
     publisher: { '@type': 'Organization', name: 'Lofi Trades', url: siteUrl },
 };
 
+const clockFaqEntries = [
+    {
+        q: 'What does the Session Clock show?',
+        a: 'It shows the current session context for the trading day with real-time countdowns and clear time boundaries. The default workflow is New York time-first, with timezone switching available.',
+    },
+    {
+        q: 'Is the economic calendar powered by Forex Factory?',
+        a: 'Yes. Time 2 Trade uses a Forex Factory-powered economic events feed and places events in the same workspace as your session timing so you can avoid trading blind into releases.',
+    },
+    {
+        q: 'Can I add my own custom events and reminders?',
+        a: 'Yes. You can create custom events (prep checkpoints, no-trade windows, session reminders). Notifications/reminders are supported where available.',
+    },
+    {
+        q: 'Is this a signal tool?',
+        a: 'No. Time 2 Trade provides timing and awareness for sessions and scheduled events. It does not provide buy/sell signals or execute trades.',
+    },
+];
+
 const clockFaqSchema = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: [
-        {
-            '@type': 'Question',
-            name: 'What market sessions does the trading clock display?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'The clock shows New York, London, Asia, and other customizable trading sessions with real-time status, overlaps, and time-to-next-session countdowns.',
-            },
+    mainEntity: clockFaqEntries.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: {
+            '@type': 'Answer',
+            text: item.a,
         },
-        {
-            '@type': 'Question',
-            name: 'Can I see economic events on the trading clock?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'Yes. Economic events from the Forex Factory calendar can overlay on the clock and timeline, so you see session context and catalysts together.',
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'Is the trading clock timezone-aware?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'Yes. The clock auto-detects your timezone and adjusts all session windows and countdowns instantly when you change timezones.',
-            },
-        },
-    ],
+    })),
 };
 
 export const documentProps = {
-    title: 'Trading Clock | Live Market Sessions for Forex & Futures',
+    title: 'Session Clock + Economic Calendar (NY Time) | Time 2 Trade',
     description:
-        'Free live trading clock for futures and forex day traders. Real-time market sessions (NY, London, Asia), overlaps, countdowns, economic events overlay, and timezone-aware insights.',
+        'Free Session Clock + Economic Calendar (NY Time) for futures and forex day traders. Real-time session timing and countdowns, Forex Factory-powered events, custom events, and reminders.',
     canonical: `${siteUrl}/clock`,
-    robots: 'index,follow',
+    robots: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1',
     ogImage,
     ogType: 'website',
     structuredData: [clockSchema, clockFaqSchema],
@@ -92,11 +96,54 @@ export default function Page() {
     if (!AppClient) {
         return (
             <div className="page-shell__max" role="main">
-                <section className="section" aria-label="Loading trading clock">
-                    <p className="badge" aria-hidden="true">Interactive mode</p>
-                    <h1 className="heading-lg">Loading the trading clock…</h1>
+                <section className="section" aria-label="Loading session clock">
+                    <p className="badge" aria-hidden="true">
+                        Interactive workspace
+                    </p>
+
+                    <h1 className="heading-lg">Loading Time 2 Trade…</h1>
+
                     <p className="text-lead">
-                        The dual-circle clock, events overlay, and timezone controls will appear in a moment. This shell is prerendered so you get instant HTML while the client loads.
+                        Your <strong>Session Clock + Economic Calendar (NY Time)</strong> is loading now. This route is prerendered so you get fast,
+                        crawlable HTML first, then the full interactive workspace hydrates client-side.
+                    </p>
+
+                    <div className="card" style={{ padding: '18px' }}>
+                        <div className="hero-visual__grid">
+                            <div className="hero-visual__item">
+                                <p className="hero-visual__title">Session clock</p>
+                                <p className="hero-visual__stat">Loading…</p>
+                                <p className="hero-visual__hint">Session timing + countdowns</p>
+                            </div>
+                            <div className="hero-visual__item">
+                                <p className="hero-visual__title">Economic calendar</p>
+                                <p className="hero-visual__stat">Syncing…</p>
+                                <p className="hero-visual__hint">Forex Factory-powered events</p>
+                            </div>
+                            <div className="hero-visual__item">
+                                <p className="hero-visual__title">Custom events</p>
+                                <p className="hero-visual__stat">Initializing…</p>
+                                <p className="hero-visual__hint">Your reminders and timing rules</p>
+                            </div>
+                            <div className="hero-visual__item">
+                                <p className="hero-visual__title">Timezone</p>
+                                <p className="hero-visual__stat">Auto</p>
+                                <p className="hero-visual__hint">NY time-first, switch anytime</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: 14 }}>
+                        <a className="btn btn-secondary" href="/calendar" aria-label="Open the economic calendar">
+                            Open calendar
+                        </a>
+                        <a className="btn btn-secondary" href="/" aria-label="Back to home">
+                            Home
+                        </a>
+                    </div>
+
+                    <p className="text-muted" style={{ marginTop: 14 }}>
+                        Not financial advice. Trading involves risk.
                     </p>
                 </section>
             </div>

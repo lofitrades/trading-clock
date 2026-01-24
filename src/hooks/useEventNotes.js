@@ -5,6 +5,7 @@
  * Exposes helpers to check note presence, subscribe to specific events, and add/remove notes with pending/loading state.
  * 
  * Changelog:
+ * v1.1.0 - 2026-01-23 - BEP FIX: Use isEventHasNotes with strict composite matching (name+currency+time) to prevent cross-currency note matching.
  * v1.0.0 - 2025-12-12 - Initial implementation with summary + per-event listeners, auth-aware add/remove, and loading guards.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -12,6 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 import {
 	addEventNote,
 	buildEventNoteKey,
+	isEventHasNotes,
 	removeEventNote,
 	subscribeToEventNoteSummaries,
 	subscribeToEventNotes,
@@ -68,10 +70,9 @@ export const useEventNotes = () => {
 
 	const hasNotes = useCallback(
 		(event) => {
-			const key = buildEventNoteKey(event);
-			if (!key) return false;
-			const summary = noteSummaries.get(String(key));
-			return Boolean(summary && summary.noteCount > 0);
+			// BEP: Use strict composite matching (name + currency + time)
+			// Ensures NFP USD notes don't show on NFP GBP
+			return isEventHasNotes(event, noteSummaries);
 		},
 		[noteSummaries]
 	);

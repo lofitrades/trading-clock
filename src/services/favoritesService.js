@@ -1,16 +1,102 @@
 /**
  * src/services/favoritesService.js
  *
- * Purpose: Centralized helpers for user event favorites.
+ * Purpose: Centralized helpers for user event favorites with unified same-event matching.
  * Provides Firestore persistence, name/alias normalization, and helper utilities
  * to keep favorites consistent across sources and aliases.
+ * 
+ * BEP: Unified Same-Event Matching Engine (name + currency + time)
+ * ========================================================================
+ * buildEventIdentity() now uses composite matching: name + currency + time
+ * This matches the pattern used by reminders engine to ensure consistency:
+ * 
+ * 1. Check eventId (exact document ID if available)
+ * 2. Build fallback composite key: name-currency-time
+ *    - Prevents NFP USD from matching NFP EUR
+ *    - Prevents same-time duplicates from merging
+ *    - Matches buildSeriesKey() logic from remindersRegistry.js
+ * 
+ * Returns: { eventId, nameKeys, primaryNameKey, currencyKey, dateKey }
+ * 
+ * isEventFavorite() checks by composite key first, then falls back to name aliases.
+ * toggleFavoriteEvent() stores currency and time components for future lookups.
+ * 
+ * All three services now use identical matching:
+ * ✅ Reminders: buildEventKey + buildSeriesKey
+ * ✅ Favorites: buildEventIdentity (composite key)
+ * ✅ Notes: buildEventIdentity (composite key)
  *
  * Changelog:
+ * v1.2.6 - 2026-01-23 - Fix: Encode eventId when looking up in favoritesMap for proper matching.
+ * v1.2.5 - 2026-01-23 - Fix: Encode eventKeys with slashes for safe Firestore document IDs.
+ * v1.2.4 - 2026-01-23 - BEP FIX: Strict composite matching in isEventFavorite and toggleFavoriteEvent - all three components (name+currency+time) must match. Prevents NFP USD from matching NFP GBP.
+ * v1.2.3 - 2026-01-23 - BEP FIX: Fixed missing currencyKey/dateKey destructuring in toggleFavoriteEvent
+ * v1.2.2 - 2026-01-23 - BEP: Prefer composite key when available; add gated debug logs.
+ * v1.2.1 - 2026-01-23 - BEP: Expand eventId and date field normalization for stable favorite keys.
+ * v1.2.0 - 2026-01-23 - BEP: Implement unified same-event matching (name+currency+time)
  * v1.1.0 - 2025-12-15 - Fixed favorite removal to properly find Firestore document ID via favoritesMap lookup.
  * v1.0.0 - 2025-12-12 - Initial implementation with Firestore subcollection support and alias-aware matching.
  */
 import { collection, deleteDoc, doc, onSnapshot, setDoc, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
+
+/**
+ * Encode eventKey to make it safe for use as a Firestore document ID.
+ * Firestore document IDs cannot contain forward slashes.
+ * Uses base64url encoding (RFC 4648 §5) for safe, reversible encoding.
+ * Handles Unicode characters properly using TextEncoder.
+ */
+const encodeFirestoreDocId = (id) => {
+	if (!id) return id;
+	try {
+		// Convert string to UTF-8 bytes, then to base64
+		const bytes = new TextEncoder().encode(String(id));
+		const binaryString = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('');
+		// Use base64url encoding: replace / with _ and + with -
+		return btoa(binaryString)
+			.replace(/\+/g, '-')
+			.replace(/\//g, '_')
+			.replace(/=/g, ''); // Remove padding
+	} catch (error) {
+		console.error('[favorites] Failed to encode Firestore doc ID:', error);
+		// Fallback: use URL-safe encoding
+		return encodeURIComponent(String(id)).replace(/[.]/g, '%2E');
+	}
+};
+
+/**
+ * Decode Firestore document ID back to original eventKey.
+ */
+// eslint-disable-next-line no-unused-vars
+const decodeFirestoreDocId = (encodedId) => {
+	if (!encodedId) return encodedId;
+	try {
+		// Restore base64 format
+		let base64 = String(encodedId)
+			.replace(/-/g, '+')
+			.replace(/_/g, '/');
+		// Add padding if needed
+		while (base64.length % 4) {
+			base64 += '=';
+		}
+		// Decode base64 to binary string, then to UTF-8
+		const binaryString = atob(base64);
+		const bytes = new Uint8Array(binaryString.length);
+		for (let i = 0; i < binaryString.length; i++) {
+			bytes[i] = binaryString.charCodeAt(i);
+		}
+		return new TextDecoder().decode(bytes);
+	} catch (error) {
+		console.error('[favorites] Failed to decode Firestore doc ID:', error);
+		// Fallback: try URL decoding
+		try {
+			return decodeURIComponent(encodedId);
+		} catch {
+			// If all fails, return original
+			return encodedId;
+		}
+	}
+};
 
 const normalizeKey = (value) => {
   if (!value) return null;
@@ -49,36 +135,73 @@ const extractNameKeys = (event = {}) => {
   return dedupeKeys(candidates);
 };
 
+const shouldDebugFavorites = () => {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage?.getItem('t2t_debug_favorites') === '1';
+};
+
+const logFavoriteDebug = (...args) => {
+  if (!shouldDebugFavorites()) return;
+  console.info('[favorites]', ...args);
+};
+
 export const buildEventIdentity = (event = {}) => {
   const idCandidates = [
     event.id,
     event.eventId,
     event.event_id,
     event.eventID,
+    event.EventID,
+    event.EventId,
+    event.Event_ID,
     event.uid,
     event.uuid,
     event._id,
     event.docId,
   ];
 
-  const eventId = idCandidates.find(Boolean) || null;
+  const rawEventId = idCandidates.find(Boolean) || null;
   const nameKeys = extractNameKeys(event);
   const primaryNameKey = nameKeys.length ? nameKeys[0] : null;
 
-  if (eventId) {
-    return { eventId: String(eventId), nameKeys, primaryNameKey };
-  }
-
+  // BEP: Use unified matching key with name + currency + time (matching reminders engine)
+  // This ensures same-event detection across reminders, favorites, and notes
   const currencyKey = normalizeKey(event.currency || event.Currency);
-  const dateSource = event.time || event.date;
+  const dateSource = event.time || event.date || event.Date || event.dateTime || event.datetime || event.date_time;
   const parsedDate = dateSource ? new Date(dateSource) : null;
   const dateKey = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.getTime() : null;
-  const fallbackId = dedupeKeys([primaryNameKey, currencyKey, dateKey]).join('-') || null;
+  
+  // Build composite key: name-currency-time
+  // Only create composite key if we have ALL three components; otherwise fall back to name-based key
+  // This ensures consistent matching: same event always generates same key
+  let compositeKey = null;
+  if (primaryNameKey && currencyKey && dateKey) {
+    // Explicit composite key: name-currency-time (type-safe)
+    compositeKey = `${primaryNameKey}-${currencyKey}-${dateKey}`;
+  } else if (primaryNameKey && currencyKey) {
+    // Fallback: name-currency (if time is missing)
+    compositeKey = `${primaryNameKey}-${currencyKey}`;
+  }
+  
+  const fallbackId = compositeKey || dedupeKeys([primaryNameKey, currencyKey, dateKey]).join('-') || null;
+  const resolvedEventId = fallbackId || rawEventId ? String(fallbackId || rawEventId) : null;
+
+  if (shouldDebugFavorites()) {
+    logFavoriteDebug('identity', {
+      rawEventId: rawEventId ? String(rawEventId) : null,
+      resolvedEventId,
+      primaryNameKey,
+      currencyKey,
+      dateKey,
+    });
+  }
 
   return {
-    eventId: fallbackId,
+    eventId: resolvedEventId,
     nameKeys,
     primaryNameKey,
+    currencyKey,
+    dateKey,
   };
 };
 
@@ -112,6 +235,7 @@ export const subscribeToFavorites = (userId, onChange, onError) => {
         }
       });
 
+      logFavoriteDebug('subscribe', { count: favoritesMap.size });
       onChange({ favoritesMap, nameKeySet });
     },
     (error) => {
@@ -123,32 +247,33 @@ export const subscribeToFavorites = (userId, onChange, onError) => {
 export const toggleFavoriteEvent = async (userId, event, currentlyFavorite, favoritesMap = new Map()) => {
   if (!userId) throw new Error('User must be authenticated to manage favorites.');
 
-  const { eventId, nameKeys, primaryNameKey } = buildEventIdentity(event);
+  // BEP FIX: Destructure ALL identity fields including currencyKey and dateKey
+  const { eventId, nameKeys, primaryNameKey, currencyKey, dateKey } = buildEventIdentity(event);
   const docId = eventId || primaryNameKey;
   if (!docId) throw new Error('Unable to determine a stable identifier for this event.');
 
   // When removing a favorite, find the actual Firestore document ID
-  // The favoritesMap keys are the actual document IDs from Firestore
+  // The favoritesMap keys are the actual encoded document IDs from Firestore
   let actualDocId = String(docId);
   if (currentlyFavorite && favoritesMap) {
-    // Check if the calculated docId exists
-    if (favoritesMap.has(String(eventId))) {
-      actualDocId = String(eventId);
-    } else if (favoritesMap.has(primaryNameKey)) {
-      actualDocId = primaryNameKey;
+    // BEP: Check by encoded composite key first (name + currency + time)
+    const encodedEventId = encodeFirestoreDocId(String(eventId));
+    if (favoritesMap.has(encodedEventId)) {
+      actualDocId = encodedEventId;
     } else {
-      // Search through all favorite docs to find a match by nameKeys
+      // BEP: Search through all favorite docs to find a match by ALL THREE components
+      // This prevents cross-currency deletion (NFP USD should not delete NFP GBP)
       for (const [firestoreDocId, favoriteData] of favoritesMap.entries()) {
+        const storedCurrency = normalizeKey(favoriteData?.currencyKey || favoriteData?.currency);
+        const storedDateKey = favoriteData?.dateKey;
         const storedNameKey = favoriteData?.nameKey;
-        const storedAliasKeys = favoriteData?.aliasKeys || [];
-        const storedKeys = [storedNameKey, ...storedAliasKeys].filter(Boolean);
         
-        // Check if any of the current event's nameKeys match the stored keys
-        const hasMatch = nameKeys.some(key => storedKeys.some(storedKey => 
-          normalizeKey(key) === normalizeKey(storedKey)
-        ));
-        
-        if (hasMatch) {
+        // All three must match: name + currency + time
+        if (
+          storedNameKey === primaryNameKey &&
+          storedCurrency === currencyKey &&
+          storedDateKey === dateKey
+        ) {
           actualDocId = firestoreDocId;
           break;
         }
@@ -156,9 +281,15 @@ export const toggleFavoriteEvent = async (userId, event, currentlyFavorite, favo
     }
   }
 
-  const favoriteRef = doc(db, 'users', userId, 'favorites', actualDocId);
+  logFavoriteDebug('toggle:resolvedDoc', { eventId, primaryNameKey, actualDocId, currencyKey, dateKey, currentlyFavorite });
+  
+  // For removal, actualDocId is already encoded from favoritesMap lookup
+  // For addition, we need to encode the docId
+  const encodedDocId = currentlyFavorite ? actualDocId : encodeFirestoreDocId(actualDocId);
+  const favoriteRef = doc(db, 'users', userId, 'favorites', encodedDocId);
 
   if (currentlyFavorite) {
+    logFavoriteDebug('toggle:delete', { actualDocId });
     await deleteDoc(favoriteRef);
     return { favorited: false, docId: actualDocId };
   }
@@ -166,33 +297,69 @@ export const toggleFavoriteEvent = async (userId, event, currentlyFavorite, favo
   const aliasKeys = nameKeys.filter((key) => key && key !== primaryNameKey);
   const dateSource = event.time || event.date;
 
-  await setDoc(
-    favoriteRef,
-    {
-      eventId: eventId || null,
-      name: event.name || event.Name || null,
-      nameKey: primaryNameKey || null,
-      aliasKeys,
-      currency: event.currency || event.Currency || null,
-      source: event.source || event.Source || null,
-      date: toTimestamp(dateSource),
-      updatedAt: serverTimestamp(),
-      createdAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+  const docData = {
+    eventId: eventId || null,
+    name: event.name || event.Name || null,
+    nameKey: primaryNameKey || null,
+    aliasKeys,
+    currency: event.currency || event.Currency || null,
+    currencyKey: currencyKey || null,
+    dateKey: dateKey || null,
+    source: event.source || event.Source || null,
+    date: toTimestamp(dateSource),
+    updatedAt: serverTimestamp(),
+    createdAt: serverTimestamp(),
+  };
 
+  logFavoriteDebug('toggle:save', { actualDocId, docData });
+  await setDoc(favoriteRef, docData, { merge: true });
+  logFavoriteDebug('toggle:saved', { actualDocId });
   return { favorited: true, docId: String(docId) };
 };
 
-export const isEventFavorite = (event, favoritesMap = new Map(), nameKeySet = new Set()) => {
-  const { eventId, nameKeys, primaryNameKey } = buildEventIdentity(event);
-  if (eventId && favoritesMap.has(String(eventId))) return true;
-  if (primaryNameKey && favoritesMap.has(primaryNameKey)) return true;
-  return (nameKeys || []).some((key) => key && nameKeySet.has(key));
+export const isEventFavorite = (event, favoritesMap = new Map()) => {
+  const { eventId, primaryNameKey, currencyKey, dateKey } = buildEventIdentity(event);
+  
+  // BEP: Check by encoded composite key (name + currency + time) - STRICT MATCHING
+  // This is the primary check - ensures NFP USD !== NFP GBP
+  // FavoritesMap keys are encoded, so we need to encode eventId for comparison
+  if (eventId) {
+    const encodedEventId = encodeFirestoreDocId(String(eventId));
+    if (favoritesMap.has(encodedEventId)) return true;
+  }
+  
+  // BEP: Secondary check - iterate through favorites and match by all three components
+  // This handles cases where the stored doc ID format differs but content matches
+  for (const [, favoriteData] of favoritesMap.entries()) {
+    const storedCurrency = favoriteData?.currencyKey || favoriteData?.currency?.toLowerCase();
+    const storedDateKey = favoriteData?.dateKey;
+    const storedNameKey = favoriteData?.nameKey;
+    
+    // All three must match: name + currency + time
+    if (
+      storedNameKey === primaryNameKey &&
+      storedCurrency === currencyKey &&
+      storedDateKey === dateKey
+    ) {
+      return true;
+    }
+  }
+  
+  // BEP: NO NAME-ONLY FALLBACK - removed to prevent cross-currency matching
+  // Old name-only favorites will need to be re-added with the new composite key format
+  
+  return false;
 };
 
 export const buildPendingKey = (event) => {
-  const { eventId, primaryNameKey } = buildEventIdentity(event);
-  return eventId || primaryNameKey || null;
+  // BEP: Use composite key (name + currency + time) for all operations
+  // Ensures favorites, notes, and reminders all use same matching engine
+  const { eventId, primaryNameKey, currencyKey, dateKey } = buildEventIdentity(event);
+  
+  // Return composite key if all parts available, fallback to eventId, then primaryNameKey
+  if (eventId && currencyKey && dateKey) {
+    return String(eventId); // Already composite in buildEventIdentity
+  }
+  if (eventId) return String(eventId);
+  return primaryNameKey || null;
 };

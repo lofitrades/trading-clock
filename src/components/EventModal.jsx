@@ -17,6 +17,28 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v2.1.0 - 2026-01-23 - BEP: Enable series reminders for recurring custom events. seriesKey now returns custom-series:${seriesId} for recurring custom events, allowing "Apply to all occurrences" functionality.
+ * v2.0.0 - 2026-01-24 - BEP MAJOR REFACTOR: Migrated to RemindersEditor2 with Google-like UI. Individual save/cancel buttons per reminder, inline scope selector, view/edit modes, immediate deletion. Removed global save/reset buttons. Max 3 reminders per event.
+ * v1.13.17 - 2026-01-24 - BEP FIX: RemindersEditor v1.6.1 - Restored missing if (isSaved) conditional that prevented new reminders from showing edit options. Formatter had removed the conditional check, causing all reminders to render as read-only.
+ * v1.13.16 - 2026-01-24 - BEP: Hide scope selector when only saved reminders exist. Show scope selector only when reminderDraft.length > reminderBaseline.length (user adding new reminders). Ensures "Apply to" option is contextually shown only during reminder creation.
+ * v1.13.15 - 2026-01-24 - BEP: Display scope for saved reminders ("This event only" vs "All matching events"). Pass reminderScopes and seriesLabel to RemindersEditor.
+ * v1.13.14 - 2026-01-24 - BEP: Pass savedCount to RemindersEditor to make saved reminders read-only. Users can only add/remove reminders, not edit existing ones.
+ * v1.13.13 - 2026-01-24 - BEP FIX: Delete reminders by actual document ID from found reminder, not just computed keys. Fixes reminder deletion when doc was saved under different key format.
+ * v1.13.12 - 2026-01-24 - BEP: Migrate to useReminderActions hook for save/delete operations. Keeps local form state (draft, baseline, dirty) for UX while using centralized hook for Firestore operations.
+ * v1.13.11 - 2026-01-23 - BEP FIX: Reminders UX improvements - Extended success alert to 5s, added save cycle tracking to prevent premature alert reset, added lastSavedReminders ref to prevent dirty state during Firestore sync window, fixed UI not updating after reminder removal.
+ * v1.13.10 - 2026-01-23 - BEP FIX: Favorites toggle not firing. Added e.preventDefault() to click handler, onTouchEnd handler for mobile support, and ungated diagnostic console.logs to trace click flow. Addresses issue where favorites heart click did nothing in modal header.
+ * v1.13.9 - 2026-01-23 - BEP: Add gated favorites click diagnostics.
+ * v1.13.8 - 2026-01-23 - Add on-screen debug panel for reminder save diagnostics.
+ * v1.13.7 - 2026-01-23 - Match reminders by eventId alias to resolve non-custom reminder loading.
+ * v1.13.6 - 2026-01-23 - Save reminders to series key when scope is series.
+ * v1.13.5 - 2026-01-23 - Add reminder save confirmation UI and reset success on edits.
+ * v1.13.4 - 2026-01-23 - Disable reminder saving until reminder base loads and surface error when unavailable.
+ * v1.13.3 - 2026-01-23 - Improve push enablement diagnostics and service worker readiness.
+ * v1.13.2 - 2026-01-23 - Allow push toggle when permission granted but token pending.
+ * v1.13.1 - 2026-01-23 - Add FCM token registration hook for push reminders.
+ * v1.13.0 - 2026-01-23 - Add series reminder scope selector for non-custom events.
+ * v1.12.1 - 2026-01-23 - Enforce 1h+ repeat requirement and refine reminder load error copy.
+ * v1.12.0 - 2026-01-23 - Add unified reminders controls for all event sources with save support.
  * v1.11.4 - 2026-01-22 - BUGFIX: Remove unused imports and variables; add PropTypes validation to all components.
  * v1.11.3 - 2026-01-22 - BEP: Normalize custom impact values (numeric/string) so /clock modal renders correct impact chip instead of Unknown.
  * v1.11.2 - 2026-01-22 - BEP: Fix custom event impact badge on /clock by resolving impact from custom event fields and display cache fallback.
@@ -45,13 +67,14 @@
  * v1.0.0 - 2025-11-30 - Initial implementation with enterprise best practices
  */
 
-import React, { useState, useEffect, memo } from 'react';
+import React, { useMemo, useState, useEffect, memo } from 'react';
 import PropTypes from 'prop-types';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  Alert,
   Box,
   Typography,
   Button,
@@ -70,6 +93,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
+import UnsavedChangesModal from './UnsavedChangesModal';
 import CloseIcon from '@mui/icons-material/Close';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -85,11 +109,18 @@ import NoteAltOutlined from '@mui/icons-material/NoteAltOutlined';
 import NoteAlt from '@mui/icons-material/NoteAlt';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import { getEventDescription } from '../services/economicEventsService';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { formatTime, formatDate } from '../utils/dateUtils';
 import { resolveImpactMeta } from '../utils/newsApi';
 import { getCustomEventIconComponent } from '../utils/customEventStyle';
+import RemindersEditor2 from './RemindersEditor2';
+import { useAuth } from '../contexts/AuthContext';
+import { buildSeriesKey, normalizeEventForReminder } from '../utils/remindersRegistry';
+import { subscribeToReminder } from '../services/remindersService';
+import { useReminderActions } from '../hooks/useReminderActions';
+import { updateCustomEvent } from '../services/customEventsService';
+import { requestFcmTokenForUser } from '../services/pushNotificationsService';
 import {
   formatCountdownHMS,
   NOW_WINDOW_MS,
@@ -177,6 +208,16 @@ const ANIMATION_DURATION = {
   fade: 200,
 };
 
+const shouldDebugFavorites = () => {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage?.getItem('t2t_debug_favorites') === '1';
+};
+
+const logFavoriteDebug = (...args) => {
+  if (!shouldDebugFavorites()) return;
+  console.info('[favorites][EventModal]', ...args);
+};
+
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
@@ -209,6 +250,18 @@ const normalizeCustomImpact = (value) => {
   if (['low', 'weak', '1'].includes(normalized)) return 'weak';
   if (['non-economic', 'none', '0'].includes(normalized)) return 'non-economic';
   return normalized;
+};
+
+const resolveEventSource = (event) => {
+  if (!event) return 'unknown';
+  if (event.isCustom) return 'custom';
+  return event.eventSource || event.source || event.Source || event.sourceKey || 'canonical';
+};
+
+const isRepeatIntervalAllowed = (recurrence) => {
+  if (!recurrence?.enabled) return true;
+  const interval = recurrence.interval;
+  return !['5m', '15m', '30m'].includes(interval);
 };
 
 /**
@@ -623,6 +676,14 @@ function EventModal({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const fullScreen = isMobile;
+  const { user } = useAuth();
+
+  // Centralized reminder actions hook
+  const {
+    reminders: allReminders,
+    saveReminder: hookSaveReminder,
+    deleteReminder: hookDeleteReminder,
+  } = useReminderActions();
 
   // State
   const [description, setDescription] = useState(null);
@@ -632,6 +693,14 @@ function EventModal({
   const [refreshSuccess, setRefreshSuccess] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
+  const [reminderDoc, setReminderDoc] = useState(null);
+  const [reminderLoading, setReminderLoading] = useState(false);
+  const [reminderError, setReminderError] = useState('');
+  const [reminderListMatch, setReminderListMatch] = useState(null);
+  const [reminderDebugInfo, setReminderDebugInfo] = useState(null);
+  const [reminderSuccessMessage, setReminderSuccessMessage] = useState('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
 
   // Update countdown every second for NEXT badge
   useEffect(() => {
@@ -669,6 +738,24 @@ function EventModal({
   }, [open, event]);
 
   // Function to refresh event data from Firestore
+  const handleClose = () => {
+    if (hasUnsavedChanges) {
+      setShowCloseConfirmation(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleConfirmClose = () => {
+    setShowCloseConfirmation(false);
+    setHasUnsavedChanges(false);
+    onClose();
+  };
+
+  const handleCancelClose = () => {
+    setShowCloseConfirmation(false);
+  };
+
   const handleRefreshEvent = async () => {
     if (!event?.id) return;
 
@@ -706,10 +793,385 @@ function EventModal({
     }
   };
 
-  if (!event) return null;
+  const reminderEvent = refreshedEvent || event;
+  const reminderSource = useMemo(() => resolveEventSource(reminderEvent), [reminderEvent]);
+  const reminderBase = useMemo(() => {
+    if (!reminderEvent) return null;
+    return normalizeEventForReminder({
+      event: reminderEvent,
+      source: reminderSource,
+      userId: user?.uid,
+      reminders: reminderEvent.reminders || [],
+      metadata: {
+        recurrence: reminderEvent.recurrence || null,
+        localDate: reminderEvent.localDate || null,
+        localTime: reminderEvent.localTime || null,
+        description: reminderEvent.description || null,
+        customColor: reminderEvent.customColor || null,
+        customIcon: reminderEvent.customIcon || null,
+        showOnClock: reminderEvent.showOnClock ?? null,
+        isCustom: Boolean(reminderEvent.isCustom),
+        seriesId: reminderEvent.seriesId || reminderEvent.id || null,
+      },
+    });
+  }, [reminderEvent, reminderSource, user?.uid]);
+
+  const reminderBaseline = useMemo(
+    () => (reminderDoc?.reminders ?? reminderListMatch?.reminders ?? reminderBase?.reminders ?? []),
+    [reminderDoc, reminderListMatch, reminderBase]
+  );
+
+  // Compute scope for each saved reminder
+  const reminderScopes = useMemo(() => {
+    const baselineLen = reminderBaseline.length;
+    const scopes = [];
+    for (let i = 0; i < baselineLen; i++) {
+      scopes.push(reminderDoc?.scope ?? reminderListMatch?.scope ?? 'event');
+    }
+    return scopes;
+  }, [reminderBaseline.length, reminderDoc?.scope, reminderListMatch?.scope]);
+
+  useEffect(() => {
+    if (!open) {
+      setReminderDoc(null);
+      setReminderError('');
+      setReminderLoading(false);
+      setReminderListMatch(null);
+      setReminderDebugInfo(null);
+      setReminderSuccessMessage('');
+      setHasUnsavedChanges(false);
+      setShowCloseConfirmation(false);
+      return undefined;
+    }
+    return undefined;
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !reminderBase?.eventKey) return undefined;
+    setReminderError('');
+
+    if (!user?.uid) {
+      setReminderDoc(null);
+      setReminderLoading(false);
+      return undefined;
+    }
+
+    setReminderLoading(true);
+    const seriesDocRef = { current: null };
+    const eventDocRef = { current: null };
+    let eventResolved = false;
+    let seriesResolved = !reminderBase.seriesKey || reminderBase.seriesKey === reminderBase.eventKey;
+
+    const finalizeLoad = () => {
+      if (eventResolved && seriesResolved) {
+        setReminderDoc(seriesDocRef.current || eventDocRef.current || null);
+        setReminderLoading(false);
+      }
+    };
+
+    const handleSeries = (docData) => {
+      seriesDocRef.current = docData;
+      seriesResolved = true;
+      setReminderDoc(seriesDocRef.current || eventDocRef.current || null);
+      finalizeLoad();
+    };
+
+    const handleEvent = (docData) => {
+      eventDocRef.current = docData;
+      eventResolved = true;
+      setReminderDoc(seriesDocRef.current || eventDocRef.current || null);
+      finalizeLoad();
+    };
+
+    const handleError = () => {
+      setReminderError('We could not load your reminders. Please try again in a moment.');
+      setReminderLoading(false);
+    };
+
+    const unsubscribeEvent = subscribeToReminder(
+      user.uid,
+      reminderBase.eventKey,
+      handleEvent,
+      handleError
+    );
+
+    let unsubscribeSeries = () => { };
+    if (reminderBase.seriesKey && reminderBase.seriesKey !== reminderBase.eventKey) {
+      unsubscribeSeries = subscribeToReminder(
+        user.uid,
+        reminderBase.seriesKey,
+        handleSeries,
+        handleError
+      );
+    }
+
+    return () => {
+      unsubscribeEvent();
+      unsubscribeSeries();
+    };
+  }, [open, reminderBase?.eventKey, reminderBase?.seriesKey, user?.uid]);
+
+  // Use hook's reminders to find matching reminder for this event (replaces subscribeToReminders)
+  useEffect(() => {
+    if (!open || !user?.uid) {
+      setReminderListMatch(null);
+      return;
+    }
+
+    const eventIdCandidate = reminderEvent?.id || reminderEvent?.eventId || reminderEvent?.EventId || null;
+
+    // BEP FIX: Filter out reminders with empty arrays (deleted reminders that haven't synced yet)
+    const match = (allReminders || []).find((item) => {
+      if (!item) return false;
+      // Skip reminders with no reminders array or empty reminders array (deleted)
+      if (!item.reminders || item.reminders.length === 0) return false;
+      if (reminderBase?.eventKey && item.eventKey === reminderBase.eventKey) return true;
+      if (reminderBase?.seriesKey && item.eventKey === reminderBase.seriesKey) return true;
+      if (reminderBase?.seriesKey && item.seriesKey === reminderBase.seriesKey) return true;
+      if (eventIdCandidate && (item.eventKey === `event:${eventIdCandidate}` || String(item.eventKey || '').endsWith(`:${eventIdCandidate}`))) {
+        return true;
+      }
+      return false;
+    });
+
+    // BEP DEBUG: Log the found reminder's actual document ID vs computed keys
+    if (match) {
+      console.log('[reminders] Found existing reminder', {
+        matchId: match.id,
+        matchEventKey: match.eventKey,
+        matchSeriesKey: match.seriesKey,
+        computedEventKey: reminderBase?.eventKey,
+        computedSeriesKey: reminderBase?.seriesKey,
+        keysMatch: match.eventKey === reminderBase?.eventKey,
+        seriesKeysMatch: match.seriesKey === reminderBase?.seriesKey,
+        reminderCount: match.reminders?.length || 0,
+      });
+    }
+
+    setReminderListMatch(match || null);
+  }, [open, user?.uid, allReminders, reminderEvent?.id, reminderEvent?.eventId, reminderEvent?.EventId, reminderBase?.eventKey, reminderBase?.seriesKey]);
+
+  const requestBrowserPermission = async () => {
+    if (typeof Notification === 'undefined') return 'unsupported';
+    if (Notification.permission === 'granted') return 'granted';
+    return Notification.requestPermission();
+  };
+
+  const requestPushPermission = async () => {
+    if (!user?.uid) return 'auth-required';
+    try {
+      const result = await requestFcmTokenForUser(user.uid);
+      return result?.status || 'denied';
+    } catch {
+      return 'denied';
+    }
+  };
+
+  const handleSaveReminder = async (index, reminder, scope) => {
+    if (!user?.uid) {
+      setReminderError('Sign in to save reminders.');
+      throw new Error('Sign in to save reminders.');
+    }
+    if (!reminderBase) {
+      setReminderError('Reminder details are still loading.');
+      throw new Error('Reminder details are still loading.');
+    }
+
+    setReminderError('');
+    setReminderSuccessMessage('');
+
+    try {
+      const activeRecurrence = reminderEvent?.recurrence || reminderBase?.metadata?.recurrence;
+      if (!isRepeatIntervalAllowed(activeRecurrence)) {
+        const error = 'Reminders can only repeat hourly or slower. Set the repeat interval to 1h or longer.';
+        setReminderError(error);
+        throw new Error(error);
+      }
+
+      // Get current reminders from baseline
+      const currentReminders = reminderBaseline || [];
+
+      // Update or add the reminder
+      const updatedReminders = [...currentReminders];
+      if (index < currentReminders.length) {
+        // Editing existing reminder
+        updatedReminders[index] = reminder;
+      } else {
+        // Adding new reminder
+        updatedReminders.push(reminder);
+      }
+
+      console.log('[reminders] handleSaveReminder', {
+        index,
+        eventKey: reminderBase.eventKey,
+        seriesKey: reminderBase.seriesKey,
+        scope,
+        reminderCount: updatedReminders.length,
+        isCustom: reminderEvent?.isCustom,
+      });
+
+      // Save via centralized hook
+      const result = await hookSaveReminder({
+        event: reminderEvent,
+        remindersList: updatedReminders,
+        scope,
+        metadata: {
+          ...(reminderBase.metadata || {}),
+          scope,
+        },
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save reminder');
+      }
+
+      // For custom events, update the event document
+      if (reminderEvent?.isCustom) {
+        const customEventDocId = reminderEvent.seriesId || reminderEvent.id;
+        if (customEventDocId && !customEventDocId.includes('__')) {
+          await updateCustomEvent(user.uid, customEventDocId, {
+            ...reminderEvent,
+            reminders: updatedReminders,
+          });
+        }
+      }
+
+      setReminderSuccessMessage('Reminder saved successfully');
+      setHasUnsavedChanges(false);
+      setTimeout(() => setReminderSuccessMessage(''), 3000);
+    } catch (error) {
+      setReminderError(error?.message || 'Failed to save reminder');
+      throw error;
+    }
+  };
+
+  const handleDeleteReminder = async (index) => {
+    if (!user?.uid) {
+      setReminderError('Sign in to delete reminders.');
+      throw new Error('Sign in to delete reminders.');
+    }
+    if (!reminderBase) {
+      setReminderError('Reminder details are still loading.');
+      throw new Error('Reminder details are still loading.');
+    }
+
+    setReminderError('');
+    setReminderSuccessMessage('');
+
+    try {
+      const currentReminders = reminderBaseline || [];
+      const updatedReminders = currentReminders.filter((_, idx) => idx !== index);
+
+      console.log('[reminders] handleDeleteReminder', {
+        index,
+        remainingCount: updatedReminders.length,
+        eventKey: reminderBase.eventKey,
+      });
+
+      if (updatedReminders.length === 0) {
+        // BEP FIX: Delete ALL documents with matching eventKey/seriesKey (handles legacy duplicates)
+        const existingDocId = reminderDoc?.id || reminderListMatch?.id;
+        const existingEventKey = reminderDoc?.eventKey || reminderListMatch?.eventKey;
+        const existingSeriesKey = reminderDoc?.seriesKey || reminderListMatch?.seriesKey;
+
+        console.log('[reminders] Deleting all reminder documents', {
+          existingDocId,
+          existingEventKey,
+          existingSeriesKey,
+          eventKey: reminderBase.eventKey,
+          seriesKey: reminderBase.seriesKey,
+        });
+
+        // Query Firestore for ALL documents with matching eventKey or seriesKey
+        const remindersCollectionRef = collection(db, 'users', user.uid, 'reminders');
+        const keysToMatch = new Set([
+          existingEventKey,
+          existingSeriesKey,
+          reminderBase.eventKey,
+          reminderBase.seriesKey,
+        ].filter(Boolean));
+
+        console.log('[reminders] Querying for documents with keys:', Array.from(keysToMatch));
+
+        // Delete all matching documents
+        const deletePromises = [];
+        for (const keyToMatch of keysToMatch) {
+          // Query by eventKey
+          const eventKeyQuery = query(remindersCollectionRef, where('eventKey', '==', keyToMatch));
+          const eventKeySnapshot = await getDocs(eventKeyQuery);
+          eventKeySnapshot.forEach((docSnap) => {
+            console.log('[reminders] Found doc to delete (eventKey match):', docSnap.id);
+            deletePromises.push(deleteDoc(doc(db, 'users', user.uid, 'reminders', docSnap.id)));
+          });
+
+          // Query by seriesKey
+          const seriesKeyQuery = query(remindersCollectionRef, where('seriesKey', '==', keyToMatch));
+          const seriesKeySnapshot = await getDocs(seriesKeyQuery);
+          seriesKeySnapshot.forEach((docSnap) => {
+            console.log('[reminders] Found doc to delete (seriesKey match):', docSnap.id);
+            deletePromises.push(deleteDoc(doc(db, 'users', user.uid, 'reminders', docSnap.id)));
+          });
+        }
+
+        // Execute all deletes
+        await Promise.all(deletePromises);
+        console.log('[reminders] Deleted', deletePromises.length, 'documents');
+
+        // Also call the hook's delete method for cleanup
+        const result = await hookDeleteReminder(reminderEvent, {
+          alsoDeleteSeries: true,
+          existingDocId,
+          existingEventKey,
+          existingSeriesKey,
+        });
+
+        if (!result.success) {
+          console.warn('[reminders] Hook delete returned error (may be expected):', result.error);
+        }
+      } else {
+        // Update with remaining reminders
+        const scope = reminderDoc?.scope || reminderListMatch?.scope || 'event';
+        const result = await hookSaveReminder({
+          event: reminderEvent,
+          remindersList: updatedReminders,
+          scope,
+          metadata: {
+            ...(reminderBase.metadata || {}),
+            scope,
+          },
+        });
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to delete reminder');
+        }
+      }
+
+      // For custom events, update the event document
+      if (reminderEvent?.isCustom) {
+        const customEventDocId = reminderEvent.seriesId || reminderEvent.id;
+        if (customEventDocId && !customEventDocId.includes('__')) {
+          await updateCustomEvent(user.uid, customEventDocId, {
+            ...reminderEvent,
+            reminders: updatedReminders,
+          });
+        }
+      }
+
+      setReminderSuccessMessage('Reminder deleted successfully');
+      setHasUnsavedChanges(false);
+      setTimeout(() => setReminderSuccessMessage(''), 3000);
+    } catch (error) {
+      setReminderError(error?.message || 'Failed to delete reminder');
+      throw error;
+    }
+  };
 
   // Use refreshed event data if available, otherwise use original event
-  const currentEvent = refreshedEvent || event;
+  const currentEvent = reminderEvent;
+  const safeEvent = useMemo(
+    () => currentEvent || {},
+    [currentEvent]
+  );
 
   // Use global timezone-aware NOW/NEXT engine instead of hardcoded calculations
   const nowEpochMs = getNowEpochMs(timezone);
@@ -740,24 +1202,80 @@ function EventModal({
   if (isFutureEvent) {
     actualValue = '—';
   } else {
-    const hasValidActual = currentEvent.actual &&
-      currentEvent.actual !== '-' &&
-      currentEvent.actual !== '' &&
-      currentEvent.actual !== '0' &&
-      currentEvent.actual !== 0;
-    actualValue = hasValidActual ? currentEvent.actual : '—';
+    const hasValidActual = safeEvent.actual &&
+      safeEvent.actual !== '-' &&
+      safeEvent.actual !== '' &&
+      safeEvent.actual !== '0' &&
+      safeEvent.actual !== 0;
+    actualValue = hasValidActual ? safeEvent.actual : '—';
   }
 
   const customImpactValue = normalizeCustomImpact(
-    currentEvent?.impact
-    || currentEvent?._displayCache?.strengthValue
-    || currentEvent?.strength
+    safeEvent?.impact
+    || safeEvent?._displayCache?.strengthValue
+    || safeEvent?.strength
   );
+
+  const remindersDisabled = !user?.uid;
+  const reminderTimezone = reminderBase?.timezone || timezone;
+  const seriesKey = useMemo(() => {
+    if (!safeEvent) return null;
+
+    // Non-custom events: use standard series key
+    if (!safeEvent.isCustom) {
+      return buildSeriesKey({ event: safeEvent, eventSource: resolveEventSource(safeEvent) });
+    }
+
+    // Custom recurring events: use seriesId
+    if (safeEvent.recurrence?.enabled && safeEvent.seriesId) {
+      return `custom-series:${safeEvent.seriesId}`;
+    }
+
+    return null;
+  }, [safeEvent]);
+  const seriesLabel = useMemo(() => {
+    if (!safeEvent) return '';
+
+    // Non-custom events
+    if (!safeEvent.isCustom) {
+      const name = safeEvent.name || safeEvent.Name || 'Series';
+      const currency = safeEvent.currency || safeEvent.Currency || '—';
+      const impactLabel = resolveImpactMeta(safeEvent.strength || safeEvent.impact || 'unknown')?.label || 'Unknown';
+      return `${name} • ${currency} • ${impactLabel}`;
+    }
+
+    // Custom recurring events
+    if (safeEvent.recurrence?.enabled) {
+      const interval = safeEvent.recurrence.interval || '1D';
+      const intervalLabels = {
+        '1h': 'hourly',
+        '4h': 'every 4 hours',
+        '1D': 'daily',
+        '1W': 'weekly',
+        '1M': 'monthly',
+        '1Q': 'quarterly',
+        '1Y': 'yearly'
+      };
+      const intervalLabel = intervalLabels[interval] || interval;
+      return `${safeEvent.name || safeEvent.title || 'Custom event'} (${intervalLabel})`;
+    }
+
+    return '';
+  }, [safeEvent]);
+
+  const showReminderDebug = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('debugReminders') === '1') return true;
+    return window.localStorage.getItem('t2t_debug_reminders') === '1';
+  }, []);
+
+  if (!currentEvent) return null;
 
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       fullScreen={fullScreen}
       maxWidth="md"
       fullWidth
@@ -874,7 +1392,19 @@ function EventModal({
                 <IconButton
                   onClick={(e) => {
                     e.stopPropagation();
+                    e.preventDefault();
+                    logFavoriteDebug('modal:click', {
+                      id: currentEvent?.id,
+                      name: currentEvent?.name || currentEvent?.Name,
+                      currency: currentEvent?.currency || currentEvent?.Currency,
+                    });
                     onToggleFavorite(currentEvent);
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    logFavoriteDebug('modal:touch', { name: currentEvent?.name || currentEvent?.Name });
+                    if (onToggleFavorite) onToggleFavorite(currentEvent);
                   }}
                   disabled={favoritesLoading || isFavoritePending(currentEvent)}
                   sx={{
@@ -923,7 +1453,7 @@ function EventModal({
 
           {/* Close Button */}
           <IconButton
-            onClick={onClose}
+            onClick={handleClose}
             sx={{
               color: 'primary.contrastText',
               '&:hover': {
@@ -1085,46 +1615,71 @@ function EventModal({
                   </Box>
 
                   {/* Reminders */}
-                  {currentEvent.reminders && currentEvent.reminders.length > 0 && (
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary' }}>
-                        Reminders ({currentEvent.reminders.length})
-                      </Typography>
-                      <Stack spacing={1}>
-                        {currentEvent.reminders.map((reminder, idx) => (
-                          <Box
-                            key={idx}
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                              p: 1.5,
-                              bgcolor: 'background.default',
-                              borderRadius: 1.5,
-                              border: '1px solid',
-                              borderColor: 'divider',
-                            }}
-                          >
-                            <AccessTimeIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {reminder.minutesBefore} minutes before
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 0.5, ml: 'auto', flexWrap: 'wrap' }}>
-                              {reminder.channels?.inApp && (
-                                <Chip label="In-app" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                              )}
-                              {reminder.channels?.browser && (
-                                <Chip label="Browser" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                              )}
-                              {reminder.channels?.push && (
-                                <Chip label="Push" size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
-                              )}
-                            </Box>
-                          </Box>
-                        ))}
-                      </Stack>
-                    </Box>
-                  )}
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary' }}>
+                      Reminders
+                    </Typography>
+                    <RemindersEditor2
+                      reminders={reminderBaseline}
+                      savedCount={reminderBaseline.length}
+                      reminderScopes={reminderScopes}
+                      seriesKey={null}
+                      seriesLabel={null}
+                      recurrence={currentEvent.recurrence}
+                      timezone={reminderTimezone}
+                      disabled={remindersDisabled || reminderLoading}
+                      showPolicyInfo={true}
+                      onSaveReminder={handleSaveReminder}
+                      onDeleteReminder={handleDeleteReminder}
+                      onRequestBrowserPermission={requestBrowserPermission}
+                      onRequestPushPermission={requestPushPermission}
+                      onUnsavedChanges={setHasUnsavedChanges}
+                    />
+                    {remindersDisabled && (
+                      <Alert severity="info" sx={{ borderRadius: 2, mt: 1.5 }}>
+                        Sign in to save reminders across devices.
+                      </Alert>
+                    )}
+                    {!remindersDisabled && !reminderBase && (
+                      <Alert severity="info" sx={{ borderRadius: 2, mt: 1.5 }}>
+                        Reminder details are still loading. Reopen this event if Save stays disabled.
+                      </Alert>
+                    )}
+                    {reminderError && (
+                      <Alert severity="error" sx={{ borderRadius: 2, mt: 1.5 }}>
+                        {reminderError}
+                      </Alert>
+                    )}
+                    {reminderSuccessMessage && (
+                      <Alert severity="success" sx={{ borderRadius: 2, mt: 1.5 }}>
+                        {reminderSuccessMessage}
+                      </Alert>
+                    )}
+                    {showReminderDebug && (
+                      <Alert severity="info" sx={{ borderRadius: 2, mt: 1.5 }}>
+                        <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, mb: 0.5 }}>
+                          Reminder Debug
+                        </Typography>
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                          Event key: {reminderBase?.eventKey || '—'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                          Series key: {reminderBase?.seriesKey || '—'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                          Doc id: {reminderDoc?.id || reminderListMatch?.id || '—'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                          Baseline count: {reminderBaseline.length}
+                        </Typography>
+                        {reminderDebugInfo && (
+                          <Typography variant="caption" sx={{ display: 'block' }}>
+                            Last: {reminderDebugInfo.step} @ {reminderDebugInfo.at}
+                          </Typography>
+                        )}
+                      </Alert>
+                    )}
+                  </Box>
                 </Stack>
               </CardContent>
             </Card>
@@ -2091,6 +2646,84 @@ function EventModal({
                 </CardContent>
               </Card>
             )}
+
+            {/* Reminders */}
+            <Card
+              elevation={0}
+              sx={{
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+              }}
+            >
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Stack spacing={1.5}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    Reminders
+                  </Typography>
+                  <RemindersEditor2
+                    reminders={reminderBaseline}
+                    savedCount={reminderBaseline.length}
+                    reminderScopes={reminderScopes}
+                    seriesKey={seriesKey}
+                    seriesLabel={seriesLabel}
+                    recurrence={currentEvent.recurrence}
+                    timezone={reminderTimezone}
+                    disabled={remindersDisabled || reminderLoading}
+                    showPolicyInfo={true}
+                    onSaveReminder={handleSaveReminder}
+                    onDeleteReminder={handleDeleteReminder}
+                    onRequestBrowserPermission={requestBrowserPermission}
+                    onRequestPushPermission={requestPushPermission}
+                    onUnsavedChanges={setHasUnsavedChanges}
+                  />
+                  {remindersDisabled && (
+                    <Alert severity="info" sx={{ borderRadius: 2 }}>
+                      Sign in to save reminders across devices.
+                    </Alert>
+                  )}
+                  {!remindersDisabled && !reminderBase && (
+                    <Alert severity="info" sx={{ borderRadius: 2 }}>
+                      Reminder details are still loading. Reopen this event if Save stays disabled.
+                    </Alert>
+                  )}
+                  {reminderError && (
+                    <Alert severity="error" sx={{ borderRadius: 2 }}>
+                      {reminderError}
+                    </Alert>
+                  )}
+                  {reminderSuccessMessage && (
+                    <Alert severity="success" sx={{ borderRadius: 2 }}>
+                      {reminderSuccessMessage}
+                    </Alert>
+                  )}
+                  {showReminderDebug && (
+                    <Alert severity="info" sx={{ borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, mb: 0.5 }}>
+                        Reminder Debug
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>
+                        Event key: {reminderBase?.eventKey || '—'}
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>
+                        Series key: {reminderBase?.seriesKey || '—'}
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>
+                        Doc id: {reminderDoc?.id || reminderListMatch?.id || '—'}
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>
+                        Baseline count: {reminderBaseline.length}
+                      </Typography>
+                      {reminderDebugInfo && (
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                          Last: {reminderDebugInfo.step} @ {reminderDebugInfo.at}
+                        </Typography>
+                      )}
+                    </Alert>
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
           </Stack>
         )}
       </DialogContent>
@@ -2191,7 +2824,7 @@ function EventModal({
 
         {/* Close Button - Right Side */}
         <Button
-          onClick={onClose}
+          onClick={handleClose}
           variant="contained"
           fullWidth={isMobile && !currentEvent.id}
           sx={{
@@ -2204,6 +2837,15 @@ function EventModal({
           Close
         </Button>
       </DialogActions>
+
+      {/* Unsaved Changes Confirmation */}
+      <UnsavedChangesModal
+        open={showCloseConfirmation}
+        onConfirm={handleConfirmClose}
+        onCancel={handleCancelClose}
+        message="You have unsaved changes to reminders. If you close now, your changes will be lost."
+        zIndex={12002}
+      />
     </Dialog>
   );
 }

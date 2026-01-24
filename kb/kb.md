@@ -2111,6 +2111,123 @@ whyDidYouRender(React, {
 
 ## 📝 Change Log
 
+### Version 4.0.71 - January 23, 2026
+**Favorites Toggle Click Handler Fix**
+
+#### ⭐ Favorites
+- **BEP FIX**: Favorites heart icon click doing nothing in calendar rows and event modal.
+- Added `e.preventDefault()` to click handlers to prevent potential event interference.
+- Added `onTouchEnd` handlers for mobile touch device support.
+- Added span click delegation with `inline-flex` styling for better click capture.
+- Added ungated diagnostic console.logs to trace click flow (helps identify if handler fires).
+- Files updated: CalendarEmbed.jsx (v1.5.72), EventModal.jsx (v1.13.10), useFavorites.js (v1.2.1).
+- Root cause investigation: Click handlers may not fire due to event bubbling/capture issues or touch-only devices.
+
+### Version 4.0.70 - January 23, 2026
+**Favorites UI Click Diagnostics**
+
+#### ⭐ Favorites
+- Add gated click/toggle logs in CalendarEmbed and EventModal favorites handlers.
+
+### Version 4.0.69 - January 23, 2026
+**Favorites Matching Diagnostics (Composite Preference)**
+
+#### ⭐ Favorites
+- Prefer composite key (name + currency + time) when available even if raw event id exists.
+- Add gated debug logging for identity resolution and Firestore doc selection.
+
+### Version 4.0.68 - January 23, 2026
+**Favorites Matching Diagnostics**
+
+#### ⭐ Favorites
+- Expand favorite identity normalization to include Event_ID and additional date fields.
+- Add gated debug logging for favorites toggle flows (enable via localStorage t2t_debug_favorites=1).
+
+### Version 4.0.67 - January 23, 2026
+**Reminder Debug Panel**
+
+#### 🔔 Reminders
+- Add on-screen reminder debug panel (enable via ?debugReminders=1) to replace console logs.
+
+### Version 4.0.66 - January 23, 2026
+**Reminder Alias Matching**
+
+#### 🔔 Reminders
+- Match reminders by eventId aliases to prevent source-key mismatches from hiding saved reminders.
+
+### Version 4.0.65 - January 23, 2026
+**Series Reminder Save Fix**
+
+#### 🔔 Reminders
+- Save reminder docs using the series key when series scope is selected.
+
+### Version 4.0.64 - January 23, 2026
+**Live Reminder Badges**
+
+#### 🔔 Reminders
+- Sync clock marker reminder badges in real time by subscribing to reminder records.
+
+### Version 4.0.63 - January 23, 2026
+**Non-Custom Reminder Save Fix**
+
+#### 🔔 Reminders
+- Preserve stable reminder keys when saving non-custom event reminders so they load correctly.
+
+### Version 4.0.62 - January 23, 2026
+**Reminder Badge on Clock Markers**
+
+#### 🔔 Reminders
+- Add bell badge to clock event markers that have reminders configured.
+
+### Version 4.0.61 - January 23, 2026
+**Reminder Save Confirmation**
+
+#### 🔔 Reminders
+- Add success confirmation after saving reminders and clear it on edits.
+
+### Version 4.0.60 - January 23, 2026
+**Reminder Save Guard**
+
+#### 🔔 Reminders
+- Disable Save reminders until reminder base data is available and surface a clear loading notice.
+
+### Version 4.0.59 - January 23, 2026
+**Push Enablement Diagnostics**
+
+#### 🔔 Notifications
+- Improve push enablement reliability in Chrome by handling service worker readiness and returning clearer permission status feedback.
+
+### Version 4.0.57 - January 23, 2026
+**FCM Push Foundations**
+
+#### 🔔 Notifications
+- Add FCM push infrastructure (token storage, service worker background handler, and scheduled reminder sender).
+
+### Version 4.0.58 - January 23, 2026
+**Reminder Cap Enforcement**
+
+#### 🔔 Reminders
+- Enforce max 3 reminders per event in UI and backend normalization for all event types.
+
+### Version 4.0.55 - January 23, 2026
+**Unified Reminders System**
+
+#### 🔔 Reminders
+- Add source-agnostic reminders storage, normalization, and trigger engine with quiet hours + daily cap controls.
+- Enable reminders editing for all event types via unified UI in EventModal and CustomEventDialog.
+
+### Version 4.0.56 - January 23, 2026
+**Series Reminders (Non-Custom)**
+
+#### 🔔 Reminders
+- Add series reminder scope and matching for upcoming economic events (name + currency + impact + category).
+
+### Version 4.0.54 - January 22, 2026
+**Recurring Custom Events**
+
+#### 🗓️ Custom Events
+- Add recurring custom event presets (5m through 1Y) with Outlook-style end rules and series-safe editing.
+
 ### Version 4.0.53 - January 22, 2026
 **Notification Persistence Upgrade**
 

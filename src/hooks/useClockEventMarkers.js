@@ -6,6 +6,10 @@
  * lightweight temporal status (per second) so the overlay UI stays fast.
  *
  * Changelog:
+ * v1.2.6 - 2026-01-24 - BEP: Clarify scope-based reminder matching logic (event vs series scoped reminders).
+ * v1.2.5 - 2026-01-23 - Match reminder docs by eventId alias to avoid source key mismatches.
+ * v1.2.4 - 2026-01-23 - Match reminders by event and series keys for live marker badges.
+ * v1.2.3 - 2026-01-23 - Expose reminder badge flags for marker overlays.
  * v1.2.2 - 2026-01-22 - Group event markers into nearest 5-minute windows for consistent clock clustering.
  * v1.2.1 - 2026-01-21 - Expose impact meta for custom marker badges.
  * v1.2.0 - 2026-01-21 - Use custom icon/color overrides for reminder markers.
@@ -21,6 +25,7 @@ import { resolveImpactMeta } from '../utils/newsApi';
 import { getCurrencyFlag } from '../utils/currencyFlags';
 import { getEventEpochMs, NOW_WINDOW_MS } from '../utils/eventTimeEngine';
 import { getCustomEventIconComponent, resolveCustomEventColor } from '../utils/customEventStyle';
+import { buildEventKey, buildSeriesKey } from '../utils/remindersRegistry';
 
 const useTimeParts = (timezone) => {
   const formatter = useMemo(
@@ -67,8 +72,92 @@ const getMinuteDelta = (minute, bucketMinute) => {
   return delta;
 };
 
-export function useClockEventMarkers({ events = [], timezone, eventFilters, nowEpochMs, isFavorite, hasNotes }) {
+const extractReminderEventId = (eventKey) => {
+  if (!eventKey) return null;
+  const key = String(eventKey);
+  if (key.includes(':series:')) return null;
+  if (key.startsWith('event:')) return key.slice(6) || null;
+  const idx = key.indexOf(':');
+  if (idx === -1) return null;
+  return key.slice(idx + 1) || null;
+};
+
+// BEP: Extract seriesId from custom event reminder keys for recurring event matching
+const extractSeriesId = (eventKey) => {
+  if (!eventKey) return null;
+  const key = String(eventKey);
+  // Custom event keys are like "custom:seriesId" or "custom:title-epochMs"
+  const idx = key.indexOf(':');
+  if (idx === -1) return null;
+  const afterPrefix = key.slice(idx + 1);
+  // If it contains double underscore, it's an occurrence id - extract seriesId
+  if (afterPrefix.includes('__')) {
+    return afterPrefix.split('__')[0] || null;
+  }
+  return afterPrefix || null;
+};
+
+const resolveEventSource = (event) => {
+  if (!event) return 'unknown';
+  if (event.isCustom) return 'custom';
+  return event.eventSource || event.source || event.Source || event.sourceKey || 'canonical';
+};
+
+export function useClockEventMarkers({ events = [], timezone, eventFilters, nowEpochMs, isFavorite, hasNotes, reminders = [] }) {
   const getTimeParts = useTimeParts(timezone);
+
+  const reminderKeySets = useMemo(() => {
+    const eventKeys = new Set();
+    const seriesKeys = new Set();
+    const eventIds = new Set();
+    const seriesIds = new Set(); // BEP: Track seriesIds for custom recurring events
+    (reminders || []).forEach((reminder) => {
+      if (!reminder) return;
+      const scope = reminder.scope || 'event';
+      
+      // BEP: Match reminders by scope:
+      // - 'event' scope: reminder applies to specific event, stored with eventKey
+      // - 'series' scope: reminder applies to all matching events in series, stored with seriesKey
+      if (reminder.eventKey) {
+        if (scope === 'event') {
+          eventKeys.add(String(reminder.eventKey));
+        } else if (scope === 'series') {
+          // For series-scoped reminders, eventKey is set to seriesKey
+          seriesKeys.add(String(reminder.eventKey));
+        }
+      }
+      
+      const seriesKey = reminder.seriesKey || reminder.eventKey;
+      if (scope === 'series' && seriesKey) {
+        seriesKeys.add(String(seriesKey));
+      }
+      
+      const eventId = extractReminderEventId(reminder.eventKey);
+      if (eventId) eventIds.add(String(eventId));
+      
+      // BEP: Also track seriesId from metadata for custom recurring events
+      const metaSeriesId = reminder.metadata?.seriesId;
+      if (metaSeriesId) seriesIds.add(String(metaSeriesId));
+      
+      // Extract seriesId from eventKey if it's a custom event format
+      const extractedSeriesId = extractSeriesId(reminder.eventKey);
+      if (extractedSeriesId) seriesIds.add(String(extractedSeriesId));
+    });
+    
+    // BEP DEBUG: Log collected reminder keys
+    if (typeof window !== 'undefined' && window.localStorage?.getItem('t2t_debug_reminders') === '1') {
+      // eslint-disable-next-line no-console
+      console.log('[reminders] Collected reminder key sets', {
+        reminderCount: reminders?.length,
+        eventKeys: Array.from(eventKeys),
+        seriesKeys: Array.from(seriesKeys),
+        eventIds: Array.from(eventIds),
+        seriesIds: Array.from(seriesIds),
+      });
+    }
+    
+    return { eventKeys, seriesKeys, eventIds, seriesIds };
+  }, [reminders]);
 
   const baseMarkers = useMemo(() => {
     if (!timezone) return [];
@@ -89,6 +178,36 @@ export function useClockEventMarkers({ events = [], timezone, eventFilters, nowE
       const groupEpochMs = eventEpochMs + minuteDelta * 60000;
 
       const impactMeta = getImpactMeta(evt.impact || evt.strength || evt.Strength);
+      const eventSource = resolveEventSource(evt);
+      const eventTitle = evt.title || evt.name || evt.Name || evt.canonicalName || evt.eventTitle || evt.eventName || evt.headline;
+      const eventKey = buildEventKey({ event: evt, eventSource, eventEpochMs, title: eventTitle });
+      const seriesKey = buildSeriesKey({ event: evt, eventSource });
+      const eventIdCandidate = evt?.id || evt?.eventId || evt?.EventId || null;
+      const eventSeriesId = evt?.seriesId || null; // BEP: Track seriesId for custom recurring events
+      
+      // BEP: Check for reminder match including seriesId for custom recurring events
+      const hasReminderEvent = reminderKeySets.eventKeys.has(String(eventKey))
+        || reminderKeySets.seriesKeys.has(String(seriesKey))
+        || (eventIdCandidate && reminderKeySets.eventIds.has(String(eventIdCandidate)))
+        || (eventSeriesId && reminderKeySets.seriesIds.has(String(eventSeriesId)));
+      
+      // BEP DEBUG: Log reminder matching for custom events
+      if (evt?.isCustom && typeof window !== 'undefined' && window.localStorage?.getItem('t2t_debug_reminders') === '1') {
+        // eslint-disable-next-line no-console
+        console.log('[reminders] Marker matching for custom event', {
+          eventTitle,
+          eventKey,
+          seriesKey,
+          eventIdCandidate,
+          eventSeriesId,
+          hasReminderEvent,
+          reminderEventKeys: Array.from(reminderKeySets.eventKeys),
+          reminderSeriesKeys: Array.from(reminderKeySets.seriesKeys),
+          reminderEventIds: Array.from(reminderKeySets.eventIds),
+          reminderSeriesIds: Array.from(reminderKeySets.seriesIds),
+        });
+      }
+      
       const key = `${bucketHour}-${bucketMinute}`;
 
       const list = grouped.get(key) || [];
@@ -103,6 +222,7 @@ export function useClockEventMarkers({ events = [], timezone, eventFilters, nowE
         countryCode: currency ? getCurrencyFlag(currency) : null,
         isFavoriteEvent: isFavorite ? isFavorite(evt) : false,
         hasNoteEvent: hasNotes ? hasNotes(evt) : false,
+        hasReminderEvent,
       });
       grouped.set(key, list);
     });
@@ -135,7 +255,7 @@ export function useClockEventMarkers({ events = [], timezone, eventFilters, nowE
     }
 
     return markers;
-  }, [events, timezone, eventFilters?.favoritesOnly, getTimeParts, isFavorite, hasNotes]);
+  }, [events, timezone, eventFilters?.favoritesOnly, getTimeParts, isFavorite, hasNotes, reminderKeySets]);
 
   const earliestFuture = useMemo(() => {
     let min = null;
@@ -207,8 +327,10 @@ export function useClockEventMarkers({ events = [], timezone, eventFilters, nowE
       const upcomingOrNow = scoredEvents.filter((item) => !item.isPassed || item.isNow);
       const isFavoriteMarkerAny = scoredEvents.some((item) => item.isFavoriteEvent);
       const hasNoteMarkerAny = scoredEvents.some((item) => item.hasNoteEvent);
+      const hasReminderMarkerAny = scoredEvents.some((item) => item.hasReminderEvent);
       const isFavoriteMarker = upcomingOrNow.length > 0 && upcomingOrNow.some((item) => item.isFavoriteEvent);
       const hasNoteMarker = upcomingOrNow.length > 0 && upcomingOrNow.some((item) => item.hasNoteEvent);
+      const hasReminderMarker = upcomingOrNow.length > 0 && upcomingOrNow.some((item) => item.hasReminderEvent);
 
       return {
         ...marker,
@@ -223,6 +345,8 @@ export function useClockEventMarkers({ events = [], timezone, eventFilters, nowE
         hasNoteMarker,
         isFavoriteMarkerAny,
         hasNoteMarkerAny,
+        hasReminderMarker,
+        hasReminderMarkerAny,
       };
     });
   }, [baseMarkers, earliestFuture, nowEpochMs]);

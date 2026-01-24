@@ -5,6 +5,9 @@
  * and stays embeddable for other pages while keeping Time 2 Trade branding and SEO-friendly copy.
  * 
  * Changelog:
+ * v1.5.72 - 2026-01-23 - BEP FIX: Favorites toggle not firing. Added e.preventDefault() to click handlers, onTouchEnd handlers for mobile support, span click delegation, inline-flex span styling, and ungated diagnostic console.logs to trace click flow. Addresses issue where favorites heart click did nothing on calendar rows.
+ * v1.5.71 - 2026-01-23 - BEP: Add gated favorites click diagnostics.
+ * v1.5.70 - 2026-01-22 - BEP: Ensure recurring custom event edits/deletes target the series id.
  * v1.5.69 - 2026-01-22 - BEP UX: Show skeletons immediately on filter apply by setting isLoadingNewRange=true synchronously in handleApplyFiltersGuard. Prevents "No events" flash during filter transitions.
  * v1.5.68 - 2026-01-22 - BEP FIX: Pass hasCustomEvents={customEvents?.length > 0} to EventsFilters3 so CUS currency option appears when custom events exist. Added handleOpenCustomDialog to useMemo dependencies.
  * v1.5.67 - 2026-01-22 - BEP FIX: Apply currency filter to custom events. Custom events now only show when CUS is selected or no currency filter is active. Prevents N/A filter from showing custom events.
@@ -328,6 +331,9 @@ const ContactModal = lazy(() => import('./ContactModal'));
 
 const eventShape = PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    eventId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    EventId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    EventID: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     Event_ID: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     date: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.instanceOf(Date), PropTypes.object]),
     dateTime: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.instanceOf(Date), PropTypes.object]),
@@ -684,6 +690,16 @@ const metricCellDisplay = { xs: 'none', lg: 'table-cell' };
 
 const ADS_CLIENT_ID = 'ca-pub-3984565509623618';
 
+const shouldDebugFavorites = () => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage?.getItem('t2t_debug_favorites') === '1';
+};
+
+const logFavoriteDebug = (...args) => {
+    if (!shouldDebugFavorites()) return;
+    console.info('[favorites][CalendarEmbed]', ...args);
+};
+
 const EventRow = memo(({
     event,
     timezone,
@@ -706,6 +722,14 @@ const EventRow = memo(({
     const favorite = isFavorite ? isFavorite(event) : false;
     const favoritePending = isFavoritePending ? isFavoritePending(event) : false;
 
+    logFavoriteDebug('row:render', {
+        eventName: event?.name || event?.Name,
+        hasOnToggleFavorite: typeof onToggleFavorite === 'function',
+        isCustom: event?.isCustom,
+        favoritePending,
+        wouldRenderButton: Boolean(onToggleFavorite && !event.isCustom),
+    });
+
     const handleOpenEvent = () => {
         if (onOpenEvent) onOpenEvent(event);
     };
@@ -719,6 +743,14 @@ const EventRow = memo(({
 
     const handleFavoriteClick = (e) => {
         e.stopPropagation();
+        e.preventDefault();
+        logFavoriteDebug('row:click', {
+            id: event?.id,
+            eventId: event?.eventId || event?.EventId || event?.EventID || event?.Event_ID,
+            name: event?.name || event?.Name,
+            currency: event?.currency || event?.Currency,
+            time: event?.time || event?.date || event?.Date,
+        });
         if (onToggleFavorite) onToggleFavorite(event);
     };
 
@@ -789,10 +821,20 @@ const EventRow = memo(({
                 <Stack direction="row" spacing={0} alignItems="center" justifyContent="center" sx={{ minWidth: 0, flexWrap: 'nowrap' }}>
                     {onToggleFavorite && !event.isCustom ? (
                         <Tooltip title={favorite ? 'Remove favorite' : 'Add to favorites'}>
-                            <span>
+                            <span
+                                style={{ display: 'inline-flex', cursor: favoritePending ? 'not-allowed' : 'pointer' }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleFavoriteClick(e);
+                                }}
+                            >
                                 <IconButton
                                     size="small"
                                     onClick={handleFavoriteClick}
+                                    onTouchEnd={(e) => {
+                                        e.preventDefault();
+                                        handleFavoriteClick(e);
+                                    }}
                                     disabled={favoritePending}
                                     sx={{ p: 0.25, m: 0 }}
                                 >
@@ -1960,7 +2002,15 @@ export default function CalendarEmbed({
     }, [nowEventKey, nowEventIds, mergedEvents, visibleDayKeys.length, showSkeletons, isTwoColumn]);
 
     const handleToggleFavorite = useCallback(async (event) => {
+        logFavoriteDebug('toggle:start', {
+            id: event?.id,
+            eventId: event?.eventId || event?.EventId || event?.EventID || event?.Event_ID,
+            name: event?.name || event?.Name,
+            currency: event?.currency || event?.Currency,
+            time: event?.time || event?.date || event?.Date,
+        });
         const result = await toggleFavorite(event);
+        logFavoriteDebug('toggle:result', result);
         if (result?.requiresAuth && onOpenAuth) {
             onOpenAuth();
         }
@@ -2046,8 +2096,9 @@ export default function CalendarEmbed({
             return;
         }
 
-        const result = customEditingEvent?.id
-            ? await saveEvent(customEditingEvent.id, payload)
+        const eventId = customEditingEvent?.seriesId || customEditingEvent?.id;
+        const result = eventId
+            ? await saveEvent(eventId, payload)
             : await createEvent(payload);
 
         if (result?.requiresAuth) {
@@ -2067,12 +2118,13 @@ export default function CalendarEmbed({
     }, [createEvent, customEditingEvent, onOpenAuth, saveEvent, user]);
 
     const handleDeleteCustomEvent = useCallback(async (eventToDelete) => {
-        if (!eventToDelete?.id) return;
+        const eventId = eventToDelete?.seriesId || eventToDelete?.id;
+        if (!eventId) return;
         const confirmed = window.confirm('Delete this reminder?');
         if (!confirmed) return;
 
         setCustomActionError('');
-        const result = await removeEvent(eventToDelete.id);
+        const result = await removeEvent(eventId);
 
         if (result?.requiresAuth) {
             if (onOpenAuth) {

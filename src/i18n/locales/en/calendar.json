@@ -1,0 +1,32 @@
+{
+  "title": "Economic Calendar",
+  "filter": "Filter Events",
+  "search": "Search Events",
+  "sort": "Sort by",
+    "impact": "Impact",
+  "currency": "Currency",
+  "source": "Source",
+  "date": "Date",
+  "time": "Time",
+  "noEvents": "No events found",
+  "loadingEvents": "Loading events...",
+  "errorLoading": "Error loading events",
+  "viewToggle": {
+    "table": "Table View",
+    "timeline": "Timeline View"
+  },
+  "sources": {
+    "forexFactory": "Forex Factory",
+    "nfs": "NFS",
+    "jblanked": "JBlanked"
+  },
+  "columns": {
+    "time": "Time",
+    "event": "Event",
+    "currency": "Currency",
+    "impact": "Impact",
+    "actual": "Actual",
+    "forecast": "Forecast",
+    "previous": "Previous"
+  }
+}

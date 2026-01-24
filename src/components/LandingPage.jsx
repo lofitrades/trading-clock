@@ -4,6 +4,11 @@
  * Purpose: High-performance landing page with a live hero clock for futures and forex day traders.
  * Highlights Time 2 Trade value props with brand-safe visuals and responsive hero layout.
  * 
+ * v1.7.4 - 2026-01-22 - BEP UI CONSISTENCY: Aligned timezone button and modal styling with ClockPanelPaper pattern for consistent UX across landing and calendar pages. Button now uses handColor variable (matches text color contrast), smaller fontSize (0.75rem matches ClockPanelPaper), reduced fontWeight (600), added text overflow handling (overflow: hidden, textOverflow: ellipsis). Dialog title pb increased to 1.5 for spacing consistency; close button uses ml: 'auto' for proper alignment; DialogContent pt adjusted to 0.5. All accessibility features preserved (focus-visible, aria-labels, hover states).
+ * v1.7.3 - 2026-01-22 - BEP ACCESSIBILITY: Improved timezone button to pass Lighthouse AA accessibility tests: changed color from alpha('#c7d3e0', 0.9) to alpha('#0F172A', 0.72) for 4.5:1+ contrast ratio on light backgrounds; increased fontWeight to 700; added focus-visible states with 2px primary-colored outline; added aria-label for screen readers. Added close icon (IconButton with CloseIcon) to timezone selector modal in DialogTitle; close button is fully accessible with aria-label and focus-visible styling. Modal title now uses flexbox layout with space-between to position close button. All following enterprise accessibility best practices.
+ * v1.7.2 - 2026-01-22 - BEP: Replace interactive TimezoneSelector component below hero clock with simple button (like ClockPanelPaper pattern). Button opens Dialog modal with TimezoneSelector inside. Added Dialog/DialogContent/DialogTitle imports and timezone modal state (timezoneModalOpen). Button closes modal on selection via onTimezoneChange callback. Guests redirected to AuthModal2 via onRequestSignUp callback. Follows enterprise modal stacking patterns with proper z-index.
+ * v1.7.1 - 2026-01-22 - BEP: Replace timezone label below hero clock with interactive TimezoneSelector component. Removed static timezoneLabelText memo and Typography render. Added responsive Box wrapper with mobile-first layout (full width xs, auto width sm+, minWidth 300 sm+).
+ * v1.7.0 - 2026-01-22 - BEP COPY REFRESH: Updated positioning to emphasize session clock + Forex Factory-powered calendar + custom events + notifications. Removed overclaims ("works offline", "<1 second", "MQL5-sourced"). FAQ reordered with data source and custom events questions. H1 changed to "Session Clock + Economic Calendar (NY Time)". Hero paragraph emphasizes "clean intraday timing workspace" with integrated calendar. Final CTA focuses on custom events/notifications over exports/overlaps. Chip label updated to "Powered by Forex Factory". Benefits now include custom events + notifications instead of precision/routine. Feature sections reorganized: added dedicated "Custom Events + Notifications" feature (replaces performance section with generic benefits). howItWorksSteps updated: Step 2 emphasizes timezone/filters, Step 3 adds custom events/notifications, Step 4 links reminders. useCases removed "overlap" language, focused on London/NY open timing with clear countdowns. comparisonPoints removed performance claims.
  * v1.6.9 - 2026-01-22 - BEP: Allow non-auth users to open CustomEventDialog and fill values. Auth check on save - shows AuthModal2 when trying to save without auth.
  * v1.6.8 - 2026-01-22 - BEP UI CONSISTENCY: Removed custom mobileHeaderAction prop. Add reminder button now uses MobileHeader's default styling for consistent UI (add, bell, avatar) across all pages. Fixes size mismatch on xs/sm breakpoints.
  * v1.6.7 - 2026-01-22 - BEP: Add small touch tooltip delay on mobile hero clock to avoid tooltips during scroll.
@@ -84,19 +89,23 @@ import {
     Box,
     Button,
     Chip,
+    Dialog,
+    DialogContent,
+    DialogTitle,
     IconButton,
     SvgIcon,
     Stack,
     Typography,
-    Tooltip,
     useTheme,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import SecurityIcon from '@mui/icons-material/Security';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import LockIcon from '@mui/icons-material/Lock';
 import BoltIcon from '@mui/icons-material/Bolt';
+import CloseIcon from '@mui/icons-material/Close';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import InfoIcon from '@mui/icons-material/Info';
@@ -105,6 +114,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { siX } from 'simple-icons';
 import ClockCanvas from './ClockCanvas';
 import ClockHandsOverlay from './ClockHandsOverlay';
+import TimezoneSelector from './TimezoneSelector';
 const ClockEventsOverlay = lazy(() => import('./ClockEventsOverlay'));
 const EventModal = lazy(() => import('./EventModal'));
 const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
@@ -123,12 +133,12 @@ import SEO from './SEO';
 import '../App.css';
 
 const heroMeta = buildSeoMeta({
-    title: 'Time 2 Trade | Futures & Forex Session Clock',
+    title: 'Time 2 Trade | Session Clock + Forex Factory Calendar (NY Time)',
     description:
-        'A visual trading clock for intraday traders. See New York, London, and Asia market sessions with real-time countdowns. Plus Forex Factory economic events in one integrated view.',
+        'Intraday timing workspace for futures & forex day traders. NY-time session clock with countdowns + a Forex Factory-powered economic calendar with impact/currency filters, custom events, and notifications.',
     path: '/',
     keywords:
-        'trading clock, market sessions, futures trading clock, forex trading clock, session timing, intraday trading, market session times, economic events, day trading tool',
+        'session clock, trading sessions, new york session, london session, asia session, session countdown, forex factory economic calendar, high-impact events, CPI, NFP, FOMC, custom events, event notifications, prop trader routine, intraday day trading tool',
 });
 
 const XIcon = (props) => (
@@ -146,34 +156,34 @@ const socialProofFit = [
 
 const problemPoints = [
     'Timezone math in your head while your charts are moving',
-    'Entering a perfect setup 30 seconds before a high-impact release fires',
-    'Missing when London opens or the New York-London overlap starts',
-    'Tab-hopping between three tools just to answer "is it safe to trade now?"',
+    'Entering a perfect setup right before a high-impact release hits',
+    'Missing key session transitions like London open or New York open',
+    'Tab-hopping between multiple tools just to answer: "is it safe to trade now?"',
 ];
 
 const solutionPoints = [
-    'One trading clock shows all three market sessions (New York, London, Asia) in real-time',
-    'Countdown timers tell you exactly when sessions transition',
-    'Integrated Forex Factory events so you see catalysts coming',
-    'Session context + event awareness in one view = timing clarity',
+    'One trading clock shows New York, London, and Asia sessions in real-time',
+    'Countdown timers tell you exactly when key session transitions happen',
+    'Forex Factory-powered events so you see scheduled catalysts before they hit',
+    'Add custom events and enable notifications to follow your own rules and routines',
 ];
 
 const benefits = [
     {
-        title: 'Visualize today\'s market sessions at a glance',
-        body: 'See New York, London, and Asia sessions in real-time on a dual-circle clock. Know exactly where you are in the trading day—zero timezone confusion.',
+        title: "Visualize today's market sessions at a glance",
+        body: "See New York, London, and Asia sessions in real-time on a dual-circle clock. Know exactly where you are in the trading day—without timezone confusion.",
     },
     {
         title: 'Avoid event surprises',
-        body: 'High-impact releases can turn profitable setups into losses. Filter by impact and currency, then trade with the confidence that you know what\'s coming.',
+        body: "High-impact releases can flip conditions instantly. Filter by impact and currency, then trade with confidence because you know what's scheduled.",
     },
     {
-        title: 'Execute with timing precision',
-        body: 'Entry setup is only half the story—timing is everything. Use Time 2 Trade as a pre-trade check to confirm session context and event risk.',
+        title: 'Plan your own timing windows',
+        body: 'Create custom events for your rules (no-trade windows, routines, session checkpoints). Keep your timing layer consistent every day.',
     },
     {
-        title: 'Build a disciplined trading routine',
-        body: 'Save filters, notes, and event favorites. Keep settings synced across devices. Consistency (especially under pressure) is your competitive edge.',
+        title: 'Stay ahead with notifications',
+        body: 'Turn on reminders for upcoming events so you\'re not caught mid-trade when volatility spikes.',
     },
 ];
 
@@ -181,12 +191,13 @@ const featureSections = [
     {
         id: 'visual-session-clock',
         icon: <AccessTimeIcon fontSize="small" />,
-        eyebrow: 'Visual Market Sessions',
-        heading: 'Your trading clock: New York, London, Asia',
-        body: 'A dual-circle 24-hour clock shows exactly where you are in the trading day and when sessions transition. Real-time countdowns, active session indicators, and no timezone confusion. This is your primary differentiator—built for intraday traders who need session awareness.',
+        eyebrow: 'Session Awareness',
+        heading: 'Your session clock: New York, London, Asia',
+        body:
+            'A dual-circle 24-hour clock shows where you are in the trading day and when key session transitions happen. Real-time countdowns and clean session context—built for intraday routines.',
         bullets: [
-            'Session windows color-coded for New York, London, Asia',
-            'Real-time countdown to next session transition',
+            'Session windows for New York, London, Asia',
+            'Real-time countdowns to key session transitions',
             'Active session indicator (know where you are now)',
         ],
     },
@@ -194,33 +205,50 @@ const featureSections = [
         id: 'economic-events',
         icon: <CalendarMonthIcon fontSize="small" />,
         eyebrow: 'Event Awareness',
-        heading: 'Plus: Forex Factory events integrated',
-        body: 'See high-impact economic releases on the same view as your sessions. High-impact releases move price; filter by impact and currency to focus on what matters. Exportable for pre-market prep.',
+        heading: 'Forex Factory-powered economic calendar',
+        body:
+            'See scheduled releases that move price—right alongside session context. Filter by impact and currency so you only track what matters to your instruments and your plan.',
         bullets: [
-            'Trusted Forex Factory data (MQL5-sourced)',
-            'Filter by high-impact only (USD, EUR, etc.)',
-            'Save favorites and add trading notes',
+            'Powered by Forex Factory economic event data',
+            'Filter by impact and currency (USD, EUR, etc.)',
+            'Save favorites and add trading notes (signed-in)',
         ],
-        note: 'Free account unlocks full calendar workspace so you can save filters, notes, and favorites across all your devices.',
+        note:
+            'A free account unlocks the full calendar workspace so you can save filters, notes, favorites, and reminders across devices.',
+    },
+    {
+        id: 'custom-events-notifications',
+        icon: <AddRoundedIcon fontSize="small" />,
+        eyebrow: 'Personal Timing Layer',
+        heading: 'Custom events + notifications for your rules',
+        body:
+            'Not every timing window comes from the macro calendar. Add your own events (no-trade windows, session checkpoints, routine reminders) and enable notifications so you stay consistent under pressure.',
+        bullets: [
+            'Create custom events for your personal rules and routines',
+            'Set reminders/notifications for upcoming events (where supported)',
+            'Keep your workflow consistent across sessions and instruments',
+        ],
     },
     {
         id: 'timezone-confidence',
         icon: <SecurityIcon fontSize="small" />,
-        eyebrow: 'Timezone Flexibility',
+        eyebrow: 'Timezone Clarity',
         heading: 'New York time by default (switch anytime)',
-        body: 'Most intraday education anchors to New York time. Time 2 Trade defaults to New York but lets you switch to your local timezone instantly. Countdown timers stay synced to your timezone.',
+        body:
+            'Most intraday education anchors to New York time. Time 2 Trade defaults to New York but lets you switch to your local timezone instantly—while keeping countdowns consistent.',
         bullets: [
             'New York time-first interface by default',
-            'Switch timezones instantly (stays synced)',
-            'Live countdown timers match your timezone',
+            'Switch timezones instantly (stays consistent)',
+            'Countdown timers stay aligned with your selected timezone',
         ],
     },
     {
         id: 'performance',
         icon: <PhoneIphoneIcon fontSize="small" />,
-        eyebrow: 'Performance & Speed',
-        heading: 'Load instantly (even on mobile)',
-        body: 'In trading, speed is precision. Time 2 Trade loads in <1 second, works offline, and installs as a native app. Check your session status before the candle closes—no waiting.',
+        eyebrow: 'Built for Daily Use',
+        heading: 'Fast, clean, mobile-first',
+        body:
+            'Open it, confirm session + event risk, and get back to your charts. Designed to stay lightweight and readable on mobile—no noisy dashboards or signal clutter.',
         bullets: [],
     },
 ];
@@ -229,83 +257,94 @@ const useCases = [
     {
         title: 'Futures day trading (ES/NQ/YM/RTY)',
         bullets: [
-            'Know exactly which session you\'re in before every entry',
-            'See when New York-London overlap (volume spike) is coming',
-            'Avoid surprise liquidations near high-impact events',
+            "Know exactly which session you're in before every entry",
+            'Time entries around London open and New York open with clear countdowns',
+            'Avoid surprise volatility near high-impact releases',
         ],
     },
     {
         title: 'Forex day trading (major pairs + crosses)',
         bullets: [
             'Execute London open with timing confidence',
-            'Know when New York overlap (liquidity surge) starts',
-            'See economic events firing so you avoid whipsaws',
+            'Focus on the currencies that move your pairs (USD, EUR, GBP, JPY)',
+            'Avoid getting chopped up during scheduled releases',
         ],
     },
     {
         title: 'ICT / Smart Money timing frameworks',
         bullets: [
             'Visualize session windows and execution zones',
-            'See exactly when volatility spikes will hit',
-            'Pair session timing with your supply/demand analysis',
+            'Confirm event risk before entering a setup',
+            'Pair timing context with your analysis—without extra tabs',
         ],
     },
     {
         title: 'Funded and prop trading routines',
         bullets: [
-            'Standardize your pre-trade checklist (session + events)',
-            'Avoid rule-breaking trades near high-impact catalysts',
-            'Settings sync across all devices—consistency is your edge',
+            'Standardize your pre-trade checklist (session + events + reminders)',
+            'Avoid rule-breaking trades near major catalysts',
+            'Keep a consistent daily routine across devices',
         ],
     },
     {
         title: 'Trading students and learning',
         bullets: [
-            'See how sessions actually move price (live)',
-            'Understand why London open creates volatility',
-            'Learn when economic events fire and impact markets',
+            'See how session transitions affect volatility (live)',
+            'Understand why London open and NY open change conditions',
+            'Learn when economic events hit and how markets react',
         ],
     },
 ];
 
 const howItWorksSteps = [
     'Step 1 - Open the app: Get instant session and event context without leaving your charts.',
-    'Step 2 - Customize for your strategy: Show only the sessions and timeframes that matter to your trading plan.',
-    'Step 3 - Save and sync (free account): Filter by impact level and currency, save favorites, add notes—everything syncs across devices.',
-    'Step 4 - Execute with clarity: Use Time 2 Trade as your timing layer. Check before entries, monitor countdown to high-impact releases.',
+    'Step 2 - Customize for your strategy: Show only the sessions, timezones, and event filters that match your plan.',
+    'Step 3 - Add your timing layer: Create custom events and enable notifications for your rules and routines.',
+    'Step 4 - Execute with clarity: Use Time 2 Trade as your timing check before entries—sessions + catalysts + reminders.',
 ];
 
 const comparisonPoints = [
-    'Built on a visual trading clock (unique differentiator)',
-    'Shows market sessions + Forex Factory events together',
-    'Fast loading (<1 second) with mobile-native performance',
-    'Made specifically for intraday session-based traders',
+    'Built on a visual session clock (the fast intraday context layer)',
+    'Shows market sessions + Forex Factory-powered events together',
+    'Designed for quick pre-trade checks (clean, lightweight, mobile-first)',
+    'Made specifically for intraday session-based traders and prop routines',
 ];
 
 const faqEntries = [
     {
         question: 'Is this for futures, forex, or both?',
-        answer: 'Both. The session clock is built for intraday traders, and the economic events view helps for futures and major FX pairs that react to high-impact releases.',
+        answer:
+            'Both. The session clock supports intraday routines, and the economic events view helps for futures and FX pairs that react to high-impact releases.',
+    },
+    {
+        question: 'Where does the economic calendar data come from?',
+        answer:
+            'The calendar is powered by Forex Factory economic event data.',
+    },
+    {
+        question: 'Can I add my own custom events?',
+        answer:
+            'Yes. You can create custom events for personal timing windows, routines, or rules. Saving/sync may require a free account.',
+    },
+    {
+        question: 'Can I get notifications for upcoming events?',
+        answer:
+            'Yes—where supported, you can enable reminders/notifications so you stay ahead of scheduled catalysts.',
     },
     {
         question: 'Do I need an account?',
-        answer: 'You can use the session clock right away. Create a free account to unlock the full economic events workspace and save your settings across devices.',
-    },
-    {
-        question: 'Can I filter to only high-impact events?',
-        answer: 'Yes. Filter by impact level and currency to focus on what matters, such as USD high-impact days.',
+        answer:
+            'You can use the session clock right away. A free account unlocks the full calendar workspace and saves your preferences across devices.',
     },
     {
         question: 'Is this a signal tool?',
-        answer: 'No. Time 2 Trade provides timing and awareness for sessions and scheduled events. It does not provide buy or sell signals.',
-    },
-    {
-        question: 'Is this for ICT killzones?',
-        answer: 'It supports that workflow with session windows, timing ranges, and a fast way to confirm whether a major event is close.',
+        answer:
+            'No. Time 2 Trade provides timing and awareness for sessions and scheduled events. It does not provide buy or sell signals.',
     },
     {
         question: 'Does it work on mobile?',
-        answer: 'Yes. It is optimized for mobile and can be installed using Chrome for fast access.',
+        answer:
+            'Yes. It\'s optimized for mobile and designed for fast daily checks without clutter.',
     },
 ];
 
@@ -348,6 +387,7 @@ export default function HomePage2() {
     const [showInitialLoader, setShowInitialLoader] = useState(true);
     const [authModalOpen, setAuthModalOpen] = useState(false);
     const [customDialogOpen, setCustomDialogOpen] = useState(false);
+    const [timezoneModalOpen, setTimezoneModalOpen] = useState(false);
     // Scroll reveal animations removed; sections render without animated entrance.
     // No ad overlay on landing; image-only banner
 
@@ -426,7 +466,6 @@ export default function HomePage2() {
     }, [heroClockSize]);
 
     const handColor = useMemo(() => '#0F172A', []);
-    const timezoneLabelText = useMemo(() => (selectedTimezone ? selectedTimezone.replace(/_/g, ' ') : ''), [selectedTimezone]);
     const currentYear = useMemo(() => new Date().getFullYear(), []);
     const showOverlay = (showEventsOnCanvas ?? true) && (showHandClock ?? true);
 
@@ -504,13 +543,62 @@ export default function HomePage2() {
                         if (!isAuthenticated) {
                             setCustomDialogOpen(false);
                             setAuthModalOpen(true);
-                            return;
+                        } else {
+                            setCustomDialogOpen(false);
                         }
-                        setCustomDialogOpen(false);
                     }}
                     defaultTimezone={selectedTimezone}
                 />
             </Suspense>
+            <Dialog
+                open={timezoneModalOpen}
+                onClose={() => setTimezoneModalOpen(false)}
+                fullWidth
+                maxWidth="sm"
+                sx={{ zIndex: 12000 }}
+            >
+                <DialogTitle
+                    sx={{
+                        fontWeight: 700,
+                        pb: 1.5,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: 2,
+                    }}
+                >
+                    Select Timezone
+                    <IconButton
+                        onClick={() => setTimezoneModalOpen(false)}
+                        aria-label="Close timezone selector"
+                        sx={{
+                            color: 'text.primary',
+                            p: 0.5,
+                            ml: 'auto',
+                            '&:hover': {
+                                bgcolor: alpha(theme.palette.text.primary, 0.08),
+                            },
+                            '&:focus-visible': {
+                                outline: '2px solid',
+                                outlineColor: theme.palette.primary.main,
+                                outlineOffset: '2px',
+                            },
+                        }}
+                    >
+                        <CloseIcon fontSize="medium" />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent sx={{ pt: 0.5, pb: 2 }}>
+                    <TimezoneSelector
+                        textColor="inherit"
+                        onTimezoneChange={() => setTimezoneModalOpen(false)}
+                        onRequestSignUp={() => {
+                            setTimezoneModalOpen(false);
+                            setAuthModalOpen(true);
+                        }}
+                    />
+                </DialogContent>
+            </Dialog>
 
             {/* Loading screen with full coverage */}
             <LoadingScreen isLoading={showInitialLoader && !authModalOpen} clockSize={96} />
@@ -586,7 +674,7 @@ export default function HomePage2() {
                                 >
                                     <Stack spacing={2.5}>
                                         <Chip
-                                            label="Forex Factory data"
+                                            label="Powered by Forex Factory"
                                             sx={{
                                                 alignSelf: { xs: 'center', md: 'flex-start' },
                                                 bgcolor: 'rgba(0,0,0,0.06)',
@@ -609,7 +697,7 @@ export default function HomePage2() {
                                                 mb: 1,
                                             }}
                                         >
-                                            Trading Clock for Today&apos;s Market Sessions
+                                            Session Clock + Economic Calendar (NY Time)
                                         </Typography>
 
                                         <Typography
@@ -620,7 +708,7 @@ export default function HomePage2() {
                                                 lineHeight: 1.6,
                                             }}
                                         >
-                                            A visual trading clock for intraday traders (futures, forex, ICT). See New York, London, and Asia sessions with countdown timers—plus Forex Factory events so you never trade blind into a release.
+                                            A clean intraday timing workspace for futures and forex day traders. See New York, London, and Asia sessions with countdown timers—plus a Forex Factory-powered calendar, custom events, and notifications so you never trade blind into a release.
                                         </Typography>
 
                                         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap" alignItems={{ xs: 'stretch', md: 'center' }} justifyContent={{ xs: 'center', md: 'flex-start' }}>
@@ -805,19 +893,37 @@ export default function HomePage2() {
                                                     </Box>
                                                 </Box>
                                             </Box>
-                                            {timezoneLabelText ? (
-                                                <Typography
-                                                    variant="caption"
-                                                    sx={{
-                                                        mt: { xs: 1.25, sm: 1 },
-                                                        color: '#c7d3e0',
-                                                        textAlign: 'center',
-                                                        fontWeight: 600,
-                                                    }}
-                                                >
-                                                    {timezoneLabelText}
-                                                </Typography>
-                                            ) : null}
+                                            <Button
+                                                variant="text"
+                                                size="small"
+                                                onClick={() => setTimezoneModalOpen(true)}
+                                                aria-label="Select timezone"
+                                                sx={{
+                                                    mt: { xs: 1.5, sm: 1.25 },
+                                                    textTransform: 'none',
+                                                    color: alpha(handColor, 0.7),
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 600,
+                                                    minWidth: 'auto',
+                                                    px: 1,
+                                                    py: 0.5,
+                                                    maxWidth: '100%',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    '&:hover': {
+                                                        bgcolor: alpha(handColor, 0.08),
+                                                        color: handColor,
+                                                    },
+                                                    '&:focus-visible': {
+                                                        outline: '2px solid',
+                                                        outlineColor: theme.palette.primary.main,
+                                                        outlineOffset: '2px',
+                                                        borderRadius: 1,
+                                                    },
+                                                }}
+                                            >
+                                                {selectedTimezone?.replace(/_/g, ' ') || 'Select Timezone'}
+                                            </Button>
                                         </Stack>
                                     </Box>
                                 </Box>
@@ -1088,7 +1194,7 @@ export default function HomePage2() {
                                             Go to the calendar with session context
                                         </Typography>
                                         <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                                            Check today&apos;s economic events, see which session you&apos;re in, and stay aligned with overlaps and countdowns. Powered by the Forex Factory source with filters, favorites, notes, and exports.
+                                            Check today&apos;s economic events, confirm session context with countdowns, and set your own custom events and notifications. Powered by Forex Factory with fast filters, favorites, and notes.
                                         </Typography>
                                         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap" alignItems={{ xs: 'stretch', md: 'center' }} justifyContent={{ xs: 'center', md: 'center' }}>
                                             {!isAuthenticated ? (

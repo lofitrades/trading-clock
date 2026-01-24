@@ -13,6 +13,7 @@
  * - Enterprise-quality copywriting and visual design
  * 
  * Changelog:
+ * v1.8.0 - 2026-01-23 - Migrated from AuthModal to AuthModal2 with proper open prop; removed legacy AuthModal.jsx dependency
  * v1.7.0 - 2026-01-08 - Extended magicLinkProcessing timeout to 8s to eliminate loading screen during welcome modal display; prevents auto-unmounting per enterprise best practices
  * v1.6.0 - 2026-01-08 - Added full-screen verifying modal with success confirmation following enterprise magic link UX patterns
  * v1.5.0 - 2025-12-17 - Sign out existing sessions before magic link sign-in and create profiles for new users to prevent cross-account logins
@@ -29,7 +30,7 @@ import { auth } from '../firebase';
 import { getMagicLinkActionCodeSettings } from '../utils/authLinkSettings';
 import { Dialog, DialogContent, DialogTitle, TextField, Button, Typography, Alert, CircularProgress, Box } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import AuthModal from './AuthModal';
+import AuthModal2 from './AuthModal2';
 import { createUserProfileSafely } from '../utils/userProfileUtils';
 
 export default function EmailLinkHandler() {
@@ -381,9 +382,9 @@ export default function EmailLinkHandler() {
     );
   }
 
-  // Show AuthModal if user needs to request new link
+  // Show AuthModal2 if user needs to request new link
   if (showAuthModal) {
-    return <AuthModal onClose={() => setShowAuthModal(false)} />;
+    return <AuthModal2 open={true} onClose={() => setShowAuthModal(false)} />;
   }
 
   // Show email confirmation dialog if needed

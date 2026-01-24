@@ -4,6 +4,7 @@
  * Purpose: Asynchronous timezone selector with read-only collapsed display and dedicated search field.
  * Key responsibility: Persist user timezone selection to Firestore via SettingsContext while gating guest edits.
  * 
+ * v1.4.3 - 2026-01-22 - BEP: Raised timezone popper z-index from 2000 to 12100 so dropdown renders above modals (Dialog z-index 12000) following enterprise stacking context best practices. Ensures dropdown is always visible when timezone selector is used inside modals like on landing page.
  * v1.4.2 - 2026-01-15 - Raise timezone popper z-index above AppBar for guaranteed overlay priority.
  * v1.4.1 - 2026-01-14 - Auth handoff: invoke parent onRequestSignUp to close settings and open AuthModal2 when guests try to edit; fallback modal keeps z-index above AppBar.
  * Changelog:
@@ -307,7 +308,7 @@ export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChan
                 mainInputRef,
                 ref: popperRef,
                 placement: 'bottom-start',
-                sx: { zIndex: 2000 },
+                sx: { zIndex: 12100 },
               },
               listbox: {
                 sx: {

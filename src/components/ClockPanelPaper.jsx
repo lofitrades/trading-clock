@@ -74,7 +74,6 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
     newsSource,
     backgroundBasedOnSession,
     selectedTimezone,
-    onOpenSettings,
     onOpenTimezone,
     onOpenEvent,
     onOpenAddEvent,

@@ -1,10 +1,13 @@
 /**
  * pages/calendar.page.jsx
- * 
+ *
  * Purpose: SEO-forward /calendar route that prerenders semantic copy then hydrates the
  * interactive CalendarPage (EventsFilters3 + day-grouped table) on the client.
- * 
+ *
  * Changelog:
+ * v1.2.0 - 2026-01-22 - BEP SEO/copy refresh: align with "Session Clock + Economic Calendar (NY Time)",
+ *                       emphasize Forex Factory-powered events, custom events + notifications, remove "exports" from primary claims,
+ *                       improve FAQ for trust + non-advice positioning, and add /clock + /calendar CTA parity.
  * v1.1.1 - 2026-01-16 - Updated calendar CTAs to point to /clock.
  * v1.1.0 - 2026-01-11 - Prefetch CalendarPage module to reduce TTI and reuse a shared loader for hydration.
  * v1.0.2 - 2026-01-07 - Added sticky back-to-top control for the prerendered calendar route fallback.
@@ -32,16 +35,24 @@ export const prerender = true;
 
 const faqEntries = [
     {
-        question: 'Does the calendar use the trusted Forex Factory data source?',
-        answer: 'Yes. Time 2 Trade consumes the same high-confidence data traders rely on, with faster filters and modern UI.',
+        question: 'Is this calendar powered by the Forex Factory data traders trust?',
+        answer:
+            'Yes. Time 2 Trade uses a Forex Factory-powered economic events feed and presents it in a modern, fast UI built for intraday workflows.',
     },
     {
-        question: 'Is the default range really This Week?',
-        answer: 'Yes. The calendar seeds to This Week on first load, then remembers your last preset and filters.',
+        question: 'What timezone are events shown in?',
+        answer:
+            'Time 2 Trade is New York time-first by default, because most intraday education references NY time. You can switch timezones anytime and the calendar stays consistent.',
     },
     {
-        question: 'Can I embed the calendar elsewhere in the app?',
-        answer: 'The calendar surface is embeddable; reuse the CalendarEmbed component to drop it into other pages.',
+        question: 'Can I filter to only the events I care about (like USD high-impact)?',
+        answer:
+            'Yes. Use impact and currency filters (plus search) to quickly narrow to what matters for your instruments and your routine.',
+    },
+    {
+        question: 'Can I add my own custom events and reminders?',
+        answer:
+            'Yes. Create custom events to define personal timing rules (no-trade windows, session reminders, prep checkpoints). Notifications are supported where available.',
     },
 ];
 
@@ -63,17 +74,19 @@ const calendarSchema = {
     '@type': 'WebPage',
     name: 'Economic Calendar | Time 2 Trade',
     url: `${siteUrl}/calendar`,
-    description: 'Forex Factory-powered economic calendar with today\'s session clock context, impact and currency filters, favorites, notes, and exports.',
+    description:
+        "Forex Factory-powered economic calendar with New York time-first session context, impact/currency filters, custom events, and reminders for intraday futures and forex traders.",
     primaryImageOfPage: ogImage,
+    publisher: { '@type': 'Organization', name: 'Lofi Trades', url: siteUrl },
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const documentProps = {
-    title: 'Free Economic Calendar | Forex Factory + Session Clock',
+    title: 'Free Economic Calendar | Forex Factory-Powered (NY Time)',
     description:
-        'Free economic calendar for forex and futures traders. Forex Factory data with session clock context, impact/currency filters, favorites, notes, and exports. This Week default preset.',
+        'Free economic calendar for forex and futures day traders. Forex Factory-powered events with NY time-first context, fast impact/currency filters, custom events, and reminders.',
     canonical: `${siteUrl}/calendar`,
-    robots: 'index,follow',
+    robots: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1',
     ogImage,
     ogType: 'website',
     structuredData: [calendarSchema, faqSchema],
@@ -137,24 +150,47 @@ export default function Page() {
             <>
                 <div className="page-shell__max" role="main">
                     <section className="section" aria-labelledby="calendar-hero-heading">
-                        <p className="badge" aria-hidden="true">Economic Calendar</p>
-                        <h1 id="calendar-hero-heading" className="heading-lg">Modern Forex Factory-style calendar for day traders</h1>
-                        <p className="text-lead">
-                            Time 2 Trade keeps the trusted data source traders expect and wraps it in a fast, two-panel layout with impact and currency filters, search, and a This Week default.
+                        <p className="badge" aria-hidden="true">
+                            Economic Calendar
                         </p>
+
+                        <h1 id="calendar-hero-heading" className="heading-lg">
+                            Forex Factory-powered calendar with NY time-first clarity
+                        </h1>
+
+                        <p className="text-lead">
+                            Built for intraday futures and forex traders who need fast answers: what’s coming next, how important is it, and how
+                            close are we to the next catalyst? Filter by impact and currency, add your own custom events, and set reminders to keep a
+                            consistent routine.
+                        </p>
+
                         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                            <a className="btn btn-primary" href="#calendar" aria-label="Skip to calendar filters">Jump to calendar</a>
-                            <a className="btn btn-secondary" href="/clock" aria-label="Open the trading clock">Open the clock</a>
+                            <a className="btn btn-primary" href="#calendar" aria-label="Skip to calendar filters">
+                                Jump to calendar
+                            </a>
+                            <a className="btn btn-secondary" href="/clock" aria-label="Open the session clock">
+                                Open the clock
+                            </a>
                         </div>
+
                         <div style={{ marginTop: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                            <span className="muted-chip">This Week default preset</span>
+                            <span className="muted-chip">NY time-first</span>
                             <span className="muted-chip">Impact & currency filters</span>
-                            <span className="muted-chip">Day grouping with empty state</span>
+                            <span className="muted-chip">Custom events</span>
+                            <span className="muted-chip">Reminders / notifications</span>
+                            <span className="muted-chip">Day-grouped view</span>
                         </div>
+
+                        <p className="text-muted" style={{ marginTop: 14 }}>
+                            Not financial advice. Time 2 Trade provides timing and awareness for sessions and scheduled events.
+                        </p>
                     </section>
 
                     <section className="section" aria-labelledby="calendar-faq-heading">
-                        <h2 id="calendar-faq-heading" className="heading-md">Economic calendar FAQs</h2>
+                        <h2 id="calendar-faq-heading" className="heading-md">
+                            Economic calendar FAQs
+                        </h2>
+
                         {faqEntries.map((faq) => (
                             <article className="faq" key={faq.question}>
                                 <h3 className="heading-sm">{faq.question}</h3>
@@ -165,6 +201,7 @@ export default function Page() {
 
                     <footer className="section" aria-label="Legal">
                         <p className="text-muted">© {currentYear} Time 2 Trade. All rights reserved.</p>
+                        <p className="text-muted">Not financial advice. Trading involves risk and may not be suitable for all investors.</p>
                     </footer>
                 </div>
 

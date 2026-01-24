@@ -6,6 +6,9 @@
  * and optionally trigger browser notifications with permission checks.
  * 
  * Changelog:
+ * v2.1.0 - 2026-01-23 - Add series reminder matching for upcoming economic events.
+ * v2.0.1 - 2026-01-23 - Skip reminder triggers for repeat intervals under 1h.
+ * v2.0.0 - 2026-01-23 - Upgrade to unified reminders engine with recurrence expansion and trigger dedupe.
  * v1.7.0 - 2026-01-23 - CLEANUP: Remove debug console.log statements. Keep only console.error for error handling (subscription failures, fallback to localStorage).
  * v1.6.0 - 2026-01-23 - BEP FIX: Add console.log to subscription success/error for debugging notification persistence across sessions. Error handler now falls back to localStorage instead of empty array. Logs subscription setup, snapshot receipt, and error details.
  * v1.5.0 - 2026-01-23 - BEP FIX: Add try-catch error handling to addNotificationForUser() calls with fallback to localStorage. Console.error() logs all Firestore save failures for debugging. Ensures notifications persist even if Firestore fails.
@@ -15,38 +18,82 @@
  * v1.1.0 - 2026-01-21 - Send email reminders via callable and keep only in-app notifications.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { NOW_WINDOW_MS } from '../utils/eventTimeEngine';
+import { NOW_WINDOW_MS, getEventEpochMs } from '../utils/eventTimeEngine';
 import { resolveImpactMeta } from '../utils/newsApi';
 import { formatTime } from '../utils/dateUtils';
+import { buildSeriesKey, expandReminderOccurrences, normalizeEventForReminder } from '../utils/remindersRegistry';
+import { DAILY_REMINDER_CAP, THROTTLE_WINDOW_MS, getDayKeyForTimezone, isWithinQuietHours } from '../utils/remindersPolicy';
+import { getEventsByDateRange } from '../services/economicEventsService';
 import {
   addLocalNotification,
   addNotificationForUser,
   clearLocalNotifications,
   clearNotificationsForUser,
   loadLocalNotifications,
-  loadTriggers,
   markAllLocalNotificationsRead,
   markAllNotificationsReadForUser,
   markLocalNotificationRead,
   markNotificationReadForUser,
-  saveTriggers,
   subscribeToNotifications,
 } from '../services/notificationsService';
+import {
+  buildTriggerId,
+  loadLocalTriggerIds,
+  recordNotificationTrigger,
+  saveLocalTriggerIds,
+  subscribeToReminders,
+} from '../services/remindersService';
 
-const buildReminderKey = (eventId, minutesBefore, channel) => `${eventId}-${minutesBefore}-${channel}`;
 const ENABLED_CHANNELS = new Set(['inApp', 'browser', 'push']);
+const DAILY_COUNTS_KEY = 't2t_unified_notification_daily_counts_v1';
+const DISALLOWED_REPEAT_INTERVALS = new Set(['5m', '15m', '30m']);
 
 const getChannelsForReminder = (reminder) => {
   const channels = reminder?.channels || {};
   return Object.keys(channels).filter((key) => channels[key] && ENABLED_CHANNELS.has(key));
 };
 
+const readStore = (key) => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeStore = (key, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Ignore storage failures
+  }
+};
+
+const loadDailyCounts = (userId) => {
+  const store = readStore(DAILY_COUNTS_KEY) || {};
+  return store[userId || 'guest'] || {};
+};
+
+const saveDailyCounts = (userId, counts) => {
+  const store = readStore(DAILY_COUNTS_KEY) || {};
+  store[userId || 'guest'] = counts;
+  writeStore(DAILY_COUNTS_KEY, store);
+};
+
 export const useCustomEventNotifications = ({ events = [] } = {}) => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState(() => (user?.uid ? [] : loadLocalNotifications(user?.uid)));
   const [permission, setPermission] = useState(() => (typeof Notification !== 'undefined' ? Notification.permission : 'default'));
+  const [reminders, setReminders] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const triggersRef = useRef(loadLocalTriggerIds(user?.uid));
+  const dailyCountsRef = useRef(loadDailyCounts(user?.uid));
+  const lastTriggeredRef = useRef(new Map());
 
   useEffect(() => {
     if (!user?.uid) {
@@ -74,6 +121,96 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
     return () => unsubscribe();
   }, [user?.uid]);
 
+  useEffect(() => {
+    triggersRef.current = loadLocalTriggerIds(user?.uid);
+    dailyCountsRef.current = loadDailyCounts(user?.uid);
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setReminders([]);
+      return undefined;
+    }
+
+    const unsubscribe = subscribeToReminders(
+      user.uid,
+      (items) => {
+        setReminders(items || []);
+      },
+      (error) => {
+        console.error('❌ Failed to subscribe to reminders:', {
+          code: error?.code,
+          message: error?.message,
+        });
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user?.uid]);
+
+  const legacyReminders = useMemo(() => (
+    (events || [])
+      .map((event) => normalizeEventForReminder({
+        event,
+        source: 'custom',
+        userId: user?.uid,
+        reminders: event.reminders,
+        metadata: {
+          recurrence: event.recurrence || null,
+          localDate: event.localDate || null,
+          localTime: event.localTime || null,
+          isCustom: true,
+          seriesId: event.seriesId || event.id || null,
+        },
+      }))
+      .filter((reminder) => reminder.reminders && reminder.reminders.length > 0)
+  ), [events, user?.uid]);
+
+  const effectiveReminders = useMemo(() => {
+    const map = new Map();
+    reminders.forEach((reminder) => {
+      if (reminder?.eventKey) map.set(reminder.eventKey, reminder);
+    });
+    legacyReminders.forEach((reminder) => {
+      if (reminder?.eventKey && !map.has(reminder.eventKey)) {
+        map.set(reminder.eventKey, reminder);
+      }
+    });
+    return Array.from(map.values());
+  }, [reminders, legacyReminders]);
+
+  const hasSeriesReminders = useMemo(
+    () => effectiveReminders.some((reminder) => reminder?.scope === 'series' && reminder?.seriesKey),
+    [effectiveReminders]
+  );
+
+  useEffect(() => {
+    if (!hasSeriesReminders) {
+      setUpcomingEvents([]);
+      return undefined;
+    }
+
+    let isMounted = true;
+    const loadUpcoming = async () => {
+      const start = new Date();
+      const end = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const result = await getEventsByDateRange(start, end, {}, { enrichDescriptions: false });
+      if (isMounted) {
+        setUpcomingEvents(result?.data || result?.events || []);
+      }
+    };
+
+    void loadUpcoming();
+    const timer = setInterval(() => {
+      void loadUpcoming();
+    }, 15 * 60 * 1000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, [hasSeriesReminders]);
+
   const notifyBrowser = useCallback((title, body) => {
     if (typeof Notification === 'undefined') return;
     if (Notification.permission !== 'granted') return;
@@ -87,57 +224,146 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
   useEffect(() => {
     const interval = setInterval(() => {
       const run = async () => {
+        if (!effectiveReminders.length) return;
+
         const nowEpochMs = Date.now();
-        const triggers = loadTriggers(user?.uid);
-        let nextTriggers = triggers;
+        const rangeStartMs = nowEpochMs;
+        const rangeEndMs = nowEpochMs + 24 * 60 * 60 * 1000;
+        let triggers = triggersRef.current;
+        let dailyCounts = dailyCountsRef.current;
         let didUpdate = false;
 
-        events.forEach((event) => {
-          const eventEpochMs = Number.isFinite(event?.epochMs) ? event.epochMs : Number(event?.date);
-          if (!eventEpochMs) return;
+        effectiveReminders.forEach((reminderRecord) => {
+          if (!reminderRecord?.enabled) return;
 
-          const reminders = Array.isArray(event.reminders) ? event.reminders : [];
-          reminders.forEach((reminder) => {
-            const minutesBefore = Number(reminder?.minutesBefore);
-            if (!Number.isFinite(minutesBefore)) return;
+          const recurrenceInterval = reminderRecord?.metadata?.recurrence?.interval;
+          if (DISALLOWED_REPEAT_INTERVALS.has(recurrenceInterval)) {
+            return;
+          }
 
-            const reminderAt = eventEpochMs - minutesBefore * 60 * 1000;
-            const isDue = nowEpochMs >= reminderAt && nowEpochMs < eventEpochMs + NOW_WINDOW_MS;
-            if (!isDue) return;
+          const occurrences = reminderRecord.scope === 'series'
+            ? []
+            : expandReminderOccurrences({
+              reminder: reminderRecord,
+              rangeStartMs,
+              rangeEndMs,
+            });
 
-            const channels = getChannelsForReminder(reminder);
-            channels.forEach((channel) => {
-              const key = buildReminderKey(event.id, minutesBefore, channel);
-              if (triggers.has(key)) return;
+          const remindersList = Array.isArray(reminderRecord.reminders)
+            ? reminderRecord.reminders
+            : [];
 
-              const eventName = event.title || event.name || 'Custom reminder';
-              const eventTime = formatTime(new Date(eventEpochMs), event.timezone || 'America/New_York');
-              const impact = event.impact || 'medium';
-              const impactMeta = resolveImpactMeta(impact);
-              const impactLabel = impactMeta?.label || 'Medium';
-              
-              // TradingView-style notification title: "Event Name"
-              const title = eventName;
-              
-              // TradingView-style notification message: "⚡ High Impact • 3:30 PM EST • in 15 min"
-              const impactIcon = impactMeta?.icon || '•';
-              const message = `${impactIcon} ${impactLabel} Impact • ${eventTime} • in ${minutesBefore} min`;
+          const seriesMatches = reminderRecord.scope === 'series' && reminderRecord.seriesKey
+            ? upcomingEvents.filter((event) => buildSeriesKey({ event, eventSource: event.source || event.sourceKey || 'canonical' }) === reminderRecord.seriesKey)
+            : [];
 
-              nextTriggers = new Set(nextTriggers);
-              nextTriggers.add(key);
-              didUpdate = true;
+          const occurrenceSources = reminderRecord.scope === 'series'
+            ? seriesMatches.map((event) => ({
+              occurrenceEpochMs: getEventEpochMs(event),
+              event,
+            }))
+            : occurrences.map(({ occurrenceEpochMs }) => ({ occurrenceEpochMs, event: null }));
 
-              if (channel === 'inApp') {
+          occurrenceSources.forEach(({ occurrenceEpochMs, event: matchedEvent }) => {
+            if (!Number.isFinite(occurrenceEpochMs)) return;
+            remindersList.forEach((reminder) => {
+              const minutesBefore = Number(reminder?.minutesBefore);
+              if (!Number.isFinite(minutesBefore)) return;
+
+              const reminderAt = occurrenceEpochMs - minutesBefore * 60 * 1000;
+              const isDue = nowEpochMs >= reminderAt && nowEpochMs < occurrenceEpochMs + NOW_WINDOW_MS;
+              if (!isDue) return;
+
+              const timezone = reminderRecord.timezone || 'America/New_York';
+              const dayKey = getDayKeyForTimezone({ epochMs: reminderAt, timezone });
+              const channels = getChannelsForReminder(reminder);
+
+              if (isWithinQuietHours({ epochMs: reminderAt, timezone })) {
+                channels.forEach((channel) => {
+                  const triggerId = buildTriggerId({
+                    eventKey: reminderRecord.eventKey,
+                    occurrenceEpochMs,
+                    minutesBefore,
+                    channel,
+                  });
+                  if (triggers.has(triggerId)) return;
+                  triggers = new Set(triggers);
+                  triggers.add(triggerId);
+                  didUpdate = true;
+                  void recordNotificationTrigger(user?.uid, triggerId, {
+                    eventKey: reminderRecord.eventKey,
+                    occurrenceEpochMs,
+                    minutesBefore,
+                    channel,
+                    status: 'skipped-quiet-hours',
+                    scheduledForMs: reminderAt,
+                  });
+                });
+                return;
+              }
+
+              channels.forEach((channel) => {
+                const triggerId = buildTriggerId({
+                  eventKey: reminderRecord.eventKey,
+                  occurrenceEpochMs,
+                  minutesBefore,
+                  channel,
+                });
+                if (triggers.has(triggerId)) return;
+
+                if (dayKey && (dailyCounts[dayKey] || 0) >= DAILY_REMINDER_CAP) {
+                  triggers = new Set(triggers);
+                  triggers.add(triggerId);
+                  didUpdate = true;
+                  void recordNotificationTrigger(user?.uid, triggerId, {
+                    eventKey: reminderRecord.eventKey,
+                    occurrenceEpochMs,
+                    minutesBefore,
+                    channel,
+                    status: 'skipped-cap',
+                    scheduledForMs: reminderAt,
+                  });
+                  return;
+                }
+
+                const lastKey = `${reminderRecord.eventKey}:${channel}`;
+                const lastTriggeredAt = lastTriggeredRef.current.get(lastKey);
+                if (lastTriggeredAt && nowEpochMs - lastTriggeredAt < THROTTLE_WINDOW_MS) return;
+
+                const eventTime = formatTime(new Date(occurrenceEpochMs), timezone);
+                const impact = matchedEvent?.strength || matchedEvent?.impact || reminderRecord.impact || 'medium';
+                const impactMeta = resolveImpactMeta(impact);
+                const impactLabel = impactMeta?.label || 'Medium';
+                const title = matchedEvent?.name || matchedEvent?.Name || reminderRecord.title || 'Event reminder';
+                const impactIcon = impactMeta?.icon || '•';
+                const message = `${impactIcon} ${impactLabel} Impact • ${eventTime} • in ${minutesBefore} min`;
+
+                triggers = new Set(triggers);
+                triggers.add(triggerId);
+                didUpdate = true;
+                lastTriggeredRef.current.set(lastKey, nowEpochMs);
+
+                if (dayKey) {
+                  dailyCounts = { ...dailyCounts, [dayKey]: (dailyCounts[dayKey] || 0) + 1 };
+                }
+
+                const notificationEventId = matchedEvent?.id
+                  || reminderRecord.metadata?.seriesId
+                  || reminderRecord.metadata?.eventId
+                  || reminderRecord.eventKey;
+
                 const notification = {
-                  id: key,
-                  eventId: event.id,
+                  id: triggerId,
+                  eventId: notificationEventId,
+                  eventKey: reminderRecord.eventKey,
+                  eventSource: reminderRecord.eventSource,
                   title,
                   message,
                   eventTime,
                   impact,
                   impactLabel,
                   minutesBefore,
-                  eventEpochMs,
+                  eventEpochMs: occurrenceEpochMs,
                   scheduledForMs: reminderAt,
                   sentAtMs: nowEpochMs,
                   channel,
@@ -145,30 +371,42 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
                   deleted: false,
                   status: 'unread',
                 };
-                if (user?.uid) {
-                  // BEP FIX: Fire-and-forget with error handling
-                  addNotificationForUser(user.uid, notification)
-                    .then(() => {
-                      console.log('✅ Notification saved to Firestore:', key);
-                    })
-                    .catch((error) => {
+
+                if (channel === 'inApp') {
+                  if (user?.uid) {
+                    addNotificationForUser(user.uid, notification).catch((error) => {
                       console.error('❌ Failed to save notification to Firestore, falling back to localStorage:', error);
                       const updated = addLocalNotification(user.uid, notification);
                       setNotifications(updated);
                     });
-                } else {
-                  const updated = addLocalNotification(user?.uid, notification);
-                  setNotifications(updated);
+                  } else {
+                    const updated = addLocalNotification(user?.uid, notification);
+                    setNotifications(updated);
+                  }
                 }
-              } else if (channel === 'browser') {
-                notifyBrowser(title, message);
-              }
+
+                if (channel === 'browser') {
+                  notifyBrowser(title, message);
+                }
+
+                void recordNotificationTrigger(user?.uid, triggerId, {
+                  eventKey: reminderRecord.eventKey,
+                  occurrenceEpochMs,
+                  minutesBefore,
+                  channel,
+                  status: 'sent',
+                  scheduledForMs: reminderAt,
+                });
+              });
             });
           });
         });
 
         if (didUpdate) {
-          saveTriggers(user?.uid, nextTriggers);
+          triggersRef.current = triggers;
+          saveLocalTriggerIds(user?.uid, triggers);
+          dailyCountsRef.current = dailyCounts;
+          saveDailyCounts(user?.uid, dailyCounts);
         }
       };
 
@@ -178,7 +416,7 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [events, notifyBrowser, user?.uid]);
+  }, [effectiveReminders, notifyBrowser, user?.uid]);
 
   const visibleNotifications = useMemo(
     () => notifications.filter((item) => !item.deleted),

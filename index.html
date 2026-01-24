@@ -1,12 +1,14 @@
 <!--
   index.html
-  
+
   Purpose: HTML document entry for Time 2 Trade SPA, defining global head metadata, fonts, and mount point.
-  Key responsibility and main functionality: Provides SEO and social share metadata, loads Google Fonts, and bootstraps the React bundle while shipping crawlable fallback content for non-JS/AI crawlers.
-  
+  Key responsibility and main functionality: Provides SEO + social share metadata, loads fonts efficiently, and bootstraps the React bundle while shipping crawlable fallback content for non-JS/AI crawlers.
+
   Changelog:
-  v1.9.0 - 2026-01-07 - Updated SEO meta to highlight economic calendar, session clock, and Forex Factory source; kept AdSense publisher ID.
+  v2.0.1 - 2026-01-22 - Updated “main features” emphasis: removed overlaps/PWA/exports mentions; added custom events, notifications, and Forex Factory-powered calendar messaging.
+  v2.0.0 - 2026-01-22 - Enterprise SEO refresh: NY-time positioning, intraday timing workspace messaging, cleaner fallback (single noscript), expanded meta/OG/Twitter, JSON-LD validity fixes, added modern app + referrer signals; kept AdSense publisher ID.
   v1.9.1 - 2026-01-09 - Improved Google site-name and favicon signals (Organization schema, WebSite publisher/alternateName, robust icon links).
+  v1.9.0 - 2026-01-07 - Updated SEO meta to highlight economic calendar, session clock, and Forex Factory source; kept AdSense publisher ID.
   v1.8.0 - 2026-01-07 - Updated AdSense publisher ID to ca-pub-3984565509623618 for time2.trade verification.
   v1.7.0 - 2025-12-22 - Refreshed SEO copy, OG/Twitter images, structured data, and fallback content for trading clock + economic events positioning.
   v1.6.0 - 2025-12-17 - Added PWA manifest, Apple touch icon, and theme color to enable install prompts and Chrome add-to-homescreen.
@@ -21,28 +23,55 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- Viewport / rendering -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover"
+    />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Canonical + basic alternates -->
+    <link rel="canonical" href="https://time2.trade/" />
+    <link rel="alternate" href="https://time2.trade/" hreflang="en" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+
+    <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="application-name" content="Time 2 Trade" />
+    <meta name="apple-mobile-web-app-title" content="Time 2 Trade" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="theme-color" content="#0f6fec" />
     <link rel="apple-touch-icon" href="/icons/icon-apple-180.png" />
+
+    <!-- Icons -->
     <link rel="icon" href="/favicon.ico" sizes="any" id="t2t-favicon" />
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
-    <link rel="canonical" href="https://time2.trade/" />
-    <title>Time 2 Trade | Economic Calendar + Session Clock (Forex Factory)</title>
+
+    <title>Time 2 Trade | Session Clock + Forex Factory Economic Calendar (NY Time)</title>
+
+    <!-- Dynamic light/dark favicon switching -->
     <script>
-      (function() {
-        const lightHref = '/favicon.ico';
-        const darkHref = '/faviconDark.ico';
-        const favicon = document.getElementById('t2t-favicon') || (() => {
-          const link = document.createElement('link');
-          link.rel = 'icon';
-          link.id = 't2t-favicon';
-          document.head.appendChild(link);
-          return link;
-        })();
+      (function () {
+        const lightHref = "/favicon.ico";
+        const darkHref = "/faviconDark.ico";
+        const favicon =
+          document.getElementById("t2t-favicon") ||
+          (function () {
+            const link = document.createElement("link");
+            link.rel = "icon";
+            link.id = "t2t-favicon";
+            document.head.appendChild(link);
+            return link;
+          })();
 
         const applyIcon = (isDark) => {
           favicon.href = isDark ? darkHref : lightHref;
@@ -50,14 +79,14 @@
 
         try {
           if (window.matchMedia) {
-            const media = window.matchMedia('(prefers-color-scheme: dark)');
+            const media = window.matchMedia("(prefers-color-scheme: dark)");
             applyIcon(media.matches);
 
             const handler = (event) => applyIcon(event.matches);
 
-            if (typeof media.addEventListener === 'function') {
-              media.addEventListener('change', handler);
-            } else if (typeof media.addListener === 'function') {
+            if (typeof media.addEventListener === "function") {
+              media.addEventListener("change", handler);
+            } else if (typeof media.addListener === "function") {
               media.addListener(handler);
             }
             return;
@@ -69,86 +98,131 @@
         applyIcon(false);
       })();
     </script>
-    
-    <!-- Poppins Font for MUI (non-blocking) -->
-    <!-- Preconnect to critical origins for performance (BEP: 320ms savings each) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://firebaseinstallations.googleapis.com" crossorigin>
-    <link rel="preconnect" href="https://firebase.googleapis.com" crossorigin>
-    
-    <!-- Poppins Font for MUI (non-blocking with swap for instant text visibility) -->
+
+    <!-- Performance: preconnects -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://firebaseinstallations.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://firebase.googleapis.com" crossorigin />
+
+    <!-- Fonts: Poppins (non-blocking with swap) -->
     <link
       rel="preload"
       as="style"
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;700&display=swap"
       onload="this.rel='stylesheet'"
-    >
+    />
     <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;700&display=swap">
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;700&display=swap"
+      />
     </noscript>
+
+    <!-- Google Adsense (deferred load) -->
+    <meta name="google-adsense-account" content="ca-pub-3984565509623618" />
     <script>
       // Defer loading AdSense until after first interaction/idle to reduce main-thread blocking on mobile.
-      (function() {
+      (function () {
         const loadAds = () => {
           if (window.__t2tAdsLoaded) return;
           window.__t2tAdsLoaded = true;
-          const s = document.createElement('script');
+
+          const s = document.createElement("script");
           s.async = true;
-          s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3984565509623618';
-          s.crossOrigin = 'anonymous';
+          s.src =
+            "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3984565509623618";
+          s.crossOrigin = "anonymous";
           document.head.appendChild(s);
         };
 
         const schedule = () => {
-          if ('requestIdleCallback' in window) {
+          if ("requestIdleCallback" in window) {
             requestIdleCallback(loadAds, { timeout: 4000 });
           } else {
             setTimeout(loadAds, 3000);
           }
         };
 
-        ['click', 'scroll', 'keydown', 'pointerdown'].forEach((evt) => {
-          window.addEventListener(evt, () => {
-            loadAds();
-          }, { once: true, passive: true });
+        ["click", "scroll", "keydown", "pointerdown"].forEach((evt) => {
+          window.addEventListener(
+            evt,
+            () => {
+              loadAds();
+            },
+            { once: true, passive: true }
+          );
         });
 
-        window.addEventListener('t2t-consent-update', () => {
-          // Ads already loaded once; consent changes handled by individual widgets via requestNonPersonalizedAds.
+        window.addEventListener("t2t-consent-update", () => {
+          // Ads already loaded once; consent changes handled by individual widgets.
           loadAds();
         });
 
         schedule();
       })();
     </script>
-    
-    <!-- Google Adsense (deferred load) -->
-    <meta name="google-adsense-account" content="ca-pub-3984565509623618">
-    
-    <!-- SEO Meta Information -->
-    <meta name="title" content="Time 2 Trade | Economic Calendar + Session Clock (Forex Factory)" />
-    <meta name="description" content="Free economic calendar for forex and futures traders. Live session clock with today's economic events, impact/currency filters, favorites, notes, exports. Trusted Forex Factory source." />
+
+    <!-- SEO Meta -->
+    <meta name="title" content="Time 2 Trade | Session Clock + Forex Factory Economic Calendar (NY Time)" />
+    <meta
+      name="description"
+      content="Intraday timing workspace for futures & forex day traders: NY-time session clock with countdowns + a Forex Factory-powered economic calendar with impact/currency filters, custom events, and notifications."
+    />
     <meta name="author" content="Time 2 Trade" />
-    <meta name="keywords" content="economic calendar, forex factory calendar, trading session clock, economic events today, forex calendar, futures calendar, session overlaps, impact filters, currency filters" />
+    <meta
+      name="keywords"
+      content="session clock, trading sessions, london session, new york session, asia session, session countdown, economic calendar, forex factory economic calendar, high-impact events, CPI, NFP, FOMC, forex day trading, futures day trading, prop trader routine, custom events, trading notifications"
+    />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta
+      name="googlebot"
+      content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+    />
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Time 2 Trade" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="https://time2.trade/" />
-    <meta property="og:title" content="Time 2 Trade | Economic Calendar + Session Clock" />
-    <meta property="og:description" content="Free Forex Factory economic calendar + session clock for day traders. Live events, impact/currency filters, favorites, notes, exports. Trusted data source for intraday traders." />
+    <meta
+      property="og:title"
+      content="Time 2 Trade | Session Clock + Forex Factory Economic Calendar (NY Time)"
+    />
+    <meta
+      property="og:description"
+      content="A clean intraday timing workspace (not signals): session countdowns + a Forex Factory-powered economic calendar with fast filters, custom events, and notifications."
+    />
     <meta property="og:image" content="https://time2.trade/Time2Trade_SEO_Meta_5.PNG" />
     <meta property="og:image:secure_url" content="https://time2.trade/Time2Trade_SEO_Meta_5.PNG" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Time 2 Trade visual trading intelligence platform showing session visualization and economic events" />
+    <meta
+      property="og:image:alt"
+      content="Time 2 Trade showing a session clock and Forex Factory-powered economic events for day traders"
+    />
     <meta property="fb:app_id" content="1778817529625887" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Time 2 Trade | Economic Calendar + Session Clock" />
-    <meta name="twitter:description" content="Free Forex Factory economic calendar + session clock. Live events, impact/currency filters, favorites, notes, exports. For futures and forex day traders." />
-    <meta name="twitter:image" content="https://time2.trade/Time2Trade_SEO_Meta_5.PNG" />
 
-    <!-- Structured Data: WebSite + SoftwareApplication -->
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@time2_trade" />
+    <meta name="twitter:creator" content="@time2_trade" />
+    <meta
+      name="twitter:title"
+      content="Time 2 Trade | Session Clock + Forex Factory Economic Calendar (NY Time)"
+    />
+    <meta
+      name="twitter:description"
+      content="Intraday timing workspace (not signals): NY-time session countdowns + Forex Factory-powered economic calendar with filters, custom events, and notifications."
+    />
+    <meta name="twitter:image" content="https://time2.trade/Time2Trade_SEO_Meta_5.PNG" />
+    <meta
+      name="twitter:image:alt"
+      content="Time 2 Trade showing a session clock and Forex Factory-powered economic events for day traders"
+    />
+
+    <!-- Structured Data: WebSite + Organization + WebApplication -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -157,16 +231,11 @@
         "name": "Time 2 Trade",
         "alternateName": "T2T",
         "url": "https://time2.trade/",
-        "publisher": {
-          "@id": "https://time2.trade/#organization"
-        },
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": "https://time2.trade/?q={search_term_string}",
-          "query-input": "required name=search_term_string"
-        }
+        "publisher": { "@id": "https://time2.trade/#organization" },
+        "inLanguage": "en"
       }
     </script>
+
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -175,122 +244,129 @@
         "name": "Time 2 Trade",
         "url": "https://time2.trade/",
         "logo": "https://time2.trade/logos/png/Time2Trade_Logo_Main_Multicolor_Transparent_1080.png",
-        "sameAs": [
-          "https://x.com/time2_trade"
-        ]
+        "sameAs": ["https://x.com/time2_trade"]
       }
     </script>
+
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
+        "@type": "WebApplication",
         "name": "Time 2 Trade",
         "applicationCategory": "FinanceApplication",
-        "operatingSystem": "Web Browser",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "description": "New York time-first trading clock and economic events workspace for futures and forex day traders. Visualize sessions, overlaps, and filtered events with saved favorites/notes and exports.",
-        "url": "https://time2.trade/calendar",
-        "creator": {
-          "@type": "Organization",
-          "name": "Lofi Trades",
-          "url": "https://time2.trade/"
-        },
+        "operatingSystem": "Web",
+        "isAccessibleForFree": true,
+        "url": "https://time2.trade/",
+        "image": "https://time2.trade/Time2Trade_SEO_Meta_5.PNG",
+        "description": "A New York time-first intraday timing workspace for futures and forex day traders: session countdowns + a Forex Factory-powered economic calendar with fast filters, custom events, and notifications. This is an awareness tool, not trading signals.",
+        "publisher": { "@id": "https://time2.trade/#organization" },
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
         "featureList": [
-          "Dual-circle session clock with overlaps and active session detection",
-          "New York time-first defaults with timezone-aware countdowns",
-          "Economic events timeline and table views with impact/currency filters",
-          "Favorites and personal notes for authenticated users",
-          "Exports (CSV and JSON) from the events workspace",
-          "Customizable trading sessions and colors (up to eight)",
-          "Installable PWA for fast launch"
-        ],
-        "screenshot": "https://time2.trade/Time2Trade_SEO_Meta_5.PNG"
+          "Session clock with New York time-first session awareness and countdowns",
+          "Forex Factory-powered economic calendar for scheduled releases",
+          "Fast impact, currency, and search filtering",
+          "Custom events for personal timing windows and reminders",
+          "Notifications for upcoming events (where supported)",
+          "Favorites and personal notes (synced when signed in)",
+          "Built for intraday awareness and event-avoidance (no signals)"
+        ]
       }
     </script>
-  </head>
-  <body>
+
+    <!-- Minimal styling for noscript fallback -->
     <style>
-      noscript .static-fallback {
-        font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
-        max-width: 1000px;
+      .t2t-noscript {
+        font-family: "Poppins", "Segoe UI", Arial, sans-serif;
+        max-width: 1040px;
         margin: 0 auto;
-        padding: 24px 16px 32px;
-        color: #1f2430;
+        padding: 28px 16px 44px;
         line-height: 1.7;
-      }
-      noscript .static-fallback h1,
-      noscript .static-fallback h2 {
         color: #111827;
-        margin: 0 0 12px;
       }
-      noscript .static-fallback ul {
+      .t2t-noscript h1 {
+        font-size: 2rem;
+        margin: 0 0 10px;
+      }
+      .t2t-noscript p {
+        margin: 0 0 14px;
+        color: #374151;
+      }
+      .t2t-noscript h2 {
+        font-size: 1.25rem;
+        margin: 22px 0 10px;
+      }
+      .t2t-noscript ul {
+        margin: 0 0 14px;
         padding-left: 20px;
-        margin: 0 0 16px;
+        color: #374151;
       }
-      noscript .static-fallback li {
-        margin-bottom: 8px;
+      .t2t-noscript li {
+        margin: 6px 0;
       }
-      noscript .static-fallback a {
+      .t2t-noscript a {
         color: #0f6fec;
       }
+      .t2t-noscript .cta {
+        display: inline-block;
+        margin-top: 10px;
+        padding: 12px 16px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .t2t-noscript .cta.primary {
+        background: #0f6fec;
+        color: #ffffff;
+      }
+      .t2t-noscript .cta.secondary {
+        background: #f3f4f6;
+        color: #111827;
+        margin-left: 10px;
+      }
+      .t2t-noscript .note {
+        margin-top: 16px;
+        font-size: 0.95rem;
+        color: #6b7280;
+      }
     </style>
+  </head>
+
+  <body>
     <div id="root">
-      <!-- SEO fallback - hidden by default, only shown if JavaScript is disabled -->
-      <div id="seo-fallback" style="display: none; max-width: 1200px; margin: 0 auto; padding: 40px 20px; font-family: 'Poppins', Arial, sans-serif;">
-        <h1 style="font-size: 2.5rem; margin-bottom: 1rem; color: #111827;">Time 2 Trade: Trading Clock + Economic Events</h1>
-        <p style="font-size: 1.1rem; line-height: 1.7; color: #374151; margin-bottom: 2rem;">
-          Time 2 Trade keeps futures and forex day traders aligned with session overlaps and scheduled catalysts using a New York time-first clock plus an economic events workspace.
-        </p>
-        
-        <h2 style="font-size: 1.8rem; margin: 2rem 0 1rem; color: #111827;">Key features</h2>
-        <ul style="line-height: 1.8; color: #374151; padding-left: 1.5rem;">
-          <li>Dual-circle session clock with overlaps and active session detection</li>
-          <li>Economic events timeline/table with impact and currency filters (workspace unlocks with a free account)</li>
-          <li>Favorites and personal notes synced for authenticated users</li>
-          <li>Exports (CSV/JSON) from the events workspace</li>
-          <li>PWA install for fast launch and a New York time-first workflow</li>
-        </ul>
-        
-        <h2 style="font-size: 1.8rem; margin: 2rem 0 1rem; color: #111827;">Built for active traders</h2>
-        <p style="font-size: 1.1rem; line-height: 1.7; color: #374151;">
-          Designed for futures and forex day traders who need session awareness, overlap timing, and real-time economic event context without heavy dashboards or trading signals.
-        </p>
-        
-        <div style="margin-top: 2rem;">
-          <a href="/calendar" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">Open Calendar</a>
-          <a href="/about" style="display: inline-block; padding: 14px 28px; background: #f3f4f6; color: #111827; border-radius: 8px; text-decoration: none; font-weight: 600; margin-left: 12px;">Learn More</a>
-        </div>
-      </div>
+      <noscript>
+        <main class="t2t-noscript" aria-label="Time 2 Trade overview">
+          <h1>Time 2 Trade: Session Clock + Forex Factory Economic Calendar (NY Time)</h1>
+          <p>
+            Time 2 Trade is a clean <strong>intraday timing workspace</strong> for futures and forex day traders.
+            Know what part of the trading day you’re in, then confirm whether a high-impact release is coming up — without
+            bouncing across tabs.
+          </p>
+
+          <h2>What you can do</h2>
+          <ul>
+            <li><strong>Know what’s open now:</strong> session awareness with clear countdowns to key transitions.</li>
+            <li><strong>Avoid scheduled volatility:</strong> filter upcoming releases by impact, currency, and search.</li>
+            <li><strong>Add your own timing windows:</strong> create <strong>custom events</strong> for personal routines or rules.</li>
+            <li><strong>Stay ahead of catalysts:</strong> enable <strong>notifications</strong> for upcoming events (where supported).</li>
+            <li><strong>Trust the source:</strong> economic calendar data is <strong>powered by Forex Factory</strong>.</li>
+          </ul>
+
+          <h2>Built for active traders (not signals)</h2>
+          <p>
+            This tool is designed for <strong>awareness and context</strong> — it does not generate buy/sell signals or connect
+            to brokers.
+          </p>
+
+          <a class="cta primary" href="/clock">Open Session Clock</a>
+          <a class="cta secondary" href="/calendar">Open Economic Calendar</a>
+
+          <p class="note">
+            JavaScript is required for the full interactive experience. If you can, enable JavaScript and refresh.
+          </p>
+        </main>
+      </noscript>
     </div>
-    <noscript>
-      <style>
-        /* Show SEO fallback only when JavaScript is disabled */
-        #seo-fallback {
-          display: block !important;
-        }
-      </style>
-    </noscript>
-    <noscript>
-      <div class="static-fallback" aria-label="Time 2 Trade overview">
-        <h1>Time 2 Trade: Trading Clock + Economic Events</h1>
-        <p>Time 2 Trade keeps futures and forex day traders aligned with session overlaps and scheduled catalysts using a New York time-first clock plus an economic events workspace.</p>
-        <h2>Key features</h2>
-        <ul>
-          <li>Dual-circle session clock with overlaps and active session detection.</li>
-          <li>Economic events timeline/table with impact and currency filters (workspace unlocks with a free account).</li>
-          <li>Favorites and personal notes synced for authenticated users.</li>
-          <li>Exports (CSV/JSON) from the events workspace.</li>
-          <li>PWA install for fast launch and a New York time-first workflow.</li>
-        </ul>
-        <h2>Built for active traders</h2>
-        <p>Designed for futures and forex day traders who need session awareness, overlap timing, and real-time economic event context without trading signals.</p>
-        <p><a href="/about">Learn more on the About page</a> or view today's <a href="/calendar">economic events and sessions</a>.</p>
-      </div>
-    </noscript>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

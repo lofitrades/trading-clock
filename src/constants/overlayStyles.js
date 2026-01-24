@@ -21,5 +21,5 @@
  */
 export const BACKDROP_OVERLAY_SX = {
   backdropFilter: 'blur(4px)',
-  bgcolor: 'rgba(15,23,42,0.3)',
+  bgcolor: 'rgba(0,0,0,0.5)',
 };

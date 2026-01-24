@@ -328,10 +328,12 @@ await setDoc(doc(db, 'users', uid), {
 4. ❌ Change session detection without testing midnight crossover
 5. ❌ Add external CSS frameworks (Bootstrap, Tailwind)
 6. ❌ Use `document.getElementById` (use refs)
-7. ❌ Add console.logs in production
+7. ❌ Add console.logs in production (only if temporarily requested for debugging)
 8. ❌ Change Firestore structure without migration plan
 9. ❌ Lower AuthModal2 z-index below 12001
 10. ❌ Modify canonical events structure without updating all sources
+11. ❌ Build and deploy when unnecessary, only if required to see the updates in localhost and prod. Do not 'npm run build' or 'firebase deploy' before requesting approval.
+12. ❌ Run 'npm run dev' before checking if a server is already running on localhost:5173 to avoid port conflicts and open simple browser instead (if required).
 
 ### ALWAYS:
 1. ✅ Test auth flows (magic link, Google OAuth, logout)
@@ -500,4 +502,4 @@ npm run deploy           # Build + deploy to Firebase Hosting
 ---
 
 **Additonal instructions or clarifications can be appended here as needed:**
-- 'bep'/'BEP' = 'following all best React, Firebase, MUI, UI, UX, dev, copywriting, security, performance, loading speed, sepparation of concerns, SEO, accesibility and mobile-first-responsive top modern enterprise practices'.
+- 'bep'/'BEP' = 'following all best React, Firebase, MUI, UI, UX, dev, copywriting, security, performance, loading speed, separation of concerns, SEO, accessibility and mobile-first-responsive top modern enterprise practices'.

@@ -1,3 +1,16 @@
+/**
+ * firestore.rules
+ * 
+ * Purpose: Firestore security rules for Time 2 Trade collections.
+ * Key responsibility and main functionality: Protect user data, enforce read/write access,
+ * and restrict server-managed collections.
+ * 
+ * Changelog:
+ * v1.2.0 - 2026-01-23 - Add rules for deviceTokens and notificationStats for FCM.
+ * v1.1.0 - 2026-01-23 - Add rules for unified reminders and notification triggers.
+ * v1.0.0 - 2025-09-15 - Initial security rules.
+ */
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -35,6 +48,27 @@ service cloud.firestore {
 
       // Custom Events subcollection - owners manage their own reminders
       match /customEvents/{eventId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Unified Reminders subcollection - owners manage their reminders
+      match /reminders/{reminderId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Notification Triggers subcollection - write-only by client (read reserved for future server flows)
+      match /notificationTriggers/{triggerId} {
+        allow read: if false;
+        allow write: if isOwner(userId);
+      }
+
+      // Device tokens for FCM push notifications
+      match /deviceTokens/{tokenId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Notification stats (daily caps)
+      match /notificationStats/{statsId} {
         allow read, write: if isOwner(userId);
       }
 

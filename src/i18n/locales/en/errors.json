@@ -1,0 +1,11 @@
+{
+  "required": "This field is required",
+  "invalidEmail": "Please enter a valid email address",
+  "passwordTooShort": "Password must be at least 8 characters",
+  "fieldRequired": "{{field}} is required",
+  "errorOccurred": "An error occurred. Please try again.",
+  "notFound": "Not found",
+  "unauthorized": "Unauthorized",
+  "forbidden": "Access forbidden",
+  "serverError": "Server error. Please try again later."
+}

@@ -5,6 +5,7 @@
  * Bootstraps React with providers and routing.
  * 
  * Changelog:
+ * v4.0.0 - 2026-01-24 - Added i18next integration for multilanguage support (EN, ES, FR MVP).
  * v3.0.3 - 2025-12-22 - Wrapped app with HelmetProvider for route-level SEO metadata.
  * v3.0.2 - 2025-12-18 - Added viewport CSS vars and flag-icons loading for proper initialization.
  * v3.0.1 - 2025-12-18 - Restored SPA entry after removing incomplete SSR implementation.
@@ -22,11 +23,14 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { ThemeProvider } from '@mui/material/styles';
+import { I18nextProvider } from 'react-i18next';
 import { AuthProvider } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { TooltipProvider } from './contexts/TooltipContext';
 import theme from './theme';
 import './index.css';
+import './i18n/config.js';  // Initialize i18next BEFORE App
+import i18n from './i18n/config.js';
 import AppRoutes from './routes/AppRoutes';
 import { setupViewportCssVars, scheduleNonCriticalAssets } from './app/clientEffects';
 import { registerServiceWorker } from './registerServiceWorker';
@@ -45,19 +49,21 @@ scheduleNonCriticalAssets(registerServiceWorker);
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <HelmetProvider>
-      <BrowserRouter>
-        <ThemeProvider theme={theme}>
-          <AuthProvider>
-            <SettingsProvider>
-              <TooltipProvider>
-                <AppRoutes />
-              </TooltipProvider>
-            </SettingsProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </BrowserRouter>
-    </HelmetProvider>
+    <I18nextProvider i18n={i18n}>
+      <HelmetProvider>
+        <BrowserRouter>
+          <ThemeProvider theme={theme}>
+            <AuthProvider>
+              <SettingsProvider>
+                <TooltipProvider>
+                  <AppRoutes />
+                </TooltipProvider>
+              </SettingsProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </BrowserRouter>
+      </HelmetProvider>
+    </I18nextProvider>
   </StrictMode>
 );
 

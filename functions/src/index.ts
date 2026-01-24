@@ -6,6 +6,7 @@
  * updates into the canonical economic events collection.
  *
  * Changelog:
+ * v1.5.0 - 2026-01-23 - Add scheduled FCM push reminders for unified event reminders.
  * v1.4.0 - 2026-01-21 - Add callable email sender for custom reminder notifications.
  * v1.3.0 - 2026-01-21 - Add manual JBlanked Forex Factory range backfill endpoint.
  * v1.2.1 - 2026-01-16 - Enhanced uploadGptEvents: check custom claims + Firestore fallback with better error messaging.
@@ -28,6 +29,7 @@ import {syncTodayActualsFromJblankedAllConfigured} from "./services/jblankedActu
 import {syncJblankedForexFactorySince} from "./services/jblankedForexFactoryRangeService";
 import {uploadGptEventsBatch} from "./services/gptUploadService";
 import {sendCustomReminderEmail} from "./services/sendgridEmailService";
+import {runFcmReminderScheduler} from "./services/fcmReminderScheduler";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -102,6 +104,22 @@ export const syncTodayActualsFromJblanked = onSchedule(
   },
   async () => {
     await syncTodayActualsFromJblankedAllConfigured();
+  }
+);
+
+/**
+ * Scheduled Cloud Function - FCM push reminders
+ * Runs every 5 minutes to deliver reminder notifications.
+ */
+export const sendFcmRemindersScheduled = onSchedule(
+  {
+    schedule: "every 5 minutes",
+    timeZone: "America/New_York",
+    timeoutSeconds: 300,
+    memory: "256MiB",
+  },
+  async () => {
+    await runFcmReminderScheduler();
   }
 );
 

@@ -6,6 +6,7 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
+ * v2.7.22 - 2026-01-22 - BEP: Ensure recurring custom event edits/deletes target the series id.
  * v2.7.21 - 2026-01-22 - BEP FIX: Pass hasCustomEvents to EventsFilters3 so CUS currency option appears when custom events exist. Added todayDateRange useMemo to scope useCustomEvents to today only. Both EventsFilters3 instances now receive hasCustomEvents prop.
  * v2.7.20 - 2026-01-22 - BEP: Allow non-auth users to open CustomEventDialog and fill values. Auth check moved from handleOpenCustomDialog to handleSaveCustomEvent. Shows AuthModal2 when trying to save without auth.
  * v2.7.19 - 2026-01-22 - BEP UI CONSISTENCY: Removed custom mobileHeaderAction prop. Add reminder button now uses MobileHeader's default styling for consistent UI (add, bell, avatar) across all pages including /clock. Fixes size mismatch on xs/sm breakpoints.
@@ -402,8 +403,9 @@ export default function App() {
       return;
     }
 
-    const result = customEditingEvent?.id
-      ? await saveCustomEvent(customEditingEvent.id, payload)
+    const eventId = customEditingEvent?.seriesId || customEditingEvent?.id;
+    const result = eventId
+      ? await saveCustomEvent(eventId, payload)
       : await createCustomEvent(payload);
 
     if (result?.success) {
@@ -413,11 +415,12 @@ export default function App() {
   }, [isAuthenticated, createCustomEvent, customEditingEvent, saveCustomEvent]);
 
   const handleDeleteCustomEvent = useCallback(async (eventToDelete) => {
-    if (!eventToDelete?.id) return;
+    const eventId = eventToDelete?.seriesId || eventToDelete?.id;
+    if (!eventId) return;
     const confirmed = window.confirm('Delete this reminder?');
     if (!confirmed) return;
 
-    const result = await removeCustomEvent(eventToDelete.id);
+    const result = await removeCustomEvent(eventId);
     if (result?.success) {
       setCustomDialogOpen(false);
       setCustomEditingEvent(null);

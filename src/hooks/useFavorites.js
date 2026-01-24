@@ -5,6 +5,9 @@
  * Provides alias-aware checks, optimistic toggles, and pending state for UI controls.
  *
  * Changelog:
+ * v1.2.2 - 2026-01-23 - BEP: Added comprehensive error logging with stack trace in catch block.
+ * v1.2.1 - 2026-01-23 - BEP FIX: Added ungated diagnostic console.log in toggleFavorite to trace call flow when debugging favorites toggle issue.
+ * v1.2.0 - 2026-01-23 - BEP: Add gated debug logging for favorites toggle diagnostics.
  * v1.1.0 - 2025-12-15 - Pass favoritesMap to toggleFavoriteEvent for accurate document deletion.
  * v1.0.0 - 2025-12-12 - Initial implementation with Firestore subscription and optimistic toggle support.
  */
@@ -17,6 +20,16 @@ import {
   subscribeToFavorites,
   toggleFavoriteEvent,
 } from '../services/favoritesService';
+
+const shouldDebugFavorites = () => {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage?.getItem('t2t_debug_favorites') === '1';
+};
+
+const logFavoriteDebug = (...args) => {
+  if (!shouldDebugFavorites()) return;
+  console.info('[favorites]', ...args);
+};
 
 export const useFavorites = () => {
   const { user } = useAuth();
@@ -61,6 +74,8 @@ export const useFavorites = () => {
   }, [pendingKeys]);
 
   const toggleFavorite = useCallback(async (event) => {
+    logFavoriteDebug('hook:toggleFavorite', { hasUser: Boolean(user), eventName: event?.name || event?.Name });
+
     if (!user) {
       setFavoritesError('Sign in to save favorites.');
       return { success: false, requiresAuth: true };
@@ -83,6 +98,13 @@ export const useFavorites = () => {
     const previousNameKeys = nameKeySet;
     const identity = buildEventIdentity(event);
     const toggleKeys = identity.nameKeys || [];
+
+    logFavoriteDebug('toggle:start', {
+      key: String(key),
+      currentlyFavorite,
+      identity,
+      nameKeys: toggleKeys,
+    });
 
     setFavoritesMap((prev) => {
       const next = new Map(prev);
@@ -111,9 +133,11 @@ export const useFavorites = () => {
     });
 
     try {
-      await toggleFavoriteEvent(user.uid, event, currentlyFavorite, favoritesMap);
+      const result = await toggleFavoriteEvent(user.uid, event, currentlyFavorite, favoritesMap);
+      logFavoriteDebug('toggle:success', { key: String(key), result });
       return { success: true, requiresAuth: false };
     } catch (error) {
+      logFavoriteDebug('toggle:error', { key: String(key), error: error?.message || error, stack: error?.stack });
       setFavoritesError(error?.message || 'Failed to update favorite');
       setFavoritesMap(previousMap);
       setNameKeySet(previousNameKeys);

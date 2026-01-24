@@ -1,0 +1,41 @@
+{
+  "title": "Settings",
+  "clock": {
+    "title": "Clock Settings",
+    "size": "Clock Size",
+    "style": "Clock Style",
+    "showDigital": "Show Digital Clock",
+    "showHand": "Show Hand Clock",
+    "showLabels": "Show Session Labels",
+    "showCountdown": "Show Time Remaining"
+  },
+  "sessions": {
+    "title": "Trading Sessions",
+    "customize": "Customize Sessions",
+    "enabled": "Enabled",
+    "timezone": "Timezone",
+    "openTime": "Open Time",
+    "closeTime": "Close Time"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "enabled": "Enable Notifications",
+    "eventAlerts": "Event Alerts",
+    "sessionReminders": "Session Reminders",
+    "customReminders": "Custom Reminders"
+  },
+  "display": {
+    "title": "Display",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "fontSize": "Font Size"
+  },
+  "account": {
+    "title": "Account",
+    "email": "Email",
+    "profile": "Profile",
+    "logout": "Log Out",
+    "deleteAccount": "Delete Account"
+  }
+}

@@ -6,6 +6,7 @@
  * with per-user Firestore subcollections, while keeping localStorage fallback for guests.
  * 
  * Changelog:
+ * v1.5.0 - 2026-01-23 - Remove console.log statements to avoid production logging noise.
  * v1.4.0 - 2026-01-23 - CLEANUP: Remove debug console.log statements (subscription setup, snapshot count). Keep only console.error for error diagnostics.
  * v1.3.0 - 2026-01-23 - BEP FIX: Add console.log to subscribeToNotifications for debugging session persistence. Logs subscription setup, snapshot count, and detailed error info including index error detection.
  * v1.2.0 - 2026-01-23 - BEP FIX: Add console.error logging to addNotificationForUser, markNotificationReadForUser, markAllNotificationsReadForUser, and clearNotificationsForUser for debugging Firestore failures. Ensures all database errors are visible in console.
@@ -149,12 +150,13 @@ export const addNotificationForUser = async (userId, notification) => {
     await runTransaction(db, async (transaction) => {
       const existing = await transaction.get(notificationRef);
       if (existing.exists()) {
-        console.log('ℹ️ Notification already exists, skipping duplicate:', docId);
         return;
       }
 
       transaction.set(notificationRef, {
         eventId: notification?.eventId || null,
+        eventKey: notification?.eventKey || null,
+        eventSource: notification?.eventSource || null,
         title: notification?.title || 'Reminder',
         message: notification?.message || null,
         eventTime: notification?.eventTime || null,
@@ -173,7 +175,6 @@ export const addNotificationForUser = async (userId, notification) => {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
-      console.log('✅ Notification transaction committed:', docId);
     });
   } catch (error) {
     console.error('❌ Failed to save notification to Firestore:', {
@@ -199,7 +200,6 @@ export const markNotificationReadForUser = async (userId, notificationId) => {
       readAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    console.log('✅ Notification marked as read:', notificationId);
   } catch (error) {
     console.error('❌ Failed to mark notification as read:', {
       userId,
@@ -217,7 +217,6 @@ export const markAllNotificationsReadForUser = async (userId) => {
   try {
     const snapshot = await getDocs(query(notificationsRef, where('read', '==', false)));
     if (snapshot.empty) {
-      console.log('ℹ️ No unread notifications to mark as read');
       return;
     }
 
@@ -231,7 +230,6 @@ export const markAllNotificationsReadForUser = async (userId) => {
       });
     });
     await batch.commit();
-    console.log(`✅ Marked ${snapshot.docs.length} notifications as read`);
   } catch (error) {
     console.error('❌ Failed to mark all notifications as read:', {
       userId,
@@ -248,7 +246,6 @@ export const clearNotificationsForUser = async (userId) => {
   try {
     const snapshot = await getDocs(query(notificationsRef, where('deleted', '==', false)));
     if (snapshot.empty) {
-      console.log('ℹ️ No notifications to clear');
       return;
     }
 
@@ -262,7 +259,6 @@ export const clearNotificationsForUser = async (userId) => {
       });
     });
     await batch.commit();
-    console.log(`✅ Cleared ${snapshot.docs.length} notifications`);
   } catch (error) {
     console.error('❌ Failed to clear notifications:', {
       userId,

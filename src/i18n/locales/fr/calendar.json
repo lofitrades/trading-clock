@@ -1,0 +1,32 @@
+{
+  "title": "Calendrier Économique",
+  "filter": "Filtrer les Événements",
+  "search": "Rechercher des Événements",
+  "sort": "Trier par",
+  "impact": "Impact",
+  "currency": "Devise",
+  "source": "Source",
+  "date": "Date",
+  "time": "Heure",
+  "noEvents": "Aucun événement trouvé",
+  "loadingEvents": "Chargement des événements...",
+  "errorLoading": "Erreur lors du chargement des événements",
+  "viewToggle": {
+    "table": "Vue Tableau",
+    "timeline": "Vue Chronologie"
+  },
+  "sources": {
+    "forexFactory": "Forex Factory",
+    "nfs": "NFS",
+    "jblanked": "JBlanked"
+  },
+  "columns": {
+    "time": "Heure",
+    "event": "Événement",
+    "currency": "Devise",
+    "impact": "Impact",
+    "actual": "Réel",
+    "forecast": "Prévision",
+    "previous": "Précédent"
+  }
+}

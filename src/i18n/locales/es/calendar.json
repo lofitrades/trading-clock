@@ -1,0 +1,32 @@
+{
+  "title": "Calendario Económico",
+  "filter": "Filtrar Eventos",
+  "search": "Buscar Eventos",
+  "sort": "Ordenar por",
+  "impact": "Impacto",
+  "currency": "Moneda",
+  "source": "Fuente",
+  "date": "Fecha",
+  "time": "Hora",
+  "noEvents": "No se encontraron eventos",
+  "loadingEvents": "Cargando eventos...",
+  "errorLoading": "Error al cargar eventos",
+  "viewToggle": {
+    "table": "Vista de Tabla",
+    "timeline": "Vista de Línea de Tiempo"
+  },
+  "sources": {
+    "forexFactory": "Forex Factory",
+    "nfs": "NFS",
+    "jblanked": "JBlanked"
+  },
+  "columns": {
+    "time": "Hora",
+    "event": "Evento",
+    "currency": "Moneda",
+    "impact": "Impacto",
+    "actual": "Real",
+    "forecast": "Pronóstico",
+    "previous": "Anterior"
+  }
+}
