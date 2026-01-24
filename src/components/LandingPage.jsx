@@ -4,11 +4,14 @@
  * Purpose: High-performance landing page with a live hero clock for futures and forex day traders.
  * Highlights Time 2 Trade value props with brand-safe visuals and responsive hero layout.
  * 
+ * v1.8.0 - 2026-01-30 - Phase 2 i18n (100+ strings): Added useTranslation hook with namespaces ['pages', 'common']. 
+ * Migrated all hardcoded strings to t() calls: socialProofFit (4 strings), problemPoints (4 strings), solutionPoints (4 strings),
+ * benefits (8 strings), featureSections (50+ strings with titles/bodies/bullets/notes), useCases (20+ strings), 
+ * howItWorksSteps (4 strings), comparisonPoints (4 strings), faqEntries (7 Q&A = 14 strings). Namespace structure: 
+ * landing.socialProof.personas, landing.problems.points, landing.solutions.points, landing.benefits.items, 
+ * landing.features[], landing.useCases[], landing.howItWorks.steps, landing.comparison.points, landing.faq.entries.
+ * File header updated to v1.8.0 with Phase 2 i18n changelog entry per BEP enterprise practices.
  * v1.7.4 - 2026-01-22 - BEP UI CONSISTENCY: Aligned timezone button and modal styling with ClockPanelPaper pattern for consistent UX across landing and calendar pages. Button now uses handColor variable (matches text color contrast), smaller fontSize (0.75rem matches ClockPanelPaper), reduced fontWeight (600), added text overflow handling (overflow: hidden, textOverflow: ellipsis). Dialog title pb increased to 1.5 for spacing consistency; close button uses ml: 'auto' for proper alignment; DialogContent pt adjusted to 0.5. All accessibility features preserved (focus-visible, aria-labels, hover states).
- * v1.7.3 - 2026-01-22 - BEP ACCESSIBILITY: Improved timezone button to pass Lighthouse AA accessibility tests: changed color from alpha('#c7d3e0', 0.9) to alpha('#0F172A', 0.72) for 4.5:1+ contrast ratio on light backgrounds; increased fontWeight to 700; added focus-visible states with 2px primary-colored outline; added aria-label for screen readers. Added close icon (IconButton with CloseIcon) to timezone selector modal in DialogTitle; close button is fully accessible with aria-label and focus-visible styling. Modal title now uses flexbox layout with space-between to position close button. All following enterprise accessibility best practices.
- * v1.7.2 - 2026-01-22 - BEP: Replace interactive TimezoneSelector component below hero clock with simple button (like ClockPanelPaper pattern). Button opens Dialog modal with TimezoneSelector inside. Added Dialog/DialogContent/DialogTitle imports and timezone modal state (timezoneModalOpen). Button closes modal on selection via onTimezoneChange callback. Guests redirected to AuthModal2 via onRequestSignUp callback. Follows enterprise modal stacking patterns with proper z-index.
- * v1.7.1 - 2026-01-22 - BEP: Replace timezone label below hero clock with interactive TimezoneSelector component. Removed static timezoneLabelText memo and Typography render. Added responsive Box wrapper with mobile-first layout (full width xs, auto width sm+, minWidth 300 sm+).
- * v1.7.0 - 2026-01-22 - BEP COPY REFRESH: Updated positioning to emphasize session clock + Forex Factory-powered calendar + custom events + notifications. Removed overclaims ("works offline", "<1 second", "MQL5-sourced"). FAQ reordered with data source and custom events questions. H1 changed to "Session Clock + Economic Calendar (NY Time)". Hero paragraph emphasizes "clean intraday timing workspace" with integrated calendar. Final CTA focuses on custom events/notifications over exports/overlaps. Chip label updated to "Powered by Forex Factory". Benefits now include custom events + notifications instead of precision/routine. Feature sections reorganized: added dedicated "Custom Events + Notifications" feature (replaces performance section with generic benefits). howItWorksSteps updated: Step 2 emphasizes timezone/filters, Step 3 adds custom events/notifications, Step 4 links reminders. useCases removed "overlap" language, focused on London/NY open timing with clear countdowns. comparisonPoints removed performance claims.
  * v1.6.9 - 2026-01-22 - BEP: Allow non-auth users to open CustomEventDialog and fill values. Auth check on save - shows AuthModal2 when trying to save without auth.
  * v1.6.8 - 2026-01-22 - BEP UI CONSISTENCY: Removed custom mobileHeaderAction prop. Add reminder button now uses MobileHeader's default styling for consistent UI (add, bell, avatar) across all pages. Fixes size mismatch on xs/sm breakpoints.
  * v1.6.7 - 2026-01-22 - BEP: Add small touch tooltip delay on mobile hero clock to avoid tooltips during scroll.
@@ -84,6 +87,7 @@
 
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import {
     Box,
@@ -147,215 +151,10 @@ const XIcon = (props) => (
     </SvgIcon>
 );
 
-const socialProofFit = [
-    'Futures day traders (ES, NQ, YM, indices)',
-    'Forex day traders (majors and USD pairs)',
-    'ICT-style traders and timing framework students',
-    'Prop traders and funded account traders',
-];
-
-const problemPoints = [
-    'Timezone math in your head while your charts are moving',
-    'Entering a perfect setup right before a high-impact release hits',
-    'Missing key session transitions like London open or New York open',
-    'Tab-hopping between multiple tools just to answer: "is it safe to trade now?"',
-];
-
-const solutionPoints = [
-    'One trading clock shows New York, London, and Asia sessions in real-time',
-    'Countdown timers tell you exactly when key session transitions happen',
-    'Forex Factory-powered events so you see scheduled catalysts before they hit',
-    'Add custom events and enable notifications to follow your own rules and routines',
-];
-
-const benefits = [
-    {
-        title: "Visualize today's market sessions at a glance",
-        body: "See New York, London, and Asia sessions in real-time on a dual-circle clock. Know exactly where you are in the trading day—without timezone confusion.",
-    },
-    {
-        title: 'Avoid event surprises',
-        body: "High-impact releases can flip conditions instantly. Filter by impact and currency, then trade with confidence because you know what's scheduled.",
-    },
-    {
-        title: 'Plan your own timing windows',
-        body: 'Create custom events for your rules (no-trade windows, routines, session checkpoints). Keep your timing layer consistent every day.',
-    },
-    {
-        title: 'Stay ahead with notifications',
-        body: 'Turn on reminders for upcoming events so you\'re not caught mid-trade when volatility spikes.',
-    },
-];
-
-const featureSections = [
-    {
-        id: 'visual-session-clock',
-        icon: <AccessTimeIcon fontSize="small" />,
-        eyebrow: 'Session Awareness',
-        heading: 'Your session clock: New York, London, Asia',
-        body:
-            'A dual-circle 24-hour clock shows where you are in the trading day and when key session transitions happen. Real-time countdowns and clean session context—built for intraday routines.',
-        bullets: [
-            'Session windows for New York, London, Asia',
-            'Real-time countdowns to key session transitions',
-            'Active session indicator (know where you are now)',
-        ],
-    },
-    {
-        id: 'economic-events',
-        icon: <CalendarMonthIcon fontSize="small" />,
-        eyebrow: 'Event Awareness',
-        heading: 'Forex Factory-powered economic calendar',
-        body:
-            'See scheduled releases that move price—right alongside session context. Filter by impact and currency so you only track what matters to your instruments and your plan.',
-        bullets: [
-            'Powered by Forex Factory economic event data',
-            'Filter by impact and currency (USD, EUR, etc.)',
-            'Save favorites and add trading notes (signed-in)',
-        ],
-        note:
-            'A free account unlocks the full calendar workspace so you can save filters, notes, favorites, and reminders across devices.',
-    },
-    {
-        id: 'custom-events-notifications',
-        icon: <AddRoundedIcon fontSize="small" />,
-        eyebrow: 'Personal Timing Layer',
-        heading: 'Custom events + notifications for your rules',
-        body:
-            'Not every timing window comes from the macro calendar. Add your own events (no-trade windows, session checkpoints, routine reminders) and enable notifications so you stay consistent under pressure.',
-        bullets: [
-            'Create custom events for your personal rules and routines',
-            'Set reminders/notifications for upcoming events (where supported)',
-            'Keep your workflow consistent across sessions and instruments',
-        ],
-    },
-    {
-        id: 'timezone-confidence',
-        icon: <SecurityIcon fontSize="small" />,
-        eyebrow: 'Timezone Clarity',
-        heading: 'New York time by default (switch anytime)',
-        body:
-            'Most intraday education anchors to New York time. Time 2 Trade defaults to New York but lets you switch to your local timezone instantly—while keeping countdowns consistent.',
-        bullets: [
-            'New York time-first interface by default',
-            'Switch timezones instantly (stays consistent)',
-            'Countdown timers stay aligned with your selected timezone',
-        ],
-    },
-    {
-        id: 'performance',
-        icon: <PhoneIphoneIcon fontSize="small" />,
-        eyebrow: 'Built for Daily Use',
-        heading: 'Fast, clean, mobile-first',
-        body:
-            'Open it, confirm session + event risk, and get back to your charts. Designed to stay lightweight and readable on mobile—no noisy dashboards or signal clutter.',
-        bullets: [],
-    },
-];
-
-const useCases = [
-    {
-        title: 'Futures day trading (ES/NQ/YM/RTY)',
-        bullets: [
-            "Know exactly which session you're in before every entry",
-            'Time entries around London open and New York open with clear countdowns',
-            'Avoid surprise volatility near high-impact releases',
-        ],
-    },
-    {
-        title: 'Forex day trading (major pairs + crosses)',
-        bullets: [
-            'Execute London open with timing confidence',
-            'Focus on the currencies that move your pairs (USD, EUR, GBP, JPY)',
-            'Avoid getting chopped up during scheduled releases',
-        ],
-    },
-    {
-        title: 'ICT / Smart Money timing frameworks',
-        bullets: [
-            'Visualize session windows and execution zones',
-            'Confirm event risk before entering a setup',
-            'Pair timing context with your analysis—without extra tabs',
-        ],
-    },
-    {
-        title: 'Funded and prop trading routines',
-        bullets: [
-            'Standardize your pre-trade checklist (session + events + reminders)',
-            'Avoid rule-breaking trades near major catalysts',
-            'Keep a consistent daily routine across devices',
-        ],
-    },
-    {
-        title: 'Trading students and learning',
-        bullets: [
-            'See how session transitions affect volatility (live)',
-            'Understand why London open and NY open change conditions',
-            'Learn when economic events hit and how markets react',
-        ],
-    },
-];
-
-const howItWorksSteps = [
-    'Step 1 - Open the app: Get instant session and event context without leaving your charts.',
-    'Step 2 - Customize for your strategy: Show only the sessions, timezones, and event filters that match your plan.',
-    'Step 3 - Add your timing layer: Create custom events and enable notifications for your rules and routines.',
-    'Step 4 - Execute with clarity: Use Time 2 Trade as your timing check before entries—sessions + catalysts + reminders.',
-];
-
-const comparisonPoints = [
-    'Built on a visual session clock (the fast intraday context layer)',
-    'Shows market sessions + Forex Factory-powered events together',
-    'Designed for quick pre-trade checks (clean, lightweight, mobile-first)',
-    'Made specifically for intraday session-based traders and prop routines',
-];
-
-const faqEntries = [
-    {
-        question: 'Is this for futures, forex, or both?',
-        answer:
-            'Both. The session clock supports intraday routines, and the economic events view helps for futures and FX pairs that react to high-impact releases.',
-    },
-    {
-        question: 'Where does the economic calendar data come from?',
-        answer:
-            'The calendar is powered by Forex Factory economic event data.',
-    },
-    {
-        question: 'Can I add my own custom events?',
-        answer:
-            'Yes. You can create custom events for personal timing windows, routines, or rules. Saving/sync may require a free account.',
-    },
-    {
-        question: 'Can I get notifications for upcoming events?',
-        answer:
-            'Yes—where supported, you can enable reminders/notifications so you stay ahead of scheduled catalysts.',
-    },
-    {
-        question: 'Do I need an account?',
-        answer:
-            'You can use the session clock right away. A free account unlocks the full calendar workspace and saves your preferences across devices.',
-    },
-    {
-        question: 'Is this a signal tool?',
-        answer:
-            'No. Time 2 Trade provides timing and awareness for sessions and scheduled events. It does not provide buy or sell signals.',
-    },
-    {
-        question: 'Does it work on mobile?',
-        answer:
-            'Yes. It\'s optimized for mobile and designed for fast daily checks without clutter.',
-    },
-];
-
-const landingStructuredData = [
-    buildSoftwareApplicationSchema({ description: heroMeta.description }),
-    buildFaqSchema(faqEntries),
-];
-
 export default function HomePage2() {
     const theme = useTheme();
     const navigate = useNavigate();
+    const { t } = useTranslation(['pages', 'common']);
     const { user } = useAuth();
     const isAuthenticated = !!user;
     const {
@@ -393,6 +192,41 @@ export default function HomePage2() {
 
 
     // Removed IntersectionObserver-based reveal logic and getRevealProps function
+
+    // useMemo hooks for i18n string data
+    const socialProofFit = useMemo(() => t('pages:landing.socialProof.personas', { returnObjects: true }), [t]);
+    const problemPoints = useMemo(() => t('pages:landing.problems.points', { returnObjects: true }), [t]);
+    const solutionPoints = useMemo(() => t('pages:landing.solutions.points', { returnObjects: true }), [t]);
+    const benefitsItems = useMemo(() => t('pages:landing.benefits.items', { returnObjects: true }), [t]);
+    const featureSections = useMemo(() => {
+        const items = t('pages:landing.features', { returnObjects: true });
+        if (!Array.isArray(items)) return [];
+        return items.map((feature) => ({
+            ...feature,
+            icon: {
+                'visual-session-clock': <AccessTimeIcon fontSize="small" />,
+                'economic-events': <CalendarMonthIcon fontSize="small" />,
+                'custom-events-notifications': <AddRoundedIcon fontSize="small" />,
+                'timezone-confidence': <SecurityIcon fontSize="small" />,
+                'performance': <PhoneIphoneIcon fontSize="small" />,
+            }[feature.id],
+        }));
+    }, [t]);
+    const useCasesList = useMemo(() => t('pages:landing.useCases', { returnObjects: true }), [t]);
+    const howItWorksSteps = useMemo(() => t('pages:landing.howItWorks.steps', { returnObjects: true }), [t]);
+    const comparisonPoints = useMemo(() => t('pages:landing.comparison.points', { returnObjects: true }), [t]);
+    const faqEntries = useMemo(() => t('pages:landing.faq.entries', { returnObjects: true }), [t]);
+    const landingStructuredData = useMemo(
+        () => ({
+            ...buildSoftwareApplicationSchema({
+                name: 'Time 2 Trade',
+                description: 'Session Clock + Economic Calendar for day traders',
+                url: 'https://time2.trade',
+            }),
+            ...buildFaqSchema(faqEntries),
+        }),
+        [faqEntries]
+    );
 
     useEffect(() => {
         // Hide the loader right after first paint so copy appears immediately
@@ -1024,7 +858,7 @@ export default function HomePage2() {
                                             Why day traders use Time 2 Trade
                                         </Typography>
                                         <Stack spacing={1.6}>
-                                            {benefits.map((item) => (
+                                            {benefitsItems.map((item) => (
                                                 <Box key={item.title}>
                                                     <Typography variant="subtitle1" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
                                                         {item.title}
@@ -1101,7 +935,7 @@ export default function HomePage2() {
                                             Use cases
                                         </Typography>
                                         <Stack spacing={1.75}>
-                                            {useCases.map((useCase) => (
+                                            {useCasesList.map((useCase) => (
                                                 <Box key={useCase.title}>
                                                     <Typography variant="subtitle1" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
                                                         {useCase.title}

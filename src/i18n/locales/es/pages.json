@@ -9,33 +9,213 @@
       "cta3": "Aprende más",
       "chips": ["Flujo de trabajo prioritario en hora de Nueva York", "Eventos impulsados por Forex Factory", "Eventos personalizados + recordatorios"]
     },
-    "highlights": {
-      "product": { "label": "Enfoque del producto", "value": "Hora de Nueva York", "hint": "Flujo de trabajo del reloj de sesión" },
-      "events": { "label": "Eventos económicos", "value": "Forex Factory", "hint": "Feed de calendario impulsado" },
-      "custom": { "label": "Eventos personalizados", "value": "Sí", "hint": "Tus recordatorios y puntos de control" },
-      "form": { "label": "Factor de forma", "value": "Móvil → Escritorio", "hint": "Rápido y receptivo" }
+    "socialProof": {
+      "heading": "Construido para operadores como tú",
+      "personas": [
+        "Operadores de futuros intradía (ES, NQ, YM, índices)",
+        "Operadores de forex intradía (pares principales y USD)",
+        "Operadores de estilo ICT y estudiantes de marco de tiempo",
+        "Operadores de prop y cuenta de financiación"
+      ]
+    },
+    "problems": {
+      "heading": "El desafío",
+      "points": [
+        "Matemática de zona horaria en tu cabeza mientras tus gráficos se mueven",
+        "Entrar en una configuración perfecta justo antes de que un lanzamiento de alto impacto golpee",
+        "Perder transiciones clave de sesión como la apertura de Londres o Nueva York",
+        "Cambiar pestañas entre múltiples herramientas solo para responder: ¿es seguro operar ahora?"
+      ]
+    },
+    "solutions": {
+      "heading": "La solución",
+      "points": [
+        "Un reloj de operación muestra sesiones de Nueva York, Londres y Asia en tiempo real",
+        "Los temporizadores de cuenta regresiva te dicen exactamente cuándo ocurren transiciones de sesión clave",
+        "Eventos impulsados por Forex Factory para que veas catalizadores programados antes de que golpeen",
+        "Agrega eventos personalizados y habilita notificaciones para seguir tus propias reglas y rutinas"
+      ]
     },
     "benefits": {
       "heading": "Construido para rutinas de futuros y forex basadas en sesiones",
-      "subheading": "Mantente alineado con el tiempo de la sesión, evita sorpresas de eventos y mantén un proceso consistente ya sea que operes desde la hora de Nueva York o tu zona horaria local."
+      "subheading": "Mantente alineado con el tiempo de la sesión, evita sorpresas de eventos y mantén un proceso consistente ya sea que operes desde la hora de Nueva York o tu zona horaria local.",
+      "items": [
+        {
+          "title": "Visualiza las sesiones del mercado de hoy de un vistazo",
+          "body": "Ve sesiones de Nueva York, Londres y Asia en tiempo real en un reloj de doble círculo. Sabe exactamente dónde estás en el día de negociación, sin confusión de zonas horarias."
+        },
+        {
+          "title": "Evita sorpresas de eventos",
+          "body": "Los lanzamientos de alto impacto pueden cambiar las condiciones instantáneamente. Filtra por impacto y moneda, luego opera con confianza porque sabe qué está programado."
+        },
+        {
+          "title": "Planifica tus propias ventanas de tiempo",
+          "body": "Crea eventos personalizados para tus reglas (ventanas sin operación, rutinas, puntos de control de sesión). Mantén tu capa de tiempo consistente todos los días."
+        },
+        {
+          "title": "Adelántate con notificaciones",
+          "body": "Activa recordatorios para eventos próximos para que no te atrapen a mitad de operación cuando la volatilidad se dispara."
+        }
+      ]
     },
     "features": [
-      { "title": "Reloj de Sesión (Prioritario a la Hora de Nueva York)", "description": "Ve el tiempo de la sesión de hoy de un vistazo con cuentas regresivas en tiempo real a transiciones clave. La hora de Nueva York es el flujo de trabajo predeterminado, con cambio de zona horaria disponible en cualquier momento." },
-      { "title": "Eventos económicos impulsados por Forex Factory", "description": "Mantén los catalizadores en la misma vista que el tiempo de tu sesión. Filtra por impacto y moneda para enfocarte solo en lo que importa para tus pares e instrumentos." },
-      { "title": "Eventos personalizados + recordatorios", "description": "Agrega tus propios puntos de control: ventanas de preparación, zonas sin operaciones, recordatorios de reglas de financiación, aperturas de sesión y rutinas personales. Usa recordatorios/notificaciones donde esté disponible." },
-      { "title": "Configuraciones que se mantienen", "description": "Inicia sesión para sincronizar preferencias en dispositivos, o mantente en modo invitado con persistencia local. De cualquier forma, tu flujo de trabajo sigue siendo consistente día tras día." }
+      {
+        "id": "visual-session-clock",
+        "eyebrow": "Conciencia de Sesión",
+        "heading": "Tu reloj de sesión: Nueva York, Londres, Asia",
+        "body": "Un reloj de 24 horas de doble círculo muestra dónde estás en el día de negociación y cuándo ocurren transiciones de sesión clave. Cuentas regresivas en tiempo real y contexto de sesión limpio, construido para rutinas intradía.",
+        "bullets": [
+          "Ventanas de sesión para Nueva York, Londres, Asia",
+          "Cuentas regresivas en tiempo real a transiciones de sesión clave",
+          "Indicador de sesión activa (sabe dónde está ahora)"
+        ]
+      },
+      {
+        "id": "economic-events",
+        "eyebrow": "Conciencia de Eventos",
+        "heading": "Calendario económico impulsado por Forex Factory",
+        "body": "Ve lanzamientos programados que mueven precio, justo al lado del contexto de sesión. Filtra por impacto y moneda para rastrear solo lo que importa para tus instrumentos y tu plan.",
+        "bullets": [
+          "Impulsado por datos de eventos económicos de Forex Factory",
+          "Filtra por impacto y moneda (USD, EUR, etc.)",
+          "Guarda favoritos y agrega notas de negociación (iniciado sesión)"
+        ],
+        "note": "Una cuenta gratuita desbloquea el espacio de trabajo de calendario completo para que puedas guardar filtros, notas, favoritos y recordatorios en dispositivos."
+      },
+      {
+        "id": "custom-events-notifications",
+        "eyebrow": "Capa de Tiempo Personal",
+        "heading": "Eventos personalizados + notificaciones para tus reglas",
+        "body": "No toda ventana de tiempo proviene del calendario macro. Agrega tus propios eventos (ventanas sin operación, puntos de control de sesión, recordatorios de rutina) y habilita notificaciones para mantenerte consistente bajo presión.",
+        "bullets": [
+          "Crea eventos personalizados para tus reglas y rutinas personales",
+          "Establece recordatorios/notificaciones para eventos próximos (donde sea compatible)",
+          "Mantén tu flujo de trabajo consistente en sesiones e instrumentos"
+        ]
+      },
+      {
+        "id": "timezone-confidence",
+        "eyebrow": "Claridad de Zona Horaria",
+        "heading": "Hora de Nueva York por defecto (cambia en cualquier momento)",
+        "body": "La mayoría de la educación intradía se ancla a la hora de Nueva York. Time 2 Trade se establece de forma predeterminada en Nueva York pero te permite cambiar a tu zona horaria local al instante, mientras mantienes cuentas regresivas consistentes.",
+        "bullets": [
+          "Interfaz prioritaria en hora de Nueva York por defecto",
+          "Cambia zonas horarias al instante (permanece consistente)",
+          "Los temporizadores de cuenta regresiva se alinean con tu zona horaria seleccionada"
+        ]
+      },
+      {
+        "id": "performance",
+        "eyebrow": "Construido para Uso Diario",
+        "heading": "Rápido, limpio, primero móvil",
+        "body": "Abrelo, confirma sesión + riesgo de evento, y vuelve a tus gráficos. Diseñado para mantenerse ligero y legible en móvil, sin tableros ruidosos ni ruido de señal.",
+        "bullets": []
+      }
     ],
+    "useCases": [
+      {
+        "title": "Operación de futuros intradía (ES/NQ/YM/RTY)",
+        "bullets": [
+          "Sabe exactamente en qué sesión estás antes de cada entrada",
+          "Cronometra entradas alrededor de la apertura de Londres y Nueva York con cuentas regresivas claras",
+          "Evita volatilidad sorpresiva cerca de lanzamientos de alto impacto"
+        ]
+      },
+      {
+        "title": "Operación de forex intradía (pares principales + cruces)",
+        "bullets": [
+          "Ejecuta la apertura de Londres con confianza de tiempo",
+          "Enfócate en las monedas que mueven tus pares (USD, EUR, GBP, JPY)",
+          "Evita ser picado durante lanzamientos programados"
+        ]
+      },
+      {
+        "title": "Marcos de tiempo ICT / Smart Money",
+        "bullets": [
+          "Visualiza ventanas de sesión y zonas de ejecución",
+          "Confirma riesgo de evento antes de entrar en una configuración",
+          "Empareja contexto de tiempo con tu análisis, sin pestañas extra"
+        ]
+      },
+      {
+        "title": "Rutinas de operación de prop y financiación",
+        "bullets": [
+          "Estandariza tu lista de verificación previa al comercio (sesión + eventos + recordatorios)",
+          "Evita operaciones que rompan reglas cerca de catalizadores principales",
+          "Mantén una rutina diaria consistente en dispositivos"
+        ]
+      },
+      {
+        "title": "Estudiantes de negociación y aprendizaje",
+        "bullets": [
+          "Ve cómo las transiciones de sesión afectan la volatilidad (en directo)",
+          "Entiende por qué la apertura de Londres y NY cambian las condiciones",
+          "Aprende cuándo golpean eventos económicos y cómo reaccionan los mercados"
+        ]
+      }
+    ],
+    "howItWorks": {
+      "heading": "Cómo funciona",
+      "steps": [
+        "Paso 1 - Abre la aplicación: Obtén contexto de sesión y evento instantáneo sin salir de tus gráficos.",
+        "Paso 2 - Personaliza para tu estrategia: Muestra solo las sesiones, zonas horarias y filtros de eventos que coincidan con tu plan.",
+        "Paso 3 - Agrega tu capa de tiempo: Crea eventos personalizados y habilita notificaciones para tus reglas y rutinas.",
+        "Paso 4 - Ejecuta con claridad: Usa Time 2 Trade como tu verificación de tiempo antes de entradas, sesiones + catalizadores + recordatorios."
+      ]
+    },
+    "comparison": {
+      "heading": "Por qué Time 2 Trade",
+      "points": [
+        "Construido sobre un reloj de sesión visual (la capa de contexto intradiario rápido)",
+        "Muestra sesiones de mercado + eventos impulsados por Forex Factory juntos",
+        "Diseñado para verificaciones previas al comercio rápidas (limpio, ligero, primero móvil)",
+        "Hecho específicamente para operadores basados en sesiones intradía y rutinas de prop"
+      ]
+    },
     "faq": {
       "heading": "Preguntas Frecuentes",
       "entries": [
-        { "question": "¿Qué es Time 2 Trade?", "answer": "Time 2 Trade es un Reloj de Sesión + Calendario Económico (Hora de Nueva York) para operadores intradía de futuros y forex. Combina tiempo de sesión, cuentas regresivas y eventos económicos impulsados por Forex Factory en un espacio de trabajo rápido." },
-        { "question": "¿El calendario económico está impulsado por Forex Factory?", "answer": "Sí. Time 2 Trade utiliza un feed de eventos impulsado por Forex Factory y lo presenta con contexto de filtrado moderno y sesión para que puedas detectar lanzamientos de alto impacto sin cambiar de pestaña." },
-        { "question": "¿Puedo crear eventos personalizados y recordatorios?", "answer": "Sí. Puedes agregar eventos personalizados (puntos de control de preparación, ventanas sin operaciones, recordatorios de sesión) y usar recordatorios/notificaciones donde esté disponible para mantenerte alineado con tu rutina." },
-        { "question": "¿Se adapta automáticamente a mi zona horaria?", "answer": "La aplicación detecta tu zona horaria local en la primera carga y te permite cambiar en cualquier momento. Todas las ventanas de sesión, cuentas regresivas y marcas de tiempo de eventos se actualizan al instante." },
-        { "question": "¿Se guardan mis configuraciones?", "answer": "Sí. Cuando inicia sesión, las preferencias pueden sincronizarse con la nube; los invitados vuelven al almacenamiento local para que tu diseño, sesiones y filtros persistan entre visitas." }
+        {
+          "question": "¿Es esto para futuros, forex o ambos?",
+          "answer": "Ambos. El reloj de sesión soporta rutinas intradía, y la vista de eventos económicos ayuda con futuros y pares de FX que reaccionan a lanzamientos de alto impacto."
+        },
+        {
+          "question": "¿De dónde provienen los datos del calendario económico?",
+          "answer": "El calendario está impulsado por datos de eventos económicos de Forex Factory."
+        },
+        {
+          "question": "¿Puedo agregar mis propios eventos personalizados?",
+          "answer": "Sí. Puedes crear eventos personalizados para ventanas de tiempo personales, rutinas o reglas. Guardar/sincronizar puede requerir una cuenta gratuita."
+        },
+        {
+          "question": "¿Puedo obtener notificaciones para eventos próximos?",
+          "answer": "Sí, donde sea compatible, puedes habilitar recordatorios/notificaciones para que te adelantes a los catalizadores programados."
+        },
+        {
+          "question": "¿Necesito una cuenta?",
+          "answer": "Puedes usar el reloj de sesión de inmediato. Una cuenta gratuita desbloquea el espacio de trabajo de calendario completo y guarda tus preferencias en dispositivos."
+        },
+        {
+          "question": "¿Es esta una herramienta de señales?",
+          "answer": "No. Time 2 Trade proporciona conciencia de tiempo para sesiones y eventos programados. No proporciona señales de compra o venta."
+        },
+        {
+          "question": "¿Funciona en móvil?",
+          "answer": "Sí. Está optimizado para móvil y diseñado para verificaciones diarias rápidas sin desorden."
+        }
       ]
     },
-    "navigation": { "openClock": "Abre el reloj", "calendar": "Calendario", "about": "Acerca de", "faq": "Preguntas Frecuentes" }
+    "cta": {
+      "primary": "Desbloquea todas las funciones",
+      "secondary": "Ir al Calendario",
+      "signIn": "Inicia sesión"
+    },
+    "nav": {
+      "openClock": "Abre el reloj",
+      "calendar": "Calendario",
+      "about": "Acerca de",
+      "faq": "Preguntas Frecuentes"
+    }
   },
   "about": {
     "title": "Acerca de Time 2 Trade",

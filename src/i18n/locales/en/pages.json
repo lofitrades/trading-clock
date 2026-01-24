@@ -9,33 +9,213 @@
       "cta3": "Learn more",
       "chips": ["NY time-first workflow", "Forex Factory-powered events", "Custom events + reminders"]
     },
-    "highlights": {
-      "product": { "label": "Product focus", "value": "NY Time", "hint": "Session clock workflow" },
-      "events": { "label": "Economic events", "value": "Forex Factory", "hint": "Powered calendar feed" },
-      "custom": { "label": "Custom events", "value": "Yes", "hint": "Your reminders & checkpoints" },
-      "form": { "label": "Form factor", "value": "Mobile → Desk", "hint": "Responsive and fast" }
+    "socialProof": {
+      "heading": "Built for traders like you",
+      "personas": [
+        "Futures day traders (ES, NQ, YM, indices)",
+        "Forex day traders (majors and USD pairs)",
+        "ICT-style traders and timing framework students",
+        "Prop traders and funded account traders"
+      ]
+    },
+    "problems": {
+      "heading": "The challenge",
+      "points": [
+        "Timezone math in your head while your charts are moving",
+        "Entering a perfect setup right before a high-impact release hits",
+        "Missing key session transitions like London open or New York open",
+        "Tab-hopping between multiple tools just to answer: 'is it safe to trade now?'"
+      ]
+    },
+    "solutions": {
+      "heading": "The solution",
+      "points": [
+        "One trading clock shows New York, London, and Asia sessions in real-time",
+        "Countdown timers tell you exactly when key session transitions happen",
+        "Forex Factory-powered events so you see scheduled catalysts before they hit",
+        "Add custom events and enable notifications to follow your own rules and routines"
+      ]
     },
     "benefits": {
       "heading": "Built for session-based futures and forex routines",
-      "subheading": "Stay aligned with session timing, avoid event surprises, and keep a consistent process whether you trade from New York time or your local timezone."
+      "subheading": "Stay aligned with session timing, avoid event surprises, and keep a consistent process whether you trade from New York time or your local timezone.",
+      "items": [
+        {
+          "title": "Visualize today's market sessions at a glance",
+          "body": "See New York, London, and Asia sessions in real-time on a dual-circle clock. Know exactly where you are in the trading day—without timezone confusion."
+        },
+        {
+          "title": "Avoid event surprises",
+          "body": "High-impact releases can flip conditions instantly. Filter by impact and currency, then trade with confidence because you know what's scheduled."
+        },
+        {
+          "title": "Plan your own timing windows",
+          "body": "Create custom events for your rules (no-trade windows, routines, session checkpoints). Keep your timing layer consistent every day."
+        },
+        {
+          "title": "Stay ahead with notifications",
+          "body": "Turn on reminders for upcoming events so you're not caught mid-trade when volatility spikes."
+        }
+      ]
     },
     "features": [
-      { "title": "Session Clock (NY Time-first)", "description": "See today's session timing at a glance with real-time countdowns to key transitions. New York time is the default workflow, with timezone switching available anytime." },
-      { "title": "Forex Factory-powered economic events", "description": "Keep catalysts in the same view as your session timing. Filter by impact and currency so you only focus on what matters for your pairs and instruments." },
-      { "title": "Custom events + reminders", "description": "Add your own checkpoints: prep windows, no-trade zones, funding rule reminders, session opens, and personal routines. Use reminders/notifications where available." },
-      { "title": "Settings that stick", "description": "Sign in to sync preferences across devices, or stay in guest mode with local persistence. Either way, your workflow stays consistent day after day." }
+      {
+        "id": "visual-session-clock",
+        "eyebrow": "Session Awareness",
+        "heading": "Your session clock: New York, London, Asia",
+        "body": "A dual-circle 24-hour clock shows where you are in the trading day and when key session transitions happen. Real-time countdowns and clean session context—built for intraday routines.",
+        "bullets": [
+          "Session windows for New York, London, Asia",
+          "Real-time countdowns to key session transitions",
+          "Active session indicator (know where you are now)"
+        ]
+      },
+      {
+        "id": "economic-events",
+        "eyebrow": "Event Awareness",
+        "heading": "Forex Factory-powered economic calendar",
+        "body": "See scheduled releases that move price—right alongside session context. Filter by impact and currency so you only track what matters to your instruments and your plan.",
+        "bullets": [
+          "Powered by Forex Factory economic event data",
+          "Filter by impact and currency (USD, EUR, etc.)",
+          "Save favorites and add trading notes (signed-in)"
+        ],
+        "note": "A free account unlocks the full calendar workspace so you can save filters, notes, favorites, and reminders across devices."
+      },
+      {
+        "id": "custom-events-notifications",
+        "eyebrow": "Personal Timing Layer",
+        "heading": "Custom events + notifications for your rules",
+        "body": "Not every timing window comes from the macro calendar. Add your own events (no-trade windows, session checkpoints, routine reminders) and enable notifications so you stay consistent under pressure.",
+        "bullets": [
+          "Create custom events for your personal rules and routines",
+          "Set reminders/notifications for upcoming events (where supported)",
+          "Keep your workflow consistent across sessions and instruments"
+        ]
+      },
+      {
+        "id": "timezone-confidence",
+        "eyebrow": "Timezone Clarity",
+        "heading": "New York time by default (switch anytime)",
+        "body": "Most intraday education anchors to New York time. Time 2 Trade defaults to New York but lets you switch to your local timezone instantly—while keeping countdowns consistent.",
+        "bullets": [
+          "New York time-first interface by default",
+          "Switch timezones instantly (stays consistent)",
+          "Countdown timers stay aligned with your selected timezone"
+        ]
+      },
+      {
+        "id": "performance",
+        "eyebrow": "Built for Daily Use",
+        "heading": "Fast, clean, mobile-first",
+        "body": "Open it, confirm session + event risk, and get back to your charts. Designed to stay lightweight and readable on mobile—no noisy dashboards or signal clutter.",
+        "bullets": []
+      }
     ],
+    "useCases": [
+      {
+        "title": "Futures day trading (ES/NQ/YM/RTY)",
+        "bullets": [
+          "Know exactly which session you're in before every entry",
+          "Time entries around London open and New York open with clear countdowns",
+          "Avoid surprise volatility near high-impact releases"
+        ]
+      },
+      {
+        "title": "Forex day trading (major pairs + crosses)",
+        "bullets": [
+          "Execute London open with timing confidence",
+          "Focus on the currencies that move your pairs (USD, EUR, GBP, JPY)",
+          "Avoid getting chopped up during scheduled releases"
+        ]
+      },
+      {
+        "title": "ICT / Smart Money timing frameworks",
+        "bullets": [
+          "Visualize session windows and execution zones",
+          "Confirm event risk before entering a setup",
+          "Pair timing context with your analysis—without extra tabs"
+        ]
+      },
+      {
+        "title": "Funded and prop trading routines",
+        "bullets": [
+          "Standardize your pre-trade checklist (session + events + reminders)",
+          "Avoid rule-breaking trades near major catalysts",
+          "Keep a consistent daily routine across devices"
+        ]
+      },
+      {
+        "title": "Trading students and learning",
+        "bullets": [
+          "See how session transitions affect volatility (live)",
+          "Understand why London open and NY open change conditions",
+          "Learn when economic events hit and how markets react"
+        ]
+      }
+    ],
+    "howItWorks": {
+      "heading": "How it works",
+      "steps": [
+        "Step 1 - Open the app: Get instant session and event context without leaving your charts.",
+        "Step 2 - Customize for your strategy: Show only the sessions, timezones, and event filters that match your plan.",
+        "Step 3 - Add your timing layer: Create custom events and enable notifications for your rules and routines.",
+        "Step 4 - Execute with clarity: Use Time 2 Trade as your timing check before entries—sessions + catalysts + reminders."
+      ]
+    },
+    "comparison": {
+      "heading": "Why Time 2 Trade",
+      "points": [
+        "Built on a visual session clock (the fast intraday context layer)",
+        "Shows market sessions + Forex Factory-powered events together",
+        "Designed for quick pre-trade checks (clean, lightweight, mobile-first)",
+        "Made specifically for intraday session-based traders and prop routines"
+      ]
+    },
     "faq": {
       "heading": "FAQs",
       "entries": [
-        { "question": "What is Time 2 Trade?", "answer": "Time 2 Trade is a Session Clock + Economic Calendar (NY Time) for intraday futures and forex traders. It combines session timing, countdowns, and Forex Factory-powered economic events in one fast workspace." },
-        { "question": "Is the economic calendar powered by Forex Factory?", "answer": "Yes. Time 2 Trade uses a Forex Factory-powered events feed and presents it with modern filtering and session context so you can spot high-impact releases without tab-hopping." },
-        { "question": "Can I create custom events and reminders?", "answer": "Yes. You can add custom events (prep checkpoints, no-trade windows, session reminders) and use reminders/notifications where available to stay aligned with your routine." },
-        { "question": "Does it adapt to my timezone automatically?", "answer": "The app detects your local timezone on first load and lets you switch at any time. All session windows, countdowns, and event timestamps update instantly." },
-        { "question": "Are my settings saved?", "answer": "Yes. When signed in, preferences can sync to the cloud; guests fall back to local storage so your layout, sessions, and filters persist between visits." }
+        {
+          "question": "Is this for futures, forex, or both?",
+          "answer": "Both. The session clock supports intraday routines, and the economic events view helps for futures and FX pairs that react to high-impact releases."
+        },
+        {
+          "question": "Where does the economic calendar data come from?",
+          "answer": "The calendar is powered by Forex Factory economic event data."
+        },
+        {
+          "question": "Can I add my own custom events?",
+          "answer": "Yes. You can create custom events for personal timing windows, routines, or rules. Saving/sync may require a free account."
+        },
+        {
+          "question": "Can I get notifications for upcoming events?",
+          "answer": "Yes—where supported, you can enable reminders/notifications so you stay ahead of scheduled catalysts."
+        },
+        {
+          "question": "Do I need an account?",
+          "answer": "You can use the session clock right away. A free account unlocks the full calendar workspace and saves your preferences across devices."
+        },
+        {
+          "question": "Is this a signal tool?",
+          "answer": "No. Time 2 Trade provides timing and awareness for sessions and scheduled events. It does not provide buy or sell signals."
+        },
+        {
+          "question": "Does it work on mobile?",
+          "answer": "Yes. It's optimized for mobile and designed for fast daily checks without clutter."
+        }
       ]
     },
-    "navigation": { "openClock": "Open clock", "calendar": "Calendar", "about": "About", "faq": "FAQ" }
+    "cta": {
+      "primary": "Unlock all features",
+      "secondary": "Go to Calendar",
+      "signIn": "Sign in"
+    },
+    "nav": {
+      "openClock": "Open clock",
+      "calendar": "Calendar",
+      "about": "About",
+      "faq": "FAQ"
+    }
   },
   "about": {
     "title": "About Time 2 Trade",
