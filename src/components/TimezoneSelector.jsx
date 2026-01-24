@@ -4,6 +4,7 @@
  * Purpose: Asynchronous timezone selector with read-only collapsed display and dedicated search field.
  * Key responsibility: Persist user timezone selection to Firestore via SettingsContext while gating guest edits.
  * 
+ * v1.5.0 - 2026-01-23 - BEP: Phase 2 i18n migration - Added useTranslation hook, converted all 7 strings to i18n keys (search placeholder, aria-label, header, description, loading/select placeholders)
  * v1.4.3 - 2026-01-22 - BEP: Raised timezone popper z-index from 2000 to 12100 so dropdown renders above modals (Dialog z-index 12000) following enterprise stacking context best practices. Ensures dropdown is always visible when timezone selector is used inside modals like on landing page.
  * v1.4.2 - 2026-01-15 - Raise timezone popper z-index above AppBar for guaranteed overlay priority.
  * v1.4.1 - 2026-01-14 - Auth handoff: invoke parent onRequestSignUp to close settings and open AuthModal2 when guests try to edit; fallback modal keeps z-index above AppBar.
@@ -30,6 +31,7 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Autocomplete, TextField, Box, Popper, CircularProgress, Paper, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import AuthModal2 from './AuthModal2';
@@ -82,10 +84,10 @@ const SearchablePopper = React.forwardRef(
             }}
             size="small"
             fullWidth
-            placeholder="Search timezones"
+            placeholder={t('timezone:search.placeholder')}
             autoFocus
             inputRef={searchInputRef}
-            inputProps={{ 'aria-label': 'Search timezones' }}
+            inputProps={{ 'aria-label': t('timezone:search.ariaLabel') }}
           />
         </Box>
         {children}
@@ -107,6 +109,7 @@ SearchablePopper.propTypes = {
 };
 
 export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChange, onRequestSignUp, children }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { selectedTimezone, updateSelectedTimezone } = useSettings();
   const [showUnlock, setShowUnlock] = useState(false);
@@ -272,10 +275,10 @@ export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChan
       >
         <Box sx={{ px: 1.75, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-            Timezone
+            {t('timezone:label')}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Switch sessions to your local time instantly.
+            {t('timezone:description')}
           </Typography>
         </Box>
         <Box sx={{ p: { xs: 1.25, sm: 1.5 } }} ref={anchorRef}>
@@ -347,7 +350,7 @@ export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChan
             renderInput={(params) => (
               <TextField
                 {...params}
-                placeholder={loading ? 'Loading timezones...' : 'Select timezone'}
+                placeholder={loading ? t('timezone:loadingPlaceholder') : t('timezone:selectPlaceholder')}
                 InputProps={{
                   ...params.InputProps,
                   readOnly: true,
@@ -362,7 +365,7 @@ export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChan
                 inputProps={{
                   ...params.inputProps,
                   readOnly: true,
-                  'aria-label': 'Select timezone',
+                  'aria-label': t('timezone:selectAriaLabel'),
                   onSelect: (e) => e.preventDefault(),
                 }}
               />
