@@ -6,10 +6,12 @@
  * and smooth transitions while maintaining all v1 features (reminders, recurrence, timezone, impact).
  * 
  * Changelog:
+ * v2.1.0 - 2026-01-29 - BEP i18n migration: Added useTranslation hook, replaced 50+ hardcoded strings with t() calls for events namespace
  * v2.0.0 - 2026-01-23 - BEP refactor: Popover-based icon/color pickers, two-column desktop layout, smooth transitions, optimized viewport usage. All v1 features preserved.
  */
 
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import {
     Alert,
@@ -88,20 +90,20 @@ const formatLocalTime = (epochMs, timezone) => {
 };
 
 const RECURRENCE_OPTIONS = [
-    { value: 'none', label: 'Does not repeat' },
-    { value: '1h', label: 'Every 1 hour' },
-    { value: '4h', label: 'Every 4 hours' },
-    { value: '1D', label: 'Every day' },
-    { value: '1W', label: 'Every week' },
-    { value: '1M', label: 'Every month' },
-    { value: '1Q', label: 'Every quarter' },
-    { value: '1Y', label: 'Every year' },
+    { value: 'none', labelKey: 'events:dialog.schedule.recurrence.options.none' },
+    { value: '1h', labelKey: 'events:dialog.schedule.recurrence.options.hour1' },
+    { value: '4h', labelKey: 'events:dialog.schedule.recurrence.options.hour4' },
+    { value: '1D', labelKey: 'events:dialog.schedule.recurrence.options.day1' },
+    { value: '1W', labelKey: 'events:dialog.schedule.recurrence.options.week1' },
+    { value: '1M', labelKey: 'events:dialog.schedule.recurrence.options.month1' },
+    { value: '1Q', labelKey: 'events:dialog.schedule.recurrence.options.quarter1' },
+    { value: '1Y', labelKey: 'events:dialog.schedule.recurrence.options.year1' },
 ];
 
 const RECURRENCE_END_OPTIONS = [
-    { value: 'never', label: 'Never' },
-    { value: 'onDate', label: 'On date' },
-    { value: 'after', label: 'After' },
+    { value: 'never', labelKey: 'events:dialog.schedule.recurrenceEnd.options.never' },
+    { value: 'onDate', labelKey: 'events:dialog.schedule.recurrenceEnd.options.onDate' },
+    { value: 'after', labelKey: 'events:dialog.schedule.recurrenceEnd.options.after' },
 ];
 
 const getDefaultRecurrence = (timezone) => ({
@@ -138,6 +140,7 @@ export default function CustomEventDialog({
     onRequestBrowserPermission,
     zIndexOverride,
 }) {
+    const { t } = useTranslation(['events', 'common']);
     const theme = useTheme();
     const timezoneOptions = useMemo(buildTimezoneOptions, []);
     const [form, setForm] = useState(() => getDefaultForm(defaultTimezone, theme.palette.primary.main, DEFAULT_CUSTOM_EVENT_ICON));
@@ -496,11 +499,11 @@ export default function CustomEventDialog({
                                 {/* Details Section */}
                                 <Box>
                                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
-                                        Details
+                                        {t('events:dialog.details.section')}
                                     </Typography>
                                     <Stack spacing={1.5}>
                                         <TextField
-                                            label="Custom event title"
+                                            label={t('events:dialog.details.fields.title.label')}
                                             value={form.title}
                                             onChange={handleFieldChange('title')}
                                             fullWidth
@@ -508,7 +511,7 @@ export default function CustomEventDialog({
                                             autoFocus
                                         />
                                         <TextField
-                                            label="Description (optional)"
+                                            label={t('events:dialog.details.fields.description.label')}
                                             value={form.description}
                                             onChange={handleFieldChange('description')}
                                             fullWidth
@@ -518,7 +521,7 @@ export default function CustomEventDialog({
                                         />
                                         <TextField
                                             select
-                                            label="Impact"
+                                            label={t('events:dialog.details.fields.impact.label')}
                                             value={form.impact}
                                             onChange={handleImpactChange}
                                             fullWidth
@@ -553,12 +556,12 @@ export default function CustomEventDialog({
                                 {/* Schedule Section */}
                                 <Box>
                                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
-                                        Schedule
+                                        {t('events:dialog.schedule.section')}
                                     </Typography>
                                     <Stack spacing={1.5}>
                                         <Stack direction="row" spacing={1.5}>
                                             <TextField
-                                                label="Date"
+                                                label={t('events:dialog.schedule.fields.date.label')}
                                                 type="date"
                                                 value={form.localDate}
                                                 onChange={handleFieldChange('localDate')}
@@ -566,7 +569,7 @@ export default function CustomEventDialog({
                                                 fullWidth
                                             />
                                             <TextField
-                                                label="Time"
+                                                label={t('events:dialog.schedule.fields.time.label')}
                                                 type="time"
                                                 value={form.localTime}
                                                 onChange={handleFieldChange('localTime')}
@@ -578,7 +581,7 @@ export default function CustomEventDialog({
                                         <Stack spacing={1.5} sx={{ mt: 2 }}>
                                             <TextField
                                                 select
-                                                label="Repeat"
+                                                label={t('events:dialog.schedule.fields.repeat.label')}
                                                 value={form.recurrence?.enabled ? form.recurrence?.interval : 'none'}
                                                 onChange={handleRecurrenceIntervalChange}
                                                 fullWidth
@@ -594,7 +597,7 @@ export default function CustomEventDialog({
                                             >
                                                 {RECURRENCE_OPTIONS.map((option) => (
                                                     <MenuItem key={option.value} value={option.value}>
-                                                        {option.label}
+                                                        {t(option.labelKey)}
                                                     </MenuItem>
                                                 ))}
                                             </TextField>
@@ -604,7 +607,7 @@ export default function CustomEventDialog({
                                                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                                                         <TextField
                                                             select
-                                                            label="Ends"
+                                                            label={t('events:dialog.schedule.fields.recurrenceEnd.label')}
                                                             value={form.recurrence?.ends?.type || 'never'}
                                                             onChange={handleRecurrenceEndTypeChange}
                                                             fullWidth
@@ -621,14 +624,14 @@ export default function CustomEventDialog({
                                                         >
                                                             {RECURRENCE_END_OPTIONS.map((option) => (
                                                                 <MenuItem key={option.value} value={option.value}>
-                                                                    {option.label}
+                                                                    {t(option.labelKey)}
                                                                 </MenuItem>
                                                             ))}
                                                         </TextField>
 
                                                         <Grow in={form.recurrence?.ends?.type === 'onDate'} unmountOnExit>
                                                             <TextField
-                                                                label="End date"
+                                                                label={t('events:dialog.schedule.fields.endDate.label')}
                                                                 type="date"
                                                                 value={form.recurrence?.ends?.untilLocalDate || ''}
                                                                 onChange={handleRecurrenceEndFieldChange('untilLocalDate')}
@@ -639,7 +642,7 @@ export default function CustomEventDialog({
                                                         </Grow>
                                                         <Grow in={form.recurrence?.ends?.type === 'after'} unmountOnExit>
                                                             <TextField
-                                                                label="Occurrences"
+                                                                label={t('events:dialog.schedule.fields.occurrences.label')}
                                                                 type="number"
                                                                 value={form.recurrence?.ends?.count || 1}
                                                                 onChange={handleRecurrenceEndFieldChange('count')}
@@ -654,7 +657,7 @@ export default function CustomEventDialog({
                                         </Stack>
                                         <TextField
                                             select
-                                            label="Timezone"
+                                            label={t('events:dialog.schedule.fields.timezone.label')}
                                             value={form.timezone}
                                             onChange={handleTimezoneChange}
                                             fullWidth
@@ -677,13 +680,13 @@ export default function CustomEventDialog({
                                 {/* Appearance Section */}
                                 <Box>
                                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
-                                        Appearance & Visibility
+                                        {t('events:dialog.appearance.section')}
                                     </Typography>
                                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                                         {/* Color Picker Button */}
                                         <Box sx={{ flex: 1 }}>
                                             <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mb: 0.75, display: 'block' }}>
-                                                Color
+                                                {t('events:dialog.appearance.fields.color.label')}
                                             </Typography>
                                             <Button
                                                 onClick={handleColorClick}
@@ -725,7 +728,7 @@ export default function CustomEventDialog({
                                         {/* Icon Picker Button */}
                                         <Box sx={{ flex: 1 }}>
                                             <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mb: 0.75, display: 'block' }}>
-                                                Icon
+                                                {t('events:dialog.appearance.fields.icon.label')}
                                             </Typography>
                                             <Button
                                                 onClick={handleIconClick}
@@ -771,10 +774,10 @@ export default function CustomEventDialog({
                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2 }}>
                                         <Box>
                                             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                Show on clock
+                                                {t('events:dialog.appearance.fields.showOnClock.label')}
                                             </Typography>
                                             <Typography variant="caption" color="text.secondary">
-                                                Display this event on the clock canvas
+                                                {t('events:dialog.appearance.fields.showOnClock.description')}
                                             </Typography>
                                         </Box>
                                         <SwitchComponent
@@ -789,7 +792,7 @@ export default function CustomEventDialog({
                                 {/* Reminders Section */}
                                 <Box>
                                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.75rem' }}>
-                                        Reminders
+                                        {t('events:dialog.reminders.section')}
                                     </Typography>
                                     <RemindersEditor2
                                         reminders={form.reminders}
@@ -820,7 +823,7 @@ export default function CustomEventDialog({
                             onClick={() => onDelete?.(event)}
                             sx={{ borderRadius: 999 }}
                         >
-                            Delete
+                            {t('events:dialog.actions.delete')}
                         </Button>
                     )}
                     <Box sx={{ flex: 1 }} />
@@ -829,7 +832,7 @@ export default function CustomEventDialog({
                         color="inherit"
                         sx={{ borderRadius: 999 }}
                     >
-                        Cancel
+                        {t('events:dialog.actions.cancel')}
                     </Button>
                     <Button
                         variant="contained"
@@ -837,7 +840,7 @@ export default function CustomEventDialog({
                         disabled={!form.title || !form.localDate || !form.localTime || (isEditing && savedChanges)}
                         sx={{ borderRadius: 999, px: 3 }}
                     >
-                        {isEditing ? (savedChanges ? 'Changes saved' : 'Save changes') : 'Add custom event'}
+                        {isEditing ? (savedChanges ? t('events:dialog.actions.saveChanges.success') : t('events:dialog.actions.saveChanges.action')) : t('events:dialog.actions.addCustomEvent')}
                     </Button>
                 </DialogActions>
             </Dialog>
