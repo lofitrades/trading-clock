@@ -1,0 +1,49 @@
+{
+  "landing": {
+    "badge": "Session Clock • Economic Calendar • NY Time",
+    "hero": {
+      "heading": "Session Clock + Economic Calendar (NY Time)",
+      "subheading": "A fast workspace for intraday futures and forex traders. Track session timing and countdowns, see Forex Factory-powered economic events, and add your own custom events and reminders—so you never trade blind into a release.",
+      "cta1": "Open the clock",
+      "cta2": "Open calendar",
+      "cta3": "Learn more",
+      "chips": ["NY time-first workflow", "Forex Factory-powered events", "Custom events + reminders"]
+    },
+    "highlights": {
+      "product": { "label": "Product focus", "value": "NY Time", "hint": "Session clock workflow" },
+      "events": { "label": "Economic events", "value": "Forex Factory", "hint": "Powered calendar feed" },
+      "custom": { "label": "Custom events", "value": "Yes", "hint": "Your reminders & checkpoints" },
+      "form": { "label": "Form factor", "value": "Mobile → Desk", "hint": "Responsive and fast" }
+    },
+    "benefits": {
+      "heading": "Built for session-based futures and forex routines",
+      "subheading": "Stay aligned with session timing, avoid event surprises, and keep a consistent process whether you trade from New York time or your local timezone."
+    },
+    "features": [
+      { "title": "Session Clock (NY Time-first)", "description": "See today's session timing at a glance with real-time countdowns to key transitions. New York time is the default workflow, with timezone switching available anytime." },
+      { "title": "Forex Factory-powered economic events", "description": "Keep catalysts in the same view as your session timing. Filter by impact and currency so you only focus on what matters for your pairs and instruments." },
+      { "title": "Custom events + reminders", "description": "Add your own checkpoints: prep windows, no-trade zones, funding rule reminders, session opens, and personal routines. Use reminders/notifications where available." },
+      { "title": "Settings that stick", "description": "Sign in to sync preferences across devices, or stay in guest mode with local persistence. Either way, your workflow stays consistent day after day." }
+    ],
+    "faq": {
+      "heading": "FAQs",
+      "entries": [
+        { "question": "What is Time 2 Trade?", "answer": "Time 2 Trade is a Session Clock + Economic Calendar (NY Time) for intraday futures and forex traders. It combines session timing, countdowns, and Forex Factory-powered economic events in one fast workspace." },
+        { "question": "Is the economic calendar powered by Forex Factory?", "answer": "Yes. Time 2 Trade uses a Forex Factory-powered events feed and presents it with modern filtering and session context so you can spot high-impact releases without tab-hopping." },
+        { "question": "Can I create custom events and reminders?", "answer": "Yes. You can add custom events (prep checkpoints, no-trade windows, session reminders) and use reminders/notifications where available to stay aligned with your routine." },
+        { "question": "Does it adapt to my timezone automatically?", "answer": "The app detects your local timezone on first load and lets you switch at any time. All session windows, countdowns, and event timestamps update instantly." },
+        { "question": "Are my settings saved?", "answer": "Yes. When signed in, preferences can sync to the cloud; guests fall back to local storage so your layout, sessions, and filters persist between visits." }
+      ]
+    },
+    "navigation": { "openClock": "Open clock", "calendar": "Calendar", "about": "About", "faq": "FAQ" }
+  },
+  "about": {
+    "title": "About Time 2 Trade",
+    "subtitle": "Intraday timing workspace for futures and forex day traders",
+    "description": "Time 2 Trade is a clean intraday timing workspace that shows where you are in the trading day with clear countdowns, paired with a Forex Factory-powered economic calendar."
+  },
+  "contact": {
+    "title": "Get in Touch",
+    "description": "Send a message for support, feedback, or questions"
+  }
+}

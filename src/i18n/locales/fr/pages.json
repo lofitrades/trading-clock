@@ -1,0 +1,49 @@
+{
+  "landing": {
+    "badge": "Horloge de Session • Calendrier Économique • Heure de New York",
+    "hero": {
+      "heading": "Horloge de Session + Calendrier Économique (Heure de New York)",
+      "subheading": "Un espace de travail rapide pour les traders forex et contrats à terme intrajournaliers. Suivez la chronologie et les comptes à rebours des sessions, consultez les événements économiques alimentés par Forex Factory, et ajoutez vos propres événements personnalisés et rappels - afin de ne jamais trader sans connaître une publication.",
+      "cta1": "Ouvrir l'horloge",
+      "cta2": "Ouvrir le calendrier",
+      "cta3": "En savoir plus",
+      "chips": ["Flux de travail prioritaire à l'heure de New York", "Événements alimentés par Forex Factory", "Événements personnalisés + rappels"]
+    },
+    "highlights": {
+      "product": { "label": "Orientation du produit", "value": "Heure de New York", "hint": "Flux de travail de l'horloge de session" },
+      "events": { "label": "Événements économiques", "value": "Forex Factory", "hint": "Flux de calendrier alimenté" },
+      "custom": { "label": "Événements personnalisés", "value": "Oui", "hint": "Vos rappels et points de contrôle" },
+      "form": { "label": "Facteur de forme", "value": "Mobile → Bureau", "hint": "Rapide et réactif" }
+    },
+    "benefits": {
+      "heading": "Construit pour les routines forex et contrats à terme basées sur les sessions",
+      "subheading": "Restez aligné avec le calendrier des sessions, évitez les surprises d'événements et maintenez un processus cohérent, que vous tradiiez à partir de l'heure de New York ou de votre fuseau horaire local."
+    },
+    "features": [
+      { "title": "Horloge de Session (Priorité à l'heure de New York)", "description": "Voir la chronologie de la session d'aujourd'hui d'un coup d'œil avec des comptes à rebours en temps réel vers les transitions clés. L'heure de New York est le flux de travail par défaut, avec changement de fuseau horaire disponible à tout moment." },
+      { "title": "Événements économiques alimentés par Forex Factory", "description": "Gardez les catalyseurs dans la même vue que votre calendrier de session. Filtrez par impact et devise afin de vous concentrer uniquement sur ce qui compte pour vos paires et instruments." },
+      { "title": "Événements personnalisés + rappels", "description": "Ajoutez vos propres points de contrôle : fenêtres de préparation, zones d'interdiction, rappels de règles de financement, ouvertures de session et routines personnelles. Utilisez les rappels/notifications où disponibles." },
+      { "title": "Paramètres qui persistent", "description": "Connectez-vous pour synchroniser les préférences sur les appareils, ou restez en mode invité avec persistance locale. De toute façon, votre flux de travail reste cohérent jour après jour." }
+    ],
+    "faq": {
+      "heading": "FAQ",
+      "entries": [
+        { "question": "Qu'est-ce que Time 2 Trade ?", "answer": "Time 2 Trade est une Horloge de Session + Calendrier Économique (Heure de New York) pour les traders forex et contrats à terme intrajournaliers. Il combine la chronologie des sessions, les comptes à rebours et les événements économiques alimentés par Forex Factory dans un espace de travail rapide." },
+        { "question": "Le calendrier économique est-il alimenté par Forex Factory ?", "answer": "Oui. Time 2 Trade utilise un flux d'événements alimenté par Forex Factory et le présente avec un filtrage moderne et un contexte de session afin que vous puissiez détecter les publications à fort impact sans changer d'onglet." },
+        { "question": "Puis-je créer des événements personnalisés et des rappels ?", "answer": "Oui. Vous pouvez ajouter des événements personnalisés (points de contrôle de préparation, zones d'interdiction, rappels de session) et utiliser des rappels/notifications où disponibles pour rester aligné avec votre routine." },
+        { "question": "S'adapte-t-il automatiquement à mon fuseau horaire ?", "answer": "L'application détecte votre fuseau horaire local au premier chargement et vous permet de changer à tout moment. Toutes les fenêtres de session, les comptes à rebours et les horodatages des événements se mettent à jour instantanément." },
+        { "question": "Mes paramètres sont-ils enregistrés ?", "answer": "Oui. Lorsque vous êtes connecté, les préférences peuvent être synchronisées avec le cloud ; les invités reviennent au stockage local afin que votre mise en page, vos sessions et vos filtres persistent entre les visites." }
+      ]
+    },
+    "navigation": { "openClock": "Ouvrir l'horloge", "calendar": "Calendrier", "about": "À propos", "faq": "FAQ" }
+  },
+  "about": {
+    "title": "À propos de Time 2 Trade",
+    "subtitle": "Espace de travail de synchronisation intrajournalière pour les traders de futures et forex",
+    "description": "Time 2 Trade est un espace de travail de synchronisation intrajournalière épuré qui montre où vous êtes dans la journée de trading avec des comptes à rebours clairs, associé à un calendrier économique alimenté par Forex Factory."
+  },
+  "contact": {
+    "title": "Nous Contacter",
+    "description": "Envoyez un message pour obtenir du support, des commentaires ou des questions"
+  }
+}

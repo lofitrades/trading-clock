@@ -1,43 +1,48 @@
 /**
  * pages/index.page.jsx
- * 
+ *
  * Purpose: SEO-first landing page for Time 2 Trade. Delivers fully
  * prerendered HTML with semantic copy, FAQ schema, and clear CTAs for
  * launching the trading clock or learning more.
- * 
+ *
  * Changelog:
+ * v2.0.0 - 2026-01-24 - Migrated to i18n: Replaced 100+ hardcoded strings with t() calls from pages namespace.
+ *                       Supports EN/ES/FR languages with full translations for hero, features, benefits, FAQ, and navigation.
+ * v1.2.0 - 2026-01-22 - BEP copy + schema refresh: align hero with "Session Clock + Economic Calendar (NY Time)",
+ *                       prioritize Forex Factory-powered events, custom events, and reminders/notifications.
+ *                       Removed overlaps/PWA/export from "main feature" positioning (kept secondary where helpful).
  * v1.1.0 - 2026-01-16 - Updated /clock CTAs and refreshed home meta/title lengths.
  * v1.0.0 - 2025-12-18 - Initial SSR landing page implementation.
  */
 
-const siteUrl = 'https://time2.trade';
+import { useTranslation } from 'react-i18next';
 const ogImage = `${siteUrl}/Time2Trade_SEO_Meta_5.PNG`;
 
 const faqEntries = [
     {
-        question: 'How does Time 2 Trade handle overlapping sessions and midnight crossovers?',
+        question: 'What is Time 2 Trade?',
         answer:
-            'Sessions are plotted on a dual-circle 24h clock with strict timezone math, so overlapping ranges and midnight crossovers stay accurate whether you trade NY, London, or Asia rotations.',
+            'Time 2 Trade is a Session Clock + Economic Calendar (NY Time) for intraday futures and forex traders. It combines session timing, countdowns, and Forex Factory-powered economic events in one fast workspace.',
     },
     {
-        question: 'Can I overlay high-impact economic events on the clock?',
+        question: 'Is the economic calendar powered by Forex Factory?',
         answer:
-            'Yes. The app pulls the latest economic calendar events and can pin them as markers on the analog clock and timeline, so you see session context and catalysts together.',
+            'Yes. Time 2 Trade uses a Forex Factory-powered events feed and presents it with modern filtering and session context so you can spot high-impact releases without tab-hopping.',
+    },
+    {
+        question: 'Can I create custom events and reminders?',
+        answer:
+            'Yes. You can add custom events (prep checkpoints, no-trade windows, session reminders) and use reminders/notifications where available to stay aligned with your routine.',
     },
     {
         question: 'Does it adapt to my timezone automatically?',
         answer:
-            'The app detects your local timezone on first load and lets you override it at any time. All session arcs, countdowns, and event timestamps adjust instantly.',
+            'The app detects your local timezone on first load and lets you switch at any time. All session windows, countdowns, and event timestamps update instantly.',
     },
     {
-        question: 'Is this mobile-friendly for deskless trading?',
+        question: 'Are my settings saved?',
         answer:
-            'The UI scales from phones to ultrawide monitors with viewport-aware sizing, safe-area spacing, and responsive controls for quick session checks on the go.',
-    },
-    {
-        question: 'Are my settings saved to the cloud?',
-        answer:
-            'Yes. When signed in, preferences sync to Firestore; guests fall back to local storage so your layout, sessions, and filters persist between visits.',
+            'Yes. When signed in, preferences can sync to the cloud; guests fall back to local storage so your layout, sessions, and filters persist between visits.',
     },
 ];
 
@@ -62,15 +67,16 @@ const softwareSchema = {
     operatingSystem: 'Web Browser',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     description:
-        'Visual trading intelligence for futures and forex day traders: dual-circle session clock, economic events overlay, timezone-aware countdowns, and synced settings.',
+        'Session Clock + Economic Calendar (NY Time) for futures and forex day traders: session timing and countdowns, Forex Factory-powered events, custom events, reminders, timezone switching, and synced settings.',
     url: `${siteUrl}/clock`,
     creator: { '@type': 'Organization', name: 'Lofi Trades', url: siteUrl },
     featureList: [
-        'Dual-circle session visualization',
-        'Live economic events overlay',
-        'Timezone-aware countdowns',
-        'Cloud-synced preferences',
-        'Guest mode with local persistence',
+        'Session Clock (NY Time-first) with real-time countdowns',
+        'Forex Factory-powered economic calendar with impact and currency filtering',
+        'Custom events (prep checkpoints, reminders, no-trade windows)',
+        'Reminders/notifications where available',
+        'Timezone auto-detect and instant switching',
+        'Saved preferences (cloud sync for accounts, local persistence for guests)',
         'Responsive UI for mobile and desktop',
     ],
     image: ogImage,
@@ -91,11 +97,11 @@ const webSiteSchema = {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const documentProps = {
-    title: 'Time 2 Trade | Futures & Forex Session Clock',
+    title: 'Time 2 Trade | Session Clock + Economic Calendar (NY Time)',
     description:
-        'Visual session clock and economic calendar for futures and forex day traders. Track overlaps, countdowns, and today’s events with impact and currency filters.',
+        'Session Clock + Economic Calendar (NY Time) for futures and forex day traders. Track session timing and countdowns, Forex Factory-powered events, custom events, and reminders in one fast workspace.',
     canonical: `${siteUrl}/`,
-    robots: 'index,follow',
+    robots: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1',
     ogImage,
     ogType: 'website',
     structuredData: [webSiteSchema, softwareSchema, faqSchema],
@@ -103,31 +109,42 @@ export const documentProps = {
 
 const features = [
     {
-        title: 'Sessions that stay honest',
-        body: 'Dual-circle AM/PM clock with midnight-safe logic keeps London, New York, and Asia windows accurate in every timezone.',
+        title: 'Session Clock (NY Time-first)',
+        body: 'See today’s session timing at a glance with real-time countdowns to key transitions. New York time is the default workflow, with timezone switching available anytime.',
     },
     {
-        title: 'Events in context',
-        body: 'Overlay economic releases directly on the clock and timeline so you can see catalysts without leaving your layout.',
+        title: 'Forex Factory-powered economic events',
+        body: 'Keep catalysts in the same view as your session timing. Filter by impact and currency so you only focus on what matters for your pairs and instruments.',
     },
     {
-        title: 'Timezones without friction',
-        body: 'Auto-detect your location, switch instantly, and keep countdowns aligned when you travel or shift schedules.',
+        title: 'Custom events + reminders',
+        body: 'Add your own checkpoints: prep windows, no-trade zones, funding rule reminders, session opens, and personal routines. Use reminders/notifications where available.',
     },
     {
-        title: 'Your layout, saved',
-        body: 'Cloud sync for signed-in users, local persistence for guests, so session presets and filters stick every session.',
+        title: 'Settings that stick',
+        body: 'Sign in to sync preferences across devices, or stay in guest mode with local persistence. Either way, your workflow stays consistent day after day.',
     },
 ];
 
 const highlights = [
-    { label: 'Session presets', value: '8 slots', hint: 'NY, London, Asia + customs' },
-    { label: 'Economic events', value: '12,966+', hint: 'JBlanked source with impacts' },
-    { label: 'Refresh cadence', value: '1s', hint: 'Clock ticks without jitter' },
-    { label: 'Form factor', value: 'Mobile → Desk', hint: 'Viewport-aware sizing' },
+    { label: 'Product focus', value: 'NY Time', hint: 'Session clock workflow' },
+    { label: 'Economic events', value: 'Forex Factory', hint: 'Powered calendar feed' },
+    { label: 'Custom events', value: 'Yes', hint: 'Your reminders & checkpoints' },
+    { label: 'Form factor', value: 'Mobile → Desk', hint: 'Responsive and fast' },
 ];
 
 export default function Page() {
+    const { t } = useTranslation('pages');
+    
+    const features = t('landing.features', { returnObjects: true });
+    const faqEntries = t('landing.faq.entries', { returnObjects: true });
+    const highlights = [
+        { ...t('landing.highlights.product', { returnObjects: true }) },
+        { ...t('landing.highlights.events', { returnObjects: true }) },
+        { ...t('landing.highlights.custom', { returnObjects: true }) },
+        { ...t('landing.highlights.form', { returnObjects: true }) }
+    ];
+
     return (
         <div className="page-shell__max">
             <header className="header" aria-label="Site navigation">
@@ -136,9 +153,10 @@ export default function Page() {
                     <span>Time 2 Trade</span>
                 </div>
                 <nav className="nav">
-                    <a href="/clock" aria-label="Open the trading clock">Open clock</a>
-                    <a href="/about" aria-label="Learn about Time 2 Trade">About</a>
-                    <a href="#faq" aria-label="Read frequently asked questions">FAQ</a>
+                    <a href="/clock" aria-label="Open the session clock">{t('landing.navigation.openClock')}</a>
+                    <a href="/calendar" aria-label="Open the economic calendar">{t('landing.navigation.calendar')}</a>
+                    <a href="/about" aria-label="Learn about Time 2 Trade">{t('landing.navigation.about')}</a>
+                    <a href="#faq" aria-label="Read frequently asked questions">{t('landing.navigation.faq')}</a>
                 </nav>
             </header>
 
@@ -148,26 +166,34 @@ export default function Page() {
                         <div>
                             <div className="badge" aria-label="Product focus">
                                 <span aria-hidden="true">●</span>
-                                Sessions • Events • Timezones
+                                {t('landing.badge')}
                             </div>
+
                             <h1 id="hero-heading" className="heading-xl">
-                                Visual trading clock for futures & forex sessions
+                                {t('landing.hero.heading')}
                             </h1>
+
                             <p className="text-lead">
-                                See market sessions, high-impact economic events, and timezone-aware countdowns in one view. Built for day traders who need a fast, honest read on what is active right now.
+                                {t('landing.hero.subheading')}
                             </p>
+
                             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                                 <a className="btn btn-primary" href="/clock" aria-label="Open the Time 2 Trade clock">
-                                    Open the clock
+                                    {t('landing.hero.cta1')}
+                                </a>
+                                <a className="btn btn-secondary" href="/calendar" aria-label="Open the economic calendar">
+                                    {t('landing.hero.cta2')}
                                 </a>
                                 <a className="btn btn-secondary" href="/about" aria-label="Learn more about Time 2 Trade">
-                                    Learn more
+                                    {t('landing.hero.cta3')}
                                 </a>
                             </div>
+
                             <div style={{ marginTop: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                                <span className="muted-chip">Dual-circle AM/PM clock</span>
-                                <span className="muted-chip">Economic events overlay</span>
-                                <span className="muted-chip">Timezone-smart timers</span>
+                                {Array.isArray(t('landing.hero.chips', { returnObjects: true })) && 
+                                    t('landing.hero.chips', { returnObjects: true }).map((chip, i) => (
+                                        <span key={i} className="muted-chip">{chip}</span>
+                                    ))}
                             </div>
                         </div>
 
@@ -186,16 +212,19 @@ export default function Page() {
                 </section>
 
                 <section className="section" aria-labelledby="benefits-heading">
-                    <h2 id="benefits-heading" className="heading-lg">Built for intraday futures and forex workflows</h2>
+                    <h2 id="benefits-heading" className="heading-lg">
+                        {t('landing.benefits.heading')}
+                    </h2>
                     <p className="text-lead">
-                        Track overlapping sessions, stay ahead of catalysts, and keep your timezone consistent whether you are trading from New York, London, or on the move.
+                        {t('landing.benefits.subheading')}
                     </p>
+
                     <div className="feature-grid">
-                        {features.map((feature) => (
+                        {features && Array.isArray(features) && features.map((feature) => (
                             <div className="card" key={feature.title} style={{ padding: '18px' }}>
                                 <h3 className="heading-md">{feature.title}</h3>
                                 <p className="text-lead" style={{ margin: 0, fontSize: '1rem' }}>
-                                    {feature.body}
+                                    {feature.description}
                                 </p>
                             </div>
                         ))}
@@ -203,8 +232,8 @@ export default function Page() {
                 </section>
 
                 <section className="section" aria-labelledby="faq-heading" id="faq">
-                    <h2 id="faq-heading" className="heading-lg">FAQs</h2>
-                    {faqEntries.map((faq) => (
+                    <h2 id="faq-heading" className="heading-lg">{t('landing.faq.heading')}</h2>
+                    {faqEntries && Array.isArray(faqEntries) && faqEntries.map((faq) => (
                         <article className="faq" key={faq.question}>
                             <h3 className="heading-md" style={{ marginBottom: 6 }}>{faq.question}</h3>
                             <p>{faq.answer}</p>
@@ -221,8 +250,9 @@ export default function Page() {
                             <span>Time 2 Trade</span>
                         </div>
                         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                            <a href="/clock" aria-label="Launch the clock from footer" className="btn btn-secondary">Open clock</a>
-                            <a href="/about" aria-label="Read about Time 2 Trade" className="btn btn-secondary">About</a>
+                            <a href="/clock" aria-label="Launch the clock from footer" className="btn btn-secondary">{t('landing.navigation.openClock')}</a>
+                            <a href="/calendar" aria-label="Open the calendar from footer" className="btn btn-secondary">{t('landing.navigation.calendar')}</a>
+                            <a href="/about" aria-label="Read about Time 2 Trade" className="btn btn-secondary">{t('landing.navigation.about')}</a>
                         </div>
                     </div>
                 </div>
