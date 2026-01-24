@@ -5,6 +5,7 @@
  * Renders the same content as the Settings Drawer About tab using shared content module.
  * Includes proper SEO metadata, structured data, and mobile-first responsive design.
  * 
+ * v1.3.0 - 2026-01-24 - BEP: Phase 2 i18n migration - Added useTranslation hook, converted all navigation and UI strings + aboutContent structure to i18n keys
  * Changelog:
  * v1.2.34 - 2026-01-22 - BEP: Allow non-auth users to open CustomEventDialog and fill values. Auth check on save - shows AuthModal2 when trying to save without auth.
  * v1.2.33 - 2026-01-22 - BEP REFACTOR: Mobile header now uses standalone MobileHeader component via PublicLayout. Consistent mobile UX across all pages. No changes needed in AboutPage - MobileHeader integrated transparently.
@@ -43,6 +44,7 @@
  */
 
 import { useEffect, useMemo, useState, Suspense, lazy } from 'react';
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import {
   Typography,
@@ -153,6 +155,7 @@ ContentBlock.propTypes = {
  * - Shared content source with Settings Drawer
  */
 export default function AboutPage() {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -190,38 +193,38 @@ export default function AboutPage() {
     () => [
       {
         id: 'calendar',
-        label: 'Calendar',
-        shortLabel: 'Calendar',
+        label: t('common:nav.calendar'),
+        shortLabel: t('common:nav.calendar'),
         to: '/calendar',
         icon: <CalendarMonthRoundedIcon fontSize="small" />,
-        ariaLabel: 'Economic calendar',
+        ariaLabel: t('about:nav.calendar.ariaLabel'),
       },
       {
         id: 'clock',
-        label: 'Trading Clock',
-        shortLabel: 'Clock',
+        label: t('common:nav.clock'),
+        shortLabel: t('common:nav.clock'),
         to: '/clock',
         icon: <AccessTimeRoundedIcon fontSize="small" />,
-        ariaLabel: 'Open the trading clock',
+        ariaLabel: t('about:nav.clock.ariaLabel'),
       },
       {
         id: 'about',
-        label: 'About',
-        shortLabel: 'About',
+        label: t('common:nav.about'),
+        shortLabel: t('common:nav.about'),
         to: '/about',
         icon: <InfoRoundedIcon fontSize="small" />,
-        ariaLabel: 'Learn about Time 2 Trade',
+        ariaLabel: t('about:nav.about.ariaLabel'),
       },
       {
         id: 'signin',
-        label: 'Sign in',
-        shortLabel: 'Sign in',
+        label: t('common:nav.signin'),
+        shortLabel: t('common:nav.signin'),
         icon: <LockOpenRoundedIcon fontSize="small" />,
         primary: true,
-        ariaLabel: 'Sign in or create an account',
+        ariaLabel: t('common:nav.signin.ariaLabel'),
       },
     ],
-    [],
+    [t],
   );
 
   // Scroll to top on mount
@@ -336,7 +339,7 @@ export default function AboutPage() {
             mb: 4,
           }}
         >
-          Have questions?{' '}
+          {t('about:footer.questions')}{' '}
           <Box
             component="button"
             onClick={() => setContactModalOpen(true)}
@@ -357,7 +360,7 @@ export default function AboutPage() {
               }
             }}
           >
-            Contact us
+            {t('about:footer.contactUs')}
           </Box>
         </Typography>
       </Paper>
