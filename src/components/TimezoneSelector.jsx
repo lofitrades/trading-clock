@@ -38,7 +38,7 @@ import AuthModal2 from './AuthModal2';
 
 // Popper with embedded search field; forwards ref so parent can inspect clicks to keep open
 const SearchablePopper = React.forwardRef(
-  ({ searchQuery, onSearchChange, searchInputRef, mainInputRef, children, placement = 'bottom-start', ...props }, ref) => (
+  ({ searchQuery, onSearchChange, searchInputRef, mainInputRef, children, placement = 'bottom-start', searchPlaceholder = 'Search...', searchAriaLabel = 'Search timezone', ...props }, ref) => (
     <Popper
       {...props}
       ref={ref}
@@ -84,10 +84,10 @@ const SearchablePopper = React.forwardRef(
             }}
             size="small"
             fullWidth
-            placeholder={t('timezone:search.placeholder')}
+            placeholder={searchPlaceholder}
             autoFocus
             inputRef={searchInputRef}
-            inputProps={{ 'aria-label': t('timezone:search.ariaLabel') }}
+            inputProps={{ 'aria-label': searchAriaLabel }}
           />
         </Box>
         {children}
@@ -102,6 +102,8 @@ SearchablePopper.propTypes = {
   onSearchChange: PropTypes.func.isRequired,
   searchInputRef: PropTypes.shape({ current: PropTypes.any }),
   mainInputRef: PropTypes.shape({ current: PropTypes.any }),
+  searchPlaceholder: PropTypes.string,
+  searchAriaLabel: PropTypes.string,
   children: PropTypes.node,
   placement: PropTypes.string,
   props: PropTypes.object,
@@ -309,6 +311,8 @@ export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChan
                 onSearchChange: setSearchQuery,
                 searchInputRef,
                 mainInputRef,
+                searchPlaceholder: t('timezone:search.placeholder'),
+                searchAriaLabel: t('timezone:search.ariaLabel'),
                 ref: popperRef,
                 placement: 'bottom-start',
                 sx: { zIndex: 12100 },
