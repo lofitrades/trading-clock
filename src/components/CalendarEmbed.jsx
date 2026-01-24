@@ -5,6 +5,7 @@
  * and stays embeddable for other pages while keeping Time 2 Trade branding and SEO-friendly copy.
  * 
  * Changelog:
+ * v1.5.73 - 2026-01-24 - BEP i18n migration: Added useTranslation hook, converted 45+ hardcoded strings to t() calls for calendar namespace
  * v1.5.72 - 2026-01-23 - BEP FIX: Favorites toggle not firing. Added e.preventDefault() to click handlers, onTouchEnd handlers for mobile support, span click delegation, inline-flex span styling, and ungated diagnostic console.logs to trace click flow. Addresses issue where favorites heart click did nothing on calendar rows.
  * v1.5.71 - 2026-01-23 - BEP: Add gated favorites click diagnostics.
  * v1.5.70 - 2026-01-22 - BEP: Ensure recurring custom event edits/deletes target the series id.
@@ -264,6 +265,7 @@
  * v1.0.0 - 2026-01-06 - Initial implementation with This Week default preset, day grouping (including empty days), and embed-ready layout.
  */
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import {
     Alert,
@@ -676,14 +678,14 @@ ImpactBadge.propTypes = {
 };
 
 const TABLE_COLUMNS = [
-    { id: 'action', label: '', align: 'center', width: { xs: 36, sm: 40 } },
-    { id: 'time', label: 'Time', align: 'center', width: { xs: 52, sm: 68 } },
-    { id: 'currency', label: 'Cur', align: 'center', width: { xs: 52, sm: 68 } },
-    { id: 'impact', label: 'Imp', align: 'center', width: { xs: 52, sm: 68 } },
-    { id: 'name', label: 'Event', align: 'left' },
-    { id: 'actual', label: 'A', align: 'center', width: 64, hideBelow: 'lg' },
-    { id: 'forecast', label: 'F', align: 'center', width: 64, hideBelow: 'lg' },
-    { id: 'previous', label: 'P', align: 'center', width: 64, hideBelow: 'lg' },
+    { id: 'action', labelKey: '', align: 'center', width: { xs: 36, sm: 40 } },
+    { id: 'time', labelKey: 'calendar:table.headers.time', align: 'center', width: { xs: 52, sm: 68 } },
+    { id: 'currency', labelKey: 'calendar:table.headers.currency', align: 'center', width: { xs: 52, sm: 68 } },
+    { id: 'impact', labelKey: 'calendar:table.headers.impact', align: 'center', width: { xs: 52, sm: 68 } },
+    { id: 'name', labelKey: 'calendar:table.headers.event', align: 'left' },
+    { id: 'actual', labelKey: 'calendar:table.headers.actual', align: 'center', width: 64, hideBelow: 'lg' },
+    { id: 'forecast', labelKey: 'calendar:table.headers.forecast', align: 'center', width: 64, hideBelow: 'lg' },
+    { id: 'previous', labelKey: 'calendar:table.headers.previous', align: 'center', width: 64, hideBelow: 'lg' },
 ];
 
 const metricCellDisplay = { xs: 'none', lg: 'table-cell' };
@@ -1023,6 +1025,7 @@ const DaySection = memo(({
     stickyHeaderZIndex = 999,
     stickyHeaderTop = 0,
 }) => {
+    const { t } = useTranslation(['calendar', 'common']);
     const DAY_HEADER_HEIGHT_PX = 36;
     const DAY_HEADER_GAP_PX = 8;
     const displayDate = useMemo(() => {
@@ -1038,7 +1041,7 @@ const DaySection = memo(({
         return displayDate;
     }, [displayDate, isLoading, isToday]);
 
-    const headerChipLabel = isLoading ? 'Loading…' : events.length ? `${events.length} event${events.length === 1 ? '' : 's'}` : 'No events';
+    const headerChipLabel = isLoading ? t('calendar:labels.loading') : events.length ? t('calendar:labels.events', { count: events.length }) : t('calendar:labels.noEvents');
     const showSkeletonRows = isLoading;
     const showEmptyState = !isLoading && events.length === 0;
 
@@ -1158,7 +1161,7 @@ const DaySection = memo(({
                                             px: { xs: 0, lg: 1 },
                                         }}
                                     >
-                                        {column.label}
+                                        {column.labelKey ? t(column.labelKey) : column.label}
                                     </TableCell>
                                 ))}
                             </TableRow>
@@ -1257,6 +1260,7 @@ export default function CalendarEmbed({
     showSeoCopy = true,
     appBar = null,
 }) {
+    const { t } = useTranslation(['calendar', 'common']);
     const theme = useTheme();
     const isTwoColumn = useMediaQuery(theme.breakpoints.up('md'));
     const isSmUp = useMediaQuery(theme.breakpoints.up('sm'));
@@ -2284,7 +2288,7 @@ export default function CalendarEmbed({
                                     {title}
                                 </Typography>
                                 <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.72), lineHeight: 1.4, display: 'flex', alignItems: 'center', gap: 0.3 }}>
-                                    Powered by
+                                    {t('calendar:headers.poweredBy')}
                                     <Link
                                         component="button"
                                         onClick={() => setForexFactoryModalOpen(true)}
@@ -2302,13 +2306,13 @@ export default function CalendarEmbed({
                                             },
                                         }}
                                     >
-                                        Forex Factory
+                                        {t('calendar:headers.forexFactory')}
                                     </Link>
                                 </Typography>
                             </Stack>
                             {/* Right side: Add custom event button on xs/sm/md (lg+ shows in EventsFilters3) */}
                             <Box sx={{ display: { xs: 'flex', sm: 'flex', md: 'flex', lg: 'none' }, position: 'absolute', top: 0, right: 0 }}>
-                                <Tooltip title="Add custom event">
+                                <Tooltip title={t('calendar:actions.addCustomEvent')}>
                                     <Button
                                         onClick={() => handleOpenCustomDialog()}
                                         variant="outlined"
@@ -2333,10 +2337,10 @@ export default function CalendarEmbed({
                                         }}
                                     >
                                         <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
-                                            Add event
+                                            {t('calendar:actions.addEventShort')}
                                         </Box>
                                         <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                                            Add custom event
+                                            {t('calendar:actions.addCustomEvent')}
                                         </Box>
                                     </Button>
                                 </Tooltip>
@@ -2351,7 +2355,7 @@ export default function CalendarEmbed({
                             sx={{ width: '100%', display: 'flex' }}
                         >
                             <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.8125rem', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
-                                {visibleCount.toLocaleString()} events
+                                {t('calendar:stats.eventsCount', { count: visibleCount.toLocaleString() })}
                             </Typography>
                             <Stack
                                 direction="row"
@@ -2377,7 +2381,7 @@ export default function CalendarEmbed({
                                     >
                                         <AccessTimeIcon sx={{ fontSize: 14, color: 'success.main' }} />
                                         <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.main', fontSize: '0.8125rem' }}>
-                                            Next in {nextCountdownLabel}
+                                            {t('calendar:stats.nextIn', { time: nextCountdownLabel })}
                                         </Typography>
                                     </Stack>
                                 ) : nowEventIds.size ? (
@@ -2397,7 +2401,7 @@ export default function CalendarEmbed({
                                     >
                                         <AccessTimeIcon sx={{ fontSize: 14, color: 'info.main' }} />
                                         <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main', fontSize: '0.8125rem' }}>
-                                            Events in progress
+                                            {t('calendar:stats.eventsInProgress')}
                                         </Typography>
                                     </Stack>
                                 ) : null}
@@ -2468,7 +2472,7 @@ export default function CalendarEmbed({
                             fontSize: '0.75rem',
                         }}
                     >
-                        © {new Date().getFullYear()} Time 2 Trade. All rights reserved.
+                        © {new Date().getFullYear()} {t('common:copyright')}
                     </Typography>
                     <Typography
                         variant="caption"
