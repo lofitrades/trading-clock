@@ -1,0 +1,16 @@
+{
+  "noData": "Aucune donnée disponible",
+  "noEvents": "Aucun événement",
+  "noResults": "Aucun résultat trouvé",
+  "empty": "Vide",
+  "loading": "Chargement en cours...",
+  "pleaseWait": "Veuillez patienter",
+  "syncing": "Synchronisation...",
+  "saving": "Enregistrement...",
+  "nothingToDisplay": "Rien à afficher",
+  "checkBackSoon": "Revenez bientôt",
+  "workingOnUpdates": "Travail sur des mises à jour...",
+  "comingSoon": "À bientôt",
+  "loadMore": "Charger plus",
+  "showMore": "Afficher plus"
+}
