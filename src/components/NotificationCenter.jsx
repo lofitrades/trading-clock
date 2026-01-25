@@ -6,6 +6,7 @@
  * and provide quick actions to mark as read or clear.
  * 
  * Changelog:
+ * v1.0.20 - 2026-01-24 - Phase 2 i18n migration: Add notification namespace (7 strings EN/ES/FR). Replaced hardcoded "Notifications", "No reminders yet", "Clear all" with t() calls.
  * v1.0.19 - 2026-01-22 - BEP UI CONSISTENCY: Increase bell icon glyph size on xs/sm to visually match add icon and avatar sizing across all pages, including /clock.
  * v1.0.18 - 2026-01-22 - BEP UI CONSISTENCY: Increase bell icon glyph size on xs/sm so it visually matches add icon and avatar sizing in MobileHeader.
  * v1.0.17 - 2026-01-22 - BEP UI CONSISTENCY: Change bell icon background from transparent to white (#fff) to match add icon appearance on /clock page. Both icons now have identical white backgrounds with divider border for consistent mobile header UI.
@@ -30,6 +31,7 @@
 
 import PropTypes from 'prop-types';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Box,
     Button,
@@ -61,6 +63,7 @@ export default function NotificationCenter({
     closeSignal,
 }) {
     const { user, isAuthenticated } = useAuth();
+    const { t } = useTranslation('notification');
     const theme = useTheme();
     const anchorRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -132,7 +135,7 @@ export default function NotificationCenter({
         <Box sx={{ width: { xs: 32, sm: 32, md: 36 }, height: { xs: 32, sm: 32, md: 36 }, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', width: { xs: 32, sm: 32, md: 36 }, height: { xs: 32, sm: 32, md: 36 } }}>
                 <IconButton
-                    aria-label="Notifications"
+                    aria-label={t('ariaLabel')}
                     onClick={handleOpen}
                     size="small"
                     ref={anchorRef}
@@ -217,11 +220,11 @@ export default function NotificationCenter({
                     <Box sx={{ py: 1, display: 'flex', flexDirection: 'column' }}>
                         <Stack spacing={1} sx={{ px: 1, pb: 0.5 }}>
                             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                                Notifications
+                                {t('title')}
                             </Typography>
                             {visibleNotifications.length === 0 ? (
                                 <Typography variant="body2" color="text.secondary">
-                                    No reminders yet.
+                                    {t('empty')}
                                 </Typography>
                             ) : null}
                         </Stack>
@@ -273,7 +276,7 @@ export default function NotificationCenter({
                                             )}
                                             {item.minutesBefore && (
                                                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
-                                                    • in {item.minutesBefore} min
+                                                    {t('bullet')} {t('in')} {item.minutesBefore} {t('min')}
                                                 </Typography>
                                             )}
                                         </Stack>
@@ -285,7 +288,7 @@ export default function NotificationCenter({
                         {visibleNotifications.length > 0 ? (
                             <Box sx={{ px: 1, pt: 1, pb: 0.5, display: 'flex', justifyContent: 'flex-end' }}>
                                 <Button size="small" color="error" onClick={onClearAll}>
-                                    Clear all
+                                    {t('clearAll')}
                                 </Button>
                             </Box>
                         ) : null}

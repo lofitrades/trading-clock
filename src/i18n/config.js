@@ -25,6 +25,7 @@ import enTimezone from './locales/en/timezone.json';
 import enWelcome from './locales/en/welcome.json';
 import enMessages from './locales/en/messages.json';
 import enIcons from './locales/en/icons.json';
+import enNotification from './locales/en/notification.json';
 
 import esCommon from './locales/es/common.json';
 import esAuth from './locales/es/auth.json';
@@ -38,6 +39,7 @@ import esTimezone from './locales/es/timezone.json';
 import esWelcome from './locales/es/welcome.json';
 import esMessages from './locales/es/messages.json';
 import esIcons from './locales/es/icons.json';
+import esNotification from './locales/es/notification.json';
 
 import frCommon from './locales/fr/common.json';
 import frAuth from './locales/fr/auth.json';
@@ -51,6 +53,7 @@ import frTimezone from './locales/fr/timezone.json';
 import frWelcome from './locales/fr/welcome.json';
 import frMessages from './locales/fr/messages.json';
 import frIcons from './locales/fr/icons.json';
+import frNotification from './locales/fr/notification.json';
 
 /**
  * Translation resources organized by language and namespace
@@ -70,6 +73,7 @@ const resources = {
     welcome: enWelcome,
     messages: enMessages,
     icons: enIcons,
+    notification: enNotification,
   },
   es: {
     common: esCommon,
@@ -84,6 +88,7 @@ const resources = {
     welcome: esWelcome,
     messages: esMessages,
     icons: esIcons,
+    notification: esNotification,
   },
   fr: {
     common: frCommon,
@@ -98,6 +103,7 @@ const resources = {
     welcome: frWelcome,
     messages: frMessages,
     icons: frIcons,
+    notification: frNotification,
   },
 };
 
