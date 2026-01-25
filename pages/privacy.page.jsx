@@ -4,8 +4,10 @@
  * Purpose: Enterprise-grade Privacy Policy for Time 2 Trade with comprehensive
  * data collection disclosure, legal basis, third-party sharing, user rights,
  * and GDPR/CCPA-style transparency following Google-level best practices.
+ * Phase 2 i18n migration: all strings now sourced from i18n pages.legal.privacy.*
  *
  * Changelog:
+ * v2.2.0 - 2026-01-24 - Phase 2 i18n migration: all 280+ strings moved to pages.legal.privacy namespace (EN/ES/FR)
  * v2.1.0 - 2026-01-22 - BEP compliance refresh:
  *   - Align product language with "Session Clock + Economic Calendar (NY Time)"
  *   - Clarify Forex Factory-powered events feed (no personal data shared)
@@ -18,424 +20,409 @@
  * v1.0.0 - 2026-01-07 - Added privacy policy with AdSense disclosure and cookie details.
  */
 
+import { useTranslation } from 'react-i18next';
+import {
+  Box,
+  Container,
+  Typography,
+  Paper,
+  Stack,
+  Link,
+  Card,
+  CardContent,
+  Divider,
+} from '@mui/material';
+
 const siteUrl = 'https://time2.trade';
 const ogImage = `${siteUrl}/Time2Trade_SEO_Meta_5.PNG`;
-const lastUpdated = 'January 22, 2026';
 
-const privacySchema = {
+const PrivacyPage = () => {
+  const { t } = useTranslation('pages');
+
+  const privacySchema = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: 'Privacy Policy | Time 2 Trade',
     url: `${siteUrl}/privacy`,
-    description:
-        'Privacy policy for Time 2 Trade: what data we collect, why we process it, how we share it, retention, security, and your rights and choices.',
-};
+    description: t('legal.privacy.introduction'),
+  };
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const documentProps = {
-    title: 'Privacy Policy | Time 2 Trade',
-    description:
-        'How Time 2 Trade collects, uses, and protects your data. Learn about your rights, legal bases for processing, retention timelines, and controls for consent, deletion, and ad personalization.',
-    canonical: `${siteUrl}/privacy`,
-    robots: 'index,follow',
-    ogImage,
-    structuredData: [privacySchema],
-};
+  return (
+    <Box sx={{ py: 6, backgroundColor: '#f9f9f9' }}>
+      <Container maxWidth="md">
+        {/* Header */}
+        <Box sx={{ mb: 6 }}>
+          <Typography
+            variant="h1"
+            sx={{
+              fontSize: { xs: '2rem', md: '2.5rem' },
+              fontWeight: 700,
+              mb: 2,
+            }}
+          >
+            {t('legal.privacy.heading')}
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            {t('legal.privacy.lastUpdated')}
+          </Typography>
+          <Typography variant="body1" sx={{ mt: 3, lineHeight: 1.8 }}>
+            {t('legal.privacy.introduction')}
+          </Typography>
+        </Box>
 
-const sections = [
-    {
-        id: 'collection',
-        heading: 'Information we collect',
-        subsections: [
-            {
-                title: 'Information you provide',
-                items: [
-                    'Email address (for authentication and account recovery)',
-                    'Display name and profile photo (optional)',
-                    'Trading session preferences and clock settings',
-                    'Economic calendar favorites and personal notes',
-                    'Custom events you create (titles, times, tags/notes you add)',
-                    'Reminder preferences (e.g., notification toggles, lead time), when supported',
-                    'Timezone selection and display preferences',
-                ],
-            },
-            {
-                title: 'Information we collect automatically',
-                items: [
-                    'IP address and general location (country/region) derived for security and fraud prevention',
-                    'Device type, browser type, and operating system',
-                    'Session data and authentication tokens',
-                    'Usage statistics (pages viewed, features used, session duration)',
-                    'Error logs and diagnostic information',
-                ],
-            },
-            {
-                title: 'Information from third parties',
-                items: [
-                    'OAuth profile data (name, email, profile photo) when you sign in with Google or Twitter',
-                    'Economic calendar event data from a Forex Factory-powered feed (market events only; no personal data shared)',
-                ],
-            },
-        ],
-    },
-    {
-        id: 'usage',
-        heading: 'How we use information',
-        subsections: [
-            {
-                title: 'Provide and maintain services',
-                legalBasis: 'Contractual necessity',
-                items: [
-                    'Authenticate your account and maintain secure sessions',
-                    'Sync your preferences and settings across devices',
-                    'Display economic calendar events in your selected timezone',
-                    'Store your favorites, notes, and custom events',
-                    'Trigger reminders and notifications (where supported) based on your settings',
-                ],
-            },
-            {
-                title: 'Improve and develop features',
-                legalBasis: 'Legitimate interest',
-                items: [
-                    'Analyze usage patterns to optimize performance',
-                    'Identify and fix bugs and technical issues',
-                    'Develop new features based on aggregated usage signals',
-                    'Ensure service reliability and uptime',
-                ],
-            },
-            {
-                title: 'Advertising',
-                legalBasis: 'Consent (for personalized ads)',
-                items: [
-                    'Display Google AdSense advertisements (where shown)',
-                    'Measure ad performance and effectiveness',
-                    'Deliver personalized ads when you allow them via cookie consent',
-                    'Show non-personalized ads when you select essential-only cookies',
-                ],
-            },
-            {
-                title: 'Security and fraud prevention',
-                legalBasis: 'Legitimate interest',
-                items: [
-                    'Detect abuse, spam, and fraudulent access attempts',
-                    'Protect accounts and enforce rate limits',
-                    'Monitor service health and suspicious activity',
-                ],
-            },
-        ],
-    },
-    {
-        id: 'sharing',
-        heading: 'Information we share',
-        subsections: [
-            {
-                title: 'Service providers',
-                items: [
-                    'Firebase Authentication (Google Cloud) - for account management',
-                    'Cloud Firestore (Google Cloud) - for user settings, notes, favorites, and custom events (region configured in our Firebase project)',
-                    'Firebase Hosting (Google Cloud) - for application delivery via global CDN',
-                    'Firebase Cloud Functions (Google Cloud) - for backend processing (e.g., scheduled syncs and reminders when supported)',
-                    'Forex Factory-powered events feed provider - for retrieving public economic calendar events (no personal data shared)',
-                ],
-            },
-            {
-                title: 'Advertising partners',
-                items: [
-                    'Google AdSense - may collect and use data for ad delivery when you allow personalized ads',
-                    'Manage ad preferences at <a href="https://adssettings.google.com" target="_blank" rel="noopener">Google Ad Settings</a>',
-                ],
-            },
-            {
-                title: 'Legal requirements',
-                items: [
-                    'We may disclose information to comply with legal obligations, court orders, or government requests',
-                    'We do not sell your personal data to third parties',
-                ],
-            },
-        ],
-    },
-    {
-        id: 'rights',
-        heading: 'Your privacy rights',
-        subsections: [
-            {
-                title: 'Access and update',
-                items: [
-                    'View and edit your profile information in account settings',
-                    'Update display name, photo, and preferences at any time',
-                    'Request a copy of your data by emailing compliance@time2.trade',
-                ],
-            },
-            {
-                title: 'Delete your data',
-                items: [
-                    'Delete your account in settings (removes personal data and preferences)',
-                    'Email compliance@time2.trade to request account deletion',
-                    'We process deletion requests within 30 days',
-                    'Some data may be retained in backup systems for up to 90 days',
-                ],
-            },
-            {
-                title: 'Cookie preferences',
-                items: [
-                    'Use the cookie banner to choose between personalized ads or essential-only mode',
-                    'Change consent at any time by using the consent controls (if provided) or by clearing browser site data to reset the banner',
-                    'Essential cookies/storage are used to maintain authentication and core app settings',
-                ],
-            },
-            {
-                title: 'Ad personalization',
-                items: [
-                    'Control Google ad personalization at <a href="https://adssettings.google.com" target="_blank" rel="noopener">Google Ad Settings</a>',
-                    'Choose essential-only cookies to receive non-personalized ads only',
-                    'Ad choices do not affect core Time 2 Trade functionality',
-                ],
-            },
-            {
-                title: 'Data portability',
-                items: [
-                    'Request export of your settings, favorites, notes, and custom events in a portable format',
-                    'Email compliance@time2.trade with your request',
-                    'We provide data exports within 30 days (subject to identity verification)',
-                ],
-            },
-        ],
-    },
-    {
-        id: 'retention',
-        heading: 'Data retention and deletion',
-        items: [
-            '<strong>Account data:</strong> Stored while your account is active, plus up to 30 days after a deletion request is initiated (to complete processing and prevent abuse).',
-            '<strong>Settings, favorites, notes, custom events:</strong> Deleted when your account is deleted, subject to backup retention.',
-            '<strong>Usage logs:</strong> Typically retained up to 90 days for debugging and security monitoring.',
-            '<strong>Error logs:</strong> Typically retained up to 180 days for stability analysis.',
-            '<strong>Backup systems:</strong> Copies may persist in backups for up to 90 days after deletion.',
-            '<strong>Legal holds:</strong> Data subject to legal preservation requirements may be retained longer.',
-        ],
-    },
-    {
-        id: 'security',
-        heading: 'Security measures',
-        items: [
-            '<strong>Encryption in transit:</strong> Data is transmitted using HTTPS/TLS.',
-            '<strong>Encryption at rest:</strong> Data stored on Google Cloud is encrypted at rest using Google-managed keys by default.',
-            '<strong>Access control:</strong> Role-based permissions and least-privilege service accounts.',
-            '<strong>Authentication:</strong> Secure session management with token-based authentication via Firebase Auth.',
-            '<strong>Monitoring:</strong> Operational monitoring and logging to detect outages and suspicious activity.',
-            '<strong>No client-side secrets:</strong> Backend credentials are stored in secure environment/config systems, not shipped to the client.',
-        ],
-    },
-    {
-        id: 'international',
-        heading: 'International data transfers',
-        items: [
-            'Time 2 Trade is operated from the United States.',
-            'We use Google Cloud / Firebase services which may process data in the United States and other countries depending on service configuration and delivery networks.',
-            'For users in the EEA/UK: transfers rely on appropriate safeguards (such as Standard Contractual Clauses) made available by our providers.',
-            'You have the rights outlined in the "Your privacy rights" section above.',
-        ],
-    },
-    {
-        id: 'children',
-        heading: "Children's privacy",
-        items: [
-            '<strong>United States:</strong> Time 2 Trade is not intended for children under 13 (COPPA).',
-            '<strong>European Union:</strong> Not intended for children under 16 without parental consent (GDPR Article 8).',
-            '<strong>Age verification:</strong> We do not knowingly collect data from children below applicable age limits.',
-            '<strong>Parental requests:</strong> If you believe a child has provided data, contact compliance@time2.trade for deletion.',
-        ],
-    },
-    {
-        id: 'cookies',
-        heading: 'Cookies and local storage',
-        subsections: [
-            {
-                title: 'Essential (always active)',
-                items: [
-                    'Authentication tokens to keep you signed in',
-                    'Session/local state to maintain app behavior',
-                    'Cookie consent preferences',
-                    'Timezone and display preferences',
-                ],
-            },
-            {
-                title: 'Advertising (optional, requires consent)',
-                items: [
-                    'Google AdSense cookies for ad delivery and measurement',
-                    'Ad personalization cookies (only when you allow personalized ads)',
-                    'These are not set when you choose essential-only mode',
-                ],
-            },
-        ],
-    },
-    {
-        id: 'changes',
-        heading: 'Changes to this policy',
-        items: [
-            'We may update this policy to reflect service changes or legal requirements.',
-            'Last updated date appears at the top of this page.',
-            'Material changes may be communicated via email to registered users or via an in-app notice.',
-            'Continued use after changes constitutes acceptance of the updated policy.',
-            'Previous versions are available upon request at compliance@time2.trade.',
-        ],
-    },
-    {
-        id: 'contact',
-        heading: 'Contact us',
-        items: [
-            '<strong>General inquiries:</strong> compliance@time2.trade',
-            '<strong>Data requests:</strong> Email compliance@time2.trade with "Data Request" in subject',
-            '<strong>Response time:</strong> We respond to requests within 30 days',
-            '<strong>Mailing address:</strong> Available upon request for formal legal correspondence',
-        ],
-    },
-];
-
-export default function Page() {
-    return (
-        <div className="page-shell__max" role="main">
-            <header className="header" aria-label="Privacy navigation">
-                <div className="logo" aria-label="Time 2 Trade">
-                    <span className="logo__dot" aria-hidden="true" />
-                    <span>Time 2 Trade</span>
-                </div>
-                <nav className="nav">
-                    <a href="/clock">Open clock</a>
-                    <a href="/">Home</a>
-                </nav>
-            </header>
-
-            <section className="section" aria-labelledby="privacy-heading">
-                <p className="badge" aria-hidden="true">Privacy Policy</p>
-                <h1 id="privacy-heading" className="heading-xl">Privacy Policy</h1>
-                <p className="text-lead" style={{ marginBottom: '8px' }}>
-                    Last updated: {lastUpdated}
-                </p>
-                <p className="text-lead">
-                    Time 2 Trade is committed to transparency about how we collect, use, and protect your data.
-                    This policy explains what information we gather, why we need it, how we use it, and the choices you have.
-                </p>
-            </section>
-
-            <section className="section" aria-labelledby="toc-heading">
-                <h2 id="toc-heading" className="heading-lg">Table of contents</h2>
-                <nav aria-label="Privacy policy sections">
-                    <ul className="list" style={{ columns: '2', columnGap: '24px' }}>
-                        {sections.map((section) => (
-                            <li key={section.id}>
-                                <a href={`#${section.id}`} style={{ textDecoration: 'underline' }}>
-                                    {section.heading}
-                                </a>
-                            </li>
-                        ))}
-                    </ul>
-                </nav>
-            </section>
-
-            {sections.map((section) => (
-                <section
-                    key={section.id}
-                    id={section.id}
-                    className="section"
-                    aria-labelledby={`${section.id}-heading`}
-                >
-                    <h2 id={`${section.id}-heading`} className="heading-lg">
-                        {section.heading}
-                    </h2>
-
-                    {section.subsections ? (
-                        section.subsections.map((sub, idx) => (
-                            <div key={idx} style={{ marginBottom: '24px' }}>
-                                <h3 className="heading-md" style={{ marginBottom: '8px' }}>
-                                    {sub.title}
-                                </h3>
-                                {sub.legalBasis && (
-                                    <p
-                                        style={{
-                                            fontSize: '0.9rem',
-                                            color: '#666',
-                                            marginBottom: '8px',
-                                            fontStyle: 'italic',
-                                        }}
-                                    >
-                                        Legal basis: {sub.legalBasis}
-                                    </p>
-                                )}
-                                <ul className="list">
-                                    {sub.items.map((item, i) => (
-                                        <li key={i} dangerouslySetInnerHTML={{ __html: item }} />
-                                    ))}
-                                </ul>
-                            </div>
-                        ))
-                    ) : (
-                        <ul className="list">
-                            {section.items.map((item, i) => (
-                                <li key={i} dangerouslySetInnerHTML={{ __html: item }} />
-                            ))}
-                        </ul>
-                    )}
-                </section>
+        {/* Table of Contents */}
+        <Paper sx={{ p: 3, mb: 4, backgroundColor: '#fff' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+            {t('legal.privacy.tableOfContents')}
+          </Typography>
+          <Stack component="ol" spacing={1} sx={{ pl: 2 }}>
+            {[
+              'collection',
+              'usage',
+              'sharing',
+              'rights',
+              'retention',
+              'security',
+              'international',
+              'children',
+              'cookies',
+              'changes',
+              'contact',
+            ].map((sectionId) => (
+              <Typography component="li" key={sectionId} variant="body2">
+                <Link href={`#${sectionId}`} sx={{ textDecoration: 'none', color: 'primary.main' }}>
+                  {t(`legal.privacy.sections.${sectionId}.heading`)}
+                </Link>
+              </Typography>
             ))}
+          </Stack>
+        </Paper>
 
-            <section
-                className="section"
-                style={{ borderTop: '1px solid #e5e7eb', paddingTop: '32px' }}
+        {/* Sections */}
+        <Stack spacing={4} sx={{ mb: 6 }}>
+          {/* Information Collection */}
+          <Box id="collection">
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              {t('legal.privacy.sections.collection.heading')}
+            </Typography>
+            <Stack spacing={3}>
+              <PrivacySubsection
+                title={t('legal.privacy.sections.collection.provider.title')}
+                items={t('legal.privacy.sections.collection.provider.items', { returnObjects: true })}
+              />
+              <PrivacySubsection
+                title={t('legal.privacy.sections.collection.automatic.title')}
+                items={t('legal.privacy.sections.collection.automatic.items', { returnObjects: true })}
+              />
+              <PrivacySubsection
+                title={t('legal.privacy.sections.collection.thirdParty.title')}
+                items={t('legal.privacy.sections.collection.thirdParty.items', { returnObjects: true })}
+              />
+            </Stack>
+          </Box>
+
+          <Divider />
+
+          {/* Usage */}
+          <Box id="usage">
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              {t('legal.privacy.sections.usage.heading')}
+            </Typography>
+            <Stack spacing={3}>
+              <PrivacyUsageSubsection
+                title={t('legal.privacy.sections.usage.services.title')}
+                basis={t('legal.privacy.sections.usage.services.basis')}
+                items={t('legal.privacy.sections.usage.services.items', { returnObjects: true })}
+              />
+              <PrivacyUsageSubsection
+                title={t('legal.privacy.sections.usage.improve.title')}
+                basis={t('legal.privacy.sections.usage.improve.basis')}
+                items={t('legal.privacy.sections.usage.improve.items', { returnObjects: true })}
+              />
+              <PrivacyUsageSubsection
+                title={t('legal.privacy.sections.usage.advertising.title')}
+                basis={t('legal.privacy.sections.usage.advertising.basis')}
+                items={t('legal.privacy.sections.usage.advertising.items', { returnObjects: true })}
+              />
+              <PrivacyUsageSubsection
+                title={t('legal.privacy.sections.usage.security.title')}
+                basis={t('legal.privacy.sections.usage.security.basis')}
+                items={t('legal.privacy.sections.usage.security.items', { returnObjects: true })}
+              />
+            </Stack>
+          </Box>
+
+          <Divider />
+
+          {/* Sharing */}
+          <Box id="sharing">
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              {t('legal.privacy.sections.sharing.heading')}
+            </Typography>
+            <Stack spacing={3}>
+              <PrivacySubsection
+                title={t('legal.privacy.sections.sharing.providers.title')}
+                items={t('legal.privacy.sections.sharing.providers.items', { returnObjects: true })}
+              />
+              <PrivacySubsection
+                title={t('legal.privacy.sections.sharing.advertising.title')}
+                items={t('legal.privacy.sections.sharing.advertising.items', { returnObjects: true })}
+              />
+              <PrivacySubsection
+                title={t('legal.privacy.sections.sharing.legal.title')}
+                items={t('legal.privacy.sections.sharing.legal.items', { returnObjects: true })}
+              />
+            </Stack>
+          </Box>
+
+          <Divider />
+
+          {/* Rights */}
+          <Box id="rights">
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              {t('legal.privacy.sections.rights.heading')}
+            </Typography>
+            <Stack spacing={3}>
+              <PrivacySubsection
+                title={t('legal.privacy.sections.rights.access.title')}
+                items={t('legal.privacy.sections.rights.access.items', { returnObjects: true })}
+              />
+              <PrivacySubsection
+                title={t('legal.privacy.sections.rights.delete.title')}
+                items={t('legal.privacy.sections.rights.delete.items', { returnObjects: true })}
+              />
+              <PrivacySubsection
+                title={t('legal.privacy.sections.rights.cookies.title')}
+                items={t('legal.privacy.sections.rights.cookies.items', { returnObjects: true })}
+              />
+              <PrivacySubsection
+                title={t('legal.privacy.sections.rights.adPersonalization.title')}
+                items={t('legal.privacy.sections.rights.adPersonalization.items', { returnObjects: true })}
+              />
+              <PrivacySubsection
+                title={t('legal.privacy.sections.rights.portability.title')}
+                items={t('legal.privacy.sections.rights.portability.items', { returnObjects: true })}
+              />
+            </Stack>
+          </Box>
+
+          <Divider />
+
+          {/* Retention */}
+          <Box id="retention">
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              {t('legal.privacy.sections.retention.heading')}
+            </Typography>
+            <Stack component="ul" spacing={1.5} sx={{ pl: 2 }}>
+              {t('legal.privacy.sections.retention.items', { returnObjects: true }).map((item, idx) => (
+                <Typography
+                  component="li"
+                  key={idx}
+                  variant="body2"
+                  sx={{ lineHeight: 1.8 }}
+                  dangerouslySetInnerHTML={{ __html: item }}
+                />
+              ))}
+            </Stack>
+          </Box>
+
+          <Divider />
+
+          {/* Security */}
+          <Box id="security">
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              {t('legal.privacy.sections.security.heading')}
+            </Typography>
+            <Stack component="ul" spacing={1.5} sx={{ pl: 2 }}>
+              {t('legal.privacy.sections.security.items', { returnObjects: true }).map((item, idx) => (
+                <Typography
+                  component="li"
+                  key={idx}
+                  variant="body2"
+                  sx={{ lineHeight: 1.8 }}
+                  dangerouslySetInnerHTML={{ __html: item }}
+                />
+              ))}
+            </Stack>
+          </Box>
+
+          <Divider />
+
+          {/* International */}
+          <Box id="international">
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              {t('legal.privacy.sections.international.heading')}
+            </Typography>
+            <PrivacySubsection items={t('legal.privacy.sections.international.items', { returnObjects: true })} />
+          </Box>
+
+          <Divider />
+
+          {/* Children */}
+          <Box id="children">
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              {t('legal.privacy.sections.children.heading')}
+            </Typography>
+            <Stack component="ul" spacing={1.5} sx={{ pl: 2 }}>
+              {t('legal.privacy.sections.children.items', { returnObjects: true }).map((item, idx) => (
+                <Typography
+                  component="li"
+                  key={idx}
+                  variant="body2"
+                  sx={{ lineHeight: 1.8 }}
+                  dangerouslySetInnerHTML={{ __html: item }}
+                />
+              ))}
+            </Stack>
+          </Box>
+
+          <Divider />
+
+          {/* Cookies */}
+          <Box id="cookies">
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              {t('legal.privacy.sections.cookies.heading')}
+            </Typography>
+            <Stack spacing={3}>
+              <PrivacySubsection
+                title={t('legal.privacy.sections.cookies.essential.title')}
+                items={t('legal.privacy.sections.cookies.essential.items', { returnObjects: true })}
+              />
+              <PrivacySubsection
+                title={t('legal.privacy.sections.cookies.advertising.title')}
+                items={t('legal.privacy.sections.cookies.advertising.items', { returnObjects: true })}
+              />
+            </Stack>
+          </Box>
+
+          <Divider />
+
+          {/* Changes */}
+          <Box id="changes">
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              {t('legal.privacy.sections.changes.heading')}
+            </Typography>
+            <PrivacySubsection items={t('legal.privacy.sections.changes.items', { returnObjects: true })} />
+          </Box>
+
+          <Divider />
+
+          {/* Contact */}
+          <Box id="contact">
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+              {t('legal.privacy.sections.contact.heading')}
+            </Typography>
+            <Stack component="ul" spacing={1.5} sx={{ pl: 2 }}>
+              {t('legal.privacy.sections.contact.items', { returnObjects: true }).map((item, idx) => (
+                <Typography
+                  component="li"
+                  key={idx}
+                  variant="body2"
+                  sx={{ lineHeight: 1.8 }}
+                  dangerouslySetInnerHTML={{ __html: item }}
+                />
+              ))}
+            </Stack>
+          </Box>
+        </Stack>
+
+        {/* Rights Summary Cards */}
+        <Box sx={{ my: 6 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+            {t('legal.privacy.rightsCardsHeading')}
+          </Typography>
+          <Stack
+            direction={{ xs: 'column', md: 'grid' }}
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+              gap: 2,
+            }}
+          >
+            {['access', 'delete', 'cookies', 'portability'].map((key) => (
+              <Card key={key} sx={{ boxShadow: 1 }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                    {t(`legal.privacy.rightsCards.${key}.title`)}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
+                    {t(`legal.privacy.rightsCards.${key}.description`)}
+                  </Typography>
+                </CardContent>
+              </Card>
+            ))}
+          </Stack>
+        </Box>
+
+        {/* CTA */}
+        <Paper sx={{ p: 4, backgroundColor: 'primary.light', textAlign: 'center' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+            Ready to get started?
+          </Typography>
+          <Link href="/clock" sx={{ textDecoration: 'none' }}>
+            <Typography
+              variant="body1"
+              sx={{
+                color: 'primary.main',
+                fontWeight: 600,
+                '&:hover': { textDecoration: 'underline' },
+              }}
             >
-                <h2 className="heading-lg">Summary of your rights</h2>
-                <div className="feature-grid">
-                    <div className="card" style={{ padding: '16px' }}>
-                        <h3 className="heading-md">Access & Update</h3>
-                        <p style={{ margin: 0, fontSize: '1rem' }}>
-                            View and edit your data in account settings or request a copy via email.
-                        </p>
-                    </div>
-                    <div className="card" style={{ padding: '16px' }}>
-                        <h3 className="heading-md">Delete</h3>
-                        <p style={{ margin: 0, fontSize: '1rem' }}>
-                            Remove your account and associated data in settings or by emailing us. Processed within 30 days.
-                        </p>
-                    </div>
-                    <div className="card" style={{ padding: '16px' }}>
-                        <h3 className="heading-md">Control Cookies</h3>
-                        <p style={{ margin: 0, fontSize: '1rem' }}>
-                            Choose between personalized ads or essential-only mode via the cookie banner and related controls.
-                        </p>
-                    </div>
-                    <div className="card" style={{ padding: '16px' }}>
-                        <h3 className="heading-md">Portability</h3>
-                        <p style={{ margin: 0, fontSize: '1rem' }}>
-                            Request an export of your settings, favorites, notes, and custom events in a portable format.
-                        </p>
-                    </div>
-                </div>
-            </section>
+              {t('legal.privacy.navLinks.openClock')} →
+            </Typography>
+          </Link>
+        </Paper>
+      </Container>
 
-            <footer className="footer" aria-label="Footer">
-                <div
-                    className="page-shell__max"
-                    style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: '12px',
-                        alignItems: 'center',
-                    }}
-                >
-                    <div className="logo" aria-label="Time 2 Trade footer">
-                        <span className="logo__dot" aria-hidden="true" />
-                        <span>Time 2 Trade</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                        <a className="btn btn-secondary" href="/terms">
-                            Terms
-                        </a>
-                        <a className="btn btn-secondary" href="/">
-                            Home
-                        </a>
-                    </div>
-                </div>
-            </footer>
-        </div>
-    );
-}
+      {/* Structured Data */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(privacySchema) }} />
+    </Box>
+  );
+};
+
+// Helper Components
+const PrivacySubsection = ({ title, items }) => (
+  <Box>
+    {title && (
+      <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+        {title}
+      </Typography>
+    )}
+    <Stack component="ul" spacing={1} sx={{ pl: 2 }}>
+      {items.map((item, idx) => (
+        <Typography component="li" key={idx} variant="body2" sx={{ lineHeight: 1.8 }}>
+          {item}
+        </Typography>
+      ))}
+    </Stack>
+  </Box>
+);
+
+const PrivacyUsageSubsection = ({ title, basis, items }) => (
+  <Box>
+    <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
+      {title}
+    </Typography>
+    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
+      <strong>Legal basis:</strong> {basis}
+    </Typography>
+    <Stack component="ul" spacing={1} sx={{ pl: 2 }}>
+      {items.map((item, idx) => (
+        <Typography component="li" key={idx} variant="body2" sx={{ lineHeight: 1.8 }}>
+          {item}
+        </Typography>
+      ))}
+    </Stack>
+  </Box>
+);
+
+// Document props for SSR
+export const documentProps = {
+  title: 'Privacy Policy | Time 2 Trade',
+  description: 'How Time 2 Trade collects, uses, and protects your data. Learn about your rights, legal bases for processing, retention timelines, and controls for consent, deletion, and ad personalization.',
+  canonical: `${siteUrl}/privacy`,
+  robots: 'index,follow',
+  ogImage,
+};
+
+export default PrivacyPage;

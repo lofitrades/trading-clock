@@ -417,6 +417,266 @@
       }
     }
   },
+  "legal": {
+    "privacy": {
+      "pageTitle": "Política de Privacidad",
+      "lastUpdated": "22 de enero de 2026",
+      "heading": "Política de Privacidad",
+      "introduction": "Time 2 Trade se compromete a ser transparente sobre cómo recopilamos, utilizamos y protegemos sus datos. Esta política explica qué información recopilamos, por qué la necesitamos, cómo la usamos y qué opciones tiene.",
+      "tableOfContents": "Tabla de contenidos",
+      "sections": {
+        "collection": {
+          "heading": "Información que recopilamos",
+          "provider": {
+            "title": "Información que usted proporciona",
+            "items": [
+              "Dirección de correo electrónico (para autenticación y recuperación de cuenta)",
+              "Nombre para mostrar y foto de perfil (opcional)",
+              "Preferencias de sesión de trading y configuración del reloj",
+              "Favoritos del calendario económico y notas personales",
+              "Eventos personalizados que crea (títulos, horas, etiquetas/notas que agrega)",
+              "Preferencias de recordatorios (p. ej., alternar notificaciones, tiempo de anticipación), cuando sea compatible",
+              "Selección de zona horaria y preferencias de visualización"
+            ]
+          },
+          "automatic": {
+            "title": "Información que recopilamos automáticamente",
+            "items": [
+              "Dirección IP y ubicación general (país/región) derivada para seguridad y prevención de fraude",
+              "Tipo de dispositivo, tipo de navegador y sistema operativo",
+              "Datos de sesión y tokens de autenticación",
+              "Estadísticas de uso (páginas vistas, funciones utilizadas, duración de la sesión)",
+              "Registros de errores e información de diagnóstico"
+            ]
+          },
+          "thirdParty": {
+            "title": "Información de terceros",
+            "items": [
+              "Datos de perfil de OAuth (nombre, correo electrónico, foto de perfil) cuando inicia sesión con Google o Twitter",
+              "Datos del evento del calendario económico de una fuente impulsada por Forex Factory (solo eventos de mercado; no se comparten datos personales)"
+            ]
+          }
+        },
+        "usage": {
+          "heading": "Cómo utilizamos la información",
+          "services": {
+            "title": "Proporcionar y mantener servicios",
+            "basis": "Necesidad contractual",
+            "items": [
+              "Autenticar su cuenta y mantener sesiones seguras",
+              "Sincronizar sus preferencias y configuración entre dispositivos",
+              "Mostrar eventos del calendario económico en su zona horaria seleccionada",
+              "Almacenar sus favoritos, notas y eventos personalizados",
+              "Activar recordatorios y notificaciones (donde sea compatible) según su configuración"
+            ]
+          },
+          "improve": {
+            "title": "Mejorar y desarrollar características",
+            "basis": "Interés legítimo",
+            "items": [
+              "Analizar patrones de uso para optimizar el rendimiento",
+              "Identificar y corregir errores y problemas técnicos",
+              "Desarrollar nuevas características basadas en señales de uso agregadas",
+              "Garantizar la confiabilidad y disponibilidad del servicio"
+            ]
+          },
+          "advertising": {
+            "title": "Publicidad",
+            "basis": "Consentimiento (para anuncios personalizados)",
+            "items": [
+              "Mostrar anuncios de Google AdSense (donde se muestren)",
+              "Medir el rendimiento y la efectividad de los anuncios",
+              "Entregar anuncios personalizados cuando lo permite a través del consentimiento de cookies",
+              "Mostrar anuncios no personalizados cuando selecciona solo cookies esenciales"
+            ]
+          },
+          "security": {
+            "title": "Seguridad y prevención de fraude",
+            "basis": "Interés legítimo",
+            "items": [
+              "Detectar abuso, spam e intentos de acceso fraudulento",
+              "Proteger cuentas e implementar límites de velocidad",
+              "Monitorear la salud del servicio y actividad sospechosa"
+            ]
+          }
+        },
+        "sharing": {
+          "heading": "Información que compartimos",
+          "providers": {
+            "title": "Proveedores de servicios",
+            "items": [
+              "Autenticación de Firebase (Google Cloud) - para gestión de cuentas",
+              "Cloud Firestore (Google Cloud) - para configuración de usuario, notas, favoritos y eventos personalizados",
+              "Firebase Hosting (Google Cloud) - para entrega de aplicaciones a través de CDN global",
+              "Funciones en la nube de Firebase (Google Cloud) - para procesamiento backend (p. ej., sincronizaciones programadas)",
+              "Proveedor de fuente de eventos impulsado por Forex Factory - para recuperar eventos públicos del calendario económico"
+            ]
+          },
+          "advertising": {
+            "title": "Socios publicitarios",
+            "items": [
+              "Google AdSense - puede recopilar y utilizar datos para entrega de anuncios cuando permite anuncios personalizados",
+              "Gestione las preferencias de anuncios en Configuración de Anuncios de Google (https://adssettings.google.com)"
+            ]
+          },
+          "legal": {
+            "title": "Requisitos legales",
+            "items": [
+              "Podemos divulgar información para cumplir con obligaciones legales, órdenes judiciales o solicitudes gubernamentales",
+              "No vendemos sus datos personales a terceros"
+            ]
+          }
+        },
+        "rights": {
+          "heading": "Sus derechos de privacidad",
+          "access": {
+            "title": "Acceso y actualización",
+            "items": [
+              "Ver y editar su información de perfil en la configuración de la cuenta",
+              "Actualizar nombre para mostrar, foto y preferencias en cualquier momento",
+              "Solicitar una copia de sus datos enviando un correo a compliance@time2.trade"
+            ]
+          },
+          "delete": {
+            "title": "Eliminar sus datos",
+            "items": [
+              "Elimine su cuenta en la configuración (elimina datos personales y preferencias)",
+              "Envíe un correo a compliance@time2.trade para solicitar la eliminación de la cuenta",
+              "Procesamos solicitudes de eliminación dentro de 30 días",
+              "Algunos datos pueden retenerse en sistemas de copia de seguridad durante hasta 90 días"
+            ]
+          },
+          "cookies": {
+            "title": "Preferencias de cookies",
+            "items": [
+              "Utilice el banner de cookies para elegir entre anuncios personalizados o modo solo esencial",
+              "Cambie el consentimiento en cualquier momento utilizando los controles de consentimiento (si se proporcionan) o borrando los datos del sitio del navegador para restablecer el banner",
+              "Las cookies/almacenamiento esencial se utilizan para mantener la autenticación y la configuración de la aplicación principal"
+            ]
+          },
+          "adPersonalization": {
+            "title": "Personalización de anuncios",
+            "items": [
+              "Controle la personalización de anuncios de Google en Configuración de Anuncios de Google (https://adssettings.google.com)",
+              "Elija solo cookies esenciales para recibir solo anuncios no personalizados",
+              "Las opciones de anuncios no afectan la funcionalidad principal de Time 2 Trade"
+            ]
+          },
+          "portability": {
+            "title": "Portabilidad de datos",
+            "items": [
+              "Solicite exportación de su configuración, favoritos, notas y eventos personalizados en un formato portátil",
+              "Envíe un correo a compliance@time2.trade con su solicitud",
+              "Proporcionamos exportaciones de datos dentro de 30 días (sujeto a verificación de identidad)"
+            ]
+          }
+        },
+        "retention": {
+          "heading": "Retención y eliminación de datos",
+          "items": [
+            "<strong>Datos de cuenta:</strong> Almacenados mientras su cuenta está activa, más hasta 30 días después de que se inicia una solicitud de eliminación (para completar el procesamiento y prevenir abuso).",
+            "<strong>Configuración, favoritos, notas, eventos personalizados:</strong> Eliminados cuando se elimina su cuenta, sujeto a retención de copia de seguridad.",
+            "<strong>Registros de uso:</strong> Típicamente retenidos hasta 90 días para depuración y monitoreo de seguridad.",
+            "<strong>Registros de errores:</strong> Típicamente retenidos hasta 180 días para análisis de estabilidad.",
+            "<strong>Sistemas de copia de seguridad:</strong> Las copias pueden persistir en copias de seguridad durante hasta 90 días después de la eliminación.",
+            "<strong>Retenciones legales:</strong> Los datos sujetos a requisitos de preservación legal pueden retenerse más tiempo."
+          ]
+        },
+        "security": {
+          "heading": "Medidas de seguridad",
+          "items": [
+            "<strong>Cifrado en tránsito:</strong> Los datos se transmiten usando HTTPS/TLS.",
+            "<strong>Cifrado en reposo:</strong> Los datos almacenados en Google Cloud se cifran en reposo usando claves administradas por Google de forma predeterminada.",
+            "<strong>Control de acceso:</strong> Permisos basados en roles y cuentas de servicio con privilegios mínimos.",
+            "<strong>Autenticación:</strong> Gestión de sesiones seguras con autenticación basada en tokens a través de Firebase Auth.",
+            "<strong>Monitoreo:</strong> Monitoreo operacional y registro para detectar interrupciones y actividad sospechosa.",
+            "<strong>Sin secretos del lado del cliente:</strong> Las credenciales del backend se almacenan en sistemas seguros de ambiente/configuración, no se envían al cliente."
+          ]
+        },
+        "international": {
+          "heading": "Transferencias internacionales de datos",
+          "items": [
+            "Time 2 Trade se opera desde los Estados Unidos.",
+            "Utilizamos servicios de Google Cloud/Firebase que pueden procesar datos en los Estados Unidos y otros países dependiendo de la configuración del servicio y las redes de entrega.",
+            "Para usuarios en el EEA/Reino Unido: las transferencias se basan en salvaguardas apropiadas (como Cláusulas Contractuales Estándar) puestas a disposición por nuestros proveedores.",
+            "Tiene los derechos descritos en la sección \"Sus derechos de privacidad\" anterior."
+          ]
+        },
+        "children": {
+          "heading": "Privacidad de menores",
+          "items": [
+            "<strong>Estados Unidos:</strong> Time 2 Trade no está dirigido a menores de 13 años (COPPA).",
+            "<strong>Unión Europea:</strong> No dirigido a menores de 16 años sin consentimiento parental (RGPD Artículo 8).",
+            "<strong>Verificación de edad:</strong> No recopilamos intencionadamente datos de menores por debajo de los límites de edad aplicables.",
+            "<strong>Solicitudes de padres:</strong> Si cree que un menor ha proporcionado datos, comuníquese con compliance@time2.trade para su eliminación."
+          ]
+        },
+        "cookies": {
+          "heading": "Cookies y almacenamiento local",
+          "essential": {
+            "title": "Esencial (siempre activo)",
+            "items": [
+              "Tokens de autenticación para mantenerlo conectado",
+              "Estado de sesión/local para mantener el comportamiento de la aplicación",
+              "Preferencias de consentimiento de cookies",
+              "Preferencias de zona horaria y visualización"
+            ]
+          },
+          "advertising": {
+            "title": "Publicidad (opcional, requiere consentimiento)",
+            "items": [
+              "Cookies de Google AdSense para entrega y medición de anuncios",
+              "Cookies de personalización de anuncios (solo cuando permite anuncios personalizados)",
+              "Estos no se configuran cuando elige modo solo esencial"
+            ]
+          }
+        },
+        "changes": {
+          "heading": "Cambios a esta política",
+          "items": [
+            "Podemos actualizar esta política para reflejar cambios de servicio o requisitos legales.",
+            "La fecha de última actualización aparece en la parte superior de esta página.",
+            "Los cambios materiales pueden comunicarse a través de correo electrónico a usuarios registrados o a través de un aviso en la aplicación.",
+            "El uso continuado después de cambios constituye aceptación de la política actualizada.",
+            "Las versiones anteriores están disponibles bajo solicitud en compliance@time2.trade."
+          ]
+        },
+        "contact": {
+          "heading": "Contáctenos",
+          "items": [
+            "<strong>Consultas generales:</strong> compliance@time2.trade",
+            "<strong>Solicitudes de datos:</strong> Envíe un correo a compliance@time2.trade con \"Data Request\" en el asunto",
+            "<strong>Tiempo de respuesta:</strong> Respondemos a solicitudes dentro de 30 días",
+            "<strong>Dirección postal:</strong> Disponible bajo solicitud para correspondencia legal formal"
+          ]
+        }
+      },
+      "rightsCardsHeading": "Resumen de sus derechos",
+      "rightsCards": {
+        "access": {
+          "title": "Acceso y actualización",
+          "description": "Vea y edite sus datos en la configuración de cuenta o solicite una copia por correo electrónico."
+        },
+        "delete": {
+          "title": "Eliminar",
+          "description": "Elimine su cuenta y datos asociados en la configuración o enviándonos un correo. Se procesa dentro de 30 días."
+        },
+        "cookies": {
+          "title": "Controlar cookies",
+          "description": "Elija entre anuncios personalizados o modo solo esencial a través del banner de cookies y controles relacionados."
+        },
+        "portability": {
+          "title": "Portabilidad",
+          "description": "Solicite una exportación de su configuración, favoritos, notas y eventos personalizados en un formato portátil."
+        }
+      },
+      "navLinks": {
+        "openClock": "Abrir reloj",
+        "home": "Inicio",
+        "terms": "Términos"
+      }
+    }
+  },
   "contact": {
     "title": "Póngase en Contacto",
     "description": "Envíe un mensaje para soporte, comentarios o preguntas"
