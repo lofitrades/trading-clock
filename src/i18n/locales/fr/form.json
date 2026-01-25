@@ -3,6 +3,7 @@
   "lastName": "Nom",
   "username": "Nom d'utilisateur",
   "email": "Adresse e-mail",
+  "emailLabel": "Entrez votre adresse e-mail",
   "password": "Mot de passe",
   "confirmPassword": "Confirmer le mot de passe",
   "phone": "Numéro de téléphone",

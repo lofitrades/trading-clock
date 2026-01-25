@@ -13,6 +13,7 @@
  * - Enterprise-quality copywriting and visual design
  * 
  * Changelog:
+ * v1.9.0 - 2026-01-24 - i18n migration: added useTranslation hook for dialogs + states namespaces
  * v1.8.0 - 2026-01-23 - Migrated from AuthModal to AuthModal2 with proper open prop; removed legacy AuthModal.jsx dependency
  * v1.7.0 - 2026-01-08 - Extended magicLinkProcessing timeout to 8s to eliminate loading screen during welcome modal display; prevents auto-unmounting per enterprise best practices
  * v1.6.0 - 2026-01-08 - Added full-screen verifying modal with success confirmation following enterprise magic link UX patterns
@@ -25,6 +26,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { isSignInWithEmailLink, signInWithEmailLink, getAdditionalUserInfo, signOut, sendSignInLinkToEmail } from 'firebase/auth';
 import { auth } from '../firebase';
 import { getMagicLinkActionCodeSettings } from '../utils/authLinkSettings';
@@ -34,6 +36,7 @@ import AuthModal2 from './AuthModal2';
 import { createUserProfileSafely } from '../utils/userProfileUtils';
 
 export default function EmailLinkHandler() {
+  const { t } = useTranslation(['dialogs', 'states', 'actions']);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [showVerifyingModal, setShowVerifyingModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -157,22 +160,22 @@ export default function EmailLinkHandler() {
       let linkExpired = false;
 
       if (error.code === 'auth/expired-action-code') {
-        errorMessage = 'This sign-in link expired after 60 minutes. Request a new link below to continue.';
+        errorMessage = t('dialogs:linkExpiredAfter60Min');
         linkExpired = true;
       } else if (error.code === 'auth/invalid-action-code') {
-        errorMessage = 'This link was already used. If you\'re already signed in, close this window. Otherwise, request a new link below.';
+        errorMessage = t('dialogs:linkAlreadyUsed');
         linkExpired = true;
       } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'The email address is invalid. Please check and try again.';
+        errorMessage = t('dialogs:invalidEmailProvided');
       } else if (error.code === 'auth/network-request-failed') {
-        errorMessage = 'Network error. Check your connection and try again.';
+        errorMessage = t('dialogs:networkError');
       } else if (error.message === 'auth/timeout') {
-        errorMessage = 'This is taking longer than expected. Please try again.';
+        errorMessage = t('dialogs:signingInTakingLonger');
       } else if (error.message === 'Email mismatch: stored email does not match authenticated user') {
-        errorMessage = 'Security check failed. Please request a new sign-in link.';
+        errorMessage = t('dialogs:securityCheckFailed');
         linkExpired = true;
       } else {
-        errorMessage = `Sign-in failed: ${error.message}. Please request a new link.`;
+        errorMessage = t('dialogs:signInFailed', { error: error.message });
         linkExpired = true;
       }
 
@@ -187,7 +190,7 @@ export default function EmailLinkHandler() {
     e.preventDefault();
 
     if (!email || !email.includes('@')) {
-      setError('Please enter a valid email address.');
+      setError(t('dialogs:validateEmailAddress'));
       return;
     }
 
@@ -218,7 +221,7 @@ export default function EmailLinkHandler() {
     const targetEmail = userEmail || email || window.localStorage.getItem('emailForSignIn');
 
     if (!targetEmail) {
-      setError('Enter your email above to request a new link.');
+      setError(t('dialogs:enterEmailToRequestLink'));
       setResendSending(false);
       setIsLinkExpired(false);
       return;
@@ -231,16 +234,16 @@ export default function EmailLinkHandler() {
       // Persist for subsequent link handling
       window.localStorage.setItem('emailForSignIn', targetEmail);
 
-      setResendMessage(`✅ New sign-in link sent to ${targetEmail}. Check your inbox and spam folder within 60 minutes.`);
+      setResendMessage(t('dialogs:newSignInLinkSentTo', { email: targetEmail }));
       setIsLinkExpired(false);
     } catch (sendError) {
       console.error('[EmailLinkHandler] Resend failed:', sendError.code, sendError.message);
       if (sendError.code === 'auth/too-many-requests') {
-        setError('Too many requests. Please wait a minute before trying again.');
+        setError(t('dialogs:tooManyRequestsWait'));
       } else if (sendError.code === 'auth/network-request-failed') {
-        setError('Network error. Check your connection and try again.');
+        setError(t('dialogs:networkError'));
       } else {
-        setError('Could not resend the magic link. Please try again or contact support.');
+        setError(t('dialogs:couldNotResendMagicLink'));
       }
     } finally {
       setResendSending(false);
@@ -283,11 +286,11 @@ export default function EmailLinkHandler() {
           </Box>
 
           <Typography variant="h5" gutterBottom fontWeight="700">
-            Signing you in...
+            {t('dialogs:signingYouIn')}
           </Typography>
 
           <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-            Verifying your magic link
+            {t('dialogs:verifyingMagicLink')}
           </Typography>
 
           <Box
@@ -306,7 +309,7 @@ export default function EmailLinkHandler() {
           </Box>
 
           <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 3 }}>
-            Please wait while we securely authenticate your account...
+            {t('dialogs:pleaseWaitSecurelyAuthenticate')}
           </Typography>
         </DialogContent>
       </Dialog>
@@ -350,13 +353,13 @@ export default function EmailLinkHandler() {
           </Box>
 
           <Typography variant="h5" gutterBottom fontWeight="700" color="success.main">
-            {isNewUser ? 'Welcome!' : 'Welcome back!'}
+            {isNewUser ? t('dialogs:welcomeNew') : t('dialogs:welcomeBack')}
           </Typography>
 
           <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
             {isNewUser
-              ? 'Your account has been created successfully'
-              : 'You\'re signed in successfully'}
+              ? t('dialogs:accountCreatedSuccessfully')
+              : t('dialogs:signedInSuccessfully')}
           </Typography>
 
           <Box
@@ -375,7 +378,7 @@ export default function EmailLinkHandler() {
           </Box>
 
           <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 3 }}>
-            Loading your trading clock...
+            {t('dialogs:loadingTradingClock')}
           </Typography>
         </DialogContent>
       </Dialog>
@@ -402,12 +405,12 @@ export default function EmailLinkHandler() {
       >
         <DialogTitle>
           <Typography variant="h6" fontWeight="600">
-            Confirm Your Email
+            {t('dialogs:confirmYourEmail')}
           </Typography>
         </DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Please enter the email address you used to request this sign-in link.
+            {t('dialogs:enterEmailUsedForLink')}
           </Typography>
 
           {error && (
@@ -426,7 +429,7 @@ export default function EmailLinkHandler() {
             <TextField
               fullWidth
               type="email"
-              label="Email Address"
+              label={t('dialogs:emailAddress')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoFocus
@@ -443,7 +446,7 @@ export default function EmailLinkHandler() {
                   color="primary"
                   fullWidth
                 >
-                  Got it
+                  {t('dialogs:gotIt')}
                 </Button>
               ) : isLinkExpired ? (
                 // Show "Request New Link" button for expired links
@@ -455,7 +458,7 @@ export default function EmailLinkHandler() {
                     fullWidth
                     disabled={resendSending}
                   >
-                    {resendSending ? 'Sending...' : 'Request New Link'}
+                    {resendSending ? t('dialogs:sending') : t('dialogs:requestNewLink')}
                   </Button>
                   <Button
                     onClick={handleCancel}
@@ -463,7 +466,7 @@ export default function EmailLinkHandler() {
                     fullWidth
                     disabled={resendSending}
                   >
-                    Cancel
+                    {t('actions:cancel')}
                   </Button>
                 </>
               ) : (
@@ -475,7 +478,7 @@ export default function EmailLinkHandler() {
                     fullWidth
                     disabled={isProcessing}
                   >
-                    Cancel
+                    {t('actions:cancel')}
                   </Button>
                   <Button
                     type="submit"
@@ -483,7 +486,7 @@ export default function EmailLinkHandler() {
                     fullWidth
                     disabled={isProcessing}
                   >
-                    {isProcessing ? <CircularProgress size={24} /> : 'Confirm'}
+                    {isProcessing ? <CircularProgress size={24} /> : t('dialogs:confirm')}
                   </Button>
                 </Box>
               )}

@@ -11,6 +11,7 @@
  * - Success/error state handling
  * 
  * Changelog:
+ * v2.1.0 - 2026-01-24 - i18n migration: added useTranslation hook for dialogs + form + actions namespaces
  * v2.0.8 - 2026-01-15 - Remove redundant paper z-index overrides (Dialog root controls stacking).
  * v2.0.7 - 2026-01-15 - Raise modal/backdrop to top-level stack so AppBar never overlays it.
  * v2.0.5 - 2026-01-15 - Broadcast priority state so AccountModal hides while password reset is open.
@@ -22,6 +23,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import {
   Dialog,
@@ -41,6 +43,7 @@ import { sendPasswordResetEmail, fetchSignInMethodsForEmail } from 'firebase/aut
 import { getFriendlyErrorMessage } from '../utils/messages';
 
 function PasswordResetSentModal({ email, onClose }) {
+  const { t } = useTranslation(['dialogs', 'actions']);
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('t2t-modal-priority', { detail: { active: true } }));
     return () => {
@@ -77,16 +80,16 @@ function PasswordResetSentModal({ email, onClose }) {
           <Typography variant="h4">✓</Typography>
         </Box>
         <Typography variant="h6" gutterBottom fontWeight="600">
-          Password reset email sent
+          {t('dialogs:passwordResetEmailSentTitle')}
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          We sent a password reset link to:
+          {t('dialogs:passwordResetLinkSentTo')}
         </Typography>
         <Typography variant="body1" fontWeight="600" color="primary.main" paragraph>
           {email}
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          Click the link in the email to reset your password. The link will expire in 60 minutes.
+          {t('dialogs:clickLinkResetPassword')}
         </Typography>
         <Button
           onClick={onClose}
@@ -95,7 +98,7 @@ function PasswordResetSentModal({ email, onClose }) {
           fullWidth
           sx={{ mt: 2 }}
         >
-          Got it
+          {t('dialogs:gotIt')}
         </Button>
       </DialogContent>
     </Dialog>
@@ -103,6 +106,7 @@ function PasswordResetSentModal({ email, onClose }) {
 }
 
 export default function ForgotPasswordModal({ onClose }) {
+  const { t } = useTranslation(['dialogs', 'form', 'validation', 'actions']);
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -123,7 +127,7 @@ export default function ForgotPasswordModal({ onClose }) {
     try {
       const methods = await fetchSignInMethodsForEmail(auth, email);
       if (methods.length === 0) {
-        setError('No account exists with that email.');
+        setError(t('dialogs:noAccountExists'));
         return;
       }
       await sendPasswordResetEmail(auth, email);
@@ -182,12 +186,10 @@ export default function ForgotPasswordModal({ onClose }) {
             </Typography>
           </Box>
           <Typography variant="h5" fontWeight="600" gutterBottom>
-            Reset your password
+            {t('dialogs:resetPassword')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Enter your email address and we&apos;ll send you a link
-            <br />
-            to reset your password.
+            {t('dialogs:resetPasswordInstructions')}
           </Typography>
         </Box>
 
@@ -216,7 +218,7 @@ export default function ForgotPasswordModal({ onClose }) {
             <TextField
               fullWidth
               type="email"
-              label="Enter your email"
+              label={t('form:emailLabel')}
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -238,7 +240,7 @@ export default function ForgotPasswordModal({ onClose }) {
                 borderRadius: 2,
               }}
             >
-              Send reset link
+              {t('dialogs:sendResetLink')}
             </Button>
 
             <Button
@@ -250,7 +252,7 @@ export default function ForgotPasswordModal({ onClose }) {
                 textTransform: 'none',
               }}
             >
-              Back to login
+              {t('dialogs:backToLogin')}
             </Button>
           </Stack>
         </Box>
