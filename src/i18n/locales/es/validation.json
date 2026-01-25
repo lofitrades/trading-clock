@@ -1,0 +1,18 @@
+{
+  "required": "Este campo es obligatorio",
+  "invalidEmail": "Por favor, ingrese una dirección de correo válida",
+  "invalidPassword": "La contraseña debe tener al menos 8 caracteres",
+  "passwordsDoNotMatch": "Las contraseñas no coinciden",
+  "tooShort": "Este campo es demasiado corto",
+  "tooLong": "Este campo es demasiado largo",
+  "invalidFormat": "Formato inválido",
+  "alreadyExists": "Este elemento ya existe",
+  "notFound": "Elemento no encontrado",
+  "accessDenied": "No tienes permiso para hacer esto",
+  "connectionError": "Error de conexión. Por favor, intenta de nuevo",
+  "confirmPassword": "Confirmar contraseña",
+  "areYouSure": "¿Estás seguro?",
+  "thisActionCannotBeUndone": "Esta acción no se puede deshacer",
+  "deleteConfirmation": "¿Estás seguro de que deseas eliminar esto?",
+  "unsavedChanges": "Tienes cambios sin guardar"
+}

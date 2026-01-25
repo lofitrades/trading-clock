@@ -26,6 +26,8 @@ import enWelcome from './locales/en/welcome.json';
 import enMessages from './locales/en/messages.json';
 import enIcons from './locales/en/icons.json';
 import enNotification from './locales/en/notification.json';
+import enActions from './locales/en/actions.json';
+import enValidation from './locales/en/validation.json';
 
 import esCommon from './locales/es/common.json';
 import esAuth from './locales/es/auth.json';
@@ -40,6 +42,8 @@ import esWelcome from './locales/es/welcome.json';
 import esMessages from './locales/es/messages.json';
 import esIcons from './locales/es/icons.json';
 import esNotification from './locales/es/notification.json';
+import esActions from './locales/es/actions.json';
+import esValidation from './locales/es/validation.json';
 
 import frCommon from './locales/fr/common.json';
 import frAuth from './locales/fr/auth.json';
@@ -54,6 +58,8 @@ import frWelcome from './locales/fr/welcome.json';
 import frMessages from './locales/fr/messages.json';
 import frIcons from './locales/fr/icons.json';
 import frNotification from './locales/fr/notification.json';
+import frActions from './locales/fr/actions.json';
+import frValidation from './locales/fr/validation.json';
 
 /**
  * Translation resources organized by language and namespace
@@ -74,6 +80,8 @@ const resources = {
     messages: enMessages,
     icons: enIcons,
     notification: enNotification,
+    actions: enActions,
+    validation: enValidation,
   },
   es: {
     common: esCommon,
@@ -89,6 +97,8 @@ const resources = {
     messages: esMessages,
     icons: esIcons,
     notification: esNotification,
+    actions: esActions,
+    validation: esValidation,
   },
   fr: {
     common: frCommon,
@@ -104,6 +114,8 @@ const resources = {
     messages: frMessages,
     icons: frIcons,
     notification: frNotification,
+    actions: frActions,
+    validation: frValidation,
   },
 };
 
