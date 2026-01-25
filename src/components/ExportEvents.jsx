@@ -5,6 +5,8 @@
  * Exports unified multi-source events with all fields (NFS, JBlanked, GPT) in enterprise JSON format.
  * Requires superadmin RBAC role.
  * 
+ * v2.1.0 - 2026-01-24 - BEP: Phase 3c i18n migration - Added useTranslation hook with admin namespace.
+ *                       Replaced 19 hardcoded strings with t() calls across access control, export UI, results display.
  * Changelog:
  * v2.0.0 - 2026-01-21 - Complete redesign for canonical multi-source collection.
  *                       Export from /economicEvents/events/events/{eventId}.
@@ -76,10 +78,10 @@ export default function ExportEvents() {
           <Stack spacing={2} alignItems="center">
             <LockIcon sx={{ fontSize: 48, color: 'error.main' }} />
             <Typography variant="h5" fontWeight={800}>
-              Access Denied
+              {t('admin:accessDenied')}
             </Typography>
             <Alert severity="error">
-              This page requires <strong>superadmin</strong> role. You do not have permission to export events.
+              {t('admin:requiresSuperadmin')}
             </Alert>
           </Stack>
         </Paper>
@@ -167,7 +169,7 @@ export default function ExportEvents() {
       const snapshot = await getDocs(eventsContainer);
 
       if (snapshot.empty) {
-        setError('No events found in canonical collection.');
+        setError(t('admin:noEventsFound'));
         return;
       }
 
@@ -245,24 +247,22 @@ export default function ExportEvents() {
             onClick={handleBack}
             sx={{ minWidth: 'auto' }}
           >
-            Back
+            {t('actions:back')}
           </Button>
           <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
-            Export Canonical Events
+            {t('admin:exportCanonicalEvents')}
           </Typography>
         </Stack>
 
         {/* Description */}
         <Typography variant="body1" color="text.secondary" paragraph>
-          Export all unified economic events from the canonical multi-source collection. Each event
-          includes data from all available sources (NFS, JBlanked-FF, GPT, JBlanked-MT, JBlanked-FXStreet)
-          with values picked from the highest-priority source.
+          {t('admin:exportDescription')}
         </Typography>
 
         <Alert severity="info" sx={{ mb: 3 }}>
           <Typography variant="body2">
-            <strong>📊 Canonical Collection:</strong> economicEvents/events/events<br />
-            <strong>📋 Format:</strong> Enterprise JSON with metadata and multi-source tracking
+            <strong>📊 {t('admin:canonicalCollection')}:</strong> economicEvents/events/events<br />
+            <strong>📋 {t('admin:formatLabel')}:</strong> {t('admin:enterpriseJSON')}
           </Typography>
         </Alert>
 
@@ -278,7 +278,7 @@ export default function ExportEvents() {
             fullWidth
             sx={{ py: 1.5 }}
           >
-            {exporting ? 'Exporting Events...' : 'Download Canonical Events'}
+            {exporting ? t('admin:exportingEvents') : t('admin:downloadEventsJSON')}
           </Button>
         </Box>
 
@@ -290,12 +290,12 @@ export default function ExportEvents() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <CheckCircleIcon sx={{ color: 'success.main', fontSize: 28 }} />
                   <Typography variant="h6" sx={{ color: 'success.dark' }}>
-                    Export Successful
+                    {t('admin:exportSuccessful')}
                   </Typography>
                 </Box>
 
                 <Typography variant="body2">
-                  <strong>📥 Downloaded:</strong> {result.filename}
+                  <strong>📥 {t('admin:downloaded')}:</strong> {result.filename}
                 </Typography>
 
                 <List dense sx={{ bgcolor: 'background.paper', borderRadius: 1 }}>
@@ -304,8 +304,8 @@ export default function ExportEvents() {
                       <CheckCircleIcon sx={{ color: 'success.main' }} fontSize="small" />
                     </ListItemIcon>
                     <ListItemText
-                      primary="Total Events"
-                      secondary={`${result.eventCount.toLocaleString()} events exported`}
+                      primary={t('admin:totalEvents')}
+                      secondary={t('admin:eventsExported', { count: result.eventCount.toLocaleString() })}
                     />
                   </ListItem>
                   <ListItem>
@@ -313,7 +313,7 @@ export default function ExportEvents() {
                       <CheckCircleIcon sx={{ color: 'success.main' }} fontSize="small" />
                     </ListItemIcon>
                     <ListItemText
-                      primary="Collection Path"
+                      primary={t('admin:collectionPath')}
                       secondary={result.collectionPath}
                     />
                   </ListItem>
@@ -322,7 +322,7 @@ export default function ExportEvents() {
                       <CheckCircleIcon sx={{ color: 'success.main' }} fontSize="small" />
                     </ListItemIcon>
                     <ListItemText
-                      primary="Export Time"
+                      primary={t('admin:exportTime')}
                       secondary={new Date(result.timestamp).toLocaleString()}
                     />
                   </ListItem>
@@ -330,7 +330,7 @@ export default function ExportEvents() {
 
                 <Alert severity="info" icon={<DownloadIcon />}>
                   <Typography variant="caption">
-                    File downloaded to Downloads folder. Move to <code>data/</code> folder if needed.
+                    {t('admin:fileDownloadedInfo')}
                   </Typography>
                 </Alert>
 
@@ -339,7 +339,7 @@ export default function ExportEvents() {
                   onClick={() => setResult(null)}
                   fullWidth
                 >
-                  Export Another
+                  {t('admin:exportAnother')}
                 </Button>
               </Stack>
             </CardContent>
@@ -355,7 +355,7 @@ export default function ExportEvents() {
             sx={{ mb: 3 }}
           >
             <Typography variant="subtitle2" gutterBottom>
-              ❌ Export Failed
+              ❌ {t('admin:exportFailed')}
             </Typography>
             <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
               {error}
@@ -366,32 +366,32 @@ export default function ExportEvents() {
         {/* Info Box */}
         <Box sx={{ mt: 4, p: 3, bgcolor: 'background.default', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 800 }}>
-            📋 Export Specification
+            📋 {t('admin:exportSpecification')}
           </Typography>
           <List dense sx={{ ml: 1 }}>
             <ListItem disableGutters>
               <Typography variant="caption" component="span">
-                <strong>Path:</strong> economicEvents/events/events/{`{eventId}`}
+                <strong>{t('admin:pathLabel')}:</strong> economicEvents/events/events/{`{eventId}`}
               </Typography>
             </ListItem>
             <ListItem disableGutters>
               <Typography variant="caption" component="span">
-                <strong>Fields:</strong> All canonical fields including sources multi-source tracking
+                <strong>{t('admin:fieldsLabel')}:</strong> {t('admin:fieldsDescription')}
               </Typography>
             </ListItem>
             <ListItem disableGutters>
               <Typography variant="caption" component="span">
-                <strong>Format:</strong> Enterprise JSON with metadata and version
+                <strong>{t('admin:formatLabel')}:</strong> {t('admin:enterpriseJSONDescription')}
               </Typography>
             </ListItem>
             <ListItem disableGutters>
               <Typography variant="caption" component="span">
-                <strong>Timestamps:</strong> ISO 8601 format (UTC)
+                <strong>{t('admin:timestampsLabel')}:</strong> {t('admin:iso8601Format')}
               </Typography>
             </ListItem>
             <ListItem disableGutters>
               <Typography variant="caption" component="span">
-                <strong>Priority Order:</strong> NFS → JBlanked-FF → GPT → JBlanked-MT → JBlanked-FXStreet
+                <strong>{t('admin:priorityOrder')}:</strong> NFS → JBlanked-FF → GPT → JBlanked-MT → JBlanked-FXStreet
               </Typography>
             </ListItem>
           </List>
