@@ -1,0 +1,23 @@
+{
+  "syncCalendar": "Sync Economic Calendar",
+  "selectSources": "Select News Sources",
+  "selectOne": "Select one or more news sources",
+  "syncing": "Syncing...",
+  "startSync": "Start Sync",
+  "syncCompleted": "Sync completed successfully",
+  "syncFailed": "Sync failed",
+  "superadminOnly": "Superadmin access required",
+  "uploadDescriptions": "Upload Event Descriptions",
+  "exportEvents": "Export Events",
+  "importEvents": "Import Events",
+  "selectFile": "Select file",
+  "uploadFile": "Upload file",
+  "downloadJson": "Download JSON",
+  "successRate": "Success rate",
+  "skipped": "Skipped",
+  "errors": "Errors",
+  "totalRecords": "Total records",
+  "processed": "Processed",
+  "failed": "Failed",
+  "retryFailed": "Retry failed items"
+}

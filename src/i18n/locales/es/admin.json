@@ -1,0 +1,23 @@
+{
+  "syncCalendar": "Sincronizar calendario económico",
+  "selectSources": "Seleccionar fuentes de noticias",
+  "selectOne": "Selecciona una o más fuentes de noticias",
+  "syncing": "Sincronizando...",
+  "startSync": "Iniciar sincronización",
+  "syncCompleted": "Sincronización completada con éxito",
+  "syncFailed": "La sincronización falló",
+  "superadminOnly": "Se requiere acceso de superadmin",
+  "uploadDescriptions": "Cargar descripciones de eventos",
+  "exportEvents": "Exportar eventos",
+  "importEvents": "Importar eventos",
+  "selectFile": "Seleccionar archivo",
+  "uploadFile": "Cargar archivo",
+  "downloadJson": "Descargar JSON",
+  "successRate": "Tasa de éxito",
+  "skipped": "Omitido",
+  "errors": "Errores",
+  "totalRecords": "Total de registros",
+  "processed": "Procesado",
+  "failed": "Falló",
+  "retryFailed": "Reintentar elementos fallidos"
+}

@@ -1,0 +1,23 @@
+{
+  "syncCalendar": "Synchroniser le calendrier économique",
+  "selectSources": "Sélectionner les sources de nouvelles",
+  "selectOne": "Sélectionnez une ou plusieurs sources de nouvelles",
+  "syncing": "Synchronisation en cours...",
+  "startSync": "Démarrer la synchronisation",
+  "syncCompleted": "Synchronisation réussie",
+  "syncFailed": "La synchronisation a échoué",
+  "superadminOnly": "Accès superadmin requis",
+  "uploadDescriptions": "Télécharger les descriptions des événements",
+  "exportEvents": "Exporter les événements",
+  "importEvents": "Importer les événements",
+  "selectFile": "Sélectionner un fichier",
+  "uploadFile": "Télécharger le fichier",
+  "downloadJson": "Télécharger JSON",
+  "successRate": "Taux de réussite",
+  "skipped": "Ignoré",
+  "errors": "Erreurs",
+  "totalRecords": "Nombre total de registres",
+  "processed": "Traité",
+  "failed": "Échoué",
+  "retryFailed": "Réessayer les éléments échoués"
+}

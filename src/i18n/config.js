@@ -31,6 +31,8 @@ import enValidation from './locales/en/validation.json';
 import enStates from './locales/en/states.json';
 import enDialogs from './locales/en/dialogs.json';
 import enA11y from './locales/en/a11y.json';
+import enForm from './locales/en/form.json';
+import enAdmin from './locales/en/admin.json';
 
 import esCommon from './locales/es/common.json';
 import esAuth from './locales/es/auth.json';
@@ -50,6 +52,8 @@ import esValidation from './locales/es/validation.json';
 import esStates from './locales/es/states.json';
 import esDialogs from './locales/es/dialogs.json';
 import esA11y from './locales/es/a11y.json';
+import esForm from './locales/es/form.json';
+import esAdmin from './locales/es/admin.json';
 
 import frCommon from './locales/fr/common.json';
 import frAuth from './locales/fr/auth.json';
@@ -69,6 +73,8 @@ import frValidation from './locales/fr/validation.json';
 import frStates from './locales/fr/states.json';
 import frDialogs from './locales/fr/dialogs.json';
 import frA11y from './locales/fr/a11y.json';
+import frForm from './locales/fr/form.json';
+import frAdmin from './locales/fr/admin.json';
 
 /**
  * Translation resources organized by language and namespace
@@ -94,6 +100,8 @@ const resources = {
     states: enStates,
     dialogs: enDialogs,
     a11y: enA11y,
+    form: enForm,
+    admin: enAdmin,
   },
   es: {
     common: esCommon,
@@ -114,6 +122,8 @@ const resources = {
     states: esStates,
     dialogs: esDialogs,
     a11y: esA11y,
+    form: esForm,
+    admin: esAdmin,
   },
   fr: {
     common: frCommon,
@@ -134,6 +144,8 @@ const resources = {
     states: frStates,
     dialogs: frDialogs,
     a11y: frA11y,
+    form: frForm,
+    admin: frAdmin,
   },
 };
 
