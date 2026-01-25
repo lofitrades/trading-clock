@@ -5,10 +5,12 @@
  * Allows users to select one or more news sources and shows progress per source
  * 
  * Changelog:
+ * v1.1.0 - 2026-01-24 - i18n migration: added useTranslation hook for admin + states + actions namespaces
  * v1.0.0 - 2025-11-30 - Initial implementation with multi-source support
  */
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogTitle,
@@ -53,6 +55,7 @@ export default function SyncCalendarModal({
   defaultSources = [],
   onSync
 }) {
+  const { t } = useTranslation(['admin', 'states', 'actions']);
   // Selected sources for sync
   const [selectedSources, setSelectedSources] = useState(
     defaultSources.length > 0 ? defaultSources : ['mql5']
@@ -211,7 +214,7 @@ export default function SyncCalendarModal({
       >
         <SyncIcon color="primary" />
         <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>
-          Sync Economic Calendar
+          {t('admin:syncCalendar')}
         </Typography>
       </DialogTitle>
 
@@ -220,8 +223,7 @@ export default function SyncCalendarModal({
         {!syncing && Object.keys(syncResults).length === 0 && (
           <>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Select one or more news sources to sync economic calendar data.
-              Each source provides 3 years of event data (previous year, current year, next year).
+              {t('admin:selectSources')}
             </Typography>
 
             <Alert severity="info" sx={{ mb: 3 }}>
@@ -233,7 +235,7 @@ export default function SyncCalendarModal({
             {/* Source Selection */}
             <Box sx={{ mb: 2 }}>
               <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
-                Select Sources:
+                {t('admin:selectOne')}
               </Typography>
               <FormGroup>
                 {NEWS_SOURCE_OPTIONS.map((option) => (
@@ -266,12 +268,10 @@ export default function SyncCalendarModal({
             {selectedSources.includes('fxstreet') && (
               <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
                 <AlertTitle sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                  ⚠️ FXStreet Data Limitation
+                  {t('admin:fxstreetWarning')}
                 </AlertTitle>
                 <Typography variant="body2">
-                  <strong>FXStreet provides very limited data</strong> (typically 10-20 future events only).
-                  This may result in 0 events being synced if the date range has no upcoming events.
-                  We recommend using <strong>MQL5 (12,000+ events)</strong> or <strong>Forex Factory</strong> instead.
+                  {t('admin:fxstreetWarningDesc')}
                 </Typography>
               </Alert>
             )}
@@ -279,11 +279,10 @@ export default function SyncCalendarModal({
             {/* API Credit Usage Warning */}
             <Alert severity="warning" sx={{ mt: 2 }}>
               <AlertTitle sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                API Credit Usage
+                {t('admin:apiCreditUsage')}
               </AlertTitle>
               <Typography variant="body2">
-                This action will use <strong>{selectedSources.length} API credit{selectedSources.length > 1 ? 's' : ''}</strong>
-                ({selectedSources.length} {selectedSources.length > 1 ? 'sources' : 'source'} × 1 credit per source).
+                {t('admin:apiCreditInfo')}
               </Typography>
             </Alert>
           </>
@@ -297,7 +296,7 @@ export default function SyncCalendarModal({
               <Box sx={{ mb: 3 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    Overall Progress
+                    {t('admin:overallProgress')}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {Math.round(overallProgress)}%
@@ -314,7 +313,7 @@ export default function SyncCalendarModal({
             {/* Per-Source Status */}
             <Box sx={{ mb: 2 }}>
               <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                Source Status:
+                {t('admin:sourceStatus')}
               </Typography>
               <Stack spacing={2}>
                 {selectedSources.map((sourceValue) => {
@@ -344,7 +343,7 @@ export default function SyncCalendarModal({
                         {/* Status Icon */}
                         {state === 'running' && (
                           <Chip
-                            label="Syncing..."
+                            label={t('admin:syncing')}
                             size="small"
                             color="primary"
                             sx={{ height: 24 }}
@@ -358,7 +357,7 @@ export default function SyncCalendarModal({
                         )}
                         {state === 'pending' && (
                           <Chip
-                            label="Pending"
+                            label={t('states:pending')}
                             size="small"
                             sx={{ height: 24, bgcolor: 'action.hover' }}
                           />
@@ -392,9 +391,9 @@ export default function SyncCalendarModal({
             {/* Success Summary */}
             {allCompleted && !error && (
               <Alert severity="success" sx={{ mt: 2 }}>
-                <AlertTitle sx={{ fontWeight: 600 }}>Sync Completed</AlertTitle>
+                <AlertTitle sx={{ fontWeight: 600 }}>{t('admin:syncCompleted')}</AlertTitle>
                 <Typography variant="body2">
-                  Calendar data has been successfully synchronized for {selectedSources.length} source{selectedSources.length > 1 ? 's' : ''}.
+                  {t('admin:syncCompletedDesc', { count: selectedSources.length })}
                 </Typography>
               </Alert>
             )}
@@ -402,7 +401,7 @@ export default function SyncCalendarModal({
             {/* Error Summary */}
             {error && (
               <Alert severity="error" sx={{ mt: 2 }}>
-                <AlertTitle sx={{ fontWeight: 600 }}>Sync Failed</AlertTitle>
+                <AlertTitle sx={{ fontWeight: 600 }}>{t('admin:syncFailed')}</AlertTitle>
                 <Typography variant="body2">{error}</Typography>
               </Alert>
             )}
@@ -416,7 +415,7 @@ export default function SyncCalendarModal({
           disabled={syncing}
           sx={{ textTransform: 'none' }}
         >
-          {allCompleted ? 'Close' : 'Cancel'}
+          {allCompleted ? t('actions:close') : t('actions:cancel')}
         </Button>
         {!allCompleted && (
           <Button
@@ -435,7 +434,7 @@ export default function SyncCalendarModal({
               }
             }}
           >
-            {syncing ? 'Syncing...' : 'Start Sync'}
+            {syncing ? t('admin:syncing') : t('admin:startSync')}
           </Button>
         )}
       </DialogActions>
