@@ -11,6 +11,7 @@
  * - Dismissible (shown once)
  * 
  * Changelog:
+ * v1.2.0 - 2026-01-24 - Phase 2 i18n migration - Added useTranslation hook with 'welcome' namespace. Replaced WELCOME_COPY hardcoded strings with t() calls (headline, confirmation, multiProvider). Updated 3 strings to i18n keys.
  * v1.1.1 - 2026-01-15 - Modal layering: keep backdrop behind paper and ensure modal stacks above AppBar.
  * v1.1.0 - 2025-12-22 - Use centralized welcome copy shared across auth providers.
  * v1.0.1 - 2025-12-16 - Added PropTypes and removed unused imports.
@@ -18,6 +19,7 @@
  */
 
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -31,9 +33,9 @@ import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { WELCOME_COPY } from '../utils/welcomeCopy';
 
 export default function WelcomeModal({ onClose, userEmail }) {
+  const { t } = useTranslation('welcome');
   return (
     <Dialog
       open={true}
@@ -67,13 +69,13 @@ export default function WelcomeModal({ onClose, userEmail }) {
             </Typography>
           </Box>
           <Typography variant="h5" fontWeight="600" gutterBottom>
-            {WELCOME_COPY.headline}
+            {t('headline')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {WELCOME_COPY.confirmation}
+            {t('confirmation')}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            {WELCOME_COPY.multiProvider}
+            {t('multiProvider')}
           </Typography>
           {userEmail && (
             <Typography variant="body2" color="primary.main" fontWeight="600" sx={{ mt: 1 }}>

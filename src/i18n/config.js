@@ -21,6 +21,8 @@ import enCalendar from './locales/en/calendar.json';
 import enPages from './locales/en/pages.json';
 import enLegal from './locales/en/legal.json';
 import enErrors from './locales/en/errors.json';
+import enTimezone from './locales/en/timezone.json';
+import enWelcome from './locales/en/welcome.json';
 
 import esCommon from './locales/es/common.json';
 import esAuth from './locales/es/auth.json';
@@ -30,6 +32,8 @@ import esCalendar from './locales/es/calendar.json';
 import esPages from './locales/es/pages.json';
 import esLegal from './locales/es/legal.json';
 import esErrors from './locales/es/errors.json';
+import esTimezone from './locales/es/timezone.json';
+import esWelcome from './locales/es/welcome.json';
 
 import frCommon from './locales/fr/common.json';
 import frAuth from './locales/fr/auth.json';
@@ -39,6 +43,8 @@ import frCalendar from './locales/fr/calendar.json';
 import frPages from './locales/fr/pages.json';
 import frLegal from './locales/fr/legal.json';
 import frErrors from './locales/fr/errors.json';
+import frTimezone from './locales/fr/timezone.json';
+import frWelcome from './locales/fr/welcome.json';
 
 /**
  * Translation resources organized by language and namespace
@@ -54,6 +60,8 @@ const resources = {
     pages: enPages,
     legal: enLegal,
     errors: enErrors,
+    timezone: enTimezone,
+    welcome: enWelcome,
   },
   es: {
     common: esCommon,
@@ -64,6 +72,8 @@ const resources = {
     pages: esPages,
     legal: esLegal,
     errors: esErrors,
+    timezone: esTimezone,
+    welcome: esWelcome,
   },
   fr: {
     common: frCommon,
@@ -74,6 +84,8 @@ const resources = {
     pages: frPages,
     legal: frLegal,
     errors: frErrors,
+    timezone: frTimezone,
+    welcome: frWelcome,
   },
 };
 

@@ -4,6 +4,7 @@
  * Purpose: Asynchronous timezone selector with read-only collapsed display and dedicated search field.
  * Key responsibility: Persist user timezone selection to Firestore via SettingsContext while gating guest edits.
  * 
+ * v1.5.1 - 2026-01-24 - BEP: Phase 2 i18n fix - Created timezone.json namespace (EN/ES/FR) with all 7 strings (label, description, search.placeholder, search.ariaLabel, loadingPlaceholder, selectPlaceholder, selectAriaLabel). Added timezone imports to i18n config.js. Fixed "t is not defined" ReferenceError in SearchablePopper by ensuring all translated strings passed as props.
  * v1.5.0 - 2026-01-23 - BEP: Phase 2 i18n migration - Added useTranslation hook, converted all 7 strings to i18n keys (search placeholder, aria-label, header, description, loading/select placeholders)
  * v1.4.3 - 2026-01-22 - BEP: Raised timezone popper z-index from 2000 to 12100 so dropdown renders above modals (Dialog z-index 12000) following enterprise stacking context best practices. Ensures dropdown is always visible when timezone selector is used inside modals like on landing page.
  * v1.4.2 - 2026-01-15 - Raise timezone popper z-index above AppBar for guaranteed overlay priority.

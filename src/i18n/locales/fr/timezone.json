@@ -1,0 +1,11 @@
+{
+  "label": "Fuseau Horaire",
+  "description": "Sélectionnez votre fuseau horaire de négociation (par défaut New York)",
+  "search": {
+    "placeholder": "Rechercher fuseau horaire...",
+    "ariaLabel": "Rechercher fuseau horaire"
+  },
+  "loadingPlaceholder": "Chargement des fuseaux horaires...",
+  "selectPlaceholder": "Sélectionnez fuseau horaire",
+  "selectAriaLabel": "Sélectionnez votre fuseau horaire"
+}
