@@ -1,4 +1,17 @@
+/**
+ * src/components/UploadDescriptions.jsx
+ * 
+ * Purpose: Admin-only page for uploading economic event descriptions from JSON to Firestore.
+ * Handles password authentication, file selection, batch upload with progress tracking.
+ * 
+ * v1.1.0 - 2026-01-24 - BEP: Phase 3c i18n migration - Added useTranslation hook with admin, form, validation namespaces.
+ *                       Replaced 18 hardcoded strings with t() calls across auth, upload UI, status messages.
+ * Changelog:
+ * v1.0.0 - 2025-11-30 - Initial implementation for event descriptions upload to economicEventDescriptions collection.
+ */
+
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Button,
@@ -39,6 +52,7 @@ function generateDocId(eventName) {
 }
 
 function UploadDescriptions() {
+  const { t } = useTranslation(['admin', 'form', 'validation']);
   const [firebaseUser, setFirebaseUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -68,7 +82,7 @@ function UploadDescriptions() {
       setIsAuthenticated(true);
       setPasswordError('');
     } else {
-      setPasswordError('Incorrect password. Please try again.');
+      setPasswordError(t('validation:incorrectPassword'));
       setPassword('');
     }
   };
@@ -82,7 +96,7 @@ function UploadDescriptions() {
         setResult(null);
         setUploadedEvents([]);
       } else {
-        setError('Please select a valid JSON file');
+        setError(t('validation:invalidFileType'));
         setSelectedFile(null);
       }
     }
@@ -90,7 +104,7 @@ function UploadDescriptions() {
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      setError('Please select a file first');
+      setError(t('validation:selectFileFirst'));
       return;
     }
 
@@ -155,15 +169,15 @@ function UploadDescriptions() {
       setUploadedEvents(uploadedList);
       setResult({
         success: true,
-        message: `Successfully uploaded ${uploadedCount} event descriptions to Firestore`,
+        message: t('admin:uploadSuccessful', { count: uploadedCount }),
         count: uploadedCount,
       });
     } catch (err) {
       console.error('Upload error:', err);
-      setError(err.message || 'Failed to upload descriptions');
+      setError(err.message || t('admin:uploadFailed'));
       setResult({
         success: false,
-        message: 'Upload failed',
+        message: t('admin:uploadFailed'),
       });
     } finally {
       setUploading(false);
@@ -182,7 +196,7 @@ function UploadDescriptions() {
           justifyContent: 'center',
         }}
       >
-        <Typography>Loading...</Typography>
+        <Typography>{t('states:loading')}</Typography>
       </Box>
     );
   }
@@ -202,13 +216,13 @@ function UploadDescriptions() {
       >
         <Paper elevation={3} sx={{ maxWidth: 500, width: '100%', p: 4 }}>
           <Alert severity="error" sx={{ mb: 2 }}>
-            You must be logged in to Firebase Authentication to upload event descriptions.
+            {t('admin:requiresAuthentication')}
           </Alert>
           <Typography variant="body2" color="text.secondary">
-            Please log in to your Firebase account first, then return to this page.
+            {t('admin:pleaseLogInFirst')}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Current auth state: {firebaseUser ? 'Logged in' : 'Not logged in'}
+            {t('admin:currentAuthState')}: {firebaseUser ? t('auth:loggedIn') : t('auth:notLoggedIn')}
           </Typography>
         </Paper>
       </Box>
@@ -237,15 +251,15 @@ function UploadDescriptions() {
           }}
         >
           <Alert severity="info" sx={{ mb: 3 }}>
-            Logged in as: {firebaseUser.email}
+            {t('admin:loggedInAs')}: {firebaseUser.email}
           </Alert>
           
           <Typography variant="h5" gutterBottom sx={{ mb: 3, textAlign: 'center' }}>
-            Protected Page
+            {t('admin:protectedPage')}
           </Typography>
           
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
-            Please enter the password to access the upload page.
+            {t('admin:enterPasswordMessage')}
           </Typography>
 
           <form onSubmit={handlePasswordSubmit}>
@@ -253,7 +267,7 @@ function UploadDescriptions() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
+              placeholder={t('form:enterPassword')}
               fullWidth
               autoFocus
               variant="outlined"
@@ -272,7 +286,7 @@ function UploadDescriptions() {
               color="primary"
               fullWidth
             >
-              Submit
+              {t('actions:submit')}
             </Button>
           </form>
         </Paper>
@@ -297,11 +311,11 @@ function UploadDescriptions() {
         }}
       >
         <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
-          Upload Economic Event Descriptions
+          {t('admin:uploadEventDescriptions')}
         </Typography>
 
         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Select the <code>economicEventDescriptions.json</code> file to upload event descriptions to Firestore.
+          {t('admin:selectJsonFileMessage')}
         </Typography>
 
         {/* File Selection */}
@@ -322,13 +336,13 @@ function UploadDescriptions() {
               fullWidth
               sx={{ mb: 2 }}
             >
-              Select JSON File
+              {t('form:selectJsonFile')}
             </Button>
           </label>
 
           {selectedFile && (
             <Alert severity="info" sx={{ mb: 2 }}>
-              Selected: <strong>{selectedFile.name}</strong> ({(selectedFile.size / 1024).toFixed(2)} KB)
+              {t('admin:selected')}: <strong>{selectedFile.name}</strong> ({(selectedFile.size / 1024).toFixed(2)} KB)
             </Alert>
           )}
         </Box>
@@ -343,7 +357,7 @@ function UploadDescriptions() {
           fullWidth
           sx={{ mb: 3 }}
         >
-          {uploading ? 'Uploading...' : 'Upload to Firestore'}
+          {uploading ? t('admin:uploading') : t('admin:uploadToFirestore')}
         </Button>
 
         {/* Progress Bar */}
@@ -351,7 +365,7 @@ function UploadDescriptions() {
           <Box sx={{ mb: 3 }}>
             <LinearProgress variant="determinate" value={progress} />
             <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 1 }}>
-              {Math.round(progress)}% Complete
+              {Math.round(progress)}% {t('states:complete')}
             </Typography>
           </Box>
         )}
@@ -374,7 +388,7 @@ function UploadDescriptions() {
         {uploadedEvents.length > 0 && (
           <Box sx={{ mt: 4 }}>
             <Typography variant="h6" gutterBottom>
-              Uploaded Events ({uploadedEvents.length})
+              {t('admin:uploadedEvents', { count: uploadedEvents.length })}
             </Typography>
             <Paper variant="outlined" sx={{ maxHeight: 400, overflow: 'auto', p: 2 }}>
               <List dense>
@@ -419,14 +433,14 @@ function UploadDescriptions() {
         {/* Instructions */}
         <Box sx={{ mt: 4, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
           <Typography variant="subtitle2" gutterBottom>
-            Instructions:
+            {t('admin:instructions')}:
           </Typography>
           <Typography variant="body2" color="text.secondary" component="div">
             <ol style={{ margin: 0, paddingLeft: 20 }}>
-              <li>Click "Select JSON File" and choose <code>economicEventDescriptions.json</code></li>
-              <li>Click "Upload to Firestore" to start the upload</li>
-              <li>Wait for the upload to complete</li>
-              <li>The events will be stored in the <code>{COLLECTION_NAME}</code> collection</li>
+              <li>{t('admin:instructionStep1')}</li>
+              <li>{t('admin:instructionStep2')}</li>
+              <li>{t('admin:instructionStep3')}</li>
+              <li>{t('admin:instructionStep4', { collection: COLLECTION_NAME })}</li>
             </ol>
           </Typography>
         </Box>

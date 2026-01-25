@@ -28,5 +28,7 @@
   "selectAll": "Sélectionner tout",
   "deselectAll": "Désélectionner tout",
   "enterYourName": "Entrez votre nom",
-  "displayNamePlaceholder": "Entrez votre nom"
+  "displayNamePlaceholder": "Entrez votre nom",
+  "selectJsonFile": "Sélectionner le fichier JSON",
+  "enterPassword": "Entrez le mot de passe"
 }

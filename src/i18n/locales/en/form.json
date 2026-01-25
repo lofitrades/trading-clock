@@ -28,5 +28,7 @@
   "selectAll": "Select all",
   "deselectAll": "Deselect all",
   "enterYourName": "Enter your name",
-  "displayNamePlaceholder": "Enter your name"
+  "displayNamePlaceholder": "Enter your name",
+  "selectJsonFile": "Select JSON File",
+  "enterPassword": "Enter password"
 }

@@ -14,5 +14,8 @@
   "areYouSure": "Êtes-vous sûr?",
   "thisActionCannotBeUndone": "Cette action ne peut pas être annulée",
   "deleteConfirmation": "Êtes-vous sûr de vouloir supprimer ceci?",
-  "unsavedChanges": "Vous avez des modifications non enregistrées"
+  "unsavedChanges": "Vous avez des modifications non enregistrées",
+  "invalidFileType": "Veuillez sélectionner un fichier JSON valide",
+  "selectFileFirst": "Veuillez d'abord sélectionner un fichier",
+  "incorrectPassword": "Mot de passe incorrect. Veuillez réessayer."
 }
