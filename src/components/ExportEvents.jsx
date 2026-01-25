@@ -13,6 +13,7 @@
  */
 
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Button,
@@ -50,6 +51,7 @@ const CANONICAL_EVENTS_CONTAINER = 'events';
  * Exports unified multi-source collection with all fields (NFS, JBlanked, GPT).
  */
 export default function ExportEvents() {
+  const { t } = useTranslation(['admin', 'actions']);
   const { userProfile, loading } = useAuth();
   const isSuperadmin = useMemo(() => userProfile?.role === 'superadmin', [userProfile?.role]);
   const [exporting, setExporting] = useState(false);
