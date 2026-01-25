@@ -15,7 +15,8 @@
  * - Enterprise z-index stacking (Dialog: 10001+)
  * 
  * Changelog:
- * v1.1.0 - 2026-01-17 - ENHANCED LOGOUT: Ensure complete user preference cleanup. Reset settings BEFORE sign-out to clear state immediately. Add explicit localStorage targeted cleanup for user-specific keys. Ensure all async operations complete before navigation. Set sensible defaults (America/New_York timezone, show all clock elements). Follows BEP enterprise logout patterns.
+ * v1.1.0 - 2026-01-24 - Phase 3 i18n migration: Logout strings (dialogs namespace - 6 strings EN/ES/FR)
+ * v1.1.0_legacy - 2026-01-17 - ENHANCED LOGOUT: Ensure complete user preference cleanup. Reset settings BEFORE sign-out to clear state immediately. Add explicit localStorage targeted cleanup for user-specific keys. Ensure all async operations complete before navigation. Set sensible defaults (America/New_York timezone, show all clock elements). Follows BEP enterprise logout patterns.
  * v1.0.1 - 2026-01-15 - Modal layering: keep backdrop behind paper and ensure modal stacks above AppBar.
  * v1.0.0 - 2026-01-14 - INITIAL COMPONENT: Created standalone LogoutModal for enterprise logout flow.
  * Manages Firebase sign-out, settings reset, and navigation internally. Prevents double-click logout
@@ -24,6 +25,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import {
     Dialog,
@@ -43,6 +45,7 @@ import { auth } from '../firebase';
 import { useSettings } from '../contexts/SettingsContext';
 
 const LogoutModal = ({ open = false, onClose, onLogoutComplete }) => {
+    const { t } = useTranslation(['dialogs', 'actions']);
     const navigate = useNavigate();
     const { resetSettings } = useSettings();
     const [isLoading, setIsLoading] = useState(false);
@@ -115,7 +118,7 @@ const LogoutModal = ({ open = false, onClose, onLogoutComplete }) => {
         } catch (err) {
             console.error('Logout failed:', err);
             setError(
-                err?.message || 'Failed to log out. Please try again or refresh the page.'
+                err?.message || t('dialogs:failedToLogout')
             );
             setIsLoading(false);
         }
@@ -148,7 +151,7 @@ const LogoutModal = ({ open = false, onClose, onLogoutComplete }) => {
                     color: 'text.primary',
                 }}
             >
-                Log out?
+                {t('dialogs:logoutTitle')}
             </DialogTitle>
 
             <DialogContent id="logout-dialog-description" sx={{ pt: 2 }}>
@@ -160,8 +163,7 @@ const LogoutModal = ({ open = false, onClose, onLogoutComplete }) => {
                         mb: error ? 2 : 0,
                     }}
                 >
-                    Are you sure you want to log out? You&apos;ll need to sign in again to access your
-                    saved settings.
+                    {t('dialogs:logoutMessage')}
                 </Typography>
 
                 {/* Error message with retry option */}
@@ -189,7 +191,7 @@ const LogoutModal = ({ open = false, onClose, onLogoutComplete }) => {
                         fontWeight: 600,
                     }}
                 >
-                    Cancel
+                    {t('actions:cancel')}
                 </Button>
 
                 <Box sx={{ position: 'relative' }}>
@@ -204,7 +206,7 @@ const LogoutModal = ({ open = false, onClose, onLogoutComplete }) => {
                             minWidth: 100,
                         }}
                     >
-                        {isLoading ? 'Logging out...' : 'Log out'}
+                        {isLoading ? t('dialogs:loggingOut') : t('dialogs:logout')}
                     </Button>
 
                     {/* Loading spinner overlay */}

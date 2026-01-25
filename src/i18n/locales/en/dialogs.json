@@ -48,5 +48,15 @@
   "noNameSet": "No name set",
   "resetPasswordTitle": "Reset Password?",
   "resetPasswordMessage": "Send a password reset email to {{email}}?",
-  "sendEmail": "Send Email"
+  "sendEmail": "Send Email",
+  "logoutTitle": "Log out?",
+  "logoutMessage": "Are you sure you want to log out? You'll need to sign in again to access your saved settings.",
+  "loggingOut": "Logging out...",
+  "logout": "Log out",
+  "failedToLogout": "Failed to log out. Please try again or refresh the page.",
+  "unlockProTitle": "Unlock Pro★ Features for free: $0",
+  "unlockProMessage": "Create a free account to unlock full access to the pro features, including changing timezones and accessing premium settings.",
+  "createFreeAccount": "Create Free Account",
+  "enterPasswordToConfirm": "Enter Password to Confirm",
+  "incorrectPassword": "Incorrect password"
 }

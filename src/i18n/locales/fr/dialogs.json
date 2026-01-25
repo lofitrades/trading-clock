@@ -48,5 +48,15 @@
   "noNameSet": "Aucun nom défini",
   "resetPasswordTitle": "Réinitialiser le mot de passe?",
   "resetPasswordMessage": "Envoyer un e-mail de réinitialisation de mot de passe à {{email}}?",
-  "sendEmail": "Envoyer un e-mail"
+  "sendEmail": "Envoyer un e-mail",
+  "logoutTitle": "Se déconnecter?",
+  "logoutMessage": "Êtes-vous sûr de vouloir vous déconnecter? Vous devrez vous reconnecter pour accéder à vos paramètres enregistrés.",
+  "loggingOut": "Déconnexion en cours...",
+  "logout": "Se déconnecter",
+  "failedToLogout": "Impossible de se déconnecter. Veuillez réessayer ou actualiser la page.",
+  "unlockProTitle": "Déverrouiller les fonctionnalités Pro★ gratuitement: $0",
+  "unlockProMessage": "Créez un compte gratuit pour accéder à toutes les fonctionnalités pro, y compris la possibilité de changer les fuseaux horaires et d'accéder aux paramètres premium.",
+  "createFreeAccount": "Créer un compte gratuit",
+  "enterPasswordToConfirm": "Entrez le mot de passe pour confirmer",
+  "incorrectPassword": "Mot de passe incorrect"
 }

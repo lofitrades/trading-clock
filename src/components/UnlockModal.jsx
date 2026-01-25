@@ -5,10 +5,12 @@
  * Purpose: Feature unlock promotion modal for non-authenticated users.
  * 
  * Changelog:
- * v1.1.0 - 2026-01-14 - CRITICAL FIX: Updated backdrop z-index to 1699 and paper z-index to 1701 to ensure modal blocks clicks and properly layers above AppBar (1400) and SettingsSidebar2 (1600).
+ * v1.1.0 - 2026-01-24 - Phase 3 i18n migration: Unlock promotion strings (dialogs namespace - 4 strings EN/ES/FR)
+ * v1.0.1 - 2026-01-14 - CRITICAL FIX: Updated backdrop z-index to 1699 and paper z-index to 1701 to ensure modal blocks clicks and properly layers above AppBar (1400) and SettingsSidebar2 (1600).
  * v1.0.0 - Initial implementation
  */
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogTitle,
@@ -20,6 +22,7 @@ import {
 import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 
 export default function UnlockModal({ onClose, onSignUp }) {
+  const { t } = useTranslation(['dialogs', 'actions']);
   return (
     <Dialog
       open={true}
@@ -32,19 +35,19 @@ export default function UnlockModal({ onClose, onSignUp }) {
       }}
     >
       <DialogTitle sx={{ textAlign: 'center' }}>
-        Unlock Pro★ Features for free: $0
+        {t('dialogs:unlockProTitle')}
       </DialogTitle>
       <DialogContent>
         <Typography sx={{ textAlign: 'center', mb: 2 }}>
-          Create a free account to unlock full access to the pro features, including changing timezones and accessing premium settings.
+          {t('dialogs:unlockProMessage')}
         </Typography>
       </DialogContent>
       <DialogActions sx={{ flexDirection: 'column', gap: 1, padding: '16px 24px' }}>
         <Button onClick={onSignUp} variant="contained" color="primary" fullWidth>
-          Create Free Account
+          {t('dialogs:createFreeAccount')}
         </Button>
         <Button onClick={onClose} variant="text" color="primary">
-          Close
+          {t('actions:close')}
         </Button>
       </DialogActions>
     </Dialog>

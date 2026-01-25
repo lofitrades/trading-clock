@@ -48,5 +48,15 @@
   "noNameSet": "Sin nombre establecido",
   "resetPasswordTitle": "¿Restablecer contraseña?",
   "resetPasswordMessage": "¿Enviar un correo de restablecimiento de contraseña a {{email}}?",
-  "sendEmail": "Enviar correo"
+  "sendEmail": "Enviar correo",
+  "logoutTitle": "¿Cerrar sesión?",
+  "logoutMessage": "¿Estás seguro de que deseas cerrar sesión? Necesitarás iniciar sesión de nuevo para acceder a tu configuración guardada.",
+  "loggingOut": "Cerrando sesión...",
+  "logout": "Cerrar sesión",
+  "failedToLogout": "No se pudo cerrar sesión. Por favor, inténtalo de nuevo o recarga la página.",
+  "unlockProTitle": "Desbloquea funciones Pro★ gratis: $0",
+  "unlockProMessage": "Crea una cuenta gratuita para desbloquear el acceso completo a las funciones pro, incluida la capacidad de cambiar zonas horarias y acceder a la configuración premium.",
+  "createFreeAccount": "Crear cuenta gratuita",
+  "enterPasswordToConfirm": "Ingresa la contraseña para confirmar",
+  "incorrectPassword": "Contraseña incorrecta"
 }

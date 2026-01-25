@@ -1,5 +1,6 @@
 /* src/components/ConfirmModal.jsx */
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogTitle,
@@ -23,6 +24,7 @@ export default function ConfirmModal({
   requirePassword = false,
   password = null,
 }) {
+  const { t } = useTranslation(['dialogs']);
   const [inputPassword, setInputPassword] = useState('');
   const [passwordError, setPasswordError] = useState(false);
 
@@ -78,7 +80,7 @@ export default function ConfirmModal({
             <TextField
               fullWidth
               type="password"
-              label="Enter Password to Confirm"
+              label={t('dialogs:enterPasswordToConfirm')}
               value={inputPassword}
               onChange={(e) => {
                 setInputPassword(e.target.value);
@@ -86,7 +88,7 @@ export default function ConfirmModal({
               }}
               onKeyPress={handleKeyPress}
               error={passwordError}
-              helperText={passwordError ? 'Incorrect password' : ''}
+              helperText={passwordError ? t('dialogs:incorrectPassword') : ''}
               autoFocus
               sx={{ mt: 1 }}
             />
