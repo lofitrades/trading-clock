@@ -25,5 +25,7 @@
   "notes": "Notes",
   "attach": "Attach file",
   "selectAll": "Select all",
-  "deselectAll": "Deselect all"
+  "deselectAll": "Deselect all",
+  "enterYourName": "Enter your name",
+  "displayNamePlaceholder": "Enter your name"
 }

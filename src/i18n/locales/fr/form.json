@@ -25,5 +25,7 @@
   "notes": "Remarques",
   "attach": "Joindre un fichier",
   "selectAll": "Sélectionner tout",
-  "deselectAll": "Désélectionner tout"
+  "deselectAll": "Désélectionner tout",
+  "enterYourName": "Entrez votre nom",
+  "displayNamePlaceholder": "Entrez votre nom"
 }

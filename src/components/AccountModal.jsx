@@ -13,6 +13,7 @@
  * - Self-contained with proper error handling
  * 
  * Changelog:
+ * v2.2.0 - 2026-01-24 - Phase 3 i18n migration: Account management strings (dialogs, form, actions - 42+ strings EN/ES/FR)
  * v2.1.4 - 2026-01-15 - Hide AccountModal when password reset flow is triggered to prevent stacking conflicts.
  * v2.1.3 - 2026-01-15 - Hide AccountModal when higher-priority auth modals (e.g., ForgotPasswordModal) are active.
  * v2.1.2 - 2026-01-15 - Modal layering: keep backdrop behind paper and ensure modal stacks above AppBar.
@@ -24,6 +25,7 @@
 
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogTitle,
@@ -54,6 +56,7 @@ import ConfirmModal from './ConfirmModal';
 import { getFriendlyErrorMessage } from '../utils/messages';
 
 export default function AccountModal({ open, onClose, user }) {
+  const { t } = useTranslation(['dialogs', 'form', 'actions']);
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -119,11 +122,11 @@ export default function AccountModal({ open, onClose, user }) {
         { merge: true }
       );
 
-      setMessage('Profile updated successfully!');
+      setMessage(t('dialogs:profileUpdated'));
       setTimeout(() => onClose(), 1500);
     } catch (err) {
       console.error('[AccountModal] Save failed:', err);
-      setError(getFriendlyErrorMessage(err.code) || 'Failed to update profile.');
+      setError(getFriendlyErrorMessage(err.code) || t('dialogs:failedToUpdateProfile'));
     } finally {
       setSaving(false);
     }
@@ -138,11 +141,11 @@ export default function AccountModal({ open, onClose, user }) {
 
     try {
       await sendPasswordResetEmail(auth, user.email);
-      setMessage(`Password reset email sent to ${user.email}. Check your inbox!`);
+      setMessage(t('dialogs:passwordResetEmailSent', { email: user.email }));
       setHideAccountModal(false);
     } catch (err) {
       console.error('[AccountModal] Password reset failed:', err);
-      setError(getFriendlyErrorMessage(err.code) || 'Failed to send password reset email.');
+      setError(getFriendlyErrorMessage(err.code) || t('dialogs:failedToSendPasswordResetEmail'));
       setHideAccountModal(false);
     }
   };
@@ -180,9 +183,9 @@ export default function AccountModal({ open, onClose, user }) {
       console.error('[AccountModal] Account deletion failed:', err);
 
       if (err.code === 'auth/requires-recent-login') {
-        setError('For security, please sign out and sign back in before deleting your account.');
+        setError(t('dialogs:requireRecentLogin'));
       } else {
-        setError(getFriendlyErrorMessage(err.code) || 'Failed to delete account.');
+        setError(getFriendlyErrorMessage(err.code) || t('dialogs:failedToDeleteAccount'));
       }
     }
   };
@@ -236,7 +239,7 @@ export default function AccountModal({ open, onClose, user }) {
             p: { xs: 2, sm: 2.5 },
             fontWeight: 700,
           }}>
-            Account Settings
+            {t('dialogs:accountTitle')}
             <IconButton
               onClick={onClose}
               size="small"
@@ -281,7 +284,7 @@ export default function AccountModal({ open, onClose, user }) {
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap'
                   }}>
-                    {displayName || 'No name set'}
+                    {displayName || t('dialogs:noNameSet')}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{
                     overflow: 'hidden',
@@ -298,15 +301,15 @@ export default function AccountModal({ open, onClose, user }) {
               {/* Personal Information */}
               <Box>
                 <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                  Personal Information
+                  {t('dialogs:personalInformation')}
                 </Typography>
                 <Stack spacing={2} sx={{ mt: 1.5 }}>
                   <TextField
-                    label="Display Name"
+                    label={t('dialogs:displayName')}
                     fullWidth
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Enter your name"
+                    placeholder={t('form:displayNamePlaceholder')}
                     size="small"
                     disabled={saving}
                   />
@@ -318,7 +321,7 @@ export default function AccountModal({ open, onClose, user }) {
               {/* Security Section */}
               <Box>
                 <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                  Security
+                  {t('dialogs:security')}
                 </Typography>
                 <Button
                   variant="outlined"
@@ -330,7 +333,7 @@ export default function AccountModal({ open, onClose, user }) {
                   fullWidth
                   sx={{ mt: 1.5, textTransform: 'none', justifyContent: 'flex-start' }}
                 >
-                  Send Password Reset Email
+                  {t('dialogs:sendPasswordResetEmail')}
                 </Button>
               </Box>
 
@@ -368,7 +371,7 @@ export default function AccountModal({ open, onClose, user }) {
                   }}
                   fullWidth
                 >
-                  {showDangerZone ? 'Hide Danger Zone' : 'Show Danger Zone'}
+                  {showDangerZone ? t('dialogs:hideDangerZone') : t('dialogs:showDangerZone')}
                 </Button>
                 <Collapse in={showDangerZone}>
                   <Box sx={{
@@ -380,10 +383,10 @@ export default function AccountModal({ open, onClose, user }) {
                     borderRadius: 2,
                   }}>
                     <Typography variant="subtitle2" fontWeight={600} color="error" gutterBottom>
-                      Delete Account
+                      {t('dialogs:deleteAccount')}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" paragraph>
-                      Permanently delete your account and all associated data. This action cannot be undone.
+                      {t('dialogs:deleteAccountWarning')}
                     </Typography>
                     <Button
                       variant="contained"
@@ -393,7 +396,7 @@ export default function AccountModal({ open, onClose, user }) {
                       fullWidth
                       sx={{ textTransform: 'none' }}
                     >
-                      Delete My Account
+                      {t('dialogs:deleteMyAccount')}
                     </Button>
                   </Box>
                 </Collapse>
@@ -414,7 +417,7 @@ export default function AccountModal({ open, onClose, user }) {
               sx={{ textTransform: 'none' }}
               disabled={saving}
             >
-              Cancel
+              {t('actions:cancel')}
             </Button>
             <Button
               onClick={handleSave}
@@ -424,7 +427,7 @@ export default function AccountModal({ open, onClose, user }) {
               fullWidth={{ xs: true, sm: false }}
               sx={{ textTransform: 'none', minWidth: { sm: 120 } }}
             >
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? `${t('actions:save')}...` : t('dialogs:saveChanges')}
             </Button>
           </DialogActions>
         </Dialog>
@@ -439,10 +442,10 @@ export default function AccountModal({ open, onClose, user }) {
             setHideAccountModal(false);
           }}
           onConfirm={handlePasswordReset}
-          title="Reset Password"
-          message={`Send a password reset email to ${user.email}?`}
-          confirmText="Send Email"
-          cancelText="Cancel"
+          title={t('dialogs:resetPasswordTitle')}
+          message={t('dialogs:resetPasswordMessage', { email: user.email })}
+          confirmText={t('dialogs:sendEmail')}
+          cancelText={t('actions:cancel')}
         />
       )}
 
@@ -473,26 +476,26 @@ export default function AccountModal({ open, onClose, user }) {
             color: 'error.main',
           }}>
             <WarningAmberIcon />
-            Delete Account Permanently
+            {t('dialogs:deleteAccountPermanently')}
           </DialogTitle>
 
           <DialogContent sx={{ p: { xs: 2, sm: 3 }, pt: { xs: 3, sm: 3 } }}>
             <Alert severity="error" sx={{ my: 2 }}>
               <Typography variant="body2" fontWeight={600} gutterBottom>
-                ⚠️ This action cannot be undone!
+                ⚠️ {t('dialogs:deleteWarningFull')}
               </Typography>
               <Typography variant="body2">
-                All your data will be permanently deleted:
+                {t('dialogs:allYourDataWillBeDeleted')}
               </Typography>
               <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2 }}>
-                <li>Profile information and photos</li>
-                <li>Settings and preferences</li>
-                <li>All saved data</li>
+                <li>{t('dialogs:profileInfoAndPhotos')}</li>
+                <li>{t('dialogs:settingsAndPreferences')}</li>
+                <li>{t('dialogs:allSavedData')}</li>
               </Box>
             </Alert>
 
             <Typography variant="body2" color="text.secondary" paragraph>
-              To confirm deletion, please type the following exactly (case-sensitive):
+              {t('dialogs:confirmDeletionText')}
             </Typography>
 
             <Box sx={{
@@ -514,14 +517,14 @@ export default function AccountModal({ open, onClose, user }) {
               onPaste={(e) => e.preventDefault()}
               onCopy={(e) => e.preventDefault()}
               onCut={(e) => e.preventDefault()}
-              placeholder="Type here to confirm..."
+              placeholder={t('dialogs:typeHereToConfirm')}
               autoComplete="off"
               autoFocus
               error={deleteConfirmText.length > 0 && deleteConfirmText !== REQUIRED_DELETE_TEXT}
               helperText={
                 deleteConfirmText.length > 0 && deleteConfirmText !== REQUIRED_DELETE_TEXT
-                  ? 'Text must match exactly (case-sensitive)'
-                  : 'Paste is disabled - you must type manually'
+                  ? t('dialogs:textMustMatchExactly')
+                  : t('dialogs:pasteIsDisabled')
               }
               sx={{
                 '& input': {
@@ -539,7 +542,7 @@ export default function AccountModal({ open, onClose, user }) {
               }}
               sx={{ textTransform: 'none' }}
             >
-              Cancel
+              {t('actions:cancel')}
             </Button>
             <Button
               onClick={handleDeleteAccount}
@@ -548,7 +551,7 @@ export default function AccountModal({ open, onClose, user }) {
               disabled={deleteConfirmText !== REQUIRED_DELETE_TEXT}
               sx={{ textTransform: 'none' }}
             >
-              Delete Forever
+              {t('dialogs:deleteForever')}
             </Button>
           </DialogActions>
         </Dialog>
