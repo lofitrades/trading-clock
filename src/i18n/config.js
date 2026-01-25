@@ -23,6 +23,7 @@ import enLegal from './locales/en/legal.json';
 import enErrors from './locales/en/errors.json';
 import enTimezone from './locales/en/timezone.json';
 import enWelcome from './locales/en/welcome.json';
+import enMessages from './locales/en/messages.json';
 
 import esCommon from './locales/es/common.json';
 import esAuth from './locales/es/auth.json';
@@ -34,6 +35,7 @@ import esLegal from './locales/es/legal.json';
 import esErrors from './locales/es/errors.json';
 import esTimezone from './locales/es/timezone.json';
 import esWelcome from './locales/es/welcome.json';
+import esMessages from './locales/es/messages.json';
 
 import frCommon from './locales/fr/common.json';
 import frAuth from './locales/fr/auth.json';
@@ -45,6 +47,7 @@ import frLegal from './locales/fr/legal.json';
 import frErrors from './locales/fr/errors.json';
 import frTimezone from './locales/fr/timezone.json';
 import frWelcome from './locales/fr/welcome.json';
+import frMessages from './locales/fr/messages.json';
 
 /**
  * Translation resources organized by language and namespace
@@ -62,6 +65,7 @@ const resources = {
     errors: enErrors,
     timezone: enTimezone,
     welcome: enWelcome,
+    messages: enMessages,
   },
   es: {
     common: esCommon,
@@ -74,6 +78,7 @@ const resources = {
     errors: esErrors,
     timezone: esTimezone,
     welcome: esWelcome,
+    messages: esMessages,
   },
   fr: {
     common: frCommon,
@@ -86,6 +91,7 @@ const resources = {
     errors: frErrors,
     timezone: frTimezone,
     welcome: frWelcome,
+    messages: frMessages,
   },
 };
 

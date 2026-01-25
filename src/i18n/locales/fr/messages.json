@@ -1,0 +1,21 @@
+{
+  "errors": {
+    "wrongPassword": "Mot de passe incorrect. Veuillez réessayer ou le réinitialiser.",
+    "userNotFound": "Aucun compte trouvé avec cet e-mail. Veuillez d'abord vous inscrire.",
+    "emailAlreadyInUse": "Cet e-mail est déjà enregistré. Vous avez été connecté.",
+    "invalidEmail": "Veuillez entrer une adresse e-mail valide.",
+    "userDisabled": "Votre compte est actuellement désactivé. Veuillez contacter le support.",
+    "tooManyRequests": "Trop de tentatives. Veuillez attendre un moment et réessayer.",
+    "networkRequestFailed": "Erreur réseau. Veuillez vérifier votre connexion.",
+    "default": "Une erreur inattendue s'est produite. Veuillez réessayer ou utiliser une autre méthode."
+  },
+  "success": {
+    "login": "Bienvenue! Vous vous êtes connecté avec succès.",
+    "signup": "Votre compte a été créé! Un e-mail de vérification vous a été envoyé.",
+    "verifyEmail": "Nous avons envoyé un e-mail de vérification. Veuillez vérifier votre boîte de réception.",
+    "passwordReset": "Nous avons envoyé un lien de réinitialisation de mot de passe à votre e-mail.",
+    "profileUpdated": "Profil mis à jour avec succès!",
+    "changePassword": "Un e-mail de réinitialisation de mot de passe a été envoyé. Veuillez vérifier votre boîte de réception.",
+    "default": "Succès!"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "errors": {
+    "wrongPassword": "Incorrect password. Please try again or reset it.",
+    "userNotFound": "No account found with that email. Please sign up first.",
+    "emailAlreadyInUse": "That email is already registered. You have been logged in.",
+    "invalidEmail": "Please enter a valid email address.",
+    "userDisabled": "Your account is currently disabled. Please contact support.",
+    "tooManyRequests": "Too many attempts. Please wait a moment and try again.",
+    "networkRequestFailed": "Network error. Please check your connection.",
+    "default": "An unexpected error occurred. Please try again or use another method."
+  },
+  "success": {
+    "login": "Welcome back! You have successfully logged in.",
+    "signup": "Your account was created! A verification email was sent to you.",
+    "verifyEmail": "We've sent a verification email. Please check your inbox.",
+    "passwordReset": "We've sent a password reset link to your email.",
+    "profileUpdated": "Profile updated successfully!",
+    "changePassword": "A password reset email has been sent. Please check your inbox.",
+    "default": "Success!"
+  }
+}
