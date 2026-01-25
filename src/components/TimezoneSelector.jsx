@@ -112,7 +112,7 @@ SearchablePopper.propTypes = {
 };
 
 export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChange, onRequestSignUp, children }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['timezone', 'common', 'actions']);
   const { user } = useAuth();
   const { selectedTimezone, updateSelectedTimezone } = useSettings();
   const [showUnlock, setShowUnlock] = useState(false);
