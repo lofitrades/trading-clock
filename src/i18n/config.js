@@ -33,6 +33,7 @@ import enDialogs from './locales/en/dialogs.json';
 import enA11y from './locales/en/a11y.json';
 import enForm from './locales/en/form.json';
 import enAdmin from './locales/en/admin.json';
+import enMisc from './locales/en/misc.json';
 
 import esCommon from './locales/es/common.json';
 import esAuth from './locales/es/auth.json';
@@ -54,6 +55,7 @@ import esDialogs from './locales/es/dialogs.json';
 import esA11y from './locales/es/a11y.json';
 import esForm from './locales/es/form.json';
 import esAdmin from './locales/es/admin.json';
+import esMisc from './locales/es/misc.json';
 
 import frCommon from './locales/fr/common.json';
 import frAuth from './locales/fr/auth.json';
@@ -75,6 +77,7 @@ import frDialogs from './locales/fr/dialogs.json';
 import frA11y from './locales/fr/a11y.json';
 import frForm from './locales/fr/form.json';
 import frAdmin from './locales/fr/admin.json';
+import frMisc from './locales/fr/misc.json';
 
 /**
  * Translation resources organized by language and namespace
@@ -102,6 +105,7 @@ const resources = {
     a11y: enA11y,
     form: enForm,
     admin: enAdmin,
+    misc: enMisc,
   },
   es: {
     common: esCommon,
@@ -124,6 +128,7 @@ const resources = {
     a11y: esA11y,
     form: esForm,
     admin: esAdmin,
+    misc: esMisc,
   },
   fr: {
     common: frCommon,
@@ -146,6 +151,7 @@ const resources = {
     a11y: frA11y,
     form: frForm,
     admin: frAdmin,
+    misc: frMisc,
   },
 };
 
