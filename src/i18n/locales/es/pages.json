@@ -209,8 +209,34 @@
       "primary": "Desbloquea todas las funciones",
       "secondary": "Ir al Calendario",
       "signIn": "Inicia sesión"
+    },    "highlights": {
+      "product": {
+        "label": "Reloj de Sesión",
+        "value": "NY + Londres + Asia",
+        "hint": "Cuenta regresiva en tiempo real hasta transiciones clave"
+      },
+      "events": {
+        "label": "Calendario Económico",
+        "value": "Impulsado por Forex Factory",
+        "hint": "Filtra por impacto y moneda"
+      },
+      "custom": {
+        "label": "Eventos Personalizados",
+        "value": "Tus reglas",
+        "hint": "Agrega recordatorios y ventanas de tiempo"
+      },
+      "form": {
+        "label": "Espacio de Trabajo",
+        "value": "Totalmente responsivo",
+        "hint": "Mobile-first, listo para sincronización en la nube"
+      }
     },
-    "nav": {
+    "navigation": {
+      "openClock": "Abre el reloj",
+      "calendar": "Calendario",
+      "about": "Acerca de",
+      "faq": "FAQ"
+    },    "nav": {
       "openClock": "Abre el reloj",
       "calendar": "Calendario",
       "about": "Acerca de",

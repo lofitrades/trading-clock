@@ -156,10 +156,10 @@ export default function Page() {
                     <span>Time 2 Trade</span>
                 </div>
                 <nav className="nav">
-                    <a href="/clock" aria-label="Open the session clock">{t('landing.navigation.openClock')}</a>
-                    <a href="/calendar" aria-label="Open the economic calendar">{t('landing.navigation.calendar')}</a>
-                    <a href="/about" aria-label="Learn about Time 2 Trade">{t('landing.navigation.about')}</a>
-                    <a href="#faq" aria-label="Read frequently asked questions">{t('landing.navigation.faq')}</a>
+                    <a href="/clock" aria-label="Open the session clock">{t('landing.nav.openClock')}</a>
+                    <a href="/calendar" aria-label="Open the economic calendar">{t('landing.nav.calendar')}</a>
+                    <a href="/about" aria-label="Learn about Time 2 Trade">{t('landing.nav.about')}</a>
+                    <a href="#faq" aria-label="Read frequently asked questions">{t('landing.nav.faq')}</a>
                 </nav>
             </header>
 
@@ -253,9 +253,9 @@ export default function Page() {
                             <span>Time 2 Trade</span>
                         </div>
                         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                            <a href="/clock" aria-label="Launch the clock from footer" className="btn btn-secondary">{t('landing.navigation.openClock')}</a>
-                            <a href="/calendar" aria-label="Open the calendar from footer" className="btn btn-secondary">{t('landing.navigation.calendar')}</a>
-                            <a href="/about" aria-label="Read about Time 2 Trade" className="btn btn-secondary">{t('landing.navigation.about')}</a>
+                            <a href="/clock" aria-label="Launch the clock from footer" className="btn btn-secondary">{t('landing.nav.openClock')}</a>
+                            <a href="/calendar" aria-label="Open the calendar from footer" className="btn btn-secondary">{t('landing.nav.calendar')}</a>
+                            <a href="/about" aria-label="Read about Time 2 Trade" className="btn btn-secondary">{t('landing.nav.about')}</a>
                         </div>
                     </div>
                 </div>

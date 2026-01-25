@@ -209,8 +209,34 @@
       "primary": "Déverrouille toutes les fonctionnalités",
       "secondary": "Aller au Calendrier",
       "signIn": "Connecte-toi"
+    },    "highlights": {
+      "product": {
+        "label": "Horloge de Session",
+        "value": "NY + Londres + Asie",
+        "hint": "Compte à rebours en temps réel jusqu'aux transitions clés"
+      },
+      "events": {
+        "label": "Calendrier Économique",
+        "value": "Alimenté par Forex Factory",
+        "hint": "Filtre par impact et devise"
+      },
+      "custom": {
+        "label": "Événements Personnalisés",
+        "value": "Tes règles",
+        "hint": "Ajoute des rappels et des fenêtres temporelles"
+      },
+      "form": {
+        "label": "Espace de Travail",
+        "value": "Entièrement réactif",
+        "hint": "Mobile-first, prêt pour la synchronisation cloud"
+      }
     },
-    "nav": {
+    "navigation": {
+      "openClock": "Ouvrir l'horloge",
+      "calendar": "Calendrier",
+      "about": "À propos",
+      "faq": "FAQ"
+    },    "nav": {
       "openClock": "Ouvre l'horloge",
       "calendar": "Calendrier",
       "about": "À propos",

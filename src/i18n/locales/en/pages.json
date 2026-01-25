@@ -210,6 +210,34 @@
       "secondary": "Go to Calendar",
       "signIn": "Sign in"
     },
+    "highlights": {
+      "product": {
+        "label": "Session Clock",
+        "value": "NY + London + Asia",
+        "hint": "Real-time countdown to key transitions"
+      },
+      "events": {
+        "label": "Economic Calendar",
+        "value": "Forex Factory-powered",
+        "hint": "Filter by impact and currency"
+      },
+      "custom": {
+        "label": "Custom Events",
+        "value": "Your rules",
+        "hint": "Add reminders and timing windows"
+      },
+      "form": {
+        "label": "Workspace",
+        "value": "Fully responsive",
+        "hint": "Mobile-first, cloud-sync ready"
+      }
+    },
+    "navigation": {
+      "openClock": "Open clock",
+      "calendar": "Calendar",
+      "about": "About",
+      "faq": "FAQ"
+    },
     "nav": {
       "openClock": "Open clock",
       "calendar": "Calendar",
