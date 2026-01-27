@@ -489,6 +489,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
                         events={notificationEvents}
                         closeSignal={notificationCloseSignal}
                         onMenuOpen={() => setAvatarCloseSignal((prev) => prev + 1)}
+                        onMenuClose={() => setAvatarCloseSignal((prev) => prev + 1)}
                       />
                       {buttonElement}
                     </React.Fragment>
@@ -515,6 +516,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
                     events={notificationEvents}
                     closeSignal={notificationCloseSignal}
                     onMenuOpen={() => setAvatarCloseSignal((prev) => prev + 1)}
+                    onMenuClose={() => setAvatarCloseSignal((prev) => prev + 1)}
                   />
                 )}
 

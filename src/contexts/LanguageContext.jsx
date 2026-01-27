@@ -64,6 +64,7 @@ export function LanguageProvider({ children }) {
     loadLanguagePreference();
     // Only depend on user.uid to prevent infinite loops
     // i18n object is stable after initialization, no need to include it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]);
 
   // Provide context value
