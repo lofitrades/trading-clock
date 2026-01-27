@@ -69,6 +69,68 @@ export function useSettings() {
   return context;
 }
 
+/**
+ * Safe version of useSettings that returns a fallback context if provider is not available.
+ * Used for components that might render during SSR/prerendering before providers are mounted.
+ * BEP: Falls back to default values instead of throwing error during prerender.
+ */
+export function useSettingsSafe() {
+  const context = useContext(SettingsContext);
+  
+  // Return default settings if context not available (e.g., during SSR/prerendering)
+  if (!context) {
+    return {
+      isLoading: true,
+      clockStyle: 'normal',
+      canvasSize: 100,
+      clockSize: 375,
+      sessions: [...defaultSessions],
+      selectedTimezone: 'America/New_York',
+      backgroundBasedOnSession: false,
+      showHandClock: true,
+      showDigitalClock: true,
+      showSessionLabel: false,
+      showTimezoneLabel: true,
+      showTimeToEnd: true,
+      showTimeToStart: true,
+      showSessionNamesInCanvas: true,
+      showEventsOnCanvas: true,
+      showClockNumbers: true,
+      showClockHands: true,
+      showPastSessionsGray: false,
+      newsSource: DEFAULT_NEWS_SOURCE,
+      preferredSource: 'auto',
+      eventFilters: {
+        startDate: null,
+        endDate: null,
+        impacts: [],
+        currencies: [],
+        favoritesOnly: false,
+        searchQuery: '',
+      },
+      updateSelectedTimezone: () => {},
+      updateBackgroundBasedOnSession: () => {},
+      updateShowHandClock: () => {},
+      updateShowDigitalClock: () => {},
+      updateShowSessionLabel: () => {},
+      updateShowTimezoneLabel: () => {},
+      updateShowTimeToEnd: () => {},
+      updateShowTimeToStart: () => {},
+      updateShowSessionNamesInCanvas: () => {},
+      updateShowEventsOnCanvas: () => {},
+      updateClockNumbers: () => {},
+      updateClockHands: () => {},
+      updateShowPastSessionsGray: () => {},
+      updateSessions: () => {},
+      updateEventFilters: () => {},
+      updateNewsSource: () => {},
+      resetSettings: () => {},
+    };
+  }
+  
+  return context;
+}
+
 export function SettingsProvider({ children }) {
   const { user } = useAuth();
 

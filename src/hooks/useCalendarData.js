@@ -20,7 +20,7 @@
  */
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettingsSafe } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useFavorites } from './useFavorites';
 import { getEventsByDateRange, refreshEventsCache } from '../services/economicEventsService';
@@ -154,7 +154,7 @@ const ensureDate = (value) => {
 
 export function useCalendarData({ defaultPreset = 'thisWeek' } = {}) {
   const { user } = useAuth();
-  const { selectedTimezone, eventFilters, newsSource, updateEventFilters, updateNewsSource } = useSettings();
+  const { selectedTimezone, eventFilters, newsSource, updateEventFilters, updateNewsSource } = useSettingsSafe();
   const { isFavorite, toggleFavorite, favoritesLoading, isFavoritePending } = useFavorites();
 
   const defaultRange = useMemo(
