@@ -219,10 +219,10 @@ SessionLabel.propTypes = {
   showTimeToStart: PropTypes.bool,
   nextSession: PropTypes.shape({
     name: PropTypes.string,
-    backgroundBasedOnSession: PropTypes.bool,
     color: PropTypes.string,
   }),
   timeToStart: PropTypes.number,
   clockSize: PropTypes.number.isRequired,
   contrastTextColor: PropTypes.string,
+  backgroundBasedOnSession: PropTypes.bool,
 };

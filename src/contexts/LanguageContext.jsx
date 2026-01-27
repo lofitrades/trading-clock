@@ -9,6 +9,7 @@
  * v1.0.0 - 2026-01-27 - Initial implementation (Phase 4)
  */
 
+import PropTypes from 'prop-types';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from './AuthContext';
@@ -74,11 +75,16 @@ export function LanguageProvider({ children }) {
   );
 }
 
+LanguageProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
 /**
  * Hook to access language context
  * Returns: { language: string, isLoading: boolean }
  * Safe: Returns default if context not available (SSR/prerender compatibility)
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useLanguage() {
   const context = useContext(LanguageContext);
   
