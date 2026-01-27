@@ -17,5 +17,9 @@
   "unsavedChanges": "Tienes cambios sin guardar",
   "invalidFileType": "Por favor, selecciona un archivo JSON válido",
   "selectFileFirst": "Por favor, selecciona un archivo primero",
-  "incorrectPassword": "Contraseña incorrecta. Por favor, intenta de nuevo."
+  "incorrectPassword": "Contraseña incorrecta. Por favor intenta de nuevo.",
+  "jsonMustBeArrayOrEvents": "JSON debe ser un array o { \"events\": [] }.",
+  "failedToValidateJson": "Error al validar JSON.",
+  "selectAtLeastOneEvent": "Selecciona al menos un evento para cargar.",
+  "eventsHaveValidationErrors": "Algunos eventos tienen errores de validación. Corrígelos antes de cargar."
 }

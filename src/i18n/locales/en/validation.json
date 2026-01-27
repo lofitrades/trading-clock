@@ -17,5 +17,9 @@
   "unsavedChanges": "You have unsaved changes",
   "invalidFileType": "Please select a valid JSON file",
   "selectFileFirst": "Please select a file first",
-  "incorrectPassword": "Incorrect password. Please try again."
+  "incorrectPassword": "Incorrect password. Please try again.",
+  "jsonMustBeArrayOrEvents": "JSON must be an array or { \"events\": [] }.",
+  "failedToValidateJson": "Failed to validate JSON.",
+  "selectAtLeastOneEvent": "Select at least one event to upload.",
+  "eventsHaveValidationErrors": "Some events have validation errors. Fix before uploading."
 }

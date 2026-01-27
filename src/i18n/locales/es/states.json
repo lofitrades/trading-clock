@@ -12,5 +12,6 @@
   "comingSoon": "Próximamente",
   "loadMore": "Cargar más",
   "showMore": "Mostrar más",
-  "complete": "Completado"
+  "complete": "Completado",
+  "loadingMatchedEventDetails": "Cargando detalles del evento coincidente..."
 }

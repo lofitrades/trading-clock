@@ -27,5 +27,6 @@
   "export": "Exportar",
   "import": "Importar",
   "download": "Descargar",
-  "upload": "Cargar"
+  "upload": "Cargar",
+  "browse": "Examinar"
 }

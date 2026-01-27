@@ -6,6 +6,8 @@
 * Includes responsive preview table with matching results, expandable source comparison, and pagination.
 * 
 * Changelog:
+* v1.6.0 - 2026-01-24 - BEP: Phase 3c i18n migration - Added useTranslation hook (admin, form, validation, states, notifications).
+*                       Replaced 45+ hardcoded strings (filters, buttons, status chips, error messages, tooltips) with t() calls.
 * v1.5.0 - 2026-01-21 - Added sortable columns for events preview table.
 * v1.4.1 - 2026-01-21 - Added PropTypes validation for uploader subcomponents.
 * v1.4.0 - 2026-01-21 - Added expandable matched event details with source field comparison.
@@ -19,6 +21,7 @@
 */
 
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import {
     Alert,
@@ -244,10 +247,10 @@ const DropZoneUploader = ({ selectedFile, onFileSelect, uploading }) => {
                 <CloudUploadIcon sx={{ fontSize: { xs: 32, sm: 40 }, color: isDragActive ? 'primary.main' : 'text.secondary' }} />
                 <Box>
                     <Typography variant="body2" fontWeight={800} gutterBottom sx={{ fontSize: { xs: '0.85rem', sm: '0.95rem' } }}>
-                        {selectedFile ? selectedFile.name : 'Drop JSON file here'}
+                        {selectedFile ? selectedFile.name : t('admin:dropJsonFile')}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" gutterBottom>
-                        or click to browse
+                        {t('admin:orClickToBrowse')}
                     </Typography>
                 </Box>
                 <Button
@@ -257,13 +260,13 @@ const DropZoneUploader = ({ selectedFile, onFileSelect, uploading }) => {
                     size="small"
                     sx={{ mt: 0.5, textTransform: 'none', fontWeight: 700 }}
                 >
-                    Browse
+                    {t('actions:browse')}
                     <input hidden type="file" accept="application/json" onChange={onFileSelect} />
                 </Button>
                 {selectedFile && (
                     <Chip
                         icon={<UploadFileIcon />}
-                        label={`Ready: ${selectedFile.name}`}
+                        label={`${t('admin:ready')}: ${selectedFile.name}`}
                         color="success"
                         variant="outlined"
                         size="small"
@@ -301,6 +304,7 @@ const orderTableFields = (fieldsArray) => {
 };
 
 const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange, matchingResults = {} }) => {
+    const { t } = useTranslation(['admin', 'actions', 'states']);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(50);
     const [searchQuery, setSearchQuery] = useState('');
@@ -450,18 +454,18 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
             {/* Filters */}
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
                 <TextField
-                    label="Search by name"
+                    label={t('admin:searchByName')}
                     size="small"
                     value={searchQuery}
                     onChange={(e) => {
                         setSearchQuery(e.target.value);
                         setPage(0);
                     }}
-                    placeholder="Filter events..."
+                    placeholder={t('admin:filterEvents')}
                     fullWidth
                 />
                 <TextField
-                    label="Date from"
+                    label={t('admin:dateFrom')}
                     type="date"
                     size="small"
                     value={dateFromFilter}
@@ -473,7 +477,7 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                     fullWidth
                 />
                 <TextField
-                    label="Date to"
+                    label={t('admin:dateTo')}
                     type="date"
                     size="small"
                     value={dateToFilter}
@@ -491,17 +495,17 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                     onClick={handleClearFilters}
                     sx={{ textTransform: 'none', fontWeight: 700 }}
                 >
-                    Reset
+                    {t('actions:reset')}
                 </Button>
             </Box>
 
             {/* Results count and selection info */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
                 <Typography variant="caption" color="text.secondary">
-                    Showing {Math.min(paginatedEvents.length, rowsPerPage)} of {filteredEvents.length} events
+                    {t('admin:showing')} {Math.min(paginatedEvents.length, rowsPerPage)} {t('admin:of')} {filteredEvents.length} {t('admin:events')}
                 </Typography>
                 <Chip
-                    label={`${selectedIndices.length} selected`}
+                    label={`${selectedIndices.length} ${t('admin:selected')}`}
                     size="small"
                     color={selectedIndices.length > 0 ? 'primary' : 'default'}
                     variant={selectedIndices.length > 0 ? 'filled' : 'outlined'}
@@ -661,10 +665,10 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                                 }}
                                             >
                                                 {isNew ? (
-                                                    <Tooltip title="New event (no existing match found)">
+                                                    <Tooltip title={t('admin:newEventTooltip')}>
                                                         <Chip
                                                             icon={<NewReleasesIcon />}
-                                                            label="New"
+                                                            label={t('admin:new')}
                                                             color="success"
                                                             variant="outlined"
                                                             size="small"
@@ -672,14 +676,14 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                                         />
                                                     </Tooltip>
                                                 ) : isMatched ? (
-                                                    <Tooltip title={`Click to compare sources • ${matchResult.matchedEventName || 'Unknown'} (${matchResult.similarity?.toFixed(2) || 'N/A'}% similar)`}>
+                                                    <Tooltip title={`${t('admin:clickToCompare')} • ${matchResult.matchedEventName || 'Unknown'} (${matchResult.similarity?.toFixed(2) || 'N/A'}% ${t('admin:similar')})`}>
                                                         <Box
                                                             onClick={() => handleToggleExpanded(actualEventIndex, matchResult)}
                                                             sx={{ display: 'flex', alignItems: 'center', gap: 0.5, cursor: 'pointer' }}
                                                         >
                                                             <Chip
                                                                 icon={<MergeTypeIcon />}
-                                                                label="Matched"
+                                                                label={t('admin:matched')}
                                                                 color="warning"
                                                                 variant="outlined"
                                                                 size="small"
@@ -689,7 +693,7 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                                         </Box>
                                                     </Tooltip>
                                                 ) : (
-                                                    <Chip label="Checking..." size="small" sx={{ fontWeight: 700 }} />
+                                                    <Chip label={t('admin:checking')} size="small" sx={{ fontWeight: 700 }} />
                                                 )}
                                             </TableCell>
                                             {orderedFields.map((field) => {
@@ -726,13 +730,13 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                                         <Stack spacing={2} sx={{ py: 2 }}>
                                                             {isLoading ? (
                                                                 <Typography variant="body2" color="text.secondary">
-                                                                    Loading matched event details...
+                                                                    {t('states:loadingMatchedEventDetails')}
                                                                 </Typography>
                                                             ) : detailsData ? (
                                                                 <>
                                                                     <Box>
                                                                         <Typography variant="subtitle2" fontWeight={800} gutterBottom>
-                                                                            Matched Event: {detailsData.matched?.name || 'Unknown'}
+                                                                            {t('admin:matchedEvent')}: {detailsData.matched?.name || 'Unknown'}
                                                                         </Typography>
                                                                         {detailsData.matched?.sources && (
                                                                             <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1.5 }}>
@@ -753,7 +757,7 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                                                     {Object.keys(detailsData.differences || {}).length > 0 ? (
                                                                         <Box>
                                                                             <Typography variant="body2" fontWeight={800} gutterBottom>
-                                                                                Field Differences (Incoming vs Matched):
+                                                                                {t('admin:fieldDifferences')}:
                                                                             </Typography>
                                                                             <Stack spacing={1}>
                                                                                 {Object.entries(detailsData.differences).map(([field, comparison]) => (
@@ -773,7 +777,7 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                                                                         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
                                                                                             <Box sx={{ p: 0.75, backgroundColor: 'rgba(76, 175, 80, 0.15)', borderRadius: 0.5 }}>
                                                                                                 <Typography variant="caption" fontWeight={700} color="success.dark" display="block">
-                                                                                                    New Value:
+                                                                                                    {t('admin:newValue')}:
                                                                                                 </Typography>
                                                                                                 <Typography variant="caption" sx={{ wordBreak: 'break-word', fontSize: '0.7rem' }}>
                                                                                                     {JSON.stringify(comparison.incoming, null, 2)}
@@ -781,7 +785,7 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                                                                             </Box>
                                                                                             <Box sx={{ p: 0.75, backgroundColor: 'rgba(255, 152, 0, 0.15)', borderRadius: 0.5 }}>
                                                                                                 <Typography variant="caption" fontWeight={700} color="warning.dark" display="block">
-                                                                                                    Existing Value:
+                                                                                                    {t('admin:existingValue')}:
                                                                                                 </Typography>
                                                                                                 <Typography variant="caption" sx={{ wordBreak: 'break-word', fontSize: '0.7rem' }}>
                                                                                                     {JSON.stringify(comparison.matched, null, 2)}
@@ -795,14 +799,14 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                                                     ) : (
                                                                         <Box sx={{ p: 1, backgroundColor: 'rgba(76, 175, 80, 0.1)', borderRadius: 1 }}>
                                                                             <Typography variant="caption" color="success.dark" fontWeight={700}>
-                                                                                ✓ No field differences - events match perfectly
+                                                                                ✓ {t('admin:noFieldDifferences')}
                                                                             </Typography>
                                                                         </Box>
                                                                     )}
                                                                 </>
-                                                            ) : (
+                                                                            ) : (
                                                                 <Typography variant="body2" color="error">
-                                                                    Failed to load matched event details
+                                                                    {t('admin:failedToLoadMatchedEventDetails')}
                                                                 </Typography>
                                                             )}
                                                         </Stack>
@@ -816,7 +820,7 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                 <TableRow>
                                     <TableCell colSpan={fields.length + 3} align="center" sx={{ py: 3 }}>
                                         <Typography variant="body2" color="text.secondary">
-                                            No events match filters.
+                                            {t('admin:noEventsMatchFilters')}
                                         </Typography>
                                     </TableCell>
                                 </TableRow>
@@ -854,6 +858,7 @@ EventsPreviewTable.defaultProps = {
 };
 
 export default function FFTTUploader() {
+    const { t } = useTranslation(['admin', 'form', 'validation', 'actions', 'states', 'notifications']);
     const { userProfile, loading } = useAuth();
     const isSuperadmin = useMemo(() => userProfile?.role === 'superadmin', [userProfile?.role]);
     const [selectedFile, setSelectedFile] = useState(null);
@@ -891,7 +896,7 @@ export default function FFTTUploader() {
 
     const handleValidate = async () => {
         if (!selectedFile) {
-            setError('Select a JSON file first.');
+            setError(t('validation:selectFileFirst'));
             return;
         }
 
@@ -901,7 +906,7 @@ export default function FFTTUploader() {
             const events = normalizePayload(parsed);
 
             if (!events) {
-                throw new Error('JSON must be an array or { "events": [] }.');
+                throw new Error(t('validation:jsonMustBeArrayOrEvents'));
             }
 
             const issues = [];
@@ -956,16 +961,16 @@ export default function FFTTUploader() {
             if (issues.length === 0) {
                 setResult({
                     type: 'success',
-                    message: `Validated ${events.length} events. ${newCount} new, ${matchedCount} matched—ready to upload.`,
+                    message: t('admin:validatedEventsReady', { count: events.length, newCount, matchedCount }),
                 });
             } else {
                 setResult({
                     type: 'warning',
-                    message: `Validated with ${issues.length} error(s). ${validEvents.length} valid (${newCount} new, ${matchedCount} matched).`,
+                    message: t('admin:validatedWithErrors', { errorCount: issues.length, validCount: validEvents.length, newCount, matchedCount }),
                 });
             }
         } catch (err) {
-            setError(err.message || 'Failed to validate JSON.');
+            setError(err.message || t('validation:failedToValidateJson'));
             setValidatedEvents([]);
             setSelectedEventIndices([]);
             setMatchingResults({});
@@ -974,12 +979,12 @@ export default function FFTTUploader() {
 
     const handleUpload = async () => {
         if (!selectedFile) {
-            setError('Select a JSON file first.');
+            setError(t('validation:selectFileFirst'));
             return;
         }
 
         if (selectedEventIndices.length === 0) {
-            setError('Select at least one event to upload.');
+            setError(t('validation:selectAtLeastOneEvent'));
             return;
         }
 
@@ -1010,7 +1015,7 @@ export default function FFTTUploader() {
 
             if (issues.length > 0) {
                 setValidationErrors(issues);
-                throw new Error(`${issues.length} event(s) have validation errors. Fix before uploading.`);
+                throw new Error(t('validation:eventsHaveValidationErrors'));
             }
 
             const selectedEventsToUpload = selectedEventIndices.map((idx) => validEvents[idx]);
@@ -1036,12 +1041,12 @@ export default function FFTTUploader() {
 
             setResult({
                 type: 'success',
-                message: `✓ Upload complete. Created ${created}, merged ${merged}, skipped ${skipped}, errors ${errors}.`,
+                message: t('admin:uploadComplete', { created, merged, skipped, errors }),
             });
             setValidatedEvents([]);
             setSelectedEventIndices([]);
         } catch (err) {
-            setError(err.message || 'Upload failed.');
+            setError(err.message || t('admin:uploadFailed'));
         } finally {
             setUploading(false);
         }
@@ -1050,7 +1055,7 @@ export default function FFTTUploader() {
     if (loading) {
         return (
             <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Typography>Loading...</Typography>
+                <Typography>{t('states:loading')}</Typography>
             </Box>
         );
     }
@@ -1063,7 +1068,7 @@ export default function FFTTUploader() {
                         <Typography variant="h6" fontWeight={800} gutterBottom>
                             FF-T2T Uploader
                         </Typography>
-                        <Alert severity="error">Superadmin access required.</Alert>
+                        <Alert severity="error">{t('admin:superadminAccessRequired')}</Alert>
                     </CardContent>
                 </Card>
             </Box>
@@ -1079,7 +1084,7 @@ export default function FFTTUploader() {
                             FF-T2T Uploader
                         </Typography>
                         <Typography variant="subtitle1" color="text.secondary">
-                            Upload GPT-generated economic events to seed the canonical collection.
+                            {t('admin:uploadGptGeneratedDescription')}
                         </Typography>
                     </Box>
 
@@ -1096,7 +1101,7 @@ export default function FFTTUploader() {
                                         disabled={!selectedFile || uploading}
                                         sx={{ textTransform: 'none', fontWeight: 700 }}
                                     >
-                                        Validate JSON
+                                        {t('admin:validateJson')}
                                     </Button>
                                     <Button
                                         variant="contained"
@@ -1105,7 +1110,7 @@ export default function FFTTUploader() {
                                         disabled={!selectedFile || uploading || selectedEventIndices.length === 0}
                                         sx={{ textTransform: 'none', fontWeight: 700 }}
                                     >
-                                        Upload ({selectedEventIndices.length})
+                                        {t('admin:upload')} ({selectedEventIndices.length})
                                     </Button>
                                     <Button
                                         variant="outlined"
@@ -1114,7 +1119,7 @@ export default function FFTTUploader() {
                                         disabled={!selectedFile && validatedEvents.length === 0}
                                         sx={{ textTransform: 'none', fontWeight: 700 }}
                                     >
-                                        Clear All
+                                        {t('admin:clearAll')}
                                     </Button>
                                 </Stack>
 
@@ -1132,7 +1137,7 @@ export default function FFTTUploader() {
                             <CardContent>
                                 <Stack spacing={1.5}>
                                     <Typography variant="subtitle2" fontWeight={800} color="error">
-                                        Validation Issues ({validationErrors.length})
+                                        {t('admin:validationIssues', { count: validationErrors.length })}
                                     </Typography>
                                     <Box sx={{ maxHeight: 240, overflowY: 'auto' }}>
                                         <Stack spacing={1}>
@@ -1150,7 +1155,7 @@ export default function FFTTUploader() {
                                             ))}
                                             {validationErrors.length > 8 && (
                                                 <Typography variant="caption" color="text.secondary">
-                                                    +{validationErrors.length - 8} more issues
+                                                    +{validationErrors.length - 8} {t('admin:moreIssues')}
                                                 </Typography>
                                             )}
                                         </Stack>
@@ -1167,10 +1172,10 @@ export default function FFTTUploader() {
                                 <Stack spacing={1.5}>
                                     <Box>
                                         <Typography variant="subtitle2" fontWeight={800} gutterBottom>
-                                            Validated Events Preview
+                                            {t('admin:validatedEventsPreview')}
                                         </Typography>
                                         <Typography variant="caption" color="text.secondary">
-                                            {validatedEvents.length} valid event(s) • {selectedEventIndices.length} selected for upload
+                                            {validatedEvents.length} {t('admin:validEvents')} • {selectedEventIndices.length} {t('admin:selectedForUpload')}
                                         </Typography>
                                     </Box>
                                     <Divider />

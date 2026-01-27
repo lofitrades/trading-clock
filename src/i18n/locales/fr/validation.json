@@ -17,5 +17,9 @@
   "unsavedChanges": "Vous avez des modifications non enregistrées",
   "invalidFileType": "Veuillez sélectionner un fichier JSON valide",
   "selectFileFirst": "Veuillez d'abord sélectionner un fichier",
-  "incorrectPassword": "Mot de passe incorrect. Veuillez réessayer."
+  "incorrectPassword": "Mot de passe incorrect. Veuillez réessayer.",
+  "jsonMustBeArrayOrEvents": "JSON doit être un array ou { \"events\": [] }.",
+  "failedToValidateJson": "Échec de la validation JSON.",
+  "selectAtLeastOneEvent": "Sélectionnez au moins un événement à télécharger.",
+  "eventsHaveValidationErrors": "Certains événements ont des erreurs de validation. Corrigez-les avant de télécharger."
 }

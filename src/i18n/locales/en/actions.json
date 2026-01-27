@@ -27,5 +27,6 @@
   "export": "Export",
   "import": "Import",
   "download": "Download",
-  "upload": "Upload"
+  "upload": "Upload",
+  "browse": "Browse"
 }

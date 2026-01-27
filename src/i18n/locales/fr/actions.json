@@ -27,5 +27,6 @@
   "export": "Exporter",
   "import": "Importer",
   "download": "Télécharger",
-  "upload": "Charger"
+  "upload": "Charger",
+  "browse": "Parcourir"
 }
