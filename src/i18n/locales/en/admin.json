@@ -111,5 +111,8 @@
   "validatedEventsReady": "Validated {{count}} events. {{newCount}} new, {{matchedCount}} matched—ready to upload.",
   "validatedWithErrors": "Validated with {{errorCount}} error(s). {{validCount}} valid ({{newCount}} new, {{matchedCount}} matched).",
   "uploadComplete": "✓ Upload complete. Created {{created}}, merged {{merged}}, skipped {{skipped}}, errors {{errors}}.",
-  "uploadFailed": "Upload failed."
+  "uploadFailed": "Upload failed.",
+  "reminders": {
+    "saveFailed": "Failed to save reminder"
+  }
 }

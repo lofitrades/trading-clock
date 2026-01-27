@@ -6,12 +6,14 @@
  * Handles modal state, timezone selection callbacks, and auth handoff for guest users.
  * 
  * Changelog:
+ * v1.1.0 - 2026-01-27 - i18n migration: Added useTranslation hook, migrated dialog title and close aria-label
  * v1.0.1 - 2026-01-17 - CONSISTENCY FIX: Use BACKDROP_OVERLAY_SX constant from overlayStyles instead of inline { zIndex: -1 }. Matches AccountModal.jsx and establishes standardized app overlay UI pattern across all modals.
  * v1.0.0 - 2026-01-17 - Initial extraction from App.jsx and CalendarEmbed.jsx. Standalone Dialog with TimezoneSelector, proper PropTypes, responsive design, z-index management, and BEP compliance.
  */
 
 import { lazy, Suspense } from 'react';
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 import {
     Dialog,
     DialogTitle,
@@ -32,6 +34,7 @@ export default function TimezoneModal({
     zIndex = 1701,
 }) {
     const theme = useTheme();
+    const { t } = useTranslation(['dialogs']);
 
     return (
         <Dialog
@@ -61,12 +64,12 @@ export default function TimezoneModal({
                 }}
             >
                 <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
-                    Select Timezone
+                    {t('dialogs:selectTimezoneTitle')}
                 </Typography>
                 <IconButton
                     edge="end"
                     onClick={onClose}
-                    aria-label="close"
+                    aria-label={t('dialogs:closeDialogAriaLabel')}
                     sx={{
                         ml: 1,
                         p: { xs: 1, sm: 1.25, md: 1.5 },

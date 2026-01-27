@@ -103,5 +103,15 @@
   "resetPassword": "Restablecer tu contraseña",
   "resetPasswordInstructions": "Ingresa tu dirección de correo electrónico y te enviaremos un enlace para restablecer tu contraseña.",
   "sendResetLink": "Enviar enlace de restablecimiento",
-  "backToLogin": "Volver al inicio de sesión"
+  "backToLogin": "Volver al inicio de sesión",
+  "unsavedChangesTitle": "Cambios sin guardar",
+  "unsavedChangesMessage": "Tienes cambios sin guardar. Si cierras ahora, tus cambios se perderán.",
+  "discardChangesButton": "Descartar cambios",
+  "continueEditingButton": "Continuar editando",
+  "roadmapTitle": "Hoja de ruta",
+  "roadmapMessage1": "🚀 ¡Estamos trabajando en emocionantes actualizaciones para Time 2 Trade!",
+  "roadmapMessage2": "Vuelve pronto para conocer los detalles.",
+  "roadmapGotItButton": "Entendido",
+  "selectTimezoneTitle": "Seleccionar zona horaria",
+  "closeDialogAriaLabel": "cerrar"
 }

@@ -5,10 +5,12 @@
  * Key responsibility: Prevent accidental data loss by prompting users before discarding unsaved changes
  * 
  * Changelog:
+ * v1.1.0 - 2026-01-27 - i18n migration: Added useTranslation hook, migrated all strings to dialogs namespace
  * v1.0.0 - 2026-01-23 - Initial implementation: Extracted from EventModal for reusability
  */
 
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 import {
     Button,
     Dialog,
@@ -26,22 +28,24 @@ import {
  * @param {boolean} open - Whether the modal is open
  * @param {Function} onConfirm - Callback when user confirms discarding changes
  * @param {Function} onCancel - Callback when user cancels and continues editing
- * @param {string} title - Modal title (default: "Unsaved Changes")
- * @param {string} message - Modal message (default: generic unsaved changes message)
- * @param {string} confirmLabel - Confirm button label (default: "Discard Changes")
- * @param {string} cancelLabel - Cancel button label (default: "Continue Editing")
+ * @param {string} title - Modal title (default: i18n dialogs:unsavedChangesTitle)
+ * @param {string} message - Modal message (default: i18n dialogs:unsavedChangesMessage)
+ * @param {string} confirmLabel - Confirm button label (default: i18n dialogs:discardChangesButton)
+ * @param {string} cancelLabel - Cancel button label (default: i18n dialogs:continueEditingButton)
  * @param {number} zIndex - Z-index for modal stacking (default: 12002)
  */
 export default function UnsavedChangesModal({
     open,
     onConfirm,
     onCancel,
-    title = 'Unsaved Changes',
-    message = 'You have unsaved changes. If you close now, your changes will be lost.',
-    confirmLabel = 'Discard Changes',
-    cancelLabel = 'Continue Editing',
+    title,
+    message,
+    confirmLabel,
+    cancelLabel,
     zIndex = 12002,
 }) {
+    const { t } = useTranslation(['dialogs']);
+
     return (
         <Dialog
             open={open}
@@ -60,11 +64,11 @@ export default function UnsavedChangesModal({
             }}
         >
             <DialogTitle sx={{ pb: 1, fontWeight: 700 }}>
-                {title}
+                {title || t('dialogs:unsavedChangesTitle')}
             </DialogTitle>
             <DialogContent>
                 <Typography variant="body2" color="text.secondary">
-                    {message}
+                    {message || t('dialogs:unsavedChangesMessage')}
                 </Typography>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
@@ -73,7 +77,7 @@ export default function UnsavedChangesModal({
                     color="inherit"
                     sx={{ borderRadius: 999 }}
                 >
-                    {cancelLabel}
+                    {cancelLabel || t('dialogs:continueEditingButton')}
                 </Button>
                 <Button
                     onClick={onConfirm}
@@ -81,7 +85,7 @@ export default function UnsavedChangesModal({
                     color="error"
                     sx={{ borderRadius: 999 }}
                 >
-                    {confirmLabel}
+                    {confirmLabel || t('dialogs:discardChangesButton')}
                 </Button>
             </DialogActions>
         </Dialog>

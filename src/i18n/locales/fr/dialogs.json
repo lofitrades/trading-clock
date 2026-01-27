@@ -103,5 +103,15 @@
   "resetPassword": "Réinitialiser votre mot de passe",
   "resetPasswordInstructions": "Entrez votre adresse e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
   "sendResetLink": "Envoyer le lien de réinitialisation",
-  "backToLogin": "Retour à la connexion"
+  "backToLogin": "Retour à la connexion",
+  "unsavedChangesTitle": "Modifications non enregistrées",
+  "unsavedChangesMessage": "Vous avez des modifications non enregistrées. Si vous fermez maintenant, vos modifications seront perdues.",
+  "discardChangesButton": "Abandonner les modifications",
+  "continueEditingButton": "Continuer la modification",
+  "roadmapTitle": "Feuille de route",
+  "roadmapMessage1": "🚀 Nous travaillons sur des mises à jour passionnantes pour Time 2 Trade!",
+  "roadmapMessage2": "Revenez bientôt pour plus de détails.",
+  "roadmapGotItButton": "D'accord",
+  "selectTimezoneTitle": "Sélectionner le fuseau horaire",
+  "closeDialogAriaLabel": "fermer"
 }

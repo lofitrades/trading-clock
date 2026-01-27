@@ -8,6 +8,7 @@
  * consistent z-index stacking (Popover: 1300, Modals: 10001+), and semantic button structure.
  * 
  * Changelog:
+ * v1.1.0 - 2026-01-27 - i18n migration: Added useTranslation hook, migrated aria-labels to a11y namespace
  * v1.0.7 - 2026-01-23 - BEP FIX: Increase Popover z-index from 1100 (AppBar level) to 1300 to render above AppBar shadow. Ensures user menu visually appears over the sticky header.
  * v1.0.6 - 2026-01-22 - BEP FIX: Only react to closeSignal changes to prevent immediate re-close.
  * v1.0.5 - 2026-01-22 - BEP UX: Add open/close coordination hooks for AppBar menu stacking.
@@ -29,6 +30,7 @@
 
 import { useEffect, useRef, useState, Suspense, lazy, useCallback } from 'react';
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 import { Box, Avatar, IconButton, Popover, Button, useTheme } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
@@ -37,6 +39,7 @@ const LogoutModal = lazy(() => import('./LogoutModal'));
 
 const UserAvatar = ({ user, onLogout, onOpen, closeSignal }) => {
     const theme = useTheme();
+    const { t } = useTranslation(['a11y']);
     // User avatar menu state
     const [userMenuAnchor, setUserMenuAnchor] = useState(null);
     const [showAccountModal, setShowAccountModal] = useState(false);
@@ -86,7 +89,7 @@ const UserAvatar = ({ user, onLogout, onOpen, closeSignal }) => {
                 {/* User Avatar Button - mobile-first responsive sizing (32px mobile → 40px desktop) */}
                 <IconButton
                     onClick={handleUserMenuOpen}
-                    aria-label={`${userDisplayName} menu`}
+                    aria-label={t('a11y:userMenuDynamic', { name: userDisplayName })}
                     aria-haspopup="true"
                     aria-expanded={Boolean(userMenuAnchor)}
                     aria-controls={userMenuAnchor ? 'user-menu-popover' : undefined}

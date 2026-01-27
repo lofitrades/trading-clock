@@ -111,5 +111,8 @@
   "validatedEventsReady": "Se validaron {{count}} eventos. {{newCount}} nuevo, {{matchedCount}} coincidente—listo para cargar.",
   "validatedWithErrors": "Validado con {{errorCount}} error(es). {{validCount}} válido ({{newCount}} nuevo, {{matchedCount}} coincidente).",
   "uploadComplete": "✓ Carga completada. Creado {{created}}, fusionado {{merged}}, omitido {{skipped}}, errores {{errors}}.",
-  "uploadFailed": "La carga falló."
+  "uploadFailed": "La carga falló.",
+  "reminders": {
+    "saveFailed": "Error al guardar el recordatorio"
+  }
 }

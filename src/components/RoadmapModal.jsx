@@ -5,10 +5,12 @@
  * Displays a friendly message when users click the Roadmap nav item.
  * 
  * Changelog:
+ * v1.1.0 - 2026-01-27 - i18n migration: Added useTranslation hook, migrated all strings to dialogs namespace
  * v1.0.0 - 2026-01-17 - Initial implementation
  */
 
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 import {
     Dialog,
     DialogTitle,
@@ -21,6 +23,8 @@ import {
 import ChecklistRtlIcon from '@mui/icons-material/ChecklistRtl';
 
 export default function RoadmapModal({ open, onClose }) {
+    const { t } = useTranslation(['dialogs']);
+
     return (
         <Dialog
             open={open}
@@ -54,23 +58,23 @@ export default function RoadmapModal({ open, onClose }) {
                 }}
             >
                 <ChecklistRtlIcon sx={{ fontSize: 'inherit', color: 'primary.main' }} />
-                Roadmap
+                {t('dialogs:roadmapTitle')}
             </DialogTitle>
 
             <DialogContent sx={{ pt: 1.5 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                     <Typography variant="body1" color="text.secondary">
-                        🚀 We&apos;re working on exciting updates for Time 2 Trade!
+                        {t('dialogs:roadmapMessage1')}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                        Check back soon for details.
+                        {t('dialogs:roadmapMessage2')}
                     </Typography>
                 </Box>
             </DialogContent>
 
             <DialogActions sx={{ p: 2, pt: 1 }}>
                 <Button onClick={onClose} variant="contained" color="primary" sx={{ borderRadius: 999 }}>
-                    Got it
+                    {t('dialogs:roadmapGotItButton')}
                 </Button>
             </DialogActions>
         </Dialog>

@@ -206,7 +206,7 @@ function ReminderCard({
         try {
             await onSave(index, localReminder, localScope);
         } catch (error) {
-            console.error('Failed to save reminder:', error);
+            console.error(t('admin:reminders.saveFailed'), error);
         }
     };
 

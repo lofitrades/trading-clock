@@ -22,5 +22,7 @@
   "mainNavigation": "Navigation principale",
   "primaryNav": "Navigation primaire",
   "userMenu": "Menu du compte utilisateur",
-  "userOptions": "Options utilisateur"
+  "userOptions": "Options utilisateur",
+  "userMenuDynamic": "Menu de {{name}}",
+  "closeDialog": "fermer"
 }

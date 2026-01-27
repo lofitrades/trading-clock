@@ -111,5 +111,8 @@
   "validatedEventsReady": "{{count}} événements validés. {{newCount}} nouveau, {{matchedCount}} correspondant—prêt à télécharger.",
   "validatedWithErrors": "Validé avec {{errorCount}} erreur(s). {{validCount}} valide ({{newCount}} nouveau, {{matchedCount}} correspondant).",
   "uploadComplete": "✓ Téléchargement terminé. Créé {{created}}, fusionné {{merged}}, ignoré {{skipped}}, erreurs {{errors}}.",
-  "uploadFailed": "Le téléchargement a échoué."
+  "uploadFailed": "Le téléchargement a échoué.",
+  "reminders": {
+    "saveFailed": "Erreur lors de l'enregistrement du rappel"
+  }
 }
