@@ -6,6 +6,7 @@
  * Persists selection to localStorage + Firestore (when authenticated)
  * 
  * Changelog:
+ * v1.0.1 - 2026-01-27 - BEP RESPONSIVE FIX: Added display:flex and flexShrink:0 to Button sx prop. Ensures component is always visible on all breakpoints and pages (/clock, /calendar, /landing, /about, etc). Prevents Button from being squeezed or hidden due to flex layout constraints in AppBar right-stack.
  * v1.0.0 - 2026-01-27 - Initial implementation (Phase 4)
  */
 
@@ -78,6 +79,8 @@ export default function LanguageSwitcher() {
           textTransform: 'none',
           fontSize: '0.875rem',
           px: 1,
+          display: 'flex', // Ensure always visible
+          flexShrink: 0,   // Prevent squashing
           '&:hover': {
             backgroundColor: 'action.hover',
           },

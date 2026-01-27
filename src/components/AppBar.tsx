@@ -5,6 +5,7 @@
  * Renders a sticky sub-header on md+ and an Airbnb-style bottom navigation on xs/sm.
  * 
  * Changelog:
+ * v1.5.1 - 2026-01-27 - BEP RESPONSIVE FIX: Language switcher visibility ensured on all pages (clock, calendar, landing, about) via LanguageSwitcher display:flex + flexShrink:0. Works on all breakpoints xs/sm/md/lg/xl.
  * v1.5.0 - 2026-01-27 - PHASE 4 INTEGRATION: Added LanguageSwitcher component to right-stack. Language switcher available on all breakpoints (desktop nav + mobile bottom nav). Supports instant language switching between EN/ES/FR with persistence to localStorage + Firestore. Positioned left of NotificationCenter for consistent right-stack layout.
  * v1.4.17 - 2026-01-22 - BEP UX: Close notification menu when avatar menu opens and vice versa.
  * v1.4.16 - 2026-01-22 - BEP BUGFIX: Fixed duplicate notification bell rendering on lg+ for non-auth users. Changed condition from checking all unlock buttons (unlock-md OR unlock-lg) to only checking first unlock button (unlock-md). Prevents notification from rendering twice when both unlock buttons exist in items array. Now renders single bell before first unlock button regardless of breakpoint.

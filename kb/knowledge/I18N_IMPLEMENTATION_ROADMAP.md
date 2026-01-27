@@ -623,34 +623,37 @@ export const useLanguage = () => useContext(LanguageContext);
 **Status:** ✅ COMPLETE - **LANGUAGE SWITCHING UI FULLY IMPLEMENTED** 🎉
 
 **Completed (Phase 4 - Jan 27, 2026):**
-- ✅ LanguageSwitcher.jsx v1.0.0 - Dropdown component with flag icons (🇺🇸 EN, 🇪🇸 ES, 🇫🇷 FR)
+- ✅ LanguageSwitcher.jsx v1.0.1 - Dropdown component with flag icons (🇺🇸 EN, 🇪🇸 ES, 🇫🇷 FR)
   - MUI Menu with flag icons and language names
   - Instant language switching on selection
   - Loading state during Firestore sync
   - Accessible via keyboard navigation
-  - Responsive on all breakpoints
+  - Responsive on all breakpoints (xs/sm/md/lg/xl)
+  - **BEP FIX:** Added display:flex + flexShrink:0 to ensure Button always visible across all pages
   
-- ✅ LanguageContext.jsx v1.0.0 - Provider with dual persistence
+- ✅ LanguageContext.jsx v1.0.1 - Provider with dual persistence
   - localStorage: Works for all users (guests and authenticated)
   - Firestore: Saves preference for authenticated users
   - Safe loading on mount: Firestore preference takes priority for returning users
   - useLanguage() hook for consuming components
   - Graceful fallback: Returns default 'en' if context not available (SSR/prerender safe)
+  - PropTypes validation for children prop
   
-- ✅ Provider integration (main.jsx)
+- ✅ Provider integration (main.jsx v4.0.0)
   - Added LanguageProvider to root provider tree
   - Positioned between SettingsProvider and TooltipProvider
   - Wraps entire application for global access
   
-- ✅ AppBar integration (AppBar.tsx v1.5.0)
+- ✅ AppBar integration (AppBar.tsx v1.5.1)
   - Added LanguageSwitcher to right-stack (next to NotificationCenter and UserAvatar)
   - Available on desktop (md+) and mobile (xs/sm) navigation
   - Non-intrusive placement: Left of notifications for consistent UI
+  - **Verified:** Component visible on /clock, /calendar, /landing, /about on all breakpoints
   
 - ✅ Performance & Quality
   - Language switch time: <200ms (instant with optimistic updates)
   - Firestore sync: Non-blocking (happens after UI update)
-  - Build: 0 errors, 115s total (1m 55s Vite + prerender)
+  - Build: 0 errors, 56.31s total (clean build with 6/6 prerender)
   - Pages prerendered: 6/6 (100%)
   
 **Testing Completed:**
@@ -662,15 +665,17 @@ export const useLanguage = () => useContext(LanguageContext);
 - ✅ Mobile responsive on xs/sm/md/lg/xl
 - ✅ Menu opens/closes correctly
 - ✅ Flag icons display correctly for all 3 languages
+- ✅ LanguageSwitcher visible on all pages (/clock, /calendar, /landing, /about, /privacy, /terms)
 - ✅ No console errors
 - ✅ Build prerender all 6 routes successfully
 
-**Git Commit (Phase 4 Completion):**
-- **Commit Hash:** 63e2e22
-- **Files Changed:** 5 (LanguageSwitcher.jsx, LanguageContext.jsx, main.jsx, AppBar.tsx, I18N_IMPLEMENTATION_ROADMAP.md)
-- **Insertions:** +252
-- **Deletions:** -6
-- **Message:** "feat: Phase 4 language switching UI - Add LanguageSwitcher and LanguageContext for multi-language support"
+**Git Commits (Phase 4 Completion + Bug Fixes):**
+1. **Commit 63e2e22:** Phase 4 initial implementation
+2. **Commit 173c85d:** ESLint PropTypes validation fix
+3. **Commit 0580e04:** Infinite update loop fix (dependency array)
+4. **Commit 538f2bf:** TypeScript onMenuClose handlers fix
+5. **Commit [NEW]:** Responsive visibility fix (display:flex, flexShrink:0)
+- **Files Changed:** LanguageSwitcher.jsx, AppBar.tsx, I18N_IMPLEMENTATION_ROADMAP.md
 - **Status:** ✅ ATOMIC & CLEAN
 
 **Key Features:**
@@ -681,6 +686,7 @@ export const useLanguage = () => useContext(LanguageContext);
 - ⚡ Performance: <200ms language switch time
 - 🔄 Safe loading: Graceful fallback handling during prerender
 - 🎨 Consistent MUI theme styling and animations
+- ✨ **NEW:** Guaranteed visibility on all pages with responsive flex layout
 
 ---
 

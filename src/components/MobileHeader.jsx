@@ -45,7 +45,6 @@ const MobileHeader = ({
     onClearAll,
     mobileHeaderAction,
     customEvents,
-    onOpenAddReminder,
 }) => {
     const { isAuthenticated } = useAuth();
     const { settings } = useSettings();
@@ -62,7 +61,7 @@ const MobileHeader = ({
         setCustomDialogOpen(true);
     };
 
-    const handleSaveCustomEvent = (eventData) => {
+    const handleSaveCustomEvent = () => {
         // BEP: Auth check on save - prevents save and shows AuthModal2 for non-auth users
         const isUserAuthenticated = isAuthenticated ? isAuthenticated() : Boolean(user);
         if (!isUserAuthenticated) {
