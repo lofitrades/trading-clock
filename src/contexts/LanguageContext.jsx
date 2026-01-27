@@ -6,6 +6,7 @@
  * Provides useLanguage hook for components to access current language preference
  * 
  * Changelog:
+ * v1.0.1 - 2026-01-27 - BUGFIX: Remove i18n from useEffect dependencies to prevent infinite update loops
  * v1.0.0 - 2026-01-27 - Initial implementation (Phase 4)
  */
 
@@ -30,6 +31,7 @@ export function LanguageProvider({ children }) {
   const [isLoadingLanguage, setIsLoadingLanguage] = useState(true);
 
   // Load language on mount (from localStorage, then Firestore if authenticated)
+  // Only runs once on component mount - dependencies stable to prevent infinite loops
   useEffect(() => {
     const loadLanguagePreference = async () => {
       try {
@@ -60,7 +62,9 @@ export function LanguageProvider({ children }) {
     };
 
     loadLanguagePreference();
-  }, [user?.uid, i18n]);
+    // Only depend on user.uid to prevent infinite loops
+    // i18n object is stable after initialization, no need to include it
+  }, [user?.uid]);
 
   // Provide context value
   const value = {
