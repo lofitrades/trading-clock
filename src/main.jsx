@@ -26,6 +26,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { I18nextProvider } from 'react-i18next';
 import { AuthProvider } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import { TooltipProvider } from './contexts/TooltipContext';
 import theme from './theme';
 import './index.css';
@@ -55,9 +56,11 @@ createRoot(document.getElementById('root')).render(
           <ThemeProvider theme={theme}>
             <AuthProvider>
               <SettingsProvider>
-                <TooltipProvider>
-                  <AppRoutes />
-                </TooltipProvider>
+                <LanguageProvider>
+                  <TooltipProvider>
+                    <AppRoutes />
+                  </TooltipProvider>
+                </LanguageProvider>
               </SettingsProvider>
             </AuthProvider>
           </ThemeProvider>

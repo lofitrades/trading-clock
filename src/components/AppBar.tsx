@@ -5,6 +5,7 @@
  * Renders a sticky sub-header on md+ and an Airbnb-style bottom navigation on xs/sm.
  * 
  * Changelog:
+ * v1.5.0 - 2026-01-27 - PHASE 4 INTEGRATION: Added LanguageSwitcher component to right-stack. Language switcher available on all breakpoints (desktop nav + mobile bottom nav). Supports instant language switching between EN/ES/FR with persistence to localStorage + Firestore. Positioned left of NotificationCenter for consistent right-stack layout.
  * v1.4.17 - 2026-01-22 - BEP UX: Close notification menu when avatar menu opens and vice versa.
  * v1.4.16 - 2026-01-22 - BEP BUGFIX: Fixed duplicate notification bell rendering on lg+ for non-auth users. Changed condition from checking all unlock buttons (unlock-md OR unlock-lg) to only checking first unlock button (unlock-md). Prevents notification from rendering twice when both unlock buttons exist in items array. Now renders single bell before first unlock button regardless of breakpoint.
  * v1.4.15 - 2026-01-22 - BEP BUGFIX: Fixed persistent duplicate notification bells on md+. Added explicit isAuthenticated() check to right-stack notification condition alongside user object check. Ensures notifications only appear once: before Unlock button for non-auth users, right of nav for auth users only.
@@ -75,6 +76,7 @@ import LockIcon from '@mui/icons-material/Lock';
 import { useAuth } from '../contexts/AuthContext';
 import UserAvatar from './UserAvatar';
 import NotificationCenter from './NotificationCenter';
+import LanguageSwitcher from './LanguageSwitcher';
 import RoadmapModal from './RoadmapModal';
 
 export const MOBILE_BOTTOM_APPBAR_HEIGHT_PX = 64;
@@ -498,6 +500,9 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
               </Stack>
 
               <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+                {/* Language Switcher - available on all breakpoints */}
+                <LanguageSwitcher />
+
                 {/* Notification Center - right of settings/nav items, left of user avatar for authenticated users on md+ ONLY */}
                 {/* BEP: Only show here for auth users; non-auth users see it before Unlock button in nav */}
                 {notifications && unreadCount !== undefined && user && (isAuthenticated ? isAuthenticated() : false) && (
