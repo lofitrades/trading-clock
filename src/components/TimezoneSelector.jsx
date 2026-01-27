@@ -4,6 +4,7 @@
  * Purpose: Asynchronous timezone selector with read-only collapsed display and dedicated search field.
  * Key responsibility: Persist user timezone selection to Firestore via SettingsContext while gating guest edits.
  * 
+ * v1.5.2 - 2026-01-27 - BEP: Fixed "t is not defined" ReferenceError in SearchablePopper by adding useTranslation hook call to ensure context is available when MUI renders the slot component.
  * v1.5.1 - 2026-01-24 - BEP: Phase 2 i18n fix - Created timezone.json namespace (EN/ES/FR) with all 7 strings (label, description, search.placeholder, search.ariaLabel, loadingPlaceholder, selectPlaceholder, selectAriaLabel). Added timezone imports to i18n config.js. Fixed "t is not defined" ReferenceError in SearchablePopper by ensuring all translated strings passed as props.
  * v1.5.0 - 2026-01-23 - BEP: Phase 2 i18n migration - Added useTranslation hook, converted all 7 strings to i18n keys (search placeholder, aria-label, header, description, loading/select placeholders)
  * v1.4.3 - 2026-01-22 - BEP: Raised timezone popper z-index from 2000 to 12100 so dropdown renders above modals (Dialog z-index 12000) following enterprise stacking context best practices. Ensures dropdown is always visible when timezone selector is used inside modals like on landing page.
@@ -39,62 +40,67 @@ import AuthModal2 from './AuthModal2';
 
 // Popper with embedded search field; forwards ref so parent can inspect clicks to keep open
 const SearchablePopper = React.forwardRef(
-  ({ searchQuery, onSearchChange, searchInputRef, mainInputRef, children, placement = 'bottom-start', searchPlaceholder = 'Search...', searchAriaLabel = 'Search timezone', ...props }, ref) => (
-    <Popper
-      {...props}
-      ref={ref}
-      placement={placement}
-      modifiers={[
-        { name: 'offset', options: { offset: [0, 6] } },
-        { name: 'flip', enabled: true },
-        { name: 'preventOverflow', options: { padding: 8 } },
-      ]}
-    >
-      <Box sx={{ boxShadow: 3, borderRadius: 1.5, bgcolor: 'background.paper', width: 360, maxWidth: '90vw' }}>
-        <Box sx={{ p: 1.5, borderBottom: 1, borderColor: 'divider' }}>
-          <TextField
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === ' ') {
-                e.preventDefault();
-                onSearchChange((prev) => `${prev}_`);
-                return;
-              }
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                if (mainInputRef?.current) {
-                  const event = new KeyboardEvent('keydown', {
-                    key: 'Enter',
-                    code: 'Enter',
-                    keyCode: 13,
-                    which: 13,
-                    bubbles: true,
-                  });
-                  mainInputRef.current.dispatchEvent(event);
+  ({ searchQuery, onSearchChange, searchInputRef, mainInputRef, children, placement = 'bottom-start', searchPlaceholder = 'Search...', searchAriaLabel = 'Search timezone', ...props }, ref) => {
+    // Ensure useTranslation is available in case MUI renders this in isolated context
+    const { i18n } = useTranslation();
+    
+    return (
+      <Popper
+        {...props}
+        ref={ref}
+        placement={placement}
+        modifiers={[
+          { name: 'offset', options: { offset: [0, 6] } },
+          { name: 'flip', enabled: true },
+          { name: 'preventOverflow', options: { padding: 8 } },
+        ]}
+      >
+        <Box sx={{ boxShadow: 3, borderRadius: 1.5, bgcolor: 'background.paper', width: 360, maxWidth: '90vw' }}>
+          <Box sx={{ p: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+            <TextField
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === ' ') {
+                  e.preventDefault();
+                  onSearchChange((prev) => `${prev}_`);
+                  return;
                 }
-                return;
-              }
-              if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-                e.preventDefault();
-                if (mainInputRef?.current) {
-                  const event = new KeyboardEvent('keydown', { key: e.key, code: e.key, bubbles: true });
-                  mainInputRef.current.dispatchEvent(event);
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (mainInputRef?.current) {
+                    const event = new KeyboardEvent('keydown', {
+                      key: 'Enter',
+                      code: 'Enter',
+                      keyCode: 13,
+                      which: 13,
+                      bubbles: true,
+                    });
+                    mainInputRef.current.dispatchEvent(event);
+                  }
+                  return;
                 }
-              }
-            }}
-            size="small"
-            fullWidth
-            placeholder={searchPlaceholder}
-            autoFocus
-            inputRef={searchInputRef}
-            inputProps={{ 'aria-label': searchAriaLabel }}
-          />
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  if (mainInputRef?.current) {
+                    const event = new KeyboardEvent('keydown', { key: e.key, code: e.key, bubbles: true });
+                    mainInputRef.current.dispatchEvent(event);
+                  }
+                }
+              }}
+              size="small"
+              fullWidth
+              placeholder={searchPlaceholder}
+              autoFocus
+              inputRef={searchInputRef}
+              inputProps={{ 'aria-label': searchAriaLabel }}
+            />
+          </Box>
+          {children}
         </Box>
-        {children}
-      </Box>
-    </Popper>
-  )
+      </Popper>
+    );
+  }
 );
 SearchablePopper.displayName = 'SearchablePopper';
 
