@@ -1,0 +1,247 @@
+{
+  "page": {
+    "title": "Privacy Policy",
+    "subtitle": "Your data privacy matters",
+    "description": "Comprehensive data protection and transparency standards",
+    "lastUpdated": "January 7, 2026",
+    "effective": "Effective date: January 7, 2026",
+    "metaTitle": "Privacy Policy | Time 2 Trade",
+    "intro": "Time 2 Trade is committed to transparency about how we collect, use, and protect your data. This policy explains what information we gather, why we need it, how we use it, and the choices you have."
+  },
+  "tableOfContents": {
+    "label": "Table of contents"
+  },
+  "sections": {
+    "collection": {
+      "heading": "Information we collect",
+      "subsections": {
+        "provided": {
+          "title": "Information you provide",
+          "items": [
+            "Email address (for authentication and account recovery)",
+            "Display name and profile photo (optional)",
+            "Trading session preferences and clock settings",
+            "Economic calendar favorites and personal notes",
+            "Timezone selection and display preferences"
+          ]
+        },
+        "automatic": {
+          "title": "Information we collect automatically",
+          "items": [
+            "IP address and general location (country/region)",
+            "Device type, browser type, and operating system",
+            "Session data and authentication tokens",
+            "Usage statistics (pages viewed, features used, session duration)",
+            "Error logs and diagnostic information"
+          ]
+        },
+        "thirdParty": {
+          "title": "Information from third parties",
+          "items": [
+            "OAuth profile data (name, email, profile photo) when you sign in with Google or Twitter",
+            "Economic calendar data from JBlanked API (publicly available market events)"
+          ]
+        }
+      }
+    },
+    "usage": {
+      "heading": "How we use information",
+      "subsections": {
+        "provide": {
+          "title": "Provide and maintain services",
+          "legalBasis": "Contractual necessity",
+          "items": [
+            "Authenticate your account and maintain secure sessions",
+            "Sync your preferences and settings across devices",
+            "Display economic calendar events in your selected timezone",
+            "Store your favorites, notes, and custom configurations"
+          ]
+        },
+        "improve": {
+          "title": "Improve and develop features",
+          "legalBasis": "Legitimate interest",
+          "items": [
+            "Analyze usage patterns to optimize performance",
+            "Identify and fix bugs and technical issues",
+            "Develop new features based on user behavior",
+            "Ensure service reliability and uptime"
+          ]
+        },
+        "advertising": {
+          "title": "Advertising",
+          "legalBasis": "Consent (for personalized ads)",
+          "items": [
+            "Display Google AdSense advertisements",
+            "Measure ad performance and effectiveness",
+            "Deliver personalized ads when you allow them via cookie consent",
+            "Show non-personalized ads when you select essential-only cookies"
+          ]
+        }
+      }
+    },
+    "sharing": {
+      "heading": "Information we share",
+      "subsections": {
+        "providers": {
+          "title": "Service providers",
+          "items": [
+            "Firebase Authentication (Google Cloud) - for account management",
+            "Cloud Firestore (Google Cloud) - for data storage in us-central1 region",
+            "Firebase Hosting (Google Cloud) - for application delivery via global CDN",
+            "Firebase Cloud Functions (Google Cloud) - for scheduled data synchronization",
+            "JBlanked API - for economic calendar data retrieval (no personal data shared)"
+          ]
+        },
+        "advertising": {
+          "title": "Advertising partners",
+          "items": [
+            "Google AdSense - may collect and use data for ad delivery when you allow personalized ads",
+            "Manage ad preferences at Google Ad Settings: https://adssettings.google.com"
+          ]
+        },
+        "legal": {
+          "title": "Legal requirements",
+          "items": [
+            "We may disclose information to comply with legal obligations, court orders, or government requests",
+            "We do not sell your personal data to third parties"
+          ]
+        }
+      }
+    },
+    "rights": {
+      "heading": "Your privacy rights",
+      "subsections": {
+        "access": {
+          "title": "Access and update",
+          "items": [
+            "View and edit your profile information in account settings",
+            "Update display name, photo, and preferences at any time",
+            "Request a copy of your data via @time2_trade on X (Twitter)"
+          ]
+        },
+        "delete": {
+          "title": "Delete your data",
+          "items": [
+            "Delete your account in settings (removes all personal data and preferences)",
+            "Contact @time2_trade on X (Twitter) to request account deletion",
+            "We process deletion requests within 30 days",
+            "Some data may be retained in backup systems for up to 90 days"
+          ]
+        },
+        "cookies": {
+          "title": "Cookie preferences",
+          "items": [
+            "Use the cookie banner to choose between personalized ads or essential-only mode",
+            "Change consent at any time by clearing browser data to reset the banner",
+            "Essential cookies are always active to maintain authentication and settings"
+          ]
+        },
+        "ads": {
+          "title": "Ad personalization",
+          "items": [
+            "Control Google ad personalization at Google Ad Settings: https://adssettings.google.com",
+            "Choose essential-only cookies to receive non-personalized ads only",
+            "Ad choices do not affect Time 2 Trade functionality"
+          ]
+        },
+        "portability": {
+          "title": "Data portability",
+          "items": [
+            "Request export of your settings and favorites in JSON format",
+            "Contact @time2_trade on X (Twitter) with your request",
+            "We provide data exports within 30 days"
+          ]
+        }
+      }
+    },
+    "retention": {
+      "heading": "Data retention and deletion",
+      "items": [
+        "Account data: Stored while your account is active, plus 30 days after deletion request",
+        "Settings and preferences: Deleted immediately upon account deletion",
+        "Usage logs: Retained for 90 days for debugging and security monitoring",
+        "Error logs: Retained for 180 days for system stability analysis",
+        "Backup systems: Data may persist in backups for up to 90 days after deletion",
+        "Legal holds: Data subject to legal preservation requirements may be retained longer"
+      ]
+    },
+    "security": {
+      "heading": "Security measures",
+      "items": [
+        "Encryption: All data transmitted using TLS 1.2+ encryption",
+        "Storage: Data encrypted at rest using Google Cloud encryption standards",
+        "Access control: Role-based permissions with least-privilege principle",
+        "Authentication: Secure session management with token-based authentication",
+        "Monitoring: Continuous security monitoring and automated threat detection",
+        "Service accounts: Minimal permissions for Cloud Functions and backend services",
+        "No client-side secrets: API keys and credentials stored securely in environment variables"
+      ]
+    },
+    "international": {
+      "heading": "International data transfers",
+      "items": [
+        "Time 2 Trade is operated from the United States",
+        "Data is stored in Google Cloud (Firebase) us-central1 region",
+        "For users in the European Economic Area (EEA) and UK: data transfers comply with GDPR via Google Cloud's Standard Contractual Clauses",
+        "Firebase services are certified under ISO 27001, SOC 2, and SOC 3",
+        "You have the rights outlined in the \"Your privacy rights\" section above"
+      ]
+    },
+    "children": {
+      "heading": "Children's privacy",
+      "items": [
+        "United States: Time 2 Trade is not intended for children under 13 (COPPA compliance)",
+        "European Union: Not intended for children under 16 without parental consent (GDPR Article 8)",
+        "Age verification: We do not knowingly collect data from children below applicable age limits",
+        "Parental requests: If you believe a child has provided data, contact @time2_trade on X (Twitter) for immediate deletion"
+      ]
+    },
+    "cookies": {
+      "heading": "Cookies and local storage",
+      "subsections": {
+        "essential": {
+          "title": "Essential (always active)",
+          "items": [
+            "Authentication tokens to keep you signed in",
+            "Session data to maintain app state",
+            "Cookie consent preferences",
+            "Timezone and language settings"
+          ]
+        },
+        "advertising": {
+          "title": "Advertising (optional, requires consent)",
+          "items": [
+            "Google AdSense cookies for ad delivery and measurement",
+            "Ad personalization cookies (only when you allow personalized ads)",
+            "These are not set when you choose essential-only mode"
+          ]
+        }
+      }
+    },
+    "changes": {
+      "heading": "Changes to this policy",
+      "items": [
+        "We may update this policy to reflect service changes or legal requirements",
+        "Last updated date appears at the top of this page",
+        "Material changes will be communicated via email to registered users",
+        "Continued use after changes constitutes acceptance of the updated policy",
+        "Previous versions available upon request at @time2_trade on X (Twitter)"
+      ]
+    },
+    "contact": {
+      "heading": "Contact us",
+      "items": [
+        "General inquiries: @time2_trade on X (Twitter)",
+        "Data requests: DM @time2_trade on X (Twitter) with \"Data Request\" in message",
+        "Response time: We respond to requests within 30 days",
+        "Mailing address: Available upon request for formal legal correspondence"
+      ]
+    }
+  },
+  "footer": {
+    "home": "Home",
+    "openApp": "Open app",
+    "terms": "Terms",
+    "social": "@time2_trade"
+  }
+}

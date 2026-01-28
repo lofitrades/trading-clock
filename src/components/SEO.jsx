@@ -2,20 +2,33 @@
  * src/components/SEO.jsx
  * 
  * Purpose: Reusable SEO component powered by react-helmet-async.
- * Centralizes canonical, social, robots, and structured data tags for SPA routes.
+ * Centralizes canonical, social, robots, hreflang, and structured data tags for SPA routes.
  * 
  * Changelog:
+ * v1.1.0 - 2026-01-27 - BEP SEO: Added multi-language hreflang support, dynamic og:locale based on current language, and language-aware canonical URLs for proper international SEO crawlability.
  * v1.0.0 - 2025-12-22 - Initial implementation for route-level Helmet metadata.
  */
 
 import PropTypes from 'prop-types';
 import { Helmet } from 'react-helmet-async';
-import { DEFAULT_OG_IMAGE, DEFAULT_THEME_COLOR, DEFAULT_TWITTER_SITE, SITE_URL, normalizePath } from '../utils/seoMeta';
+import { useTranslation } from 'react-i18next';
+import {
+    DEFAULT_OG_IMAGE,
+    DEFAULT_THEME_COLOR,
+    DEFAULT_TWITTER_SITE,
+    SITE_URL,
+    SUPPORTED_LANGUAGES,
+    normalizePath,
+    getOgLocale,
+    buildHreflangUrls,
+} from '../utils/seoMeta';
 
-const getCanonicalUrl = ({ canonical, path }) => {
+const getCanonicalUrl = ({ canonical, path, lang }) => {
     if (canonical) return canonical;
     const normalizedPath = normalizePath(path || '/');
-    return `${SITE_URL}${normalizedPath}`;
+    // For default language (en), use clean URL; for others, append lang param
+    const langSuffix = lang && lang !== 'en' ? `?lang=${lang}` : '';
+    return `${SITE_URL}${normalizedPath}${langSuffix}`;
 };
 
 const SEO = ({
@@ -31,8 +44,15 @@ const SEO = ({
     twitterSite = DEFAULT_TWITTER_SITE,
     themeColor = DEFAULT_THEME_COLOR,
     structuredData = [],
+    lang: langOverride,
 }) => {
-    const canonicalUrl = getCanonicalUrl({ canonical, path });
+    const { i18n } = useTranslation();
+    const currentLang = langOverride || i18n.language || 'en';
+
+    const canonicalUrl = getCanonicalUrl({ canonical, path, lang: currentLang });
+    const ogLocale = getOgLocale(currentLang);
+    const hreflangUrls = buildHreflangUrls(path);
+
     const schemas = Array.isArray(structuredData)
         ? structuredData.filter(Boolean)
         : structuredData
@@ -41,6 +61,9 @@ const SEO = ({
 
     return (
         <Helmet prioritizeSeoTags>
+            {/* Update html lang attribute dynamically */}
+            <html lang={currentLang} />
+
             {title && <title>{title}</title>}
             {description && <meta name="description" content={description} />}
             {keywords && <meta name="keywords" content={keywords} />}
@@ -48,9 +71,20 @@ const SEO = ({
             {robots && <meta name="robots" content={robots} />}
             {themeColor && <meta name="theme-color" content={themeColor} />}
 
+            {/* BEP SEO: hreflang tags for multi-language discoverability */}
+            <link rel="alternate" href={hreflangUrls['x-default']} hreflang="x-default" />
+            {SUPPORTED_LANGUAGES.map((lng) => (
+                <link key={lng} rel="alternate" href={hreflangUrls[lng]} hreflang={lng} />
+            ))}
+
+            {/* Open Graph with dynamic locale */}
             <meta property="og:type" content={ogType} />
             <meta property="og:site_name" content="Time 2 Trade" />
-            <meta property="og:locale" content="en_US" />
+            <meta property="og:locale" content={ogLocale} />
+            {/* Alternate locales for social platforms */}
+            {SUPPORTED_LANGUAGES.filter(lng => lng !== currentLang).map(lng => (
+                <meta key={lng} property="og:locale:alternate" content={getOgLocale(lng)} />
+            ))}
             <meta property="og:title" content={title} />
             <meta property="og:description" content={description} />
             <meta property="og:url" content={canonicalUrl} />
@@ -87,6 +121,7 @@ SEO.propTypes = {
         PropTypes.arrayOf(PropTypes.object),
         PropTypes.object,
     ]),
+    lang: PropTypes.string,
 };
 
 export default SEO;

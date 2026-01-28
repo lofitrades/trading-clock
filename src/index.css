@@ -5,7 +5,9 @@
  * Optimizes mobile viewport behavior for fullscreen-like experiences.
  * 
  * Changelog:
- * v1.2.3 - 2026-01-15 - OVERFLOW FIX: Changed .clock-elements-container overflow from 'visible' to 'hidden' to prevent content escaping container bounds. Also added max-width: 100% constraint.
+ * v1.2.6 - 2026-01-28 - BEP UI FIX: Removed borders from .canvas-container and canvas elements. Border now applied only to .hand-clock-wrapper in App.css for single-source positioning - eliminates pixel offset from nested borders.
+ * v1.2.5 - 2026-01-28 - BEP UI FIX: Added border: solid 2px var(--t2t-bg-default) to .canvas-container and canvas elements to mask edge artifacts with theme-matching borders. Also applied to .hand-clock-wrapper in App.css. Border color adapts to theme for seamless visual integration.
+ * v1.2.4 - 2026-01-28 - BEP THEME FIX: Set .canvas-container background to transparent. Theme-aware background now handled via inline style in ClockCanvas.jsx using MUI theme.palette.background.default for proper light/dark mode support.
  * v1.2.2 - 2026-01-12 - Remove redundant min-heights/padding on the in-app shell and center the clock column to avoid scrollbars on /app while keeping safe-area support.
  * v1.2.1 - 2025-12-17 - Removed duplicated stylesheet block to reduce CSS payload and speed up first paint.
  * v1.2.0 - 2025-12-16 - Added visualViewport-driven safe inset vars to prevent mobile browser UI overlap (Android bottom bar) and standardized safe viewport min-heights.
@@ -25,19 +27,29 @@
   */
   --t2t-safe-top: max(env(safe-area-inset-top, 0px), var(--t2t-vv-offset-top, 0px));
   --t2t-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--t2t-vv-inset-bottom, 0px));
+
+  /* Theme colors - Light mode defaults, overridden by ThemeContext */
+  --t2t-bg-default: #F9F9F9;
+  --t2t-bg-paper: #FFFFFF;
+  --t2t-text-primary: #4B4B4B;
+  --t2t-text-secondary: #666666;
+  --t2t-primary-main: #006064;
+  --t2t-divider: rgba(0, 0, 0, 0.12);
 }
 
 body {
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Poppins, sans-serif;
-  background-color: #F9F9F9;
+  background-color: var(--t2t-bg-default);
   min-height: 100vh;
   min-height: 100dvh;
   min-height: var(--t2t-vv-height, 100dvh);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;
+  transition: background-color 0.3s ease;
+  color: var(--t2t-text-primary);
 }
 
 li {
@@ -96,7 +108,7 @@ li {
 /* Digital Clock */
 .digital-clock {
   font-weight: 400;
-  color: #333;
+  color: var(--t2t-text-primary);
   margin-bottom: 5px;
   margin-top: 5px;
 }
@@ -111,7 +123,7 @@ li {
   margin-bottom: 10px;
   text-align: center;
   max-width: 350px;
-  color: #333;
+  color: var(--t2t-text-primary);
 }
 
 /* Material Icons */
@@ -149,7 +161,7 @@ li {
 
 .time-debug {
   font-size: 12px;
-  color: #666;
+  color: var(--t2t-text-secondary);
   margin-top: 8px;
   font-family: monospace;
 }
@@ -160,12 +172,16 @@ li {
   padding: 0;
   top: 0;
   overflow: hidden;
+  background-color: transparent;
+  border: none;
+  outline: none;
 }
 
 canvas {
   display: block;
   background: transparent;
   border: none;
+  outline: none;
   padding: 0;
   margin: 0;
 }

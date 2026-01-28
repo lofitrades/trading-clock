@@ -1,0 +1,8 @@
+{
+  "timeSettings": "Settings for displaying time countdowns",
+  "timeToEnd": "Display the time remaining until the current session ends",
+  "timeToStart": "Display the time until the next session starts",
+  "timeToEndLabel": "Time to end",
+  "timeToStartLabel": "Starts in",
+  "userMenu": "User account menu"
+}

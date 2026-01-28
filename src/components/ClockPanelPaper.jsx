@@ -12,6 +12,10 @@
  * - Lazy-loaded ClockEventsOverlay for performance
  *
  * Changelog:
+ * v1.1.0 - 2026-01-28 - BEP THEME: Replaced hardcoded colors with theme tokens. Changed '#ffffff' to theme.palette.background.paper, '#F6F9FB' to theme.palette.background.default, '#0F172A' to theme.palette.text.primary. All clock surface, hand, and text colors now adapt to light/dark theme modes dynamically.
+ * v1.0.9 - 2026-01-29 - BEP CONSISTENCY: Fixed font color to match Economic Calendar. Changed clockPaperTextColor to use theme.palette.text.primary when backgroundBasedOnSession is false (instead of hardcoded '#0F172A'). Now Trading Clock panel text color matches CalendarEmbed's text color exactly, ensuring consistent font UI across /calendar page.
+ * v1.0.8 - 2026-01-29 - BEP CONSISTENCY: Updated title Typography styling to exactly match CalendarEmbed title. Changed lineHeight from 1.1 to 1.2 (lineHeight: 1.2) for perfect visual consistency between "Trading Clock" and "Economic Calendar" titles on /calendar page. Both now use variant="h6" with fontWeight: 900 and lineHeight: 1.2.
+ * v1.0.6 - 2026-01-27 - BEP i18n migration: Added useTranslation hook, replaced 6 hardcoded strings with t() calls for calendar namespace (Trading Clock title, Add reminder tooltips, subtitle, clock hidden message, Select Timezone fallback, aria-labels). Full i18n compliance for EN/ES/FR.
  * v1.0.5 - 2026-01-22 - BEP: Add circular border to Add reminder button with hover state (1.5px solid border with alpha transparency).
  * v1.0.4 - 2026-01-22 - BEP: Replace settings gear icon with Add icon that opens CustomEventDialog for creating new reminders.
  * v1.0.3 - 2026-01-21 - Removed fullscreen shortcut button from the calendar clock panel.
@@ -26,6 +30,7 @@
  */
 
 import { Suspense, lazy, memo, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import {
     Box,
@@ -78,6 +83,7 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
     onOpenEvent,
     onOpenAddEvent,
 }) {
+    const { t, i18n } = useTranslation(['calendar', 'common']);
     const theme = useTheme();
     const isXs = useMediaQuery(theme.breakpoints.only('xs'));
     const { currentTime, activeSession, nextSession, timeToEnd, timeToStart } = useClock(clockTimezone, sessions, timeEngine);
@@ -161,15 +167,15 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
     }, [showEventsOnCanvas]);
 
     // Color calculations
-    const clockSurfaceColor = backgroundBasedOnSession && activeSession?.color ? activeSession.color : '#ffffff';
+    const clockSurfaceColor = backgroundBasedOnSession && activeSession?.color ? activeSession.color : theme.palette.background.paper;
     const clockSurfaceIsDark = useMemo(() => isColorDark(clockSurfaceColor), [clockSurfaceColor]);
-    const handColor = useMemo(() => (clockSurfaceIsDark ? '#F6F9FB' : '#0F172A'), [clockSurfaceIsDark]);
+    const handColor = useMemo(() => (clockSurfaceIsDark ? theme.palette.background.default : theme.palette.text.primary), [clockSurfaceIsDark, theme.palette.background.default, theme.palette.text.primary]);
     const clockPaperBg = useMemo(
-        () => (backgroundBasedOnSession && activeSession?.color ? activeSession.color : '#ffffff'),
-        [activeSession?.color, backgroundBasedOnSession],
+        () => (backgroundBasedOnSession && activeSession?.color ? activeSession.color : theme.palette.background.paper),
+        [activeSession?.color, backgroundBasedOnSession, theme.palette.background.paper],
     );
     const clockPaperTextColor = useMemo(() => {
-        if (!backgroundBasedOnSession) return '#0F172A';
+        if (!backgroundBasedOnSession) return theme.palette.text.primary;
         return isColorDark(clockPaperBg) ? '#F6F9FB' : theme.palette.text.primary;
     }, [backgroundBasedOnSession, clockPaperBg, theme.palette.text.primary]);
 
@@ -184,11 +190,13 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
         };
 
         try {
-            return new Intl.DateTimeFormat(undefined, { ...baseOptions, timeZone: clockTimezone }).format(date);
+            // BEP: Use i18n.language for locale-aware date formatting
+            // When user switches language via LanguageSwitcher, date text updates (e.g., "Monday" → "Lunes" → "Lundi")
+            return new Intl.DateTimeFormat(i18n.language, { ...baseOptions, timeZone: clockTimezone }).format(date);
         } catch {
-            return new Intl.DateTimeFormat(undefined, baseOptions).format(date);
+            return new Intl.DateTimeFormat(i18n.language, baseOptions).format(date);
         }
-    }, [clockTimezone, timeEngine?.nowEpochMs]);
+    }, [clockTimezone, timeEngine?.nowEpochMs, i18n.language]);
 
     const headerDigitalClockLabel = useMemo(() => {
         if (!showDigitalClock || !currentTime) return null;
@@ -228,10 +236,10 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
         >
             {/* Header section */}
             <Stack spacing={0.75} sx={{ mb: 0.5, position: 'relative', minWidth: 0, maxWidth: '100%' }}>
-                <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
-                    Trading Clock
+                <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.2 }}>
+                    {t('calendar:clock.title')}
                 </Typography>
-                <Tooltip title="Add reminder" placement="left">
+                <Tooltip title={t('calendar:tooltip.addReminder')} placement="left">
                     <IconButton
                         size="medium"
                         onClick={onOpenAddEvent}
@@ -249,13 +257,13 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
                                 bgcolor: alpha(clockPaperTextColor, 0.08),
                             },
                         }}
-                        aria-label="Add reminder"
+                        aria-label={t('calendar:aria.addReminder')}
                     >
                         <AddRoundedIcon fontSize="medium" />
                     </IconButton>
                 </Tooltip>
                 <Typography variant="body2" sx={{ color: alpha(clockPaperTextColor, 0.72) }}>
-                    Today&apos;s market sessions and economic events.
+                    {t('calendar:clock.subtitle')}
                 </Typography>
                 <Divider sx={{ borderColor: alpha('#3c4d63', 0.12) }} />
                 <Stack
@@ -421,7 +429,7 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
                     </Box>
                 ) : (
                     <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center', width: '100%' }}>
-                        Clock hidden in settings.
+                        {t('calendar:clock.hidden')}
                     </Typography>
                 )}
 
@@ -449,7 +457,7 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
                             },
                         }}
                     >
-                        {selectedTimezone?.replace(/_/g, ' ') || 'Select Timezone'}
+                        {selectedTimezone?.replace(/_/g, ' ') || t('calendar:clock.selectTimezone')}
                     </Button>
                 ) : null}
 

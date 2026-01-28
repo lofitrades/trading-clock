@@ -5,6 +5,7 @@
  * Enables separate z-layer control to keep hands above event markers while retaining smooth animation.
  *
  * Changelog:
+ * v1.0.6 - 2026-01-28 - BEP THEME-AWARE: Clock hands now adapt to light/dark mode. Uses theme.palette.mode to determine hand color: light hands (#E0E0E0) on dark mode, dark hands (#0F172A) on light mode. Ignores passed handColor prop in favor of theme-aware color for automatic contrast and accessibility. Improves UX by ensuring hands remain visible regardless of background color or theme preference.
  * v1.0.5 - 2026-01-08 - Add showSecondsHand prop to conditionally render seconds hand; hour/minute always visible (enterprise best practice).
  * v1.0.4 - 2026-01-07 - Track handColor in ref to stabilize dependencies; minimize animation loop restarts and improve canvas rendering performance.
  * v1.0.3 - 2026-01-06 - Remove sub-second interpolation to reduce render overhead; rely on upstream hand angles for smooth but lightweight motion.
@@ -14,13 +15,18 @@
 
 import { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
+import { useTheme } from '@mui/material/styles';
 
 export default function ClockHandsOverlay({ size, handAnglesRef, handColor, time, showSecondsHand = true }) {
+  const theme = useTheme();
   const canvasRef = useRef(null);
   const timeRef = useRef(time);
   const handColorRef = useRef(handColor);
   const showSecondsHandRef = useRef(showSecondsHand);
   const animationIdRef = useRef(null);
+
+  // Determine theme-aware hand color: light hands on dark mode, dark hands on light mode
+  const themeAwareHandColor = theme.palette.mode === 'dark' ? '#E0E0E0' : '#0F172A';
 
   // Enterprise: track prop changes in refs to avoid restarting animation loop
   // Only size change triggers canvas rebuild and effect re-run
@@ -29,8 +35,8 @@ export default function ClockHandsOverlay({ size, handAnglesRef, handColor, time
   }, [time]);
 
   useEffect(() => {
-    handColorRef.current = handColor;
-  }, [handColor]);
+    handColorRef.current = themeAwareHandColor;
+  }, [themeAwareHandColor]);
 
   useEffect(() => {
     showSecondsHandRef.current = showSecondsHand;

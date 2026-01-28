@@ -1,0 +1,61 @@
+{
+  "seo": {
+    "title": "Contact | Time 2 Trade",
+    "description": "Contactez Time 2 Trade. Envoyez un message pour le support, les commentaires ou les questions. Préférez les DM ? Contactez-nous sur X."
+  },
+  "page": {
+    "overline": "Contact",
+    "heading": "Entrez en contact",
+    "description": "Envoyez un message pour le support, les commentaires ou les questions. Préférez les DM ? Contactez-nous sur X pour une réponse plus rapide."
+  },
+  "form": {
+    "heading": "Envoyer un message",
+    "subheading": "Support, commentaires ou questions — nous lisons chaque message.",
+    "requiredNotice": "Les champs marqués avec * sont obligatoires.",
+    "email": {
+      "label": "Entrez votre adresse e-mail",
+      "helperText": "Nous l'utiliserons pour vous répondre.",
+      "error": "Entrez une adresse e-mail valide"
+    },
+    "name": {
+      "label": "Entrez votre nom",
+      "title": "Votre nom (facultatif)"
+    },
+    "country": {
+      "label": "Pays / code",
+      "title": "Sélectionnez votre pays pour définir l'indicatif téléphonique"
+    },
+    "phone": {
+      "label": "Entrez votre téléphone",
+      "helperText": "(chiffres uniquement, sans tirets)",
+      "title": "Téléphone facultatif (chiffres uniquement)"
+    },
+    "message": {
+      "label": "Message",
+      "helperText": "Dites-nous avec quoi vous avez besoin d'aide.",
+      "error": "Le message est obligatoire"
+    },
+    "submitButton": "Envoyer le message",
+    "submitButtonLoading": "Envoi en cours…",
+    "submitError": "Désolé, une erreur est survenue. Veuillez réessayer ou envoyez-nous un DM sur X.",
+    "preferDm": "Préférez les DM ?",
+    "xHandle": "@time2_trade",
+    "xAriaLabel": "Visitez Time 2 Trade sur X",
+    "disclaimer": "Nous n'utilisons vos informations que pour vous répondre. Pas de marketing."
+  },
+  "success": {
+    "heading": "Merci — nous l'avons reçu",
+    "message": "Nous vous suivrons en utilisant l'adresse e-mail que vous avez fournie. Pendant ce temps, vous pouvez accéder au calendrier ou retourner à l'accueil.",
+    "calendarButton": "Aller au Calendrier",
+    "homeButton": "Aller à l'Accueil",
+    "preferQuickDm": "Préférez un DM rapide ?",
+    "xHandle": "@time2_trade",
+    "xAriaLabel": "Visitez Time 2 Trade sur X"
+  },
+  "footer": {
+    "home": "Accueil",
+    "calendar": "Ouvrir le Calendrier",
+    "privacy": "Confidentialité",
+    "terms": "Conditions"
+  }
+}

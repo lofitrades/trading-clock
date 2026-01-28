@@ -38,8 +38,8 @@ export const documentProps = {
 };
 
 export default function Page() {
-    const { t } = useTranslation();
-    
+    const { t } = useTranslation(['terms', 'common']);
+
     const items = [
         { titleKey: 'terms:items.item1.title', textKey: 'terms:items.item1.text' },
         { titleKey: 'terms:items.item2.title', textKey: 'terms:items.item2.text' },

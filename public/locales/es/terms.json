@@ -1,0 +1,157 @@
+{
+  "page": {
+    "title": "Términos de Servicio",
+    "subtitle": "Efectivo desde el 7 de enero de 2026",
+    "description": "Estos Términos de Servicio rigen el uso de Time 2 Trade. Al acceder o utilizar el Servicio, usted acepta estar sujeto a estos Términos. Por favor, léalos cuidadosamente.",
+    "lastUpdated": "7 de enero de 2026",
+    "effective": "7 de enero de 2026",
+    "metaTitle": "Términos de Servicio - Time 2 Trade"
+  },
+  "tableOfContents": "Tabla de contenidos",
+  "sections": {
+    "acceptance": {
+      "heading": "Aceptación de los Términos",
+      "items": [
+        "Al acceder o utilizar Time 2 Trade (\"Servicio\"), usted acepta estar sujeto a estos Términos de Servicio (\"Términos\")",
+        "Si no está de acuerdo con estos Términos, no puede acceder ni utilizar el Servicio",
+        "Nos reservamos el derecho de actualizar estos Términos en cualquier momento. El uso continuado después de cambios constituye aceptación",
+        "Si utiliza el Servicio en nombre de una organización, usted representa que tiene autoridad para vincular esa organización"
+      ]
+    },
+    "description": {
+      "heading": "Descripción del Servicio",
+      "items": [
+        "Time 2 Trade es una aplicación web que proporciona visualización de sesiones de trading y herramientas de calendario económico",
+        "Características principales: Reloj de sesiones de trading, calendario de eventos económicos, gestión de zonas horarias, sincronización de preferencias de usuario",
+        "Fuentes de datos: Eventos económicos de la API de JBlanked (datos equivalentes a MQL5/Forex Factory)",
+        "Acceso gratuito: Todas las características están disponibles con creación gratuita de cuenta",
+        "Sin niveles premium: No cobramos tarifas de suscripción por acceso al servicio"
+      ]
+    },
+    "accounts": {
+      "heading": "Cuentas de Usuario",
+      "creation": {
+        "title": "Creación de cuenta",
+        "items": [
+          "Puede crear una cuenta usando correo electrónico u proveedores OAuth (Google, Twitter)",
+          "Debe proporcionar información precisa y completa",
+          "Es responsable de mantener la seguridad de las credenciales de su cuenta",
+          "Debe notificarnos inmediatamente de cualquier acceso no autorizado"
+        ]
+      },
+      "responsibilities": {
+        "title": "Responsabilidades de la cuenta",
+        "items": [
+          "Es responsable de todas las actividades bajo su cuenta",
+          "No puede compartir su cuenta con otros",
+          "No puede crear múltiples cuentas para eludir restricciones",
+          "No puede suplantar a otros ni proporcionar información falsa"
+        ]
+      },
+      "termination": {
+        "title": "Terminación de cuenta",
+        "items": [
+          "Puede eliminar su cuenta en cualquier momento a través de la configuración de cuenta",
+          "Podemos suspender o terminar cuentas que violen estos Términos",
+          "Tras la terminación, sus datos serán eliminados según nuestra Política de Privacidad",
+          "Algunos datos pueden retenerse en copias de seguridad hasta 90 días"
+        ]
+      }
+    },
+    "acceptableUse": {
+      "heading": "Política de Uso Aceptable",
+      "intro": "Actividades prohibidas:",
+      "items": [
+        "Raspado automatizado, rastreo o recopilación de datos sin permiso",
+        "Intentos de obtener acceso no autorizado a sistemas u otras cuentas de usuario",
+        "Interferencia o interrupción del Servicio o servidores",
+        "Transmisión de virus, malware o código malicioso",
+        "Uso del Servicio para actividades ilegales o para violar derechos de otros",
+        "Ingeniería inversa, descompilación o dessamblaje del Servicio",
+        "Eliminación o modificación de aviso de derechos de autor, marca registrada o propiedad intelectual",
+        "Reventa o explotación comercial del Servicio sin autorización"
+      ]
+    },
+    "disclaimer": {
+      "heading": "Descargo de Responsabilidad - No es Asesoramiento Financiero",
+      "critical": "Aviso Crítico: Time 2 Trade es solo una herramienta informativa",
+      "notFinancialAdvice": "No es asesoramiento financiero: No proporcionamos señales de trading, recomendaciones o asesoramiento de inversión",
+      "noGuarantees": "Sin garantías: Los datos de rendimiento histórico e información de eventos no garantizan resultados futuros",
+      "yourResponsibility": "Su responsabilidad: Todas las decisiones de trading son suyas. Consulte con asesores financieros autorizados antes de tomar decisiones de inversión",
+      "marketRisks": "Riesgos de mercado: El trading con futuros, forex y otros instrumentos financieros implica un riesgo sustancial de pérdida",
+      "educational": "Propósito educativo: El Servicio lo ayuda a rastrear sesiones de mercado y eventos; no predice movimientos del mercado",
+      "noLiability": "Sin responsabilidad por pérdidas: No somos responsables por pérdidas de trading o decisiones de inversión tomadas usando el Servicio"
+    },
+    "liabilityLimitation": {
+      "heading": "Limitación de Responsabilidad",
+      "items": [
+        "En la máxima medida permitida por la ley, Time 2 Trade se proporciona 'tal cual' sin garantías expresas o implícitas",
+        "No ofrecemos garantía sobre la precisión, confiabilidad o idoneidad del Servicio para un propósito particular",
+        "No somos responsables por daños indirectos, incidentales, especiales, consecuentes o punitivos",
+        "En ningún caso nuestra responsabilidad excederá las tarifas pagadas (si las hay) en los últimos 12 meses",
+        "Algunas jurisdicciones no permiten descargos de responsabilidad de garantías implícitas, por lo que esto puede no aplicarse a usted"
+      ]
+    },
+    "intellectual": {
+      "heading": "Derechos de Propiedad Intelectual",
+      "items": [
+        "Time 2 Trade y su contenido original, características y funcionalidad son propiedad nuestra y están protegidos por derechos de autor",
+        "No puede reproducir, distribuir o transmitir ningún contenido sin nuestro permiso escrito explícito",
+        "Usted retiene derechos sobre sus eventos y notas personalizadas; retenemos derechos para usar datos agregados anonimizados para mejorar el servicio",
+        "Las marcas registradas y logotipos son propiedad de Time 2 Trade o nuestros licenciantes y no pueden usarse sin permiso"
+      ]
+    },
+    "thirdParty": {
+      "heading": "Servicios de Terceros",
+      "items": [
+        "Los datos de eventos económicos se proporcionan por Forex Factory, NFS, JBlanked y otras fuentes. No somos responsables de su precisión u oportunidad",
+        "Publicidades de Google AdSense pueden aparecer en el Servicio. No somos responsables del contenido o prácticas de anuncios",
+        "La autenticación OAuth es proporcionada por Google y Twitter. Sus políticas de privacidad y seguridad se aplican a la autenticación",
+        "Firestore (Google Cloud) proporciona almacenamiento de datos y sincronización. Las políticas de términos y privacidad de Google se aplican"
+      ]
+    },
+    "arbitration": {
+      "heading": "Arbitraje y Resolución de Disputas",
+      "items": [
+        "Cualquier disputa que surja de estos Términos o su uso del Servicio será resuelta por arbitraje vinculante",
+        "El arbitraje será conducido en inglés, bajo las reglas de la Asociación Estadounidense de Arbitraje (AAA)",
+        "Usted renuncia a su derecho a un juicio con jurado y a litigios de acción de clase",
+        "Los costos de arbitraje serán divididos equitativamente a menos que el árbitro determine lo contrario",
+        "Cualquiera de las partes puede optar por no participar en arbitraje mediante notificación escrita dentro de 30 días del primer reclamo"
+      ]
+    },
+    "general": {
+      "heading": "Disposiciones Generales",
+      "items": [
+        "Acuerdo completo: Estos Términos y nuestra Política de Privacidad constituyen el acuerdo completo entre usted y Time 2 Trade",
+        "Separabilidad: Si alguna disposición se encuentra inaplicable, las disposiciones restantes continúan en vigor",
+        "Sin renuncia: Nuestra falta de ejecución de cualquier disposición no renuncia nuestro derecho a hacerlo más adelante",
+        "Asignación: No puede ceder estos Términos; podemos asignarlos a afiliados o sucesores",
+        "Fuerza mayor: No somos responsables por retrasos o fallas debidas a circunstancias fuera de nuestro control",
+        "Cumplimiento de exportación: Usted acepta cumplir con todas las leyes de control de exportación al usar el Servicio",
+        "Contacto: Para preguntas sobre estos Términos, contacte a @time2_trade"
+      ]
+    },
+    "contact": {
+      "heading": "Información de Contacto",
+      "items": [
+        "Consultas generales: @time2_trade",
+        "Avisos legales: DM @time2_trade con 'Legal Notice' en el mensaje",
+        "Preguntas sobre Términos: @time2_trade",
+        "Tiempo de respuesta: Respondemos a consultas dentro de 5-7 días hábiles"
+      ]
+    }
+  },
+  "disclaimers": {
+    "title": "⚠️ Descargos de Responsabilidad Importantes",
+    "noFinancialAdvice": "No es Asesoramiento Financiero: Time 2 Trade es solo informativo. No proporcionamos señales de trading ni asesoramiento de inversión.",
+    "tradingRisks": "Riesgos de Trading: El trading implica un riesgo sustancial de pérdida. El rendimiento histórico no garantiza resultados futuros.",
+    "yourResponsibility": "Su Responsabilidad: Todas las decisiones de trading son suyas. Consulte con asesores financieros autorizados antes de invertir."
+  },
+  "footer": {
+    "home": "Inicio",
+    "openApp": "Abrir aplicación",
+    "privacy": "Política de Privacidad",
+    "contact": "@time2_trade"
+  }
+}

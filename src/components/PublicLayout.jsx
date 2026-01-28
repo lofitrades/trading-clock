@@ -12,6 +12,7 @@
  * - Add reminder button visible on all pages for both auth and non-auth users
  * 
  * Changelog:
+ * v1.0.51 - 2026-01-28 - BEP THEME-AWARE: Updated bgcolor from hardcoded '#F9F9F9' to 'theme.palette.background.default' for light/dark mode support. Light mode: #F9F9F9 (unchanged), Dark mode: #121212 (Material Design 3). Entire PublicLayout shell now respects user's light/dark theme preference with proper contrast and accessibility. Added useTheme hook import and call.
  * v1.0.50 - 2026-01-22 - BEP BUGFIX: Fixed critical issue where clock content was clipped on mobile after auth redirect. The maxHeight calculation for xs/sm was only subtracting bottom nav height (64px) but not the fixed MobileHeader height (~48px). Content was being hidden due to overflow:hidden + incorrect maxHeight. Now subtracts both: 'calc(100vh - var(--t2t-bottom-nav-height, 64px) - 48px)' for xs/sm. This ensures ClockCanvas and all main content renders correctly after authentication redirect to /clock.
  * v1.0.49 - 2026-01-22 - BEP: Add onOpenAddReminder prop to pass through to MobileHeader. Enables add reminder functionality on all pages with auth gating for non-auth users.
  * v1.0.48 - 2026-01-22 - BEP REFACTOR: Extracted mobile header logic into standalone MobileHeader component. PublicLayout now imports and renders MobileHeader for xs/sm, improving separation of concerns, maintainability, and ensuring consistent mobile UX across all pages (clock, calendar, landing). Removed 100+ lines of mobile header code from PublicLayout, keeping it lean and focused on layout orchestration.
@@ -72,7 +73,7 @@
 
 import { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { Box } from '@mui/material';
+import { Box, useTheme } from '@mui/material';
 import DashboardAppBar from './AppBar';
 import MobileHeader from './MobileHeader';
 import { useAuth } from '../contexts/AuthContext';
@@ -80,6 +81,7 @@ import useCustomEvents from '../hooks/useCustomEvents';
 import useCustomEventNotifications from '../hooks/useCustomEventNotifications';
 
 const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavOnMobile, notifications, unreadCount, onMarkRead, onMarkAllRead, onClearAll, mobileHeaderAction, onOpenAddReminder }) => {
+    const theme = useTheme();
     const hasNavItems = useMemo(() => Array.isArray(navItems) && navItems.length > 0, [navItems]);
     const { user } = useAuth();
 
@@ -117,7 +119,7 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                 sx={{
                     minHeight: 'var(--t2t-vv-height, 100dvh)',
                     height: 'var(--t2t-vv-height, 100dvh)',
-                    bgcolor: '#F9F9F9',
+                    bgcolor: theme.palette.background.default,
                     display: 'flex',
                     flexDirection: 'column',
                     color: 'inherit',
@@ -184,15 +186,15 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                         alignItems: 'center',
                         minHeight: 0,
                         overflow: 'hidden',
-                        pt: { xs: 6, sm: 6, md: 0 },
-                        // Mobile-first: account for fixed top MobileHeader on xs/sm (~48px = 32px img + 16px py)
+                        pt: { xs: 'var(--t2t-mobile-header-height, 48px)', sm: 'var(--t2t-mobile-header-height, 48px)', md: 0 },
+                        // BEP: Mobile header height is dynamic via CSS custom property set in MobileHeader
+                        // Fallback to 48px if custom property unavailable
                         // Desktop: no top padding (AppBar mb handles gap)
                         // Constrain height so inner content can scroll without hiding behind nav
-                        // CRITICAL: maxHeight must subtract BOTH top header (48px) AND bottom nav (64px) on xs/sm
-                        // Previous bug: only subtracted bottom nav, causing 48px of content to be clipped
+                        // CRITICAL: maxHeight must subtract BOTH top header AND bottom nav on xs/sm
                         maxHeight: {
-                            xs: 'calc(100vh - var(--t2t-bottom-nav-height, 64px) - 48px)',
-                            sm: 'calc(100vh - var(--t2t-bottom-nav-height, 64px) - 48px)',
+                            xs: 'calc(100vh - var(--t2t-bottom-nav-height, 64px) - var(--t2t-mobile-header-height, 48px))',
+                            sm: 'calc(100vh - var(--t2t-bottom-nav-height, 64px) - var(--t2t-mobile-header-height, 48px))',
                             md: '100%', // md+ has sticky top AppBar, flex handles layout
                         },
                     }}

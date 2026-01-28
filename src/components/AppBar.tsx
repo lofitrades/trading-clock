@@ -5,6 +5,10 @@
  * Renders a sticky sub-header on md+ and an Airbnb-style bottom navigation on xs/sm.
  * 
  * Changelog:
+ * v1.5.5 - 2026-01-28 - BEP: Removed ThemeToggle button from AppBar. Theme switching deferred to SettingsSidebar2 Settings tab only. Simplifies AppBar navigation chrome. Users access theme toggle via Settings gear button → General tab → Appearance section.
+ * v1.5.4 - 2026-01-28 - BEP PHASE 3.4: Added ThemeToggle button to AppBar right-stack (between nav items and NotificationCenter). Quick theme cycling: light → dark → system → light. Icon adapts to current theme (LightModeIcon for light, DarkModeIcon for dark/system). Tooltip shows current mode. Circular icon-only button with hover effect. Available on all breakpoints for all users (auth and guests). Uses useThemeMode().toggleTheme() from ThemeContext for real-time switching.
+ * v1.5.3 - 2026-01-28 - BEP THEME-AWARE: Updated Paper bgcolor from hardcoded 'rgba(255,255,255,0.94)' to 'alpha(theme.palette.background.paper, 0.94)' for light/dark mode support. Updated boxShadow to be theme-aware: dark mode uses deeper shadow 'rgba(0,0,0,0.3)', light mode uses subtle shadow 'rgba(15,23,42,0.06)'. Mobile BottomNavigation Paper also updated to use theme palette. Entire AppBar now respects user's light/dark theme preference with proper contrast and accessibility.
+ * v1.5.2 - 2026-01-27 - BEP CONSOLE FIX: Fixed React duplicate key error "Encountered two children with the same key, `settings`". Removed key={item.id} from Button and Tooltip components inside .map() and moved key to outer Fragment wrapper. This prevents React from seeing duplicate keys when same item ID appears in multiple places during re-renders. Fixes cascading key warnings that appeared on login in AppBar tooltip and BottomNavigationAction.
  * v1.5.1 - 2026-01-27 - BEP RESPONSIVE FIX: Language switcher visibility ensured on all pages (clock, calendar, landing, about) via LanguageSwitcher display:flex + flexShrink:0. Works on all breakpoints xs/sm/md/lg/xl.
  * v1.5.0 - 2026-01-27 - PHASE 4 INTEGRATION: Added LanguageSwitcher component to right-stack. Language switcher available on all breakpoints (desktop nav + mobile bottom nav). Supports instant language switching between EN/ES/FR with persistence to localStorage + Firestore. Positioned left of NotificationCenter for consistent right-stack layout.
  * v1.4.17 - 2026-01-22 - BEP UX: Close notification menu when avatar menu opens and vice versa.
@@ -56,6 +60,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Badge,
   BottomNavigation,
@@ -72,13 +77,11 @@ import {
 import { alpha } from '@mui/material/styles';
 import type { SxProps, Theme } from '@mui/material/styles';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
-import ChecklistRtlIcon from '@mui/icons-material/ChecklistRtl';
 import LockIcon from '@mui/icons-material/Lock';
 import { useAuth } from '../contexts/AuthContext';
 import UserAvatar from './UserAvatar';
 import NotificationCenter from './NotificationCenter';
 import LanguageSwitcher from './LanguageSwitcher';
-import RoadmapModal from './RoadmapModal';
 
 export const MOBILE_BOTTOM_APPBAR_HEIGHT_PX = 64;
 const DEFAULT_BRAND_LOGO_SRC = '/logos/favicon/favicon.ico';
@@ -165,9 +168,9 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation(['common']);
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, isAuthenticated } = useAuth();
-  const [roadmapModalOpen, setRoadmapModalOpen] = useState(false);
   const [notificationCloseSignal, setNotificationCloseSignal] = useState(0);
   const [avatarCloseSignal, setAvatarCloseSignal] = useState(0);
 
@@ -180,9 +183,17 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
     const clockItem = filtered.find((item) => item.id === 'clock');
     const calendarItem = filtered.find((item) => item.id === 'calendar');
     const aboutItem = filtered.find((item) => item.id === 'about');
+    const settingsItem = filtered.find((item) => item.id === 'settings');
 
     // Remove them from filtered so we can rebuild in specific order
-    const otherItems = filtered.filter((item) => item.id !== 'calendar' && item.id !== 'clock' && item.id !== 'about');
+    // Also remove 'signin' since we handle unlock buttons separately based on auth state
+    const otherItems = filtered.filter((item) => 
+      item.id !== 'calendar' && 
+      item.id !== 'clock' && 
+      item.id !== 'about' && 
+      item.id !== 'settings' &&
+      item.id !== 'signin'
+    );
 
     // Build the final ordered array
     const ordered: AppBarNavItem[] = [];
@@ -193,47 +204,23 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
     // Add Calendar second
     if (calendarItem) ordered.push(calendarItem);
 
-    // Add Roadmap third
-    const roadmapItem: AppBarNavItem = {
-      id: 'roadmap',
-      label: 'Roadmap',
-      shortLabel: 'Roadmap',
-      icon: <ChecklistRtlIcon />,
-      onClick: () => {
-        setRoadmapModalOpen(true);
-      },
-      ariaLabel: 'View roadmap (coming soon)',
-    };
-    ordered.push(roadmapItem);
-
-    // Add About item (fourth) if present
+    // Add About item (third) if present
     if (aboutItem) ordered.push(aboutItem);
 
-    // Convert signin to Settings (fifth) - shown on mobile only
-    const signinIndex = otherItems.findIndex((item) => item.id === 'signin');
-    if (signinIndex >= 0) {
-      ordered.push({
-        id: 'settings',
-        label: 'Settings',
-        shortLabel: 'Settings',
-        icon: <SettingsRoundedIcon />,
-        onClick: onOpenSettings,
-        ariaLabel: 'Open settings',
-      });
-      otherItems.splice(signinIndex, 1);
-    }
-
-    // Add any remaining items
+    // Add any remaining items (excluding settings and signin which we handle below)
     ordered.push(...otherItems);
 
-    // Add "Unlock" buttons only for non-authenticated users
+    // Show Settings for all users (auth and non-auth)
+    if (settingsItem) ordered.push(settingsItem);
+
+    // For non-authenticated users, also show Unlock CTA buttons
     const authed = isAuthenticated ? isAuthenticated() : false;
     if (!authed) {
-      // Add "Unlock" button for md only (shown on md desktop nav instead of Settings)
+      // Add "Unlock" button for md only (shown on md desktop nav)
       const unlockMdItem: AppBarNavItem = {
         id: 'unlock-md',
-        label: 'Unlock',
-        shortLabel: 'Unlock',
+        label: t('common:navigation.unlock'),
+        shortLabel: t('common:navigation.unlock'),
         icon: <LockIcon sx={{ fontSize: 'inherit' }} />,
         onClick: onOpenAuth,
         to: undefined,
@@ -245,8 +232,8 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
       // Add "Unlock all features" button for lg+ (full copy on larger screens)
       const unlockLgItem: AppBarNavItem = {
         id: 'unlock-lg',
-        label: 'Unlock all features',
-        shortLabel: 'Unlock',
+        label: t('common:navigation.unlockAllFeatures'),
+        shortLabel: t('common:navigation.unlock'),
         icon: <LockIcon sx={{ fontSize: 'inherit' }} />,
         onClick: onOpenAuth,
         to: undefined,
@@ -257,7 +244,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
     }
 
     return ordered;
-  }, [items, isAuthenticated, onOpenSettings, onOpenAuth, location.pathname]);
+  }, [items, isAuthenticated, onOpenSettings, onOpenAuth, location.pathname, t]);
 
   const safeItems = useMemo(() => clampItems(processedItems), [processedItems]);
 
@@ -313,8 +300,6 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
 
   return (
     <>
-      <RoadmapModal open={roadmapModalOpen} onClose={() => setRoadmapModalOpen(false)} />
-
       {/* Desktop / tablet sticky bar */}
       <Box sx={{ display: { xs: 'none', md: 'block' }, ...sx }}>
         <Paper
@@ -323,9 +308,11 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
             width: '100%',
             borderRadius: 3,
             borderColor: 'divider',
-            bgcolor: 'rgba(255,255,255,0.94)',
+            bgcolor: alpha(theme.palette.background.paper, 0.94),
             backdropFilter: 'blur(10px)',
-            boxShadow: '0 10px 26px rgba(15,23,42,0.06)',
+            boxShadow: theme.palette.mode === 'dark'
+              ? '0 10px 26px rgba(0,0,0,0.3)'
+              : '0 10px 26px rgba(15,23,42,0.06)',
             overflow: 'hidden',
             maxHeight: 72,
             zIndex: theme.zIndex.appBar,
@@ -338,6 +325,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
             spacing={2}
             sx={{ px: { md: 2, lg: 2.25 }, height: 52 }}
           >
+            {/* Brand lockup + LanguageSwitcher on logo only, nav items after */}
             <Stack
               component={RouterLink}
               to="/"
@@ -378,7 +366,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  pr: { md: 0, lg: 12 },
+                  pr: { md: 0, lg: 0 },
                   display: { xs: 'block', md: 'none', lg: 'block' },
                 }}
               >
@@ -400,25 +388,22 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
               </Typography>
             </Stack>
 
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, justifyContent: 'flex-end', minWidth: 0 }}>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0 }}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, justifyContent: 'flex-end', minWidth: 0, overflow: 'hidden' }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ justifyContent: 'flex-end', minWidth: 0, flex: 1, overflow: 'hidden' }}>
                 {safeItems.map((item, index) => {
                 const variant = item.primary ? 'contained' : 'text';
                 const color = item.primary ? 'primary' : 'inherit';
                 const active = isItemActive(location.pathname, item);
                 
-                // BEP: For non-auth users, show notification bell left of FIRST Unlock button only (unlock-md) on md+
-                // This prevents duplicate bells when both unlock-md and unlock-lg exist in the items array
+                // BEP: For non-auth users, show language switcher left of FIRST Unlock button only (unlock-md) on md+
+                // This prevents duplicate elements when both unlock-md and unlock-lg exist in the items array
                 const isFirstUnlockButton = item.id === 'unlock-md';
-                const shouldShowNotificationBeforeUnlock = 
+                const shouldShowLanguageSwitcherBeforeUnlock = 
                   isFirstUnlockButton && 
-                  !(isAuthenticated ? isAuthenticated() : false) &&
-                  notifications && 
-                  unreadCount !== undefined;
+                  !(isAuthenticated ? isAuthenticated() : false);
                 
                 const button = (
                   <Button
-                    key={item.id}
                     onClick={() => handleActivate(item)}
                     disabled={Boolean(item.disabled)}
                     variant={variant}
@@ -433,6 +418,8 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
                       px: item.primary ? 2.5 : 2,
                       py: 0.9,
                       minWidth: 0,
+                      flexShrink: 0,
+                      whiteSpace: 'nowrap',
                       display: item.id === 'settings'
                         ? 'inline-flex'
                         : item.id === 'unlock-md'
@@ -472,42 +459,31 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
                 const buttonElement = item.primary ? (
                   button
                 ) : (
-                  <Tooltip key={item.id} title={item.label} arrow>
+                  <Tooltip title={item.label} arrow>
                     <Box component="span">{button}</Box>
                   </Tooltip>
                 );
                 
-                // BEP: Insert notification bell before Unlock button for non-auth users
-                if (shouldShowNotificationBeforeUnlock) {
+                // BEP: Insert language switcher before Unlock button for non-auth users
+                if (shouldShowLanguageSwitcherBeforeUnlock) {
                   return (
                     <React.Fragment key={item.id}>
-                      <NotificationCenter
-                        notifications={notifications}
-                        unreadCount={unreadCount}
-                        onMarkRead={onMarkRead}
-                        onMarkAllRead={onMarkAllRead}
-                        onClearAll={onClearAll}
-                        events={notificationEvents}
-                        closeSignal={notificationCloseSignal}
-                        onMenuOpen={() => setAvatarCloseSignal((prev) => prev + 1)}
-                        onMenuClose={() => setAvatarCloseSignal((prev) => prev + 1)}
-                      />
+                      <Box sx={{ display: 'flex', flexShrink: 0 }}>
+                        <LanguageSwitcher />
+                      </Box>
                       {buttonElement}
                     </React.Fragment>
                   );
                 }
 
-                return buttonElement;
+                return <React.Fragment key={item.id}>{buttonElement}</React.Fragment>;
                 })}
               </Stack>
 
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
-                {/* Language Switcher - available on all breakpoints */}
-                <LanguageSwitcher />
-
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0, display: 'flex' }}>
                 {/* Notification Center - right of settings/nav items, left of user avatar for authenticated users on md+ ONLY */}
-                {/* BEP: Only show here for auth users; non-auth users see it before Unlock button in nav */}
-                {notifications && unreadCount !== undefined && user && (isAuthenticated ? isAuthenticated() : false) && (
+                {/* BEP: Only show for auth users; non-auth users see language switcher before Unlock button instead */}
+                {notifications && unreadCount !== undefined && (isAuthenticated ? isAuthenticated() : false) && (
                   <NotificationCenter
                     notifications={notifications}
                     unreadCount={unreadCount}
@@ -549,7 +525,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
           zIndex: theme.zIndex.appBar,
           borderTop: '1px solid',
           borderColor: 'divider',
-          bgcolor: 'rgba(255,255,255,0.98)',
+          bgcolor: alpha(theme.palette.background.paper, 0.98),
           backdropFilter: 'blur(10px)',
           pb: 'env(safe-area-inset-bottom)',
         }}

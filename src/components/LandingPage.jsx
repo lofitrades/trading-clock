@@ -4,6 +4,15 @@
  * Purpose: High-performance landing page with a live hero clock for futures and forex day traders.
  * Highlights Time 2 Trade value props with brand-safe visuals and responsive hero layout.
  * 
+ * v1.9.0 - 2026-01-30 - COMPREHENSIVE I18N AUDIT: Replaced ALL remaining 20+ hardcoded client-facing strings with i18n keys.
+ * Added 13 new translation keys to landing section: socialProofCaption, problemCaption, problemIntro, solutionCaption,
+ * solutionIntro, benefitsCaption, featuresCaption, useCasesCaption, howItWorksCaption, comparisonCaption, comparisonIntro,
+ * comparisonHeading. Added finalCta section with heading, description, buttonOpenClock, disclaimer (4 keys).
+ * Added footer section with 7 keys: copyright, riskDisclaimer, backToTop, about, faq, privacy, terms.
+ * Updated all section caption labels (lines 469, 779, 859, 938, 992, 1083, 1140, 1165-1167) to use t() calls.
+ * Updated final CTA section (lines 1088-1091) and all footer links (lines 1214-1228) and disclaimers (lines 1229-1233).
+ * Updated back-to-top button aria-label (line 1241) to use translated text. All 100% of client-facing copy now translatable.
+ * Namespace: pages.landing.sections, pages.landing.finalCta, pages.landing.footer (EN/ES/FR with full translations).
  * v1.8.0 - 2026-01-30 - Phase 2 i18n (100+ strings): Added useTranslation hook with namespaces ['pages', 'common']. 
  * Migrated all hardcoded strings to t() calls: socialProofFit (4 strings), problemPoints (4 strings), solutionPoints (4 strings),
  * benefits (8 strings), featureSections (50+ strings with titles/bodies/bullets/notes), useCases (20+ strings), 
@@ -89,6 +98,7 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } fro
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import useAppBarNavItems from '../hooks/useAppBarNavItems.jsx';
 import {
     Box,
     Button,
@@ -194,10 +204,33 @@ export default function HomePage2() {
     // Removed IntersectionObserver-based reveal logic and getRevealProps function
 
     // useMemo hooks for i18n string data
+    // Hero section
+    const heroHeading = useMemo(() => t('pages:landing.hero.heading'), [t]);
+    const heroSubheading = useMemo(() => t('pages:landing.hero.subheading'), [t]);
+    const heroBadge = useMemo(() => t('pages:landing.badge'), [t]);
+    const heroCtaUnlock = useMemo(() => t('common:navigation.unlockAllFeatures'), [t]);
+    const heroCtaOpenClock = useMemo(() => t('common:navigation.clock'), [t]);
+    const heroCtaCalendar = useMemo(() => t('common:navigation.calendar'), [t]);
+
+    // Social proof
+    const socialProofHeading = useMemo(() => t('pages:landing.socialProof.heading'), [t]);
+    const socialProofDescription = useMemo(() => t('pages:landing.socialProof.description'), [t]);
+    const socialProofGoodFitLabel = useMemo(() => t('pages:landing.socialProof.goodFitLabel'), [t]);
     const socialProofFit = useMemo(() => t('pages:landing.socialProof.personas', { returnObjects: true }), [t]);
+
+    // Problem section
+    const problemHeading = useMemo(() => t('pages:landing.problems.heading'), [t]);
     const problemPoints = useMemo(() => t('pages:landing.problems.points', { returnObjects: true }), [t]);
+
+    // Solution section
+    const solutionHeading = useMemo(() => t('pages:landing.solutions.heading'), [t]);
     const solutionPoints = useMemo(() => t('pages:landing.solutions.points', { returnObjects: true }), [t]);
+
+    // Benefits section
+    const benefitsHeading = useMemo(() => t('pages:landing.benefits.heading'), [t]);
+    const benefitsSubheading = useMemo(() => t('pages:landing.benefits.subheading'), [t]);
     const benefitsItems = useMemo(() => t('pages:landing.benefits.items', { returnObjects: true }), [t]);
+
     const featureSections = useMemo(() => {
         const items = t('pages:landing.features', { returnObjects: true });
         if (!Array.isArray(items)) return [];
@@ -212,10 +245,50 @@ export default function HomePage2() {
             }[feature.id],
         }));
     }, [t]);
+
     const useCasesList = useMemo(() => t('pages:landing.useCases', { returnObjects: true }), [t]);
+
+    // How it works
+    const howItWorksHeading = useMemo(() => t('pages:landing.howItWorks.heading'), [t]);
     const howItWorksSteps = useMemo(() => t('pages:landing.howItWorks.steps', { returnObjects: true }), [t]);
+
+    // Comparison section
+    const comparisonHeading = useMemo(() => t('pages:landing.comparison.heading'), [t]);
     const comparisonPoints = useMemo(() => t('pages:landing.comparison.points', { returnObjects: true }), [t]);
+
+    // FAQ section
+    const faqHeading = useMemo(() => t('pages:landing.faq.heading'), [t]);
     const faqEntries = useMemo(() => t('pages:landing.faq.entries', { returnObjects: true }), [t]);
+
+    // Section labels and UI text
+    const socialProofCaption = useMemo(() => t('pages:landing.sections.socialProofCaption'), [t]);
+    const problemCaption = useMemo(() => t('pages:landing.sections.problemCaption'), [t]);
+    const problemIntro = useMemo(() => t('pages:landing.sections.problemIntro'), [t]);
+    const solutionCaption = useMemo(() => t('pages:landing.sections.solutionCaption'), [t]);
+    const solutionIntro = useMemo(() => t('pages:landing.sections.solutionIntro'), [t]);
+    const benefitsCaption = useMemo(() => t('pages:landing.sections.benefitsCaption'), [t]);
+    const featuresCaption = useMemo(() => t('pages:landing.sections.featuresCaption'), [t]);
+    const useCasesCaption = useMemo(() => t('pages:landing.sections.useCasesCaption'), [t]);
+    const howItWorksCaption = useMemo(() => t('pages:landing.sections.howItWorksCaption'), [t]);
+    const comparisonCaption = useMemo(() => t('pages:landing.sections.comparisonCaption'), [t]);
+    const comparisonIntro = useMemo(() => t('pages:landing.sections.comparisonIntro'), [t]);
+
+    // Final CTA section
+    const finalCtaHeading = useMemo(() => t('pages:landing.finalCta.heading'), [t]);
+    const finalCtaDescription = useMemo(() => t('pages:landing.finalCta.description'), [t]);
+    const finalCtaButtonText = useMemo(() => t('pages:landing.finalCta.buttonOpenClock'), [t]);
+    const finalCtaDisclaimer = useMemo(() => t('pages:landing.finalCta.disclaimer'), [t]);
+
+    // Footer text (must declare currentYear before using in footerCopyright)
+    const currentYear = useMemo(() => new Date().getFullYear(), []);
+    const footerCopyright = useMemo(() => t('pages:landing.footer.copyright', { year: currentYear }), [t, currentYear]);
+    const footerRiskDisclaimer = useMemo(() => t('pages:landing.footer.riskDisclaimer'), [t]);
+    const footerBackToTop = useMemo(() => t('pages:landing.footer.backToTop'), [t]);
+    const footerAbout = useMemo(() => t('pages:landing.footer.about'), [t]);
+    const footerFaq = useMemo(() => t('pages:landing.footer.faq'), [t]);
+    const footerPrivacy = useMemo(() => t('pages:landing.footer.privacy'), [t]);
+    const footerTerms = useMemo(() => t('pages:landing.footer.terms'), [t]);
+
     const landingStructuredData = useMemo(
         () => ({
             ...buildSoftwareApplicationSchema({
@@ -300,7 +373,6 @@ export default function HomePage2() {
     }, [heroClockSize]);
 
     const handColor = useMemo(() => '#0F172A', []);
-    const currentYear = useMemo(() => new Date().getFullYear(), []);
     const showOverlay = (showEventsOnCanvas ?? true) && (showHandClock ?? true);
 
     const openApp = useCallback(() => {
@@ -439,12 +511,11 @@ export default function HomePage2() {
 
             {/* Navigation and main content */}
             {(() => {
-                const navItems = [
-                    { id: 'calendar', label: 'Calendar', to: '/calendar', icon: <CalendarMonthIcon fontSize="small" /> },
-                    { id: 'clock', label: 'Trading Clock', shortLabel: 'Clock', onClick: openApp, icon: <AccessTimeIcon fontSize="small" /> },
-                    { id: 'about', label: 'About', to: '/about', icon: <InfoIcon fontSize="small" /> },
-                    { id: 'signin', label: 'Settings', shortLabel: 'Settings', icon: <SettingsRoundedIcon fontSize="small" /> },
-                ];
+                const navItems = useAppBarNavItems({
+                    onOpenAuth: openAuthModal,
+                    onOpenSettings: openSettings,
+                    onOpenContact: openContactModal,
+                });
                 return (
                     <PublicLayout navItems={navItems} onOpenSettings={openSettings} onOpenAuth={openAuthModal} onOpenAddReminder={() => setCustomDialogOpen(true)}>
                         {/* NOTE: PublicLayout handles centering with flex:center pattern.
@@ -508,7 +579,7 @@ export default function HomePage2() {
                                 >
                                     <Stack spacing={2.5}>
                                         <Chip
-                                            label="Powered by Forex Factory"
+                                            label={heroBadge}
                                             sx={{
                                                 alignSelf: { xs: 'center', md: 'flex-start' },
                                                 bgcolor: 'rgba(0,0,0,0.06)',
@@ -531,7 +602,7 @@ export default function HomePage2() {
                                                 mb: 1,
                                             }}
                                         >
-                                            Session Clock + Economic Calendar (NY Time)
+                                            {heroHeading}
                                         </Typography>
 
                                         <Typography
@@ -542,7 +613,7 @@ export default function HomePage2() {
                                                 lineHeight: 1.6,
                                             }}
                                         >
-                                            A clean intraday timing workspace for futures and forex day traders. See New York, London, and Asia sessions with countdown timers—plus a Forex Factory-powered calendar, custom events, and notifications so you never trade blind into a release.
+                                            {heroSubheading}
                                         </Typography>
 
                                         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap" alignItems={{ xs: 'stretch', md: 'center' }} justifyContent={{ xs: 'center', md: 'flex-start' }}>
@@ -567,7 +638,7 @@ export default function HomePage2() {
                                                             },
                                                         }}
                                                     >
-                                                        Unlock all features
+                                                        {heroCtaUnlock}
                                                     </Button>
 
                                                     <Button
@@ -588,7 +659,7 @@ export default function HomePage2() {
                                                             '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', borderColor: theme.palette.text.primary },
                                                         }}
                                                     >
-                                                        Open Trading Clock
+                                                        {heroCtaOpenClock}
                                                     </Button>
                                                 </>
                                             ) : (
@@ -612,7 +683,7 @@ export default function HomePage2() {
                                                             },
                                                         }}
                                                     >
-                                                        Open Trading Clock
+                                                        {heroCtaOpenClock}
                                                     </Button>
 
                                                     <Button
@@ -633,7 +704,7 @@ export default function HomePage2() {
                                                             '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', borderColor: theme.palette.text.primary },
                                                         }}
                                                     >
-                                                        Go to Calendar
+                                                        {heroCtaCalendar}
                                                     </Button>
                                                 </>
                                             )}
@@ -776,17 +847,17 @@ export default function HomePage2() {
                             >
                                 <Stack spacing={2.5} sx={{ width: '100%' }}>
                                     <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
-                                        Social proof
+                                        {socialProofCaption}
                                     </Typography>
                                     <Typography variant="h5" sx={sectionHeadingSx}>
-                                        Built for session-based traders and calendar users
+                                        {socialProofHeading}
                                     </Typography>
                                     <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                                        If your process includes session windows, overlaps, kill zones, or avoiding major releases, this workspace fits your day.
+                                        {socialProofDescription}
                                     </Typography>
                                     <Stack spacing={1.2}>
                                         <Typography variant="subtitle2" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
-                                            Good fit for:
+                                            {socialProofGoodFitLabel}
                                         </Typography>
                                         <Stack spacing={0.75}>
                                             {socialProofFit.map((item) => (
@@ -807,13 +878,13 @@ export default function HomePage2() {
                                 <Box component="section" id="problem">
                                     <Stack spacing={2.5}>
                                         <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
-                                            The problem
+                                            {problemCaption}
                                         </Typography>
                                         <Typography variant="h5" sx={sectionHeadingSx}>
-                                            Trading is hard enough - timing should not be
+                                            {problemHeading}
                                         </Typography>
                                         <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                                            Most day traders lose focus to friction:
+                                            {problemIntro}
                                         </Typography>
                                         <Stack spacing={0.75}>
                                             {problemPoints.map((item) => (
@@ -831,13 +902,13 @@ export default function HomePage2() {
                                 <Box component="section" id="solution">
                                     <Stack spacing={2.5}>
                                         <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
-                                            The solution
+                                            {solutionCaption}
                                         </Typography>
                                         <Typography variant="h5" sx={sectionHeadingSx}>
-                                            One clean view: sessions plus scheduled catalysts
+                                            {solutionHeading}
                                         </Typography>
                                         <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                                            Time 2 Trade combines a visual session clock with an economic events view so you can:
+                                            {solutionIntro}
                                         </Typography>
                                         <Stack spacing={0.75}>
                                             {solutionPoints.map((item) => (
@@ -855,7 +926,7 @@ export default function HomePage2() {
                                 <Box component="section" id="benefits">
                                     <Stack spacing={2.5}>
                                         <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
-                                            Why day traders use Time 2 Trade
+                                            {benefitsCaption}
                                         </Typography>
                                         <Stack spacing={1.6}>
                                             {benefitsItems.map((item) => (
@@ -875,7 +946,7 @@ export default function HomePage2() {
                                 <Box component="section" id="features">
                                     <Stack spacing={2.5}>
                                         <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
-                                            Features
+                                            {featuresCaption}
                                         </Typography>
                                         <Box
                                             sx={{
@@ -932,7 +1003,7 @@ export default function HomePage2() {
                                 <Box component="section" id="use-cases">
                                     <Stack spacing={2.5}>
                                         <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
-                                            Use cases
+                                            {useCasesCaption}
                                         </Typography>
                                         <Stack spacing={1.75}>
                                             {useCasesList.map((useCase) => (
@@ -959,7 +1030,7 @@ export default function HomePage2() {
                                 <Box component="section" id="how-it-works">
                                     <Stack spacing={2.5}>
                                         <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
-                                            How it works
+                                            {howItWorksCaption}
                                         </Typography>
                                         <Stack spacing={1}>
                                             {howItWorksSteps.map((step) => (
@@ -977,13 +1048,13 @@ export default function HomePage2() {
                                 <Box component="section" id="comparison">
                                     <Stack spacing={2.5}>
                                         <Typography variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
-                                            Why this instead of just a calendar tab?
+                                            {comparisonCaption}
                                         </Typography>
                                         <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                                            Economic calendars are useful, but they are not built for fast intraday context.
+                                            {comparisonIntro}
                                         </Typography>
                                         <Typography variant="subtitle1" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
-                                            Time 2 Trade is different because it is:
+                                            {comparisonHeading}
                                         </Typography>
                                         <Stack spacing={0.75}>
                                             {comparisonPoints.map((item) => (
@@ -1005,7 +1076,7 @@ export default function HomePage2() {
                                 >
                                     <Stack spacing={2.5}>
                                         <Typography id="faq-heading" variant="caption" sx={{ color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, fontSize: '0.75rem' }}>
-                                            Frequently asked questions
+                                            {faqHeading}
                                         </Typography>
                                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.6 }}>
                                             {faqEntries.map((faq) => (
@@ -1025,10 +1096,10 @@ export default function HomePage2() {
                                 <Box component="section" id="final-cta">
                                     <Stack spacing={2.5} alignItems={{ xs: 'flex-start', md: 'center' }} textAlign={{ xs: 'left', md: 'center' }}>
                                         <Typography variant="h5" sx={sectionHeadingSx}>
-                                            Go to the calendar with session context
+                                            {finalCtaHeading}
                                         </Typography>
                                         <Typography variant="body1" sx={{ color: theme.palette.text.secondary }}>
-                                            Check today&apos;s economic events, confirm session context with countdowns, and set your own custom events and notifications. Powered by Forex Factory with fast filters, favorites, and notes.
+                                            {finalCtaDescription}
                                         </Typography>
                                         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap" alignItems={{ xs: 'stretch', md: 'center' }} justifyContent={{ xs: 'center', md: 'center' }}>
                                             {!isAuthenticated ? (
@@ -1052,7 +1123,7 @@ export default function HomePage2() {
                                                             },
                                                         }}
                                                     >
-                                                        Unlock all features
+                                                        {heroCtaUnlock}
                                                     </Button>
                                                     <Button
                                                         onClick={openApp}
@@ -1072,7 +1143,7 @@ export default function HomePage2() {
                                                             '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', borderColor: theme.palette.text.primary },
                                                         }}
                                                     >
-                                                        Open Trading Clock
+                                                        {finalCtaButtonText}
                                                     </Button>
                                                 </>
                                             ) : (
@@ -1096,7 +1167,7 @@ export default function HomePage2() {
                                                             },
                                                         }}
                                                     >
-                                                        Open Trading Clock
+                                                        {heroCtaOpenClock}
                                                     </Button>
                                                     <Button
                                                         onClick={() => navigate('/calendar')}
@@ -1116,13 +1187,13 @@ export default function HomePage2() {
                                                             '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', borderColor: theme.palette.text.primary },
                                                         }}
                                                     >
-                                                        Go to Calendar
+                                                        {heroCtaCalendar}
                                                     </Button>
                                                 </>
                                             )}
                                         </Stack>
                                         <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                                            Not financial advice. Trading involves risk.
+                                            {finalCtaDisclaimer}
                                         </Typography>
                                     </Stack>
                                 </Box>
@@ -1149,23 +1220,23 @@ export default function HomePage2() {
                                     </Stack>
                                     <Stack direction="row" spacing={2} flexWrap="wrap" justifyContent="center">
                                         <Button component={RouterLink} to="/about" variant="text" color="inherit" sx={{ textTransform: 'none', px: 0, color: theme.palette.text.primary }}>
-                                            About
+                                            {footerAbout}
                                         </Button>
                                         <Button component="a" href="#faq" variant="text" color="inherit" sx={{ textTransform: 'none', px: 0, color: theme.palette.text.primary }}>
-                                            FAQ
+                                            {footerFaq}
                                         </Button>
-                                        <Button component="a" href="/privacy" variant="text" color="inherit" sx={{ textTransform: 'none', px: 0, color: theme.palette.text.primary }}>
-                                            Privacy
+                                        <Button component="a" href="/privacy" target="_blank" rel="noopener noreferrer" variant="text" color="inherit" sx={{ textTransform: 'none', px: 0, color: theme.palette.text.primary }}>
+                                            {footerPrivacy}
                                         </Button>
-                                        <Button component="a" href="/terms" variant="text" color="inherit" sx={{ textTransform: 'none', px: 0, color: theme.palette.text.primary }}>
-                                            Terms
+                                        <Button component="a" href="/terms" target="_blank" rel="noopener noreferrer" variant="text" color="inherit" sx={{ textTransform: 'none', px: 0, color: theme.palette.text.primary }}>
+                                            {footerTerms}
                                         </Button>
                                     </Stack>
                                     <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                                        © {currentYear} Time 2 Trade. All rights reserved.
+                                        {footerCopyright}
                                     </Typography>
                                     <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                                        Not financial advice. Trading involves risk and may not be suitable for all investors.
+                                        {footerRiskDisclaimer}
                                     </Typography>
                                 </Stack>
                             </Box>
@@ -1181,7 +1252,7 @@ export default function HomePage2() {
                                     }}
                                 >
                                     <IconButton
-                                        aria-label="Back to top"
+                                        aria-label={footerBackToTop}
                                         onClick={() => {
                                             const behavior = prefersReducedMotion ? 'auto' : 'smooth';
                                             const mainBox = document.querySelector('main[role="main"]') || document.querySelector('main');

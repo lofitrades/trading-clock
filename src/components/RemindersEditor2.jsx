@@ -77,7 +77,7 @@ function ReminderCard({
     onRequestBrowserPermission,
     onRequestPushPermission,
 }) {
-    const { t } = useTranslation();
+    const { t } = useTranslation(['reminders', 'common']);
     const theme = useTheme();
     const [localReminder, setLocalReminder] = useState(reminder);
     const [localScope, setLocalScope] = useState(scope);
@@ -541,7 +541,7 @@ export default function RemindersEditor2({
     onRequestPushPermission,
     onUnsavedChanges,
 }) {
-    const { t } = useTranslation();
+    const { t } = useTranslation(['reminders', 'common']);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 

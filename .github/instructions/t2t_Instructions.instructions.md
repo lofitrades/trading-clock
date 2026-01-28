@@ -4,8 +4,8 @@ applyTo: '**'
 
 # Time 2 Trade (T2T) - GitHub Copilot Instructions
 
-**Version:** 4.0.0  
-**Last Updated:** January 16, 2026  
+**Version:** 4.2.0  
+**Last Updated:** January 27, 2026  
 **Purpose:** AI agent guidelines for working with Time 2 Trade codebase
 
 ---
@@ -319,6 +319,170 @@ await setDoc(doc(db, 'users', uid), {
 
 ---
 
+## 🌍 Internationalization (i18n) Standards
+
+### CRITICAL: Zero Hardcoded Client-Facing Copy
+**NO hardcoded user-visible text in components.** All client-facing strings MUST use i18n translation keys.
+
+**ENTERPRISE BEP STANDARD:**
+- ✅ Namespace preload strategy controlled globally in `src/i18n/config.js` (ONLY)
+- ✅ Components use `useTranslation('namespace')` without worrying about loading
+- ✅ No translation keys ever visible to users (add namespace to preload list if needed)
+- ✅ All namespace decisions made at app startup, not during render
+- ❌ NO lazy-loading logic within individual components
+- ❌ NO dynamic namespace imports or loadNamespace() calls
+
+### Architecture (v2.0.0 - HTTP Backend Lazy Loading)
+
+**Performance-First Design:**
+- ✅ **Lazy loading** via `i18next-http-backend` - Load only active language + namespace
+- ✅ **Zero static imports** - Translations served as static assets from `public/locales/`
+- ✅ **180 kB bundle reduction** (-24%) - Main bundle: 751 kB → 571 kB
+- ✅ **Browser caching** - Independent cache invalidation from JS bundle
+- ✅ **Preload strategy** - Critical namespaces (common, pages) loaded immediately
+
+**File Structure:**
+```
+public/locales/          ← Served via HTTP (static assets)
+  ├─ en/ (26 namespaces)
+  ├─ es/ (26 namespaces)
+  └─ fr/ (26 namespaces)
+
+src/i18n/
+  └─ config.js          ← HTTP backend config (zero imports)
+```
+
+**Key Files:**
+- `src/i18n/config.js` - HTTP backend configuration
+- `src/components/LanguageSwitcher.jsx` - Language switching with preload
+- `src/contexts/LanguageContext.jsx` - Language state + Firestore sync
+
+**See:** `I18N_PERFORMANCE_OPTIMIZATION.md` for detailed implementation guide
+
+### Implementation Pattern
+```javascript
+// ✅ DO: Use useTranslation hook with namespace
+import { useTranslation } from 'react-i18next';
+
+const Component = () => {
+  // Namespace MUST be in i18n/config.js ns array (global config only)
+  // Don't worry about whether it loads - config handles that
+  const { t } = useTranslation('calendar');
+  
+  return (
+    <div>
+      <h1>{t('title')}</h1>
+      <Button>{t('actions.save')}</Button>
+    </div>
+  );
+};
+
+// ✅ DO: Use useMemo for translated strings with dependencies
+const translatedValue = useMemo(() => t('key'), [t]);
+
+// ❌ DON'T: Hardcode strings
+<h1>Welcome to Time 2 Trade</h1>
+
+// ❌ DON'T: Try to lazy-load namespaces within components
+useEffect(() => {
+  i18n.loadNamespace('events');  // WRONG - use i18n/config.js instead
+}, []);
+
+// ❌ DON'T: Import JSON files directly (breaks lazy loading)
+import enCommon from './locales/en/common.json';  // WRONG
+```
+
+### Locale Structure
+- **Location (Source):** `src/i18n/locales/[en|es|fr]/[namespace].json` (for reference)
+- **Location (Served):** `public/locales/[en|es|fr]/[namespace].json` (HTTP backend)
+- **Namespaces (26):** `common`, `pages`, `auth`, `settings`, `calendar`, `events`, `dialogs`, `filter`, `reminders`, `about`, `legal`, `terms`, `privacy`, etc.
+- **Supported Languages:** EN (English), ES (Español), FR (Français)
+
+**IMPORTANT:** When adding/updating translations:
+1. Edit `src/i18n/locales/[lang]/[namespace].json`
+2. Copy to `public/locales/[lang]/[namespace].json`
+3. Or use build script to sync automatically
+
+### Adding Translations (BEP Process)
+1. **Identify all client-facing copy** in the component (buttons, labels, headings, descriptions, etc.)
+2. **Create translation keys** with descriptive namespaced paths: `namespace.section.key`
+3. **Add to all 3 language files:**
+   - `public/locales/en/[namespace].json`
+   - `public/locales/es/[namespace].json`
+   - `public/locales/fr/[namespace].json`
+4. **Use consistent terminology** across all locales:
+   - **"Trading Clock"** (EN) → **"Reloj de Trading"** (ES) → **"Horloge de Trading"** (FR)
+   - **"Session Clock"** (EN) → **"Reloj de Sesiones de Trading"** (ES) → **"Horloge de Sessions de Trading"** (FR)
+   - Brand terms capitalized in titles, lowercase in descriptions where appropriate
+5. **Verify all 3 languages are complete** before marking task complete
+
+### Namespace Loading Strategy
+
+**Global Control (i18n/config.js ONLY):**
+- All preload/lazy-load decisions are made in `src/i18n/config.js` via the `ns` array
+- Components should NOT attempt to lazy-load namespaces themselves
+- Every namespace used by any component should be explicitly listed in config
+
+**Current Preload List (Immediate):**
+- `common` - Navigation, footer, shared UI (~3 kB gzipped)
+- `pages` - Landing page, marketing (~6 kB gzipped)
+- `filter` - Event filters on /calendar page (~2 kB gzipped)
+
+**How It Works:**
+```javascript
+// In i18n/config.js - this controls EVERYTHING
+ns: ['common', 'pages', 'filter'],  // All these load immediately on app start
+
+// In components - just use the namespace, don't worry about loading
+const { t } = useTranslation('filter');  // Already available (preloaded)
+// OR
+const { t } = useTranslation('events');  // Would fail if 'events' not in ns array
+```
+
+**Adding a New Namespace:**
+1. Check which pages/routes use the namespace
+2. If used on public routes (/calendar, /, /about, etc.) → Add to `ns:` preload list
+3. If used only in modals/private routes → Document in comments, but still add to avoid flashing keys
+4. Update `src/i18n/config.js` - that's the ONLY place for loading strategy
+5. Components just use `useTranslation('namespace')` - no special handling needed
+
+### Common Namespaces
+| Namespace | Usage | Example Keys |
+|-----------|-------|--------------|
+| `pages` | Marketing & public pages (landing, about, FAQ) | `pages:landing.hero.heading` |
+| `auth` | Authentication UI (modals, forms) | `auth:headline`, `auth:verifyEmail` |
+| `settings` | Settings & preferences | `settings:clockSettings.heading` |
+| `dialogs` | Modal & dialog content | `dialogs:cookies.heading` |
+| `common` | Shared/navigation terms | `common:navigation.clock` |
+| `calendar` | Calendar workspace | `calendar:header.title` |
+| `events` | Event-related UI | `events:showOnClock` |
+
+### Translation Key Format
+```json
+{
+  "namespace": {
+    "section": {
+      "key": "Display text here"
+    }
+  }
+}
+```
+
+### Parameter Support
+```javascript
+// Translations can include dynamic values
+const copyright = useMemo(
+  () => t('pages:footer.copyright', { year: new Date().getFullYear() }),
+  [t]
+);
+
+
+// In locale file:
+// "copyright": "© {{year}} Time 2 Trade. All rights reserved."
+```
+
+---
+
 ## 🚨 Critical Constraints
 
 ### DO NOT:
@@ -334,6 +498,7 @@ await setDoc(doc(db, 'users', uid), {
 10. ❌ Modify canonical events structure without updating all sources
 11. ❌ Build and deploy when unnecessary, only if required to see the updates in localhost and prod. Do not 'npm run build' or 'firebase deploy' before requesting approval.
 12. ❌ Run 'npm run dev' before checking if a server is already running on localhost:5173 to avoid port conflicts and open simple browser instead (if required).
+13. ❌ **Hardcode any client-facing copy** - All user-visible strings MUST use i18n with t() keys and full translations in en/es/fr locale files
 
 ### ALWAYS:
 1. ✅ Test auth flows (magic link, Google OAuth, logout)
@@ -344,6 +509,7 @@ await setDoc(doc(db, 'users', uid), {
 6. ✅ Verify Canvas hover tooltips work
 7. ✅ Test route guards (public vs private routes)
 8. ✅ Verify z-index layering on mobile
+9. ✅ **Replace ALL client-facing copy with i18n keys** - Add translations to all 3 languages (EN/ES/FR) in appropriate namespaces before task complete
 
 ### Performance
 - Clock updates: 1 second interval (not 60fps)
@@ -457,8 +623,9 @@ npm run deploy           # Build + deploy to Firebase Hosting
 
 ## 📈 Current Priorities
 
-### ✅ Completed (v3.0.0 → v4.0.0)
+### ✅ Completed (v3.0.0 → v4.2.0)
 - Multi-page SPA routing architecture
+- i18n lazy loading optimization (180 kB bundle reduction)
 - AuthModal2 - Full MUI auth with magic links
 - SettingsSidebar2 - Full MUI settings drawer
 - Canonical economic events (multi-source)
@@ -492,8 +659,8 @@ npm run deploy           # Build + deploy to Firebase Hosting
 
 ---
 
-**Last Updated:** January 16, 2026  
-**Version:** 4.0.0 (Multi-page SPA + Canonical Events + Full MUI Migration)
+**Last Updated:** January 27, 2026  
+**Version:** 4.2.0 (Multi-page SPA + Full i18n Standards + BEP Internationalization)
 
 ---
 
@@ -503,3 +670,5 @@ npm run deploy           # Build + deploy to Firebase Hosting
 
 **Additonal instructions or clarifications can be appended here as needed:**
 - 'bep'/'BEP' = 'following all best React, Firebase, MUI, UI, UX, dev, copywriting, security, performance, loading speed, separation of concerns, SEO, accessibility and mobile-first-responsive top modern enterprise practices'.
+- **i18n Standard:** All client-facing copy MUST use translation keys (t keys) with full translations in EN/ES/FR locale files before deployment.
+- **i18n Standard:** All client-facing copy MUST use translation keys (t keys) with full translations in EN/ES/FR locale files before deployment.

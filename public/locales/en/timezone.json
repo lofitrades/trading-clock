@@ -1,0 +1,11 @@
+{
+  "label": "Timezone",
+  "description": "Select your trading timezone (defaults to New York)",
+  "search": {
+    "placeholder": "Search timezone...",
+    "ariaLabel": "Search timezone"
+  },
+  "loadingPlaceholder": "Loading timezones...",
+  "selectPlaceholder": "Select timezone",
+  "selectAriaLabel": "Select your timezone"
+}

@@ -1,0 +1,11 @@
+{
+  "label": "Zona Horaria",
+  "description": "Selecciona tu zona horaria comercial (por defecto Nueva York)",
+  "search": {
+    "placeholder": "Buscar zona horaria...",
+    "ariaLabel": "Buscar zona horaria"
+  },
+  "loadingPlaceholder": "Cargando zonas horarias...",
+  "selectPlaceholder": "Selecciona zona horaria",
+  "selectAriaLabel": "Selecciona tu zona horaria"
+}

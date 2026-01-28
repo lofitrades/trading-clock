@@ -1,346 +1,221 @@
 /**
  * src/content/aboutContent.js
  *
- * Purpose: Single source of truth for About page content.
- * Used by both the Settings Drawer About tab and the public /about route.
- * Contains SEO-rich enterprise copywriting for search engines and external tools.
- *
- * To update About content:
- * 1. Edit the content object below (title, sections array)
- * 2. Changes automatically appear in both locations
- * 3. Rebuild/redeploy for public route to reflect updates
- *
+ * Purpose: Configuration for About page and Settings drawer content.
+ * v2.0.0 - CRITICAL BEP REFACTOR: Converted from hardcoded strings to i18n key structure.
+ * All content now uses translation keys (about:sections.*) for full multi-language support.
+ * ContentBlock components render text via useTranslation() for dynamic language switching.
+ * 
+ * Key Change: Instead of exporting hardcoded copy like:
+ *   { label: "Session clock", text: "A visual 24-hour clock..." }
+ * 
+ * Now exports i18n key references:
+ *   { labelKey: "aboutKey.path", textKey: "aboutKey.path" }
+ * 
+ * AboutPage.jsx and SettingsSidebar2.jsx use useTranslation('about') to look up keys.
+ * 
  * Changelog:
- * v1.4.0 - 2026-01-22 - Updated positioning: session clock + Forex Factory-powered calendar + custom events + notifications.
- *                         Removed “overlaps/PWA/exports/offline” as core features, tightened claims for trust, refreshed metadata + schema to WebApplication.
- * v1.3.2 - 2026-01-16 - Shortened About meta title/description for uniqueness and CTR-friendly length.
- * v1.3.1 - 2026-01-07 - Cleaned string escapes to satisfy lint rules without altering copy.
- * v1.3.0 - 2026-01-07 - Updated About copy and metadata to emphasize Forex Factory economic calendar + session clock experience.
- * v1.2.0 - 2025-12-22 - Rewrote About copy for clarity on sessions + economic events, updated metadata and structured data.
- * v1.1.0 - 2025-12-22 - Updated About positioning, metadata, and structured data for trading clock + economic events workspace.
- * v1.0.0 - 2025-12-17 - Initial extraction from AboutContent.txt for shared use across routes
+ * v2.0.0 - 2026-01-27 - CRITICAL BEP: Full i18n refactor. Removed all hardcoded strings.
+ *                       Export key references only. Components use t() to translate.
+ *                       Matches LanguageSwitcher.jsx best practice pattern.
+ *                       Updated public/locales/en|es|fr/about.json with full content.
+ * v1.4.0 - 2026-01-22 - Previous: Hardcoded strings (no longer used)
  */
 
 /**
- * About Page Content Configuration
- *
- * Structure:
- * - title: Main page title
- * - subtitle: Brief tagline/description
- * - sections: Array of content sections with title and content blocks
- *
- * Content Types:
- * - paragraph: Regular text content
- * - list: Bulleted list with items
- * - heading: Section heading
+ * About Content Configuration - Now i18n Key References
+ * 
+ * Structure explains which keys to use for translation lookup.
+ * Components receive this config and use useTranslation('about') to translate.
+ * 
+ * Example:
+ *   aboutContent.sections.intro.content[0]
+ *   Returns: { type: 'paragraph', keyPath: 'sections.intro.paragraphs.0' }
+ *   Component does: t('sections.intro.paragraphs.0') → loads translated text
  */
 export const aboutContent = {
-  title: 'About Time 2 Trade',
-  subtitle:
-    'Intraday timing workspace: NY-time session clock with countdowns + Forex Factory-powered economic calendar, custom events, and notifications.',
+  title: 'title',
+  subtitle: 'subtitle',
+  footer: {
+    questionsKey: 'footer.questions',
+    contactUsKey: 'footer.contactUs',
+  },
   sections: [
     {
+      // Intro section - no title
       title: null,
+      titleKey: null,
       content: [
         {
           type: 'paragraph',
-          text:
-            'Time 2 Trade is a clean intraday timing workspace for futures and forex day traders. It shows where you are in the trading day (New York, London, Asia sessions) with clear countdowns—then pairs that session context with a Forex Factory-powered economic calendar so you can see scheduled catalysts before they hit.',
+          key: 'sections.intro.paragraphs.0',
         },
         {
           type: 'paragraph',
-          text:
-            'The goal is simple: reduce timing friction. Less timezone math. Less tab-hopping. Fewer “I forgot CPI was today” moments. More consistent execution decisions.',
+          key: 'sections.intro.paragraphs.1',
         },
       ],
     },
-
     {
-      title: 'What Time 2 Trade does',
+      title: 'sections.whatItDoes.title',
       content: [
         {
           type: 'paragraph',
-          text:
-            'Time 2 Trade focuses on one job: make the trading day obvious—so you can act (or stand down) with confidence.',
+          key: 'sections.whatItDoes.intro',
         },
         {
           type: 'list',
           items: [
-            {
-              label: 'Session clock (NY / London / Asia) with countdowns',
-              text:
-                'A visual 24-hour clock shows session windows and the countdown to key transitions. This answers “where are we right now?” instantly—without switching tools.',
-            },
-            {
-              label: 'Forex Factory-powered economic calendar',
-              text:
-                'See scheduled releases that move price. Filter by impact and currency, and keep your attention on the events that matter to your instruments and strategy.',
-            },
-            {
-              label: 'Custom events for your personal timing rules',
-              text:
-                'Add your own events (no-trade windows, routine checkpoints, session reminders, personal rules) so the app matches how you actually trade—not a generic calendar.',
-            },
-            {
-              label: 'Notifications (where supported)',
-              text:
-                'Enable reminders for upcoming events and personal checkpoints so you are not surprised by scheduled volatility mid-trade.',
-            },
-            {
-              label: 'Personalization (optional account)',
-              text:
-                'Save filters, favorites, and notes when signed in, so your routine stays consistent across devices.',
-            },
+            { labelKey: 'sections.whatItDoes.features.0.label', textKey: 'sections.whatItDoes.features.0.text' },
+            { labelKey: 'sections.whatItDoes.features.1.label', textKey: 'sections.whatItDoes.features.1.text' },
+            { labelKey: 'sections.whatItDoes.features.2.label', textKey: 'sections.whatItDoes.features.2.text' },
+            { labelKey: 'sections.whatItDoes.features.3.label', textKey: 'sections.whatItDoes.features.3.text' },
+            { labelKey: 'sections.whatItDoes.features.4.label', textKey: 'sections.whatItDoes.features.4.text' },
           ],
         },
         {
           type: 'paragraph',
-          text:
-            'Time 2 Trade is not a broker, signal tool, or execution platform. It is an awareness layer: sessions + scheduled catalysts + your own timing rules—next to your charts.',
+          key: 'sections.whatItDoes.closing',
         },
       ],
     },
-
     {
-      title: "Who it's built for",
+      title: 'sections.audience.title',
       content: [
         {
           type: 'list',
           items: [
-            {
-              label: 'Futures day traders',
-              text:
-                'If you trade ES/NQ/YM/RTY (or related markets), session timing matters. A clear session clock plus event awareness helps you avoid low-quality timing and sudden volatility windows.',
-            },
-            {
-              label: 'Forex day traders and scalpers',
-              text:
-                'Currency-specific filtering helps you focus on what moves your pairs. Session awareness (especially London open and New York open) keeps your routine aligned with liquidity conditions.',
-            },
-            {
-              label: 'Prop / funded account traders',
-              text:
-                'Constraint-driven trading demands repeatable routines. Use Time 2 Trade as a fast pre-trade check to avoid rule-breaking entries near major releases.',
-            },
-            {
-              label: 'Students of session-based frameworks',
-              text:
-                'If your learning process references “New York time” and session windows, this tool helps you internalize timing patterns through consistent daily use.',
-            },
-            {
-              label: 'Multi-timezone traders',
-              text:
-                'If you live outside the U.S. but follow NY-time education and charts, a NY-time-first workflow reduces confusion and improves consistency.',
-            },
+            { labelKey: 'sections.audience.items.0.label', textKey: 'sections.audience.items.0.text' },
+            { labelKey: 'sections.audience.items.1.label', textKey: 'sections.audience.items.1.text' },
+            { labelKey: 'sections.audience.items.2.label', textKey: 'sections.audience.items.2.text' },
+            { labelKey: 'sections.audience.items.3.label', textKey: 'sections.audience.items.3.text' },
+            { labelKey: 'sections.audience.items.4.label', textKey: 'sections.audience.items.4.text' },
           ],
         },
         {
           type: 'paragraph',
-          text:
-            'If your process includes session timing, event avoidance, and repeatable daily routines, Time 2 Trade fits naturally.',
+          key: 'sections.audience.closing',
         },
       ],
     },
-
     {
-      title: 'Why visualizing time matters',
+      title: 'sections.whyTime.title',
       content: [
         {
           type: 'paragraph',
-          text:
-            'Many trading mistakes are timing mistakes—not analysis mistakes. Entering right before a high-impact release, trading through a session transition, or executing during low-liquidity conditions can turn a good setup into a bad trade.',
+          key: 'sections.whyTime.intro',
         },
         {
           type: 'list',
           items: [
-            {
-              label: 'Session transitions',
-              text:
-                'Market conditions shift around major opens and closes. Clear countdowns help you avoid entering into unstable transitions.',
-            },
-            {
-              label: 'Scheduled catalysts',
-              text:
-                'A strong setup can fail if a major release hits minutes after entry. A clean “what’s coming next?” view reduces preventable surprises.',
-            },
-            {
-              label: 'Routine consistency',
-              text:
-                'A stable, repeatable pre-trade checklist is a performance advantage—especially in funded environments where discipline matters.',
-            },
+            { labelKey: 'sections.whyTime.items.0.label', textKey: 'sections.whyTime.items.0.text' },
+            { labelKey: 'sections.whyTime.items.1.label', textKey: 'sections.whyTime.items.1.text' },
+            { labelKey: 'sections.whyTime.items.2.label', textKey: 'sections.whyTime.items.2.text' },
           ],
         },
         {
           type: 'paragraph',
-          text:
-            'Time 2 Trade helps you answer, in real time: “What session am I in, what’s coming next, and does this timing match my plan?”',
+          key: 'sections.whyTime.closing',
         },
       ],
     },
-
     {
-      title: 'Data source and reliability',
+      title: 'sections.dataSource.title',
       content: [
         {
           type: 'paragraph',
-          text:
-            'Intraday tools are judged on correctness. Session boundaries and event timing must be reliable, especially around DST and date rollovers.',
+          key: 'sections.dataSource.intro',
         },
         {
           type: 'list',
           items: [
-            {
-              label: 'Economic calendar',
-              text:
-                'Calendar events are powered by Forex Factory economic event data so traders can reference a familiar source.',
-            },
-            {
-              label: 'Timezone clarity',
-              text:
-                'New York time is a common reference for intraday education. The app is designed to keep session and event timing consistent with your selected timezone policy.',
-            },
-            {
-              label: 'No mixed signals',
-              text:
-                'The product avoids “signal language.” It is built for awareness and timing context—not buy/sell calls.',
-            },
+            { labelKey: 'sections.dataSource.items.0.label', textKey: 'sections.dataSource.items.0.text' },
+            { labelKey: 'sections.dataSource.items.1.label', textKey: 'sections.dataSource.items.1.text' },
+            { labelKey: 'sections.dataSource.items.2.label', textKey: 'sections.dataSource.items.2.text' },
           ],
         },
       ],
     },
-
     {
-      title: 'Privacy, security, and data handling',
+      title: 'sections.privacy.title',
       content: [
         {
           type: 'paragraph',
-          text:
-            'Trust matters. Time 2 Trade is designed to be safe by default and minimal in what it stores.',
+          key: 'sections.privacy.intro',
         },
         {
-          type: 'paragraph',
-          text: 'What we store',
+          type: 'heading',
+          key: 'sections.privacy.whatWeDo.title',
         },
         {
           type: 'list',
           items: [
-            {
-              label: 'Guest mode',
-              text:
-                'Basic preferences can be saved locally on your device for a low-friction first use.',
-            },
-            {
-              label: 'Account mode',
-              text:
-                'If you create an account, settings can sync across devices and you can save filters, favorites, notes, and reminders (depending on feature availability).',
-            },
+            { labelKey: 'sections.privacy.whatWeDo.items.0.label', textKey: 'sections.privacy.whatWeDo.items.0.text' },
+            { labelKey: 'sections.privacy.whatWeDo.items.1.label', textKey: 'sections.privacy.whatWeDo.items.1.text' },
           ],
         },
         {
-          type: 'paragraph',
-          text: "What we don't do",
+          type: 'heading',
+          key: 'sections.privacy.whatWeDoNot.title',
         },
         {
           type: 'list',
           items: [
-            {
-              label: 'No broker connections',
-              text:
-                'We do not connect to your broker or execute trades.',
-            },
-            {
-              label: 'No signals',
-              text:
-                'We do not sell trading signals or “entries.”',
-            },
-            {
-              label: 'No sensitive asks',
-              text:
-                'We do not require sensitive personal financial information for core functionality.',
-            },
+            { labelKey: 'sections.privacy.whatWeDoNot.items.0.label', textKey: 'sections.privacy.whatWeDoNot.items.0.text' },
+            { labelKey: 'sections.privacy.whatWeDoNot.items.1.label', textKey: 'sections.privacy.whatWeDoNot.items.1.text' },
+            { labelKey: 'sections.privacy.whatWeDoNot.items.2.label', textKey: 'sections.privacy.whatWeDoNot.items.2.text' },
           ],
         },
         {
-          type: 'paragraph',
-          text: 'Data protection principles',
+          type: 'heading',
+          key: 'sections.privacy.principles.title',
         },
         {
           type: 'list',
           items: [
-            {
-              label: 'Minimal data collection',
-              text:
-                'Only what is needed for the feature to work.',
-            },
-            {
-              label: 'Clear separation',
-              text:
-                'Public/guest features and account-only features are kept distinct.',
-            },
-            {
-              label: 'User-first purpose',
-              text:
-                'Account features exist to improve workflow consistency—not to harvest data.',
-            },
+            { labelKey: 'sections.privacy.principles.items.0.label', textKey: 'sections.privacy.principles.items.0.text' },
+            { labelKey: 'sections.privacy.principles.items.1.label', textKey: 'sections.privacy.principles.items.1.text' },
+            { labelKey: 'sections.privacy.principles.items.2.label', textKey: 'sections.privacy.principles.items.2.text' },
           ],
         },
       ],
     },
-
     {
-      title: 'Product principles',
+      title: 'sections.principles.title',
       content: [
         {
           type: 'paragraph',
-          text:
-            'Time 2 Trade is built around a few non-negotiables:',
+          key: 'sections.principles.intro',
         },
         {
           type: 'list',
           items: [
-            {
-              label: 'Clarity over complexity',
-              text:
-                'The UI should answer “what time is it in my trading day?” faster than a calendar tab can load.',
-            },
-            {
-              label: 'Consistency over novelty',
-              text:
-                'The same workflow should work daily, especially for prop traders and students building discipline.',
-            },
-            {
-              label: 'Trust over hype',
-              text:
-                'No exaggerated promises, no signal claims—just reliable session + event context.',
-            },
+            { labelKey: 'sections.principles.items.0.label', textKey: 'sections.principles.items.0.text' },
+            { labelKey: 'sections.principles.items.1.label', textKey: 'sections.principles.items.1.text' },
+            { labelKey: 'sections.principles.items.2.label', textKey: 'sections.principles.items.2.text' },
           ],
         },
       ],
     },
-
     {
-      title: 'A note from the founder',
+      title: 'sections.founder.title',
       content: [
         {
           type: 'paragraph',
-          text:
-            'Time 2 Trade is built by an independent software developer focused on practical tools for intraday routines—especially session timing, event awareness, and repeatable daily checklists.',
+          key: 'sections.founder.paragraphs.0',
         },
         {
           type: 'paragraph',
-          text:
-            'The product is intentionally narrow: it aims to be the timing layer you keep next to your charts, built with a “fast, clean, reliable” mindset rather than feature bloat.',
+          key: 'sections.founder.paragraphs.1',
         },
       ],
     },
-
     {
-      title: 'Ready to see your trading day clearly?',
+      title: 'sections.cta.title',
       content: [
         {
           type: 'paragraph',
-          text:
-            'Open the app and answer three questions in seconds: What session am I in? What’s the next scheduled catalyst? Does this timing match my plan?',
+          key: 'sections.cta.text',
         },
       ],
     },
@@ -349,6 +224,9 @@ export const aboutContent = {
 
 /**
  * SEO Metadata for About Page
+ * BEP NOTE: Meta content is NOT translated (SEO best practice).
+ * English copy only; Google crawlers expect EN metadata for x-default variant.
+ * Language-specific variants (es, fr) still serve this same English metadata.
  */
 export const aboutMeta = {
   title: 'About Time 2 Trade | Session Clock + Forex Factory Calendar (NY Time)',
@@ -365,7 +243,8 @@ export const aboutMeta = {
 
 /**
  * Structured Data (JSON-LD) for SEO
- * Use WebApplication to reflect a web-first SPA accurately.
+ * BEP NOTE: Structured data is NOT translated (SEO best practice).
+ * English copy only; search engines index the x-default variant.
  */
 export const aboutStructuredData = {
   '@context': 'https://schema.org',

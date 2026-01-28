@@ -5,6 +5,7 @@
  * Supplies clock visibility, styling, timezone, news source, and economic events overlay controls to the app.
  * 
  * Changelog:
+ * v1.7.0 - 2026-01-28 - BEP PHASE 3.3: Added themeMode to settings schema with Firestore persistence. themeMode ('light'|'dark'|'system') now syncs across authenticated user devices via Firestore. Guests use localStorage. ThemeContext still handles real-time theme switching; SettingsContext stores preference. Firestore schema: settings.themeMode (string). Load on auth state change, update via updateThemeMode(), reset in resetSettings().
  * v1.6.1 - 2026-01-17 - ENHANCED LOGOUT: Improved resetSettings to ensure complete user preference cleanup. Fixed showSessionLabel default to false (not true) for consistency. Added try-catch around Firestore reset to prevent logout failures if reset fails. Added detailed step-by-step comments explaining the reset flow. Follows BEP enterprise logout patterns.
  * v1.6.0 - 2026-01-14 - CRITICAL FIX: Replaced one-time getDoc with real-time onSnapshot listener for authenticated users. Settings now sync in real-time across all open tabs/pages. Added save-lock mechanism (isSavingRef) to prevent listener from overwriting local changes during active saves. Refactored settings application into reusable applyFirestoreSettings callback. Enterprise-grade cross-session consistency following Firebase best practices.
  * v1.5.0 - 2026-01-13 - CRITICAL FIX: Added searchQuery to eventFilters schema; fixed updateEventFilters to properly normalize and serialize all filter fields; ensures filter consistency across sessions and page refreshes via proper Firestore/localStorage sync.
@@ -76,7 +77,7 @@ export function useSettings() {
  */
 export function useSettingsSafe() {
   const context = useContext(SettingsContext);
-  
+
   // Return default settings if context not available (e.g., during SSR/prerendering)
   if (!context) {
     return {
@@ -108,26 +109,26 @@ export function useSettingsSafe() {
         favoritesOnly: false,
         searchQuery: '',
       },
-      updateSelectedTimezone: () => {},
-      updateBackgroundBasedOnSession: () => {},
-      updateShowHandClock: () => {},
-      updateShowDigitalClock: () => {},
-      updateShowSessionLabel: () => {},
-      updateShowTimezoneLabel: () => {},
-      updateShowTimeToEnd: () => {},
-      updateShowTimeToStart: () => {},
-      updateShowSessionNamesInCanvas: () => {},
-      updateShowEventsOnCanvas: () => {},
-      updateClockNumbers: () => {},
-      updateClockHands: () => {},
-      updateShowPastSessionsGray: () => {},
-      updateSessions: () => {},
-      updateEventFilters: () => {},
-      updateNewsSource: () => {},
-      resetSettings: () => {},
+      updateSelectedTimezone: () => { },
+      updateBackgroundBasedOnSession: () => { },
+      updateShowHandClock: () => { },
+      updateShowDigitalClock: () => { },
+      updateShowSessionLabel: () => { },
+      updateShowTimezoneLabel: () => { },
+      updateShowTimeToEnd: () => { },
+      updateShowTimeToStart: () => { },
+      updateShowSessionNamesInCanvas: () => { },
+      updateShowEventsOnCanvas: () => { },
+      updateClockNumbers: () => { },
+      updateClockHands: () => { },
+      updateShowPastSessionsGray: () => { },
+      updateSessions: () => { },
+      updateEventFilters: () => { },
+      updateNewsSource: () => { },
+      resetSettings: () => { },
     };
   }
-  
+
   return context;
 }
 
@@ -154,7 +155,8 @@ export function SettingsProvider({ children }) {
   const [showClockHands, setShowClockHands] = useState(true);
   const [showPastSessionsGray, setShowPastSessionsGray] = useState(false);
 
-  // News source preference (for economic events calendar)
+  // Theme mode preference (light | dark | system)
+  const [themeMode, setThemeMode] = useState('system');
   const [newsSource, setNewsSource] = useState(DEFAULT_NEWS_SOURCE);
   const [preferredSource, setPreferredSource] = useState('auto');
 
@@ -191,6 +193,7 @@ export function SettingsProvider({ children }) {
       const savedNewsSource = localStorage.getItem('newsSource');
       const savedPreferredSource = localStorage.getItem('preferredSource');
       const savedEventFilters = localStorage.getItem('eventFilters');
+      const savedThemeMode = localStorage.getItem('themeMode');
 
       if (savedSize) setClockSize(parseInt(savedSize));
       if (savedSessions) setSessions(JSON.parse(savedSessions));
@@ -210,6 +213,7 @@ export function SettingsProvider({ children }) {
       if (savedShowPastSessionsGray !== null) setShowPastSessionsGray(savedShowPastSessionsGray === 'true');
       if (savedNewsSource) setNewsSource(savedNewsSource);
       if (savedPreferredSource) setPreferredSource(savedPreferredSource);
+      if (savedThemeMode) setThemeMode(savedThemeMode);
 
       // Load event filters with date deserialization
       if (savedEventFilters) {
@@ -263,6 +267,7 @@ export function SettingsProvider({ children }) {
     if (s.showPastSessionsGray !== undefined) setShowPastSessionsGray(s.showPastSessionsGray);
     if (s.newsSource !== undefined) setNewsSource(s.newsSource);
     if (s.preferredSource !== undefined) setPreferredSource(s.preferredSource);
+    if (s.themeMode !== undefined) setThemeMode(s.themeMode);
 
     // Load event filters with date deserialization
     if (s.eventFilters) {
@@ -337,7 +342,7 @@ export function SettingsProvider({ children }) {
               showClockHands,
               showPastSessionsGray: false,
               newsSource,
-              preferredSource: 'auto',
+              preferredSource: 'auto', themeMode: 'system',
             },
           });
         }
@@ -600,6 +605,19 @@ export function SettingsProvider({ children }) {
     }
   };
 
+  /**
+   * Update theme mode preference (light | dark | system)
+   * Saves to both localStorage and Firestore (if authenticated)
+   * ThemeContext handles real-time theme switching; this stores the user's preference
+   */
+  const updateThemeMode = (mode) => {
+    setThemeMode(mode);
+    localStorage.setItem('themeMode', mode);
+    if (user) {
+      saveSettingsToFirestore({ themeMode: mode });
+    }
+  };
+
   const resetSettings = async () => {
     // STEP 1: Reset all state values to defaults immediately
     // This ensures React components see the reset state right away
@@ -660,6 +678,7 @@ export function SettingsProvider({ children }) {
           showPastSessionsGray: false,
           newsSource: DEFAULT_NEWS_SOURCE,
           preferredSource: 'auto',
+          themeMode: 'system',
           eventFilters: {
             startDate: null,
             endDate: null,
@@ -720,6 +739,8 @@ export function SettingsProvider({ children }) {
     updateNewsSource,
     preferredSource,
     updatePreferredSource,
+    themeMode,
+    updateThemeMode,
   };
 
   return (

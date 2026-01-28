@@ -44,13 +44,16 @@
   },
   "navigation": {
     "home": "Home",
-    "clock": "Clock",
+    "clock": "Trading Clock",
     "calendar": "Calendar",
     "about": "About",
     "privacy": "Privacy",
     "terms": "Terms",
     "contact": "Contact",
-    "settings": "Settings"
+    "settings": "Settings",
+    "roadmap": "Roadmap",
+    "unlock": "Unlock",
+    "unlockAllFeatures": "Unlock free"
   },
   "messages": {
     "success": "Success",

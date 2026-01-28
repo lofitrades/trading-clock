@@ -1,0 +1,19 @@
+{
+  "noData": "No data available",
+  "noEvents": "No events",
+  "noResults": "No results found",
+  "empty": "Empty",
+  "loading": "Loading...",
+  "pleaseWait": "Please wait",
+  "syncing": "Syncing...",
+  "saving": "Saving...",
+  "pending": "Pending",
+  "nothingToDisplay": "Nothing to display",
+  "checkBackSoon": "Check back soon",
+  "workingOnUpdates": "Working on exciting updates...",
+  "comingSoon": "Coming soon",
+  "loadMore": "Load more",
+  "showMore": "Show more",
+  "complete": "Complete",
+  "loadingMatchedEventDetails": "Loading matched event details..."
+}

@@ -1,0 +1,71 @@
+{
+  "buttons": {
+    "signUp": "Sign Up",
+    "signIn": "Sign In",
+    "login": "Login",
+    "logout": "Logout",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "close": "Close",
+    "submit": "Submit",
+    "confirm": "Confirm",
+    "next": "Next",
+    "back": "Back",
+    "edit": "Edit",
+    "add": "Add",
+    "remove": "Remove",
+    "download": "Download",
+    "upload": "Upload",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "settings": "Settings",
+    "help": "Help",
+    "support": "Support",
+    "contact": "Contact"
+  },
+  "labels": {
+    "email": "Email",
+    "password": "Password",
+    "timezone": "Timezone",
+    "language": "Language",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "date": "Date",
+    "time": "Time",
+    "name": "Name",
+    "description": "Description",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "loading": "Loading...",
+    "noData": "No data available"
+  },
+  "navigation": {
+    "home": "Home",
+    "clock": "Trading Clock",
+    "calendar": "Calendar",
+    "about": "About",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "contact": "Contact",
+    "settings": "Settings",
+    "roadmap": "Roadmap",
+    "unlock": "Unlock",
+    "unlockAllFeatures": "Unlock free"
+  },
+  "language": {
+    "changingLanguage": "Changing...",
+    "selectLanguage": "Select Language"
+  },
+  "messages": {
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Information",
+    "confirmDelete": "Are you sure you want to delete this?",
+    "saved": "Changes saved successfully",
+    "loading": "Loading..."
+  }
+}

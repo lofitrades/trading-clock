@@ -1,0 +1,187 @@
+{
+  "title": "À propos de Time 2 Trade",
+  "subtitle": "Espace de travail pour le timing intraday : horloge de sessions NY avec comptes à rebours + calendrier économique alimenté par Forex Factory, événements personnalisés et notifications.",
+  "footer": {
+    "questions": "Avez-vous des questions ?",
+    "contactUs": "Nous contacter"
+  },
+  "sections": {
+    "intro": {
+      "title": null,
+      "paragraphs": [
+        "Time 2 Trade est un espace de travail épuré pour le timing intraday conçu pour les traders de futures et forex. Il montre où vous en êtes dans la journée de trading (sessions de New York, Londres, Asie) avec des comptes à rebours clairs, puis associe ce contexte de session à un calendrier économique alimenté par Forex Factory pour que vous voyiez les catalyseurs prévus avant qu'ils ne se produisent.",
+        "L'objectif est simple : réduire la friction de timing. Moins de mathématiques de fuseau horaire. Moins de changements d'onglets. Moins de moments \"j'ai oublié que l'IPC était aujourd'hui\". Des décisions d'exécution plus cohérentes."
+      ]
+    },
+    "whatItDoes": {
+      "title": "Ce que fait Time 2 Trade",
+      "intro": "Time 2 Trade se concentre sur une tâche : rendre la journée de trading évidente, pour que vous puissiez agir (ou vous abstenir) en toute confiance.",
+      "features": [
+        {
+          "label": "Horloge de sessions (NY / Londres / Asie) avec comptes à rebours",
+          "text": "Une horloge visuelle de 24 heures affiche les fenêtres de session et le compte à rebours vers les transitions clés. Cela répond à \"où en sommes-nous maintenant ?\" instantanément, sans changer d'outils."
+        },
+        {
+          "label": "Calendrier économique alimenté par Forex Factory",
+          "text": "Voyez les versions programmées qui font bouger le prix. Filtrez par impact et devise, et gardez votre attention sur les événements qui comptent pour vos instruments et votre stratégie."
+        },
+        {
+          "label": "Événements personnalisés pour vos règles de timing personnel",
+          "text": "Ajoutez vos propres événements (fenêtres sans trading, points de contrôle de routine, rappels de session, règles personnelles) pour que l'application corresponde à votre façon réelle de trader, pas un calendrier générique."
+        },
+        {
+          "label": "Notifications (où supporté)",
+          "text": "Activez les rappels pour les événements à venir et les points de contrôle personnels pour ne pas être surpris par la volatilité programmée en plein trade."
+        },
+        {
+          "label": "Personnalisation (compte optionnel)",
+          "text": "Enregistrez les filtres, favoris et notes quand vous êtes connecté, pour que votre routine reste cohérente sur tous les appareils."
+        }
+      ],
+      "closing": "Time 2 Trade n'est pas un courtier, un outil de signaux ou une plateforme d'exécution. C'est une couche de sensibilisation : sessions + catalyseurs programmés + vos propres règles de timing, à côté de vos graphiques."
+    },
+    "audience": {
+      "title": "Conçu pour",
+      "items": [
+        {
+          "label": "Traders de futures intraday",
+          "text": "Si vous tradez ES/NQ/YM/RTY (ou marchés associés), le timing de session compte. Une horloge de session claire plus la sensibilisation aux événements vous aide à éviter le timing de mauvaise qualité et les fenêtres de volatilité soudaines."
+        },
+        {
+          "label": "Traders forex intraday et scalpers",
+          "text": "Le filtrage spécifique par devise vous aide à vous concentrer sur ce qui fait bouger vos paires. La sensibilisation à la session (particulièrement l'ouverture de Londres et New York) garde votre routine alignée avec les conditions de liquidité."
+        },
+        {
+          "label": "Traders prop / compte financé",
+          "text": "Le trading basé sur les contraintes exige des routines répétables. Utilisez Time 2 Trade comme vérification rapide pré-trade pour éviter les entrées qui cassent les règles près des versions majeures."
+        },
+        {
+          "label": "Étudiants des cadres basés sur les sessions",
+          "text": "Si votre processus d'apprentissage fait référence à \"l'heure de New York\" et aux fenêtres de session, cet outil vous aide à intérioriser les modèles de timing par une utilisation quotidienne cohérente."
+        },
+        {
+          "label": "Traders multi-fuseaux horaires",
+          "text": "Si vous vivez en dehors des États-Unis mais suivez l'éducation et les graphiques en heure NY, un flux de travail NY-time-first réduit la confusion et améliore la cohérence."
+        }
+      ],
+      "closing": "Si votre processus inclut le timing de session, l'évitement d'événements et les routines quotidiennes répétables, Time 2 Trade s'intègre naturellement."
+    },
+    "whyTime": {
+      "title": "Pourquoi visualiser le temps compte",
+      "intro": "De nombreuses erreurs de trading sont des erreurs de timing, pas des erreurs d'analyse. Entrer juste avant une version à fort impact, trader durant une transition de session ou exécuter lors de conditions de faible liquidité peut transformer un bon setup en un mauvais trade.",
+      "items": [
+        {
+          "label": "Transitions de session",
+          "text": "Les conditions du marché changent autour des ouvertures et fermetures majeures. Les comptes à rebours clairs vous aident à éviter d'entrer dans des transitions instables."
+        },
+        {
+          "label": "Catalyseurs programmés",
+          "text": "Un bon setup peut échouer si une version majeure se produit quelques minutes après l'entrée. Une vue claire de \"qu'est-ce qui vient ensuite ?\" réduit les surprises évitables."
+        },
+        {
+          "label": "Cohérence de routine",
+          "text": "Une liste de contrôle pré-trade stable et répétable est un avantage de performance, particulièrement dans les environnements financés où la discipline compte."
+        }
+      ],
+      "closing": "Time 2 Trade vous aide à répondre, en temps réel : \"Dans quelle session suis-je, qu'est-ce qui vient ensuite, et ce timing correspond-il à mon plan ?\""
+    },
+    "dataSource": {
+      "title": "Source de données et fiabilité",
+      "intro": "Les outils intraday sont jugés sur leur exactitude. Les limites de session et le timing des événements doivent être fiables, particulièrement autour des changements d'heure d'été et des changements de date.",
+      "items": [
+        {
+          "label": "Calendrier économique",
+          "text": "Les événements du calendrier sont alimentés par les données d'événements économiques de Forex Factory pour que les traders puissent se référer à une source familière."
+        },
+        {
+          "label": "Clarté du fuseau horaire",
+          "text": "L'heure de New York est une référence commune pour l'éducation intraday. L'application est conçue pour maintenir le timing de session et d'événements cohérent avec votre politique de fuseau horaire sélectionnée."
+        },
+        {
+          "label": "Pas de signaux mixtes",
+          "text": "Le produit évite le \"langage de signaux\". Il est construit pour la sensibilisation et le contexte de timing, pas pour les appels d'achat/vente."
+        }
+      ]
+    },
+    "privacy": {
+      "title": "Confidentialité, sécurité et gestion des données",
+      "intro": "La confiance compte. Time 2 Trade est conçu pour être sûr par défaut et minimal dans ce qu'il stocke.",
+      "whatWeDo": {
+        "title": "Ce que nous stockons",
+        "items": [
+          {
+            "label": "Mode invité",
+            "text": "Les préférences de base peuvent être enregistrées localement sur votre appareil pour une première utilisation sans friction."
+          },
+          {
+            "label": "Mode compte",
+            "text": "Si vous créez un compte, les paramètres peuvent se synchroniser entre les appareils et vous pouvez enregistrer les filtres, favoris, notes et rappels (selon la disponibilité des fonctionnalités)."
+          }
+        ]
+      },
+      "whatWeDoNot": {
+        "title": "Ce que nous ne faisons pas",
+        "items": [
+          {
+            "label": "Pas de connexions aux courtiers",
+            "text": "Nous ne nous connectons pas à votre courtier ni n'exécutons les trades."
+          },
+          {
+            "label": "Pas de signaux",
+            "text": "Nous ne vendons pas de signaux de trading ou d'\"entrées\"."
+          },
+          {
+            "label": "Pas de demandes sensibles",
+            "text": "Nous ne demandons pas d'informations financières personnelles sensibles pour la fonctionnalité principale."
+          }
+        ]
+      },
+      "principles": {
+        "title": "Principes de protection des données",
+        "items": [
+          {
+            "label": "Collecte minimale de données",
+            "text": "Seulement ce qui est nécessaire pour que la fonctionnalité fonctionne."
+          },
+          {
+            "label": "Séparation claire",
+            "text": "Les fonctionnalités publiques/invités et celles réservées aux comptes restent distinctes."
+          },
+          {
+            "label": "Objectif centré sur l'utilisateur",
+            "text": "Les fonctionnalités de compte existent pour améliorer la cohérence du flux de travail, pas pour récolter des données."
+          }
+        ]
+      }
+    },
+    "principles": {
+      "title": "Principes du produit",
+      "intro": "Time 2 Trade est construit autour de quelques principes non négociables :",
+      "items": [
+        {
+          "label": "Clarté plutôt que complexité",
+          "text": "L'interface utilisateur devrait répondre \"quelle heure est-il dans ma journée de trading ?\" plus vite qu'un onglet de calendrier ne peut charger."
+        },
+        {
+          "label": "Cohérence plutôt que nouveauté",
+          "text": "Le même flux de travail devrait fonctionner quotidiennement, particulièrement pour les traders prop et les étudiants qui construisent la discipline."
+        },
+        {
+          "label": "Confiance plutôt que battage",
+          "text": "Pas de promesses exagérées, pas de réclamations de signaux, juste un contexte fiable de session + événements."
+        }
+      ]
+    },
+    "founder": {
+      "title": "Un mot du fondateur",
+      "paragraphs": [
+        "Time 2 Trade est construit par un développeur logiciel indépendant concentré sur les outils pratiques pour les routines intraday, particulièrement le timing de session, la sensibilisation aux événements et les listes de contrôle quotidiennes répétables.",
+        "Le produit est intentionnellement étroit : il vise à être la couche de timing que vous gardez à côté de vos graphiques, construite avec une mentalité \"rapide, propre, fiable\" plutôt que l'inflation des fonctionnalités."
+      ]
+    },
+    "cta": {
+      "title": "Prêt à voir votre journée de trading clairement ?",
+      "text": "Ouvrez l'application et répondez à trois questions en quelques secondes : Dans quelle session suis-je ? Quel est le prochain catalyseur programmé ? Ce timing correspond-il à mon plan ?"
+    }
+  }
+}

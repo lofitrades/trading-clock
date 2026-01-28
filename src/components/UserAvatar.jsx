@@ -8,6 +8,8 @@
  * consistent z-index stacking (Popover: 1300, Modals: 10001+), and semantic button structure.
  * 
  * Changelog:
+ * v1.2.1 - 2026-01-27 - BEP UI CONSISTENCY: Match add/bell icon sizing exactly - Changed IconButton padding from p: 0.5 to p: 0 (eliminates extra visual size). Fixed fallback Avatar size from 40px to 36px on md+ breakpoint. Added border: '1px solid' with divider color to match add icon styling. UserAvatar now perfectly aligns with add and bell circles in MobileHeader without appearing larger.
+ * v1.2.0 - 2026-01-27 - BEP SIZING: Added sx prop support for flexible sizing control from parent components. Container Box now spreads sx prop for consistent sizing across MobileHeader action icons. Updated PropTypes and defaultProps. Enables MobileHeader to enforce consistent circular sizing (32px xs/sm, 36px md+) for all action icons.
  * v1.1.0 - 2026-01-27 - i18n migration: Added useTranslation hook, migrated aria-labels to a11y namespace
  * v1.0.7 - 2026-01-23 - BEP FIX: Increase Popover z-index from 1100 (AppBar level) to 1300 to render above AppBar shadow. Ensures user menu visually appears over the sticky header.
  * v1.0.6 - 2026-01-22 - BEP FIX: Only react to closeSignal changes to prevent immediate re-close.
@@ -31,14 +33,13 @@
 import { useEffect, useRef, useState, Suspense, lazy, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { Box, Avatar, IconButton, Popover, Button, useTheme } from '@mui/material';
+import { Box, Avatar, IconButton, Popover, Button } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 const AccountModal = lazy(() => import('./AccountModal'));
 const LogoutModal = lazy(() => import('./LogoutModal'));
 
-const UserAvatar = ({ user, onLogout, onOpen, closeSignal }) => {
-    const theme = useTheme();
+const UserAvatar = ({ user, onLogout, onOpen, closeSignal, sx }) => {
     const { t } = useTranslation(['a11y']);
     // User avatar menu state
     const [userMenuAnchor, setUserMenuAnchor] = useState(null);
@@ -85,8 +86,8 @@ const UserAvatar = ({ user, onLogout, onOpen, closeSignal }) => {
     return (
         <>
             {/* Avatar Button Container */}
-            <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                {/* User Avatar Button - mobile-first responsive sizing (32px mobile → 40px desktop) */}
+            <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', ...sx }}>
+                {/* User Avatar Button - mobile-first responsive sizing (32px mobile → 36px md+) */}
                 <IconButton
                     onClick={handleUserMenuOpen}
                     aria-label={t('a11y:userMenuDynamic', { name: userDisplayName })}
@@ -94,7 +95,13 @@ const UserAvatar = ({ user, onLogout, onOpen, closeSignal }) => {
                     aria-expanded={Boolean(userMenuAnchor)}
                     aria-controls={userMenuAnchor ? 'user-menu-popover' : undefined}
                     sx={{
-                        p: 0.5,
+                        p: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '50%',
+                        border: '1px solid',
+                        borderColor: 'divider',
                         transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
                         '&:hover': {
                             transform: 'scale(1.05)',
@@ -126,8 +133,8 @@ const UserAvatar = ({ user, onLogout, onOpen, closeSignal }) => {
                         // Fallback avatar with initials
                         <Avatar
                             sx={{
-                                width: { xs: 32, sm: 32, md: 40 },
-                                height: { xs: 32, sm: 32, md: 40 },
+                                width: { xs: 32, sm: 32, md: 36 },
+                                height: { xs: 32, sm: 32, md: 36 },
                                 bgcolor: 'primary.main',
                                 fontSize: { xs: '0.875rem', md: '1rem' },
                                 fontWeight: 600,
@@ -274,12 +281,14 @@ UserAvatar.propTypes = {
     onLogout: PropTypes.func,
     onOpen: PropTypes.func,
     closeSignal: PropTypes.number,
+    sx: PropTypes.object,
 };
 
 UserAvatar.defaultProps = {
     onLogout: null,
     onOpen: null,
     closeSignal: 0,
+    sx: {},
 };
 
 export default UserAvatar;

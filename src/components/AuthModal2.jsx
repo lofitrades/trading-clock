@@ -18,6 +18,8 @@
  * - Ensures AuthModal2 renders above ALL UI including WelcomeModal (11000), EmailLinkHandler verification (9998-10000), drawers (1600), and AppBar (1400) on all breakpoints.
  * 
  * Changelog:
+ * v1.6.0 - 2026-01-28 - BEP: Theme-aware colors. Replaced all hardcoded teal (#018786, #006665) with theme.palette.primary tokens. Uses alpha() for opacity. Now adapts to light/dark modes.
+ * v1.5.1 - 2026-01-27 - Fixed hardcoded copy: Replaced all remaining hardcoded strings with i18n translations. Fixed legal_notice rendering (was showing [object Object]). Added forgot_password_link, firebase_attribution, and legal_and translations. All 3 languages (EN/ES/FR) now fully covered without hardcoded UI copy.
  * v1.5.0 - 2026-01-25 - i18n migration: Integrated useTranslation hook for auth namespace. All 50+ hardcoded strings replaced with t() calls. Hero section, form labels, buttons, benefits, modal feedback, email sent, and verifying states now use translations. All 3 languages (EN/ES/FR) supported with professional finance terminology.
  * v1.4.4 - 2026-01-22 - BEP CRO: Removed RouterLink from logo/brand name to prevent accidental redirects during signup flow. Logo is now static (non-clickable) to maintain conversion focus and prevent users from leaving the auth modal mid-conversion. Removed component={RouterLink}, to="/", textDecoration, focus-visible styling.
  * v1.4.3 - 2026-01-15 - Fix backdrop layering so the modal paper renders above the overlay from the first frame (no flash-on-open).
@@ -60,6 +62,8 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  useTheme,
+  alpha,
 } from '@mui/material';
 import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 import CloseIcon from '@mui/icons-material/Close';
@@ -84,6 +88,7 @@ const LOGO_SECONDARY_WHITE_TRANSPARENT = `${import.meta.env.BASE_URL}logos/png/T
 
 function EmailSentModal({ email, onClose }) {
   const { t } = useTranslation(['auth', 'common']);
+  const theme = useTheme();
   return (
     <Dialog
       open={true}
@@ -102,13 +107,13 @@ function EmailSentModal({ email, onClose }) {
             width: 72,
             height: 72,
             borderRadius: '50%',
-            bgcolor: '#018786',
+            bgcolor: theme.palette.primary.main,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto',
             mb: 3,
-            boxShadow: '0 4px 16px rgba(1, 135, 134, 0.25)',
+            boxShadow: `0 4px 16px ${alpha(theme.palette.primary.main, 0.25)}`,
           }}
         >
           <Typography variant="h2" sx={{ filter: 'brightness(2)' }}>✉️</Typography>
@@ -123,11 +128,11 @@ function EmailSentModal({ email, onClose }) {
             p: 2.5,
             mt: 2,
             mb: 3,
-            bgcolor: 'rgba(1, 135, 134, 0.08)',
+            bgcolor: alpha(theme.palette.primary.main, 0.08),
             borderRadius: 1.5,
             fontFamily: 'monospace',
             fontSize: '0.95rem',
-            color: '#018786',
+            color: theme.palette.primary.main,
             fontWeight: 600,
           }}
         >
@@ -185,6 +190,7 @@ function EmailSentModal({ email, onClose }) {
 
 function VerifyingModal({ onClose }) {
   const { t } = useTranslation(['auth', 'common']);
+  const theme = useTheme();
   return (
     <Dialog
       open={true}
@@ -203,7 +209,7 @@ function VerifyingModal({ onClose }) {
             width: 80,
             height: 80,
             borderRadius: '50%',
-            bgcolor: '#018786',
+            bgcolor: theme.palette.primary.main,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -242,6 +248,7 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation(['auth', 'common']);
+  const theme = useTheme();
 
   // Rate limiting: Check for existing cooldown on mount and when modal opens
   useEffect(() => {
@@ -455,7 +462,7 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
           <Box
             sx={{
               flex: { xs: '0 0 auto', md: '0 0 45%' },
-              bgcolor: '#018786',
+              bgcolor: theme.palette.primary.main,
               color: 'white',
               p: { xs: 4, sm: 5 },
               display: 'flex',
@@ -500,7 +507,7 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#018786',
+                          color: theme.palette.primary.main,
                           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
                         }}
                       >
@@ -684,11 +691,11 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
                       fontSize: '1rem',
                       fontWeight: 700,
                       borderRadius: 2,
-                      bgcolor: '#018786',
-                      boxShadow: '0 4px 14px rgba(1, 135, 134, 0.35)',
+                      bgcolor: theme.palette.primary.main,
+                      boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.35)}`,
                       '&:hover': {
-                        bgcolor: '#006665',
-                        boxShadow: '0 6px 18px rgba(1, 135, 134, 0.45)',
+                        bgcolor: theme.palette.primary.dark,
+                        boxShadow: `0 6px 18px ${alpha(theme.palette.primary.main, 0.45)}`,
                         transform: 'translateY(-1px)',
                       },
                       '&:disabled': {
@@ -717,40 +724,43 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
                       mt: 1,
                     }}
                   >
-                    {t('auth:modal.form.legal_notice', {
-                      terms: (
-                        <Link
-                          component={RouterLink}
-                          to="/terms"
-                          sx={{
-                            color: 'primary.main',
-                            textDecoration: 'underline',
-                            fontWeight: 600,
-                            '&:hover': {
-                              color: 'primary.dark',
-                            },
-                          }}
-                        >
-                          {t('auth:modal.form.legal_terms')}
-                        </Link>
-                      ),
-                      privacy: (
-                        <Link
-                          component={RouterLink}
-                          to="/privacy"
-                          sx={{
-                            color: 'primary.main',
-                            textDecoration: 'underline',
-                            fontWeight: 600,
-                            '&:hover': {
-                              color: 'primary.dark',
-                            },
-                          }}
-                        >
-                          {t('auth:modal.form.legal_privacy')}
-                        </Link>
-                      ),
-                    })}
+                    {t('auth:modal.form.legal_notice')}
+                    {' '}
+                    <Link
+                      component={RouterLink}
+                      to="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{
+                        color: 'primary.main',
+                        textDecoration: 'underline',
+                        fontWeight: 600,
+                        '&:hover': {
+                          color: 'primary.dark',
+                        },
+                      }}
+                    >
+                      {t('auth:modal.form.legal_terms')}
+                    </Link>
+                    {' '}
+                    {t('auth:modal.form.legal_and')}
+                    {' '}
+                    <Link
+                      component={RouterLink}
+                      to="/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{
+                        color: 'primary.main',
+                        textDecoration: 'underline',
+                        fontWeight: 600,
+                        '&:hover': {
+                          color: 'primary.dark',
+                        },
+                      }}
+                    >
+                      {t('auth:modal.form.legal_privacy')}
+                    </Link>
                   </Typography>
                 </Stack>
               </Box>
@@ -773,13 +783,13 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
                     },
                   }}
                 >
-                  Need to reset your password?
+                  {t('auth:modal.form.forgot_password_link')}
                 </Link>
               </Box>
             )}
 
             <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', display: 'block', mt: 3 }}>
-              Secure sign-in powered by Firebase Authentication.
+              {t('auth:modal.form.firebase_attribution')}
             </Typography>
           </Box>
         </Box>

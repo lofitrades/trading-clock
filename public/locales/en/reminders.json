@@ -1,0 +1,42 @@
+{
+  "units": {
+    "minutes": "minutes",
+    "hours": "hours",
+    "days": "days"
+  },
+  "channels": {
+    "inApp": "In-app",
+    "browser": "Browser",
+    "push": "Push"
+  },
+  "labels": {
+    "noChannels": "No channels selected",
+    "leadTime": "Lead time",
+    "before": "before"
+  },
+  "permissions": {
+    "browserBlocked": "Browser notifications are blocked by your browser settings",
+    "browserUnsupported": "Browser notifications are not supported in this browser",
+    "browserDismissed": "Browser notifications were dismissed. Enable them in settings to try again",
+    "browserError": "Error requesting browser notifications",
+    "pushPending": "Requesting push notification permissions...",
+    "pushAuthRequired": "Push notifications require authentication",
+    "pushDismissed": "Push notifications were dismissed",
+    "pushIncomplete": "Push notification setup incomplete",
+    "pushError": "Error setting up push notifications",
+    "pushFailure": "Failed to enable push notifications"
+  },
+  "scope": {
+    "allSeries": "All {{label}} events",
+    "allMatching": "All matching events",
+    "eventOnly": "This event only"
+  },
+  "actions": {
+    "addReminder": "Add reminder",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "empty": {
+    "noReminders": "No reminders set"
+  }
+}

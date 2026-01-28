@@ -5,8 +5,13 @@
  * Renders the same content as the Settings Drawer About tab using shared content module.
  * Includes proper SEO metadata, structured data, and mobile-first responsive design.
  * 
- * v1.3.0 - 2026-01-24 - BEP: Phase 2 i18n migration - Added useTranslation hook, converted all navigation and UI strings + aboutContent structure to i18n keys
+ * v1.4.0 - 2026-01-27 - CRITICAL BEP i18n REFACTOR: Converted ALL hardcoded content to i18n translation keys.
+ *                       ContentBlock component now uses t() to translate paragraphs, headings, and lists.
+ *                       All footer copy (questions, contactUs) uses i18n keys matching LanguageSwitcher.jsx pattern.
+ *                       Updated AboutPage to use useTranslation('about') namespace.
+ *                       Removed hardcoded strings; now fully multi-language compliant.
  * Changelog:
+ * v1.3.0 - 2026-01-24 - BEP: Phase 2 i18n migration - Added useTranslation hook, converted all navigation and UI strings + aboutContent structure to i18n keys
  * v1.2.34 - 2026-01-22 - BEP: Allow non-auth users to open CustomEventDialog and fill values. Auth check on save - shows AuthModal2 when trying to save without auth.
  * v1.2.33 - 2026-01-22 - BEP REFACTOR: Mobile header now uses standalone MobileHeader component via PublicLayout. Consistent mobile UX across all pages. No changes needed in AboutPage - MobileHeader integrated transparently.
  * v1.2.32 - 2026-01-16 - Updated trading clock navigation target to /clock for new public route.
@@ -43,7 +48,7 @@
  * v1.0.0 - 2025-12-17 - Initial implementation with SEO metadata and MUI components
  */
 
-import { useEffect, useMemo, useState, Suspense, lazy } from 'react';
+import { useEffect, useState, Suspense, lazy, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import {
@@ -55,15 +60,12 @@ import {
   Paper,
   Divider
 } from '@mui/material';
-import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
-import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
-import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
-import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
 import SEO from './SEO';
 import ContactModal from './ContactModal';
 import PublicLayout from './PublicLayout';
 import { aboutContent, aboutMeta, aboutStructuredData } from '../content/aboutContent';
 import { useAuth } from '../contexts/AuthContext';
+import useAppBarNavItems from '../hooks/useAppBarNavItems.jsx';
 
 const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
 const AuthModal2 = lazy(() => import('./AuthModal2'));
@@ -71,9 +73,13 @@ const CustomEventDialog = lazy(() => import('./CustomEventDialog'));
 
 /**
  * Render content block based on type
+ * BEP: All text now comes from i18n translation keys, not hardcoded strings
  */
-const ContentBlock = ({ block }) => {
+const ContentBlock = ({ block, t }) => {
   if (block.type === 'paragraph') {
+    const text = t(block.key, ''); // Use translation key, fallback to empty
+    if (!text) return null;
+
     return (
       <Typography
         variant="body1"
@@ -89,8 +95,28 @@ const ContentBlock = ({ block }) => {
             '&:hover': { textDecoration: 'underline' }
           }
         }}
-        dangerouslySetInnerHTML={{ __html: block.text }}
+        dangerouslySetInnerHTML={{ __html: text }}
       />
+    );
+  }
+
+  if (block.type === 'heading') {
+    const text = t(block.key, '');
+    if (!text) return null;
+
+    return (
+      <Typography
+        variant="h3"
+        sx={{
+          fontSize: { xs: '1.1rem', sm: '1.25rem' },
+          fontWeight: 700,
+          mb: 1.5,
+          mt: 2,
+          color: 'text.primary',
+        }}
+      >
+        {text}
+      </Typography>
     );
   }
 
@@ -106,24 +132,30 @@ const ContentBlock = ({ block }) => {
           }
         }}
       >
-        {block.items.map((item, index) => (
-          <ListItem key={index} disableGutters>
-            <ListItemText
-              primary={
-                <Typography
-                  component="span"
-                  sx={{
-                    fontSize: { xs: '0.95rem', sm: '1rem' },
-                    lineHeight: 1.7,
-                    color: 'text.primary'
-                  }}
-                >
-                  <strong>{item.label}:</strong> {item.text}
-                </Typography>
-              }
-            />
-          </ListItem>
-        ))}
+        {block.items.map((item, index) => {
+          const label = t(item.labelKey, '');
+          const text = t(item.textKey, '');
+          if (!label || !text) return null;
+
+          return (
+            <ListItem key={index} disableGutters>
+              <ListItemText
+                primary={
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontSize: { xs: '0.95rem', sm: '1rem' },
+                      lineHeight: 1.7,
+                      color: 'text.primary'
+                    }}
+                  >
+                    <strong>{label}:</strong> {text}
+                  </Typography>
+                }
+              />
+            </ListItem>
+          );
+        })}
       </List>
     );
   }
@@ -134,14 +166,15 @@ const ContentBlock = ({ block }) => {
 ContentBlock.propTypes = {
   block: PropTypes.shape({
     type: PropTypes.string.isRequired,
-    text: PropTypes.string,
+    key: PropTypes.string,
     items: PropTypes.arrayOf(
       PropTypes.shape({
-        label: PropTypes.string.isRequired,
-        text: PropTypes.string.isRequired
+        labelKey: PropTypes.string.isRequired,
+        textKey: PropTypes.string.isRequired
       })
     )
-  }).isRequired
+  }).isRequired,
+  t: PropTypes.func.isRequired,
 };
 
 /**
@@ -155,77 +188,53 @@ ContentBlock.propTypes = {
  * - Shared content source with Settings Drawer
  */
 export default function AboutPage() {
-  const { t } = useTranslation();
+  const { t } = useTranslation('about');
   const { isAuthenticated } = useAuth();
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [customDialogOpen, setCustomDialogOpen] = useState(false);
 
-  const handleOpenSettings = () => {
+  const handleOpenSettings = useCallback(() => {
     setSettingsOpen(true);
-  };
+  }, []);
 
-  const handleCloseSettings = () => {
+  const handleCloseSettings = useCallback(() => {
     setSettingsOpen(false);
-  };
+  }, []);
 
-  const handleOpenAuth = () => {
+  const handleOpenContact = useCallback(() => {
+    setContactModalOpen(true);
+  }, []);
+
+  const handleCloseContact = useCallback(() => {
+    setContactModalOpen(false);
+  }, []);
+
+  const handleOpenAuth = useCallback(() => {
     setAuthModalOpen(true);
     setSettingsOpen(false);
-  };
+  }, []);
 
-  const handleCloseAuth = () => {
+  const handleCloseAuth = useCallback(() => {
     setAuthModalOpen(false);
-  };
+  }, []);
 
   // BEP: Auth check on save - show AuthModal2 if not authenticated
-  const handleSaveCustomEvent = () => {
+  const handleSaveCustomEvent = useCallback(() => {
     if (!isAuthenticated()) {
       setCustomDialogOpen(false);
       setAuthModalOpen(true);
       return;
     }
     setCustomDialogOpen(false);
-  };
+  }, [isAuthenticated]);
 
-  const navItems = useMemo(
-    () => [
-      {
-        id: 'calendar',
-        label: t('common:nav.calendar'),
-        shortLabel: t('common:nav.calendar'),
-        to: '/calendar',
-        icon: <CalendarMonthRoundedIcon fontSize="small" />,
-        ariaLabel: t('about:nav.calendar.ariaLabel'),
-      },
-      {
-        id: 'clock',
-        label: t('common:nav.clock'),
-        shortLabel: t('common:nav.clock'),
-        to: '/clock',
-        icon: <AccessTimeRoundedIcon fontSize="small" />,
-        ariaLabel: t('about:nav.clock.ariaLabel'),
-      },
-      {
-        id: 'about',
-        label: t('common:nav.about'),
-        shortLabel: t('common:nav.about'),
-        to: '/about',
-        icon: <InfoRoundedIcon fontSize="small" />,
-        ariaLabel: t('about:nav.about.ariaLabel'),
-      },
-      {
-        id: 'signin',
-        label: t('common:nav.signin'),
-        shortLabel: t('common:nav.signin'),
-        icon: <LockOpenRoundedIcon fontSize="small" />,
-        primary: true,
-        ariaLabel: t('common:nav.signin.ariaLabel'),
-      },
-    ],
-    [t],
-  );
+  const navItems = useAppBarNavItems({
+    onOpenAuth: handleOpenAuth,
+    onOpenSettings: handleOpenSettings,
+    onOpenContact: handleOpenContact,
+  });
 
   // Scroll to top on mount
   useEffect(() => {
@@ -276,7 +285,7 @@ export default function AboutPage() {
         }}
       >
 
-        {/* Page Header */}
+        {/* Page Header - BEP: Use translation keys */}
         <Typography
           variant="h1"
           component="h1"
@@ -287,7 +296,7 @@ export default function AboutPage() {
             color: 'text.primary'
           }}
         >
-          {aboutContent.title}
+          {t(aboutContent.title)}
         </Typography>
 
         <Typography
@@ -299,12 +308,12 @@ export default function AboutPage() {
             fontWeight: 500
           }}
         >
-          {aboutContent.subtitle}
+          {t(aboutContent.subtitle)}
         </Typography>
 
         <Divider sx={{ mb: 4 }} />
 
-        {/* Content Sections */}
+        {/* Content Sections - BEP: Pass t() to ContentBlock for i18n rendering */}
         {aboutContent.sections.map((section, index) => (
           <Box key={index} sx={{ mb: index < aboutContent.sections.length - 1 ? 4 : 0 }}>
             {section.title && (
@@ -318,17 +327,17 @@ export default function AboutPage() {
                   color: 'text.primary'
                 }}
               >
-                {section.title}
+                {t(section.title)}
               </Typography>
             )}
 
             {section.content.map((block, blockIndex) => (
-              <ContentBlock key={blockIndex} block={block} />
+              <ContentBlock key={blockIndex} block={block} t={t} />
             ))}
           </Box>
         ))}
 
-        {/* Footer - Contact Us */}
+        {/* Footer - Contact Us - BEP: Use translation keys */}
         <Divider sx={{ my: 4 }} />
         <Typography
           variant="body2"
@@ -339,7 +348,7 @@ export default function AboutPage() {
             mb: 4,
           }}
         >
-          {t('about:footer.questions')}{' '}
+          {t(aboutContent.footer.questionsKey)}{' '}
           <Box
             component="button"
             onClick={() => setContactModalOpen(true)}
@@ -360,7 +369,7 @@ export default function AboutPage() {
               }
             }}
           >
-            {t('about:footer.contactUs')}
+            {t(aboutContent.footer.contactUsKey)}
           </Box>
         </Typography>
       </Paper>

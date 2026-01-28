@@ -1,0 +1,8 @@
+{
+  "timeSettings": "Configuración para mostrar conteos de tiempo",
+  "timeToEnd": "Mostrar el tiempo restante hasta que termine la sesión actual",
+  "timeToStart": "Mostrar el tiempo hasta que comience la próxima sesión",
+  "timeToEndLabel": "Tiempo para terminar",
+  "timeToStartLabel": "Comienza en",
+  "userMenu": "Menú de cuenta de usuario"
+}

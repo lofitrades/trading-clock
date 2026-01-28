@@ -136,7 +136,7 @@ export default function NewsSourceSelector({
         >
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
-              Powered by Forex Factory
+              Powered by Forex Factory data
             </Typography>
           </Box>
           <IconButton

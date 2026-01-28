@@ -137,7 +137,7 @@ const features = [
 
 export default function Page() {
     const { t } = useTranslation('pages');
-    
+
     // Hydrate data from i18n with defensive null-coalescing
     const features = t('landing.features', { returnObjects: true }) ?? [];
     const faqEntries = t('landing.faq.entries', { returnObjects: true }) ?? [];
@@ -193,7 +193,7 @@ export default function Page() {
                             </div>
 
                             <div style={{ marginTop: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                                {Array.isArray(t('landing.hero.chips', { returnObjects: true })) && 
+                                {Array.isArray(t('landing.hero.chips', { returnObjects: true })) &&
                                     t('landing.hero.chips', { returnObjects: true }).map((chip, i) => (
                                         <span key={i} className="muted-chip">{chip}</span>
                                     ))}

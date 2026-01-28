@@ -3,6 +3,9 @@
     "path": "firebase.json",
     "purpose": "Firebase Hosting and Functions configuration for Time 2 Trade frontend/backend deployment.",
     "changelog": [
+      "v1.5.0 - 2026-01-28 - BEP FIX: Rewrites now serve prerendered subpages (/es/contact, /fr/about, etc.) correctly. Each language route pattern serves its own index.html, enabling SEO for all localized pages.",
+      "v1.4.0 - 2026-01-27 - BEP ENHANCED i18n: Added rewrites for /es/* and /fr/* language subpaths. Multi-language prerendered HTML files now serve with proper language parameter. Enables non-JS crawlers to see localized content immediately.",
+      "v1.3.0 - 2026-01-27 - BEP CONSOLE FIX: Added Cross-Origin-Opener-Policy: unsafe-none header to all responses. Fixes Firebase Auth SDK warning 'COOP policy would block window.closed call'. Firebase popup auth needs to check window.closed from auth popup window, which COOP: same-origin policy would block.",
       "v1.2.0 - 2025-12-17 - Added static file headers for robots.txt and sitemap.xml for SEO.",
       "v1.1.0 - 2025-12-16 - Added immutable cache headers for JS/CSS and retained SPA rewrite for custom domain hosting.",
       "v1.0.0 - 2025-12-16 - Initial configuration with hosting, functions, emulators, firestore, and storage settings."
@@ -16,6 +19,62 @@
       "**/node_modules/**"
     ],
     "rewrites": [
+      {
+        "source": "/es/clock{,/**}",
+        "destination": "/es/clock/index.html"
+      },
+      {
+        "source": "/es/calendar{,/**}",
+        "destination": "/es/calendar/index.html"
+      },
+      {
+        "source": "/es/about{,/**}",
+        "destination": "/es/about/index.html"
+      },
+      {
+        "source": "/es/privacy{,/**}",
+        "destination": "/es/privacy/index.html"
+      },
+      {
+        "source": "/es/terms{,/**}",
+        "destination": "/es/terms/index.html"
+      },
+      {
+        "source": "/es/contact{,/**}",
+        "destination": "/es/contact/index.html"
+      },
+      {
+        "source": "/es{,/**}",
+        "destination": "/es/index.html"
+      },
+      {
+        "source": "/fr/clock{,/**}",
+        "destination": "/fr/clock/index.html"
+      },
+      {
+        "source": "/fr/calendar{,/**}",
+        "destination": "/fr/calendar/index.html"
+      },
+      {
+        "source": "/fr/about{,/**}",
+        "destination": "/fr/about/index.html"
+      },
+      {
+        "source": "/fr/privacy{,/**}",
+        "destination": "/fr/privacy/index.html"
+      },
+      {
+        "source": "/fr/terms{,/**}",
+        "destination": "/fr/terms/index.html"
+      },
+      {
+        "source": "/fr/contact{,/**}",
+        "destination": "/fr/contact/index.html"
+      },
+      {
+        "source": "/fr{,/**}",
+        "destination": "/fr/index.html"
+      },
       {
         "source": "**",
         "destination": "/index.html"
@@ -67,6 +126,15 @@
           {
             "key": "Cache-Control",
             "value": "public, max-age=86400"
+          }
+        ]
+      },
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cross-Origin-Opener-Policy",
+            "value": "unsafe-none"
           }
         ]
       }

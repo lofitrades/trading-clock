@@ -1,0 +1,61 @@
+{
+  "seo": {
+    "title": "Contact | Time 2 Trade",
+    "description": "Contact Time 2 Trade. Send a message for support, feedback, or questions. Prefer DM? Reach us on X."
+  },
+  "page": {
+    "overline": "Contact",
+    "heading": "Get in touch",
+    "description": "Send a message for support, feedback, or questions. Prefer DM? Reach us on X for the fastest response."
+  },
+  "form": {
+    "heading": "Send a message",
+    "subheading": "Support, feedback, or questions — we read every message.",
+    "requiredNotice": "Fields marked with * are required.",
+    "email": {
+      "label": "Enter your email",
+      "helperText": "We'll use this to reply.",
+      "error": "Enter a valid email address"
+    },
+    "name": {
+      "label": "Enter your name",
+      "title": "Your name (optional)"
+    },
+    "country": {
+      "label": "Country / code",
+      "title": "Select your country to set the calling code"
+    },
+    "phone": {
+      "label": "Enter your phone",
+      "helperText": "(digits only, no dashes)",
+      "title": "Optional phone (digits only)"
+    },
+    "message": {
+      "label": "Message",
+      "helperText": "Tell us what you need help with.",
+      "error": "Message is required"
+    },
+    "submitButton": "Send message",
+    "submitButtonLoading": "Sending…",
+    "submitError": "Sorry, something went wrong. Please try again or DM us on X.",
+    "preferDm": "Prefer DM?",
+    "xHandle": "@time2_trade",
+    "xAriaLabel": "Visit Time 2 Trade on X",
+    "disclaimer": "We only use your info to respond. No marketing."
+  },
+  "success": {
+    "heading": "Thanks — we got it",
+    "message": "We'll follow up using the email you provided. In the meantime, you can jump into the calendar or head back home.",
+    "calendarButton": "Go to Calendar",
+    "homeButton": "Go to Home",
+    "preferQuickDm": "Prefer a quick DM?",
+    "xHandle": "@time2_trade",
+    "xAriaLabel": "Visit Time 2 Trade on X"
+  },
+  "footer": {
+    "home": "Home",
+    "calendar": "Open Calendar",
+    "privacy": "Privacy",
+    "terms": "Terms"
+  }
+}

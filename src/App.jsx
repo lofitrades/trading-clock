@@ -6,6 +6,9 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
+ * v2.7.26 - 2026-01-28 - BEP FILTER CHIP PARITY: Updated both 'Add reminder' buttons to match inactive filter chip styling. Default state now uses bgcolor: background.paper (light/white) with borderColor: divider (subtle gray) instead of primary tint. Hover state adds primary tint: alpha(primary.main, 0.08) background with alpha(primary.main, 0.5) border. Matches inactive chip pattern exactly for visual consistency across app. Works in both light and dark modes.
+ * v2.7.25 - 2026-01-28 - BEP NORMAL HOVER: Removed inverted hover effect from both 'Add reminder' buttons. Changed hover state from bgcolor: background.paper (inverted) to alpha(primary.main, 0.12) (progressive disclosure). Border on hover now increases alpha from 0.5 to 0.7 for consistency. Keeps normal MUI button interaction pattern: subtle default (0.08), more prominent on hover (0.12), even stronger on active (0.16).
+ * v2.7.24 - 2026-01-28 - BEP THEME-AWARE ADD BUTTONS: Updated both 'Add reminder' buttons (xs-sm and md+ breakpoints) from hardcoded bgcolor: '#fff' to theme-aware alpha(theme.palette.primary.main, 0.08) with inverted hover states. Border color now uses alpha(primary.main, 0.5), hover transitions to background.paper. Added focus-visible and active states for full accessibility. Ensures buttons are visible in both light and dark modes.
  * v2.7.22 - 2026-01-22 - BEP: Ensure recurring custom event edits/deletes target the series id.
  * v2.7.21 - 2026-01-22 - BEP FIX: Pass hasCustomEvents to EventsFilters3 so CUS currency option appears when custom events exist. Added todayDateRange useMemo to scope useCustomEvents to today only. Both EventsFilters3 instances now receive hasCustomEvents prop.
  * v2.7.20 - 2026-01-22 - BEP: Allow non-auth users to open CustomEventDialog and fill values. Auth check moved from handleOpenCustomDialog to handleSaveCustomEvent. Shows AuthModal2 when trying to save without auth.
@@ -143,17 +146,14 @@
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Box, Typography, useMediaQuery, Button, alpha, Tooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
-import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
-import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
-import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded';
-import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
+import { useTranslation } from 'react-i18next';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { useSettings } from './contexts/SettingsContext';
 import { useClock } from './hooks/useClock';
 import { useTimeEngine } from './hooks/useTimeEngine';
 import { useClockVisibilitySnap } from './hooks/useClockVisibilitySnap';
 import { useAuth } from './contexts/AuthContext';
+import useAppBarNavItems from './hooks/useAppBarNavItems.jsx';
 import { useFavorites } from './hooks/useFavorites';
 import { useEventNotes } from './hooks/useEventNotes';
 import useCustomEvents from './hooks/useCustomEvents';
@@ -179,6 +179,7 @@ const TimezoneModal = lazy(() => import('./components/TimezoneModal'));
 const CustomEventDialog = lazy(() => import('./components/CustomEventDialog'));
 
 export default function App() {
+  const { t, i18n } = useTranslation(['common', 'calendar']);
   const {
     isLoading,
     clockStyle,
@@ -300,6 +301,34 @@ export default function App() {
     if (!selectedTimezone) return '';
     return selectedTimezone.replace(/_/g, ' ');
   }, [selectedTimezone]);
+
+  // BEP: Memoized date/time formatting using current language locale and selected timezone
+  const formattedDateTime = useMemo(() => {
+    if (!currentTime) return '';
+    // Map i18n language codes to Intl locale codes
+    const localeMap = {
+      en: 'en-US',
+      es: 'es-ES',
+      fr: 'fr-FR',
+    };
+    const locale = localeMap[i18n.language] || 'en-US';
+
+    const dateStr = currentTime.toLocaleDateString(locale, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+
+    const timeStr = currentTime.toLocaleTimeString(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: locale === 'en-US', // 12-hour for English, 24-hour for Spanish/French
+    });
+
+    return `${dateStr} | ${timeStr}`;
+  }, [currentTime, i18n.language]);
 
   const handleEventFromClockClick = useCallback((evt) => {
     if (!isAuthenticated()) {
@@ -427,52 +456,11 @@ export default function App() {
     }
   }, [removeCustomEvent]);
 
-  const navItems = useMemo(
-    () => [
-      {
-        id: 'calendar',
-        label: 'Calendar',
-        shortLabel: 'Calendar',
-        to: '/calendar',
-        icon: <CalendarMonthRoundedIcon fontSize="small" />,
-        ariaLabel: 'Economic calendar',
-      },
-      {
-        id: 'clock',
-        label: 'Trading Clock',
-        shortLabel: 'Clock',
-        to: '/clock',
-        icon: <AccessTimeRoundedIcon fontSize="small" />,
-        ariaLabel: 'Open the trading clock',
-      },
-      {
-        id: 'about',
-        label: 'About',
-        shortLabel: 'About',
-        to: '/about',
-        icon: <InfoRoundedIcon fontSize="small" />,
-        ariaLabel: 'Learn about Time 2 Trade',
-      },
-      {
-        id: 'contact',
-        label: 'Contact',
-        shortLabel: 'Help',
-        onClick: openContactModal,
-        icon: <SupportAgentRoundedIcon fontSize="small" />,
-        ariaLabel: 'Contact support',
-      },
-      {
-        id: 'signin',
-        label: 'Sign in',
-        shortLabel: 'Sign in',
-        icon: <LockOpenRoundedIcon fontSize="small" />,
-        onClick: handleOpenAuth,
-        primary: true,
-        ariaLabel: 'Sign in or create an account',
-      },
-    ],
-    [handleOpenAuth, openContactModal],
-  );
+  const navItems = useAppBarNavItems({
+    onOpenAuth: handleOpenAuth,
+    onOpenSettings: () => setSettingsOpen(true),
+    onOpenContact: openContactModal,
+  });
 
   const sessionLabelActive = sessionLabelVisible && showSessionLabel;
 
@@ -632,18 +620,18 @@ export default function App() {
     return () => window.removeEventListener('resize', calculateSize);
   }, [canvasSize, clockShellWidth, contentPaddingBottom, safeAreaTop, sessionLabelActive, showDigitalClock, timezoneLabelActive]);
 
-  // If background toggle is on, use the active session color. Otherwise, use default background.
+  // If background toggle is on, use the active session color. Otherwise, use default background from theme.
   const effectiveBackground =
     backgroundBasedOnSession && activeSession
       ? activeSession.color
-      : '#F9F9F9';
+      : theme.palette.background.default;
 
   // Text color logic: 
-  // - When Session-based Background is DISABLED: always use dark text on fixed light background
+  // - When Session-based Background is DISABLED: use theme text color (dark on light, light on dark)
   // - When Session-based Background is ENABLED: use isColorDark to determine contrast based on active session color
   const effectiveTextColor = backgroundBasedOnSession && activeSession
     ? (isColorDark(activeSession.color) ? "#fff" : "#4B4B4B")
-    : "#0F172A"; // Always dark when session-based background is disabled
+    : theme.palette.text.primary;
 
   // Canvas elements (clock numbers, hands, markers) are drawn ON the white canvas face
   // So they always need dark color for contrast against white background
@@ -826,16 +814,17 @@ export default function App() {
           boxSizing: 'border-box',
         }}
       >
-        {/* Header Section: Headings (left) + Add button (right) on all breakpoints */}
+        {/* Header Section: On md+: Title (left) + Filters (center, flex-grow) + Add button (right) in same row
+            On xs-sm: Title + Add button stacked, filters fixed at bottom */}
         <Box
           sx={{
             width: '100%',
             maxWidth: 1560,
             display: 'flex',
-            flexDirection: 'row',
+            flexDirection: { xs: 'column', md: 'row' },
             alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: 1.5,
+            justifyContent: { xs: 'flex-start', md: 'space-between' },
+            gap: { xs: 1, md: 1.5 },
             mb: { xs: 0.5, md: 1.25 },
             mt: { xs: 2.5, sm: 2.5, md: 0 },
             px: { xs: 2, sm: 2.75, md: 3.5 },
@@ -843,24 +832,28 @@ export default function App() {
             boxSizing: 'border-box',
           }}
         >
-          {/* Headings - left aligned */}
+          {/* Title + Add button row (xs-sm) OR Title column (md+) */}
           <Box
             sx={{
               display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              gap: 0,
-              flex: 1,
+              flexDirection: { xs: 'row', md: 'column' },
+              alignItems: { xs: 'flex-start', md: 'flex-start' },
+              justifyContent: { xs: 'space-between', md: 'flex-start' },
+              gap: { xs: 1, md: 0 },
+              width: { xs: '100%', md: 'auto' },
               minWidth: 0,
+              flexShrink: 0,
             }}
           >
+            {/* Headings - left aligned */}
             <Box
               sx={{
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                width: '100%',
-                gap: 1,
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: 0,
+                flex: { xs: 1, lg: 0 },
+                minWidth: 0,
               }}
             >
               <Typography
@@ -872,59 +865,134 @@ export default function App() {
                   fontSize: { xs: '0.95rem', sm: '1rem', md: '1.05rem' },
                   mb: { xs: 0.5, sm: 0.75 },
                   lineHeight: 1.2,
-                  textAlign: { xs: 'left', md: 'left' },
-                  flex: '1 1 auto',
+                  textAlign: 'left',
                 }}
               >
-                Trading Clock
+                {t('common:navigation.clock')}
               </Typography>
+              <Typography
+                sx={{
+                  fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' },
+                  color: alpha(effectiveTextColor, 0.6),
+                  fontWeight: 500,
+                  letterSpacing: '0.3px',
+                  lineHeight: 1.2,
+                  textAlign: 'left',
+                }}
+              >
+                {formattedDateTime}
+              </Typography>
+              {
+                timezoneLabelActive && timezoneLabelText && (
+                  <Button
+                    variant="text"
+                    size="small"
+                    onClick={() => setTimezoneModalOpen(true)}
+                    sx={{
+                      textTransform: 'none',
+                      color: alpha(effectiveTextColor, 0.6),
+                      fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' },
+                      fontWeight: 500,
+                      letterSpacing: '0.3px',
+                      minWidth: 'auto',
+                      px: 0,
+                      py: 0.25,
+                      lineHeight: 1.2,
+                      mt: { xs: 0.25, sm: 0.25 },
+                      '&:hover': {
+                        bgcolor: alpha(effectiveTextColor, 0.08),
+                        color: effectiveTextColor,
+                      },
+                    }}
+                  >
+                    {timezoneLabelText}
+                  </Button>
+                )
+              }
             </Box>
-            <Typography
+
+            {/* Add button - visible on xs-sm only (inline with title) */}
+            <Box
               sx={{
-                fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' },
-                color: alpha(effectiveTextColor, 0.6),
-                fontWeight: 500,
-                letterSpacing: '0.3px',
-                lineHeight: 1.2,
-                textAlign: { xs: 'left', md: 'left' },
+                display: { xs: 'flex', md: 'none' },
+                alignItems: 'center',
+                gap: 1,
+                flexShrink: 0,
               }}
             >
-              {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} | {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
-            </Typography>
-            {
-              timezoneLabelActive && timezoneLabelText && (
+              <Tooltip title="Add reminder" placement="bottom">
                 <Button
-                  variant="text"
+                  onClick={handleOpenCustomDialog}
                   size="small"
-                  onClick={() => setTimezoneModalOpen(true)}
+                  startIcon={<AddRoundedIcon fontSize="small" sx={{ color: 'primary.main' }} />}
                   sx={{
+                    height: 40,
+                    borderRadius: 999,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    bgcolor: 'background.paper',
+                    color: 'text.primary',
                     textTransform: 'none',
-                    color: alpha(effectiveTextColor, 0.6),
-                    fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' },
-                    fontWeight: 500,
-                    letterSpacing: '0.3px',
-                    minWidth: 'auto',
-                    px: 0,
-                    py: 0.25,
-                    lineHeight: 1.2,
-                    mt: { xs: 0.25, sm: 0.25 },
+                    fontWeight: 700,
+                    fontSize: '0.8125rem',
+                    px: 1.25,
+                    minWidth: 0,
                     '&:hover': {
-                      bgcolor: alpha(effectiveTextColor, 0.08),
-                      color: effectiveTextColor,
+                      bgcolor: alpha(theme.palette.primary.main, 0.08),
+                      borderColor: alpha(theme.palette.primary.main, 0.5),
+                    },
+                    '&:focus-visible': {
+                      bgcolor: alpha(theme.palette.primary.main, 0.12),
+                      outline: '2px solid',
+                      outlineColor: 'primary.main',
+                      outlineOffset: 2,
+                    },
+                    '&:active': {
+                      bgcolor: alpha(theme.palette.primary.main, 0.16),
                     },
                   }}
+                  aria-label="Add custom reminder"
                 >
-                  {timezoneLabelText}
+                  {t('calendar:actions.addCustomEvent')}
                 </Button>
-              )
-            }
+              </Tooltip>
+            </Box>
           </Box>
 
-          {/* Add button - visible on all breakpoints in top right */}
+          {/* Filters - center and flex-grow to use max width on md+ */}
           <Box
             sx={{
-              display: 'flex',
-              alignItems: 'center',
+              display: { xs: 'none', md: 'flex' },
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'flex-start',
+              minWidth: 0,
+              maxWidth: '100%',
+            }}
+          >
+            <Suspense fallback={null}>
+              <EventsFilters3
+                filters={eventFilters}
+                onFiltersChange={handleFiltersChange}
+                onApply={handleApplyFilters}
+                loading={overlayLoading}
+                timezone={selectedTimezone}
+                newsSource={newsSource}
+                defaultPreset="today"
+                showDateFilter={false}
+                showSearchFilter={false}
+                centerFilters={true}
+                textColor={effectiveTextColor}
+                hasCustomEvents={hasCustomEvents}
+              />
+            </Suspense>
+          </Box>
+
+          {/* Add button - visible on md+ only (right side of header row) */}
+          <Box
+            sx={{
+              display: { xs: 'none', md: 'flex' },
+              alignItems: 'flex-start',
               gap: 1,
               flexShrink: 0,
             }}
@@ -933,13 +1001,13 @@ export default function App() {
               <Button
                 onClick={handleOpenCustomDialog}
                 size="small"
-                startIcon={<AddRoundedIcon fontSize="small" />}
+                startIcon={<AddRoundedIcon fontSize="small" sx={{ color: 'primary.main' }} />}
                 sx={{
                   height: 40,
                   borderRadius: 999,
                   border: '1px solid',
                   borderColor: 'divider',
-                  bgcolor: '#fff',
+                  bgcolor: 'background.paper',
                   color: 'text.primary',
                   textTransform: 'none',
                   fontWeight: 700,
@@ -947,48 +1015,25 @@ export default function App() {
                   px: 1.25,
                   minWidth: 0,
                   '&:hover': {
-                    bgcolor: 'action.hover',
+                    bgcolor: alpha(theme.palette.primary.main, 0.08),
+                    borderColor: alpha(theme.palette.primary.main, 0.5),
+                  },
+                  '&:focus-visible': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.12),
+                    outline: '2px solid',
+                    outlineColor: 'primary.main',
+                    outlineOffset: 2,
+                  },
+                  '&:active': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.16),
                   },
                 }}
                 aria-label="Add custom reminder"
               >
-                Add custom event
+                {t('calendar:actions.addCustomEvent')}
               </Button>
             </Tooltip>
           </Box>
-        </Box>
-
-        {/* EventsFilters3 row - right aligned on md+, fixed at bottom on xs/sm */}
-        <Box
-          sx={{
-            display: { xs: 'none', md: 'flex' },
-            width: '100%',
-            maxWidth: 1560,
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: 1.5,
-            mb: { xs: 0.5, md: 1.25 },
-            px: { xs: 2, sm: 2.75, md: 3.5 },
-            mx: 'auto',
-            boxSizing: 'border-box',
-          }}
-        >
-          <Suspense fallback={null}>
-            <EventsFilters3
-              filters={eventFilters}
-              onFiltersChange={handleFiltersChange}
-              onApply={handleApplyFilters}
-              loading={overlayLoading}
-              timezone={selectedTimezone}
-              newsSource={newsSource}
-              defaultPreset="today"
-              showDateFilter={false}
-              showSearchFilter={false}
-              centerFilters={true}
-              textColor={effectiveTextColor}
-              hasCustomEvents={hasCustomEvents}
-            />
-          </Suspense>
         </Box>
 
         <Box

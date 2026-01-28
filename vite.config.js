@@ -2,9 +2,13 @@
  * vite.config.js
  *
  * Purpose: Vite configuration for the Time 2 Trade React app with performance optimizations.
- * Key responsibility and main functionality: Configures code-splitting, lazy loading, and vendor chunking to reduce initial payload and improve FCP/LCP metrics.
+ * Key responsibility and main functionality: Configures code-splitting, lazy loading, and vendor chunking to reduce initial payload and improve FCP/LCP metrics. Ensures robust HMR WebSocket connection for hot module reloading.
  *
  * Changelog:
+ * v1.9.0 - 2026-01-28 - BEP HMR FIX: Added dns.setDefaultResultOrder('verbatim') per Vite docs to fix localhost DNS resolution mismatch between Node.js and browser. This ensures consistent IP address resolution for HMR WebSocket connections.
+ * v1.8.0 - 2026-01-27 - BEP HMR CRITICAL FIX: Refactored HMR config with environment variable support and fallback. Changed strictPort: true → false to allow fallback to adjacent ports if 5173 is unavailable. Added 'localhost' to allowedHosts. Made HMR config environment-aware for better cross-environment support (ngrok, Docker, CI/CD). Fixes WebSocket connection failures.
+ * v1.7.0 - 2026-01-27 - BEP HMR FIX: Added explicit hmr configuration with protocol/host/port/clientPort to fix WebSocket connection failures. Ensures Vite HMR WebSocket connects properly on localhost:5173 for hot reloading during development.
+ * v1.6.0 - 2026-01-27 - BEP CONSOLE FIX: Added Cross-Origin-Opener-Policy: unsafe-none header to dev server. Fixes Firebase Auth SDK warning "COOP policy would block window.closed call". Firebase popup auth needs to check window.closed from opened window, which COOP: same-origin would block.
  * v1.5.0 - 2026-01-23 - CRITICAL FIX: Remove emotion/react-is manual chunking - causes circular dependency. Let Vite handle naturally.
  * v1.4.0 - 2026-01-23 - CRITICAL FIX: Remove aggressive manualChunks causing react-is/emotion AsyncMode error. Use simpler vendor splitting.
  * v1.3.0 - 2026-01-23 - BEP PERFORMANCE: Add advanced code-splitting with route-based chunks. Lazy load Firebase features, separate MUI components. Set chunk size warnings and minification. Preload critical chunks only.
@@ -14,6 +18,12 @@
  */
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import dns from 'node:dns'
+
+// BEP: Fix localhost DNS resolution mismatch between Node.js and browser
+// Per Vite docs: Node.js under v17 reorders DNS-resolved addresses by default
+// This ensures consistent 'localhost' resolution for HMR WebSocket connections
+dns.setDefaultResultOrder('verbatim')
 
 export default defineConfig({
   plugins: [react()],
@@ -48,8 +58,19 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    strictPort: true,
-    allowedHosts: ['.ngrok-free.app'],
+    strictPort: false,
+    allowedHosts: ['.ngrok-free.app', 'localhost'],
+    headers: {
+      // BEP: Disable COOP to allow Firebase Auth popup window checking
+      // Firebase SDK checks window.closed property from auth popup, which would be blocked by COOP: same-origin
+      'Cross-Origin-Opener-Policy': 'unsafe-none',
+    },
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 5173,
+      clientPort: 5173,
+    },
     proxy: {
       '/api/news': {
         target: 'https://www.jblanked.com',

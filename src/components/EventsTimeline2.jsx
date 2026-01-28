@@ -7,6 +7,7 @@
  * for past events in the selected timezone.
  *
  * Changelog:
+ * v3.9.0 - 2026-01-28 - BEP THEME: Replaced 15+ hardcoded colors with theme tokens throughout component. Changed #f5f5f5 to theme.palette.action.hover, #9e9e9e/#757575 gray to theme.palette.text.disabled, #424242/#616161 dark text to theme.palette.text.secondary, #e0e0e0/#d6d6d6 disabled backgrounds to alpha(theme.palette.text.disabled), #b0b0b0 divider to theme.palette.divider, alpha('#000') to alpha(theme.palette.text.primary), rgba(25,118,210) to theme.palette.info.main. All colors now adapt to light/dark theme modes dynamically.
  * v3.8.5 - 2026-01-16 - Display all-day/tentative time labels for GPT placeholder events.
  * v3.8.4 - 2025-12-18 - Centralize impact colors (low impact yellow #F2C94C, unknown taupe #C7B8A4) to avoid collisions with session and NOW colors across timeline badges.
  * v3.8.3 - 2025-12-17 - Added sticky day chip that pins while scrolling a day (chip only; dividers remain inline) for chat-style day headers.
@@ -511,9 +512,9 @@ const TimeChip = memo(({ time, timeLabel = null, isPast, isNext, isNow, timezone
     }
     if (isPast) {
       return {
-        bgcolor: '#f5f5f5',
-        color: '#757575',
-        borderColor: '#9e9e9e',
+        bgcolor: theme.palette.action.hover,
+        color: theme.palette.text.disabled,
+        borderColor: theme.palette.text.disabled,
       };
     }
     return {
@@ -583,7 +584,7 @@ const ImpactBadge = memo(({ impact, isPast }) => {
         sx={{
           minWidth: 40,
           height: 22,
-          bgcolor: isPast ? '#9e9e9e' : config.color,
+          bgcolor: isPast ? theme.palette.text.disabled : config.color,
           color: 'white',
           fontWeight: 700,
           fontSize: '0.75rem',
@@ -686,7 +687,7 @@ const EventDescription = memo(({ description, loading }) => {
       <Card
         elevation={0}
         sx={{
-          bgcolor: alpha('#000', 0.02),
+          bgcolor: alpha(theme.palette.text.primary, 0.02),
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: 2,
@@ -724,7 +725,7 @@ const EventDescription = memo(({ description, loading }) => {
     <Card
       elevation={0}
       sx={{
-        bgcolor: alpha('#000', 0.02),
+        bgcolor: alpha(theme.palette.text.primary, 0.02),
         border: '1px solid',
         borderColor: 'divider',
         borderRadius: 2,
@@ -1117,10 +1118,10 @@ const EventCard = memo(({
       };
     }
     return {
-      borderColor: isPast ? '#9e9e9e' : 'divider',
+      borderColor: isPast ? theme.palette.text.disabled : 'divider',
       boxShadow: 'none',
-      bgcolor: isPast ? '#e0e0e0' : 'background.paper',
-      color: isPast ? '#424242' : undefined,
+      bgcolor: isPast ? alpha(theme.palette.text.disabled, 0.3) : 'background.paper',
+      color: isPast ? theme.palette.text.secondary : undefined,
     };
   };
 
@@ -1199,7 +1200,7 @@ const EventCard = memo(({
                 fontWeight: 700,
                 fontSize: { xs: '0.85rem', sm: '0.95rem' },
                 lineHeight: 1.4,
-                color: isPast ? '#424242' : 'text.primary',
+                color: isPast ? theme.palette.text.secondary : 'text.primary',
                 flex: 1,
                 minWidth: 0,
               }}
@@ -1367,10 +1368,10 @@ const EventCard = memo(({
                   justifyContent: 'space-around',
                   gap: { xs: 1, sm: 2 },
                   p: { xs: 1, sm: 1.5 },
-                  bgcolor: isPast ? '#d6d6d6' : alpha(theme.palette.primary.main, 0.05),
+                  bgcolor: isPast ? alpha(theme.palette.text.disabled, 0.2) : alpha(theme.palette.primary.main, 0.05),
                   borderRadius: 1,
                   border: '1px solid',
-                  borderColor: isPast ? '#b0b0b0' : alpha(theme.palette.primary.main, 0.2),
+                  borderColor: isPast ? theme.palette.divider : alpha(theme.palette.primary.main, 0.2),
                 }}
               >
                 <Box sx={{ textAlign: 'center', flex: 1 }}>
@@ -1394,7 +1395,7 @@ const EventCard = memo(({
                       fontWeight: 700,
                       fontSize: { xs: '0.85rem', sm: '0.95rem' },
                       color: isPast
-                        ? '#424242'
+                        ? theme.palette.text.secondary
                         : (actualValue !== '—' ? 'primary.main' : 'text.disabled'),
                     }}
                   >
@@ -1422,7 +1423,7 @@ const EventCard = memo(({
                     sx={{
                       fontWeight: 600,
                       fontSize: { xs: '0.85rem', sm: '0.95rem' },
-                      color: isPast ? '#616161' : (forecastValue !== '—' ? 'text.secondary' : 'text.disabled'),
+                      color: isPast ? theme.palette.text.secondary : (forecastValue !== '—' ? 'text.secondary' : 'text.disabled'),
                     }}
                   >
                     {forecastValue}
@@ -1449,7 +1450,7 @@ const EventCard = memo(({
                     sx={{
                       fontWeight: 600,
                       fontSize: { xs: '0.85rem', sm: '0.95rem' },
-                      color: isPast ? '#616161' : (previousValue !== '—' ? 'text.secondary' : 'text.disabled'),
+                      color: isPast ? theme.palette.text.secondary : (previousValue !== '—' ? 'text.secondary' : 'text.disabled'),
                     }}
                   >
                     {previousValue}
@@ -1710,7 +1711,7 @@ const EmptyState = memo(({ showFirstTimeSetup = false, searchQuery = '' }) => {
             sx={{
               mt: 2,
               p: 2,
-              bgcolor: alpha('#2196f3', 0.1),
+              bgcolor: alpha(theme.palette.info.main, 0.1),
               borderRadius: 2,
               border: '1px solid',
               borderColor: 'info.light',

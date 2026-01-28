@@ -6,6 +6,7 @@
  * and smooth transitions while maintaining all v1 features (reminders, recurrence, timezone, impact).
  * 
  * Changelog:
+ * v2.1.1 - 2026-01-27 - BEP i18n migration COMPLETE: Replaced final 3 hardcoded strings (dialog title Edit/New, Hex Color label, Select Icon text) with t() calls. 100% i18n compliant for EN/ES/FR.
  * v2.1.0 - 2026-01-29 - BEP i18n migration: Added useTranslation hook, replaced 50+ hardcoded strings with t() calls for events namespace
  * v2.0.0 - 2026-01-23 - BEP refactor: Popover-based icon/color pickers, two-column desktop layout, smooth transitions, optimized viewport usage. All v1 features preserved.
  */
@@ -483,7 +484,7 @@ export default function CustomEventDialog({
             >
                 <DialogTitle component="div" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                        {isEditing ? 'Edit custom event' : 'New custom event'}
+                        {isEditing ? t('events:dialog.title.edit') : t('events:dialog.title.create')}
                     </Typography>
                     <IconButton onClick={handleClose} aria-label="Close" size="small">
                         <CloseIcon />
@@ -935,7 +936,7 @@ export default function CustomEventDialog({
                         ))}
                     </Box>
                     <TextField
-                        label="Hex Color"
+                        label={t('events:dialog.appearance.fields.color.hex.label')}
                         value={hexInput}
                         onChange={handleHexInputChange}
                         fullWidth
@@ -996,7 +997,7 @@ export default function CustomEventDialog({
             >
                 <Box>
                     <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', mb: 1.5, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        Select Icon
+                        {t('events:dialog.appearance.fields.icon.select')}
                     </Typography>
                     <Box
                         sx={{

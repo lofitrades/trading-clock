@@ -2,9 +2,13 @@
  * src/main.jsx
  * 
  * Purpose: Application entry point for Time 2 Trade SPA.
- * Bootstraps React with providers and routing.
+ * Bootstraps React with providers and routing. Includes ThemeContextProvider for dynamic theme switching.
  * 
  * Changelog:
+ * v5.0.1 - 2026-01-28 - BEP FIX: Cache root instance to prevent duplicate createRoot() calls during HMR.
+ *                       Stores root on container element to reuse across hot reloads.
+ * v5.0.0 - 2026-01-28 - BEP: Added ThemeContextProvider for light/dark mode support. 
+ *                       Dynamic theme from getTheme() based on ThemeContext resolvedTheme.
  * v4.0.0 - 2026-01-24 - Added i18next integration for multilanguage support (EN, ES, FR MVP).
  * v3.0.3 - 2025-12-22 - Wrapped app with HelmetProvider for route-level SEO metadata.
  * v3.0.2 - 2025-12-18 - Added viewport CSS vars and flag-icons loading for proper initialization.
@@ -18,7 +22,7 @@
  * v1.0.0 - 2025-09-15 - Initial implementation
  */
 
-import { StrictMode } from 'react';
+import { StrictMode, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
@@ -28,7 +32,9 @@ import { AuthProvider } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { TooltipProvider } from './contexts/TooltipContext';
-import theme from './theme';
+import { ThemeContextProvider } from './contexts/ThemeContext';
+import { useThemeMode } from './contexts/themeContextUtils';
+import { getTheme } from './theme';
 import './index.css';
 import './i18n/config.js';  // Initialize i18next BEFORE App
 import i18n from './i18n/config.js';
@@ -48,22 +54,46 @@ setupViewportCssVars();
 // Load non-critical assets (flag-icons CSS, service worker) when idle
 scheduleNonCriticalAssets(registerServiceWorker);
 
-createRoot(document.getElementById('root')).render(
+/**
+ * Inner app component that uses ThemeContext
+ * Separated to ensure ThemeContextProvider is in scope
+ */
+export function AppWithTheme() {
+  const { resolvedTheme } = useThemeMode();
+  const dynamicTheme = useMemo(() => getTheme(resolvedTheme), [resolvedTheme]);
+
+  return (
+    <ThemeProvider theme={dynamicTheme}>
+      <AuthProvider>
+        <SettingsProvider>
+          <LanguageProvider>
+            <TooltipProvider>
+              <AppRoutes />
+            </TooltipProvider>
+          </LanguageProvider>
+        </SettingsProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
+
+// BEP: Cache root instance to prevent duplicate createRoot() calls during HMR
+const container = document.getElementById('root');
+let root = container._reactRoot;
+
+if (!root) {
+  root = createRoot(container);
+  container._reactRoot = root;
+}
+
+root.render(
   <StrictMode>
     <I18nextProvider i18n={i18n}>
       <HelmetProvider>
         <BrowserRouter>
-          <ThemeProvider theme={theme}>
-            <AuthProvider>
-              <SettingsProvider>
-                <LanguageProvider>
-                  <TooltipProvider>
-                    <AppRoutes />
-                  </TooltipProvider>
-                </LanguageProvider>
-              </SettingsProvider>
-            </AuthProvider>
-          </ThemeProvider>
+          <ThemeContextProvider>
+            <AppWithTheme />
+          </ThemeContextProvider>
         </BrowserRouter>
       </HelmetProvider>
     </I18nextProvider>

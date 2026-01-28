@@ -1,0 +1,43 @@
+{
+  "labels": {
+    "dateRange": "Date range",
+    "impacts": "Impacts",
+    "currencies": "Currencies"
+  },
+  "summaries": {
+    "allImpacts": "All impacts",
+    "impactCount": "{{count}} impact selected",
+    "impactCount_plural": "{{count}} impacts selected",
+    "allCurrencies": "All currencies",
+    "currencyCount": "{{count}} currency selected",
+    "currencyCount_plural": "{{count}} currencies selected"
+  },
+  "currency": {
+    "all": "All",
+    "unknown": "Unknown",
+    "custom": "Custom",
+    "loading": "Loading currencies...",
+    "noCurrencies": "No currencies available"
+  },
+  "actions": {
+    "reset": "Reset",
+    "selectAll": "Select all",
+    "clear": "Clear",
+    "addEvent": "Add custom event",
+    "addEventTooltip": "Add a custom event to your calendar"
+  },
+  "datePresets": {
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "thisWeek": "This week",
+    "nextWeek": "Next week",
+    "thisMonth": "This month"
+  },
+  "impacts": {
+    "strongData": "High Impact",
+    "moderateData": "Medium Impact",
+    "weakData": "Low Impact",
+    "dataNotLoaded": "Data Not Loaded",
+    "nonEconomic": "Non-Economic"
+  }
+}

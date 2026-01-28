@@ -6,6 +6,10 @@
  * Extracted from PublicLayout to improve separation of concerns and ensure consistency across all pages.
  * 
  * Changelog:
+ * v1.4.0 - 2026-01-27 - BEP REFACTOR: Complete mobile header cleanup for proper spacing and responsive design. Removed complex gap: 0 logic and replaced with proper gap values (xs: 1, sm: 1.5 for container; xs: 0.75, sm: 1 for icons). Fixed logo sizing to explicit px values (28px xs, 32px sm). Hidden language switcher on xs for guests (shows on sm+). Added border-bottom and subtle shadow for visual separation. Reduced padding to px: 2/2.5 for better space utilization. Typography now shrinks properly (0.95rem xs, 1.05rem sm). All action icons properly spaced without overlap.
+ * v1.3.0 - 2026-01-27 - BEP UI CONSISTENCY: Hide LanguageSwitcher for authenticated users (only show for guests). Ensure add icon, bell icon, and user avatar all have consistent circular sizing (32px xs/sm, 36px md+) with flex centering. All action icons now have matching dimensions and spacing for perfect alignment on mobile header. Updated add icon fontSize to 18px for proportion balance.
+ * v1.2.1 - 2026-01-27 - BEP i18n: Added useTranslation hook and replaced hardcoded "Unlock" and "Unlock all features" text with t('common:navigation.unlock') and t('common:navigation.unlockAllFeatures') keys. Button now respects user's selected language (EN/ES/FR) via LanguageSwitcher. All copy now dynamically updates when language changes.
+ * v1.2.0 - 2026-01-27 - BEP SIZING REFACTOR: Removed all hardcoded heights (width/height props on wrapper Boxes). All elements now use MUI size="small" with py: 0.9 padding, matching LanguageSwitcher pattern. Logo uses maxHeight instead of hardcoded height. Add icon, NotificationCenter, and UserAvatar now rely on natural MUI sizing instead of wrapper constraints. CSS custom property --t2t-mobile-header-height set to fit-content for dynamic height computation. PublicLayout updated to use var(--t2t-mobile-header-height, 48px) for pt and maxHeight calculations instead of hardcoded 48px. Ensures all elements match LanguageSwitcher sizing and eliminates brittle pixel-based heights (BEP).
  * v1.1.7 - 2026-01-22 - BEP: Add icon now shows CustomEventDialog for non-auth users (matching CalendarEmbed pattern). When saving, auth check prevents save and shows AuthModal2 instead of immediately showing AuthModal2. Improves UX by letting guests preview feature before login.
  * v1.1.6 - 2026-01-22 - BEP UI CONSISTENCY: Reduce add icon glyph size on xs/sm so it matches bell and avatar sizing on /clock page.
  * v1.1.5 - 2026-01-22 - BEP UI CONSISTENCY: Change add icon background from transparent to white (#fff) to match bell icon styling on /clock page. Both icons now have identical white backgrounds with divider border.
@@ -22,12 +26,14 @@
 
 import { useState, Suspense, lazy } from 'react';
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 import { Box, Typography, Button, IconButton, Tooltip } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import LockIcon from '@mui/icons-material/Lock';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import UserAvatar from './UserAvatar';
 import NotificationCenter from './NotificationCenter';
+import LanguageSwitcher from './LanguageSwitcher';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../hooks/useSettings';
 
@@ -46,6 +52,7 @@ const MobileHeader = ({
     mobileHeaderAction,
     customEvents,
 }) => {
+    const { t } = useTranslation('common');
     const { isAuthenticated } = useAuth();
     const { settings } = useSettings();
     const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -79,157 +86,155 @@ const MobileHeader = ({
             {/* Mobile brand lockup - fixed on xs/sm ONLY */}
             <Box
                 sx={{
-                    display: { xs: 'inline-flex', sm: 'inline-flex', md: 'none' },
+                    display: { xs: 'flex', sm: 'flex', md: 'none' },
                     alignItems: 'center',
-                    gap: 1,
-                    width: { xs: '100%', sm: '100%', md: 'auto' },
-                    px: { xs: 2.5, sm: 2.75, md: 0 },
-                    bgcolor: { xs: 'background.default', sm: 'background.default', md: 'transparent' },
-                    py: { xs: 1, sm: 1, md: 'unset' },
+                    gap: { xs: 1, sm: 1.5 },
+                    width: '100%',
+                    px: { xs: 2, sm: 2.5 },
+                    bgcolor: 'background.default',
+                    py: { xs: 1, sm: 1.25 },
                     mb: 2,
-                    position: { xs: 'fixed', sm: 'fixed', md: 'relative' },
+                    position: 'fixed',
                     top: 0,
-                    left: { xs: 0, sm: 0, md: 'auto' },
-                    zIndex: { xs: 100, sm: 100, md: 'auto' },
+                    left: 0,
+                    zIndex: 100,
                     boxSizing: 'border-box',
                     justifyContent: 'space-between',
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                 }}
                 aria-label="Time 2 Trade home"
             >
-                <Box
-                    component={RouterLink}
-                    to="/"
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        textDecoration: 'none',
-                        color: 'inherit',
-                        '&:focus-visible': {
-                            outline: '2px solid rgba(15,23,42,0.35)',
-                            outlineOffset: 4,
-                            borderRadius: 1,
-                        },
-                    }}
-                >
+                {/* Logo + Brand Text */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 1, minWidth: 0 }}>
                     <Box
-                        component="img"
-                        src="/logos/favicon/favicon.ico"
-                        alt="Time 2 Trade logo"
+                        component={RouterLink}
+                        to="/"
                         sx={{
-                            display: 'block',
-                            height: 32,
-                            width: 'auto',
-                            maxWidth: '32vw',
-                            objectFit: 'contain',
-                            flexShrink: 0,
-                        }}
-                    />
-                    <Typography
-                        variant="subtitle1"
-                        sx={{
-                            fontWeight: 900,
-                            lineHeight: 1.1,
-                            color: 'text.primary',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: { xs: 0.75, sm: 1 },
+                            textDecoration: 'none',
+                            color: 'inherit',
+                            flexShrink: 1,
+                            minWidth: 0,
+                            '&:focus-visible': {
+                                outline: '2px solid rgba(15,23,42,0.35)',
+                                outlineOffset: 4,
+                                borderRadius: 1,
+                            },
                         }}
                     >
-                        Time 2 Trade
-                    </Typography>
+                        <Box
+                            component="img"
+                            src="/logos/favicon/favicon.ico"
+                            alt="Time 2 Trade logo"
+                            sx={{
+                                display: 'block',
+                                width: { xs: 28, sm: 32 },
+                                height: { xs: 28, sm: 32 },
+                                objectFit: 'contain',
+                                flexShrink: 0,
+                            }}
+                        />
+                        <Typography
+                            variant="subtitle1"
+                            sx={{
+                                fontWeight: 900,
+                                fontSize: { xs: '0.95rem', sm: '1.05rem' },
+                                lineHeight: 1.1,
+                                color: 'text.primary',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                            }}
+                        >
+                            Time 2 Trade
+                        </Typography>
+                    </Box>
+
+                    {/* Language Switcher - only for guests, hidden on xs */}
+                    {!user && (
+                        <Box sx={{ display: { xs: 'none', sm: 'block' }, flexShrink: 0 }}>
+                            <LanguageSwitcher />
+                        </Box>
+                    )}
                 </Box>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+                {/* Action Icons Group */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, sm: 1 }, flexShrink: 0 }}>
                     {/* Page-specific action slot (e.g., Add reminder button) - legacy support */}
                     {mobileHeaderAction}
 
-                    {/* Add Reminder button - always visible on all pages */}
-                    {!mobileHeaderAction && (
-                        <Box
-                            sx={{
-                                width: { xs: 32, sm: 32, md: 36 },
-                                height: { xs: 32, sm: 32, md: 36 },
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
-                            <Tooltip title="Add reminder" placement="bottom">
-                                <IconButton
-                                    onClick={handleAddClick}
-                                    size="small"
-                                    sx={{
-                                        width: { xs: 32, sm: 32, md: 36 },
-                                        height: { xs: 32, sm: 32, md: 36 },
-                                        borderRadius: '50%',
-                                        border: '1px solid',
-                                        borderColor: 'divider',
+                    {/* Add Reminder button - visible only for authenticated users */}
+                    {user && !mobileHeaderAction && (
+                        <Tooltip title="Add reminder" placement="bottom">
+                            <IconButton
+                                onClick={handleAddClick}
+                                size="small"
+                                sx={{
+                                    width: { xs: 32, sm: 32, md: 36 },
+                                    height: { xs: 32, sm: 32, md: 36 },
+                                    borderRadius: '50%',
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    bgcolor: '#fff',
+                                    color: 'text.primary',
+                                    p: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                    transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                                    '&:hover': {
+                                        transform: 'scale(1.05)',
                                         bgcolor: '#fff',
-                                        color: 'text.primary',
-                                        p: 0.5,
-                                        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-                                        '&:hover': {
-                                            transform: 'scale(1.05)',
-                                            bgcolor: '#fff',
-                                        },
-                                        '&:focus-visible': {
-                                            outline: '2px solid',
-                                            outlineColor: 'primary.main',
-                                            outlineOffset: 4,
-                                            borderRadius: '50%',
-                                        },
-                                    }}
-                                    aria-label="Add custom reminder"
-                                >
-                                    <AddRoundedIcon sx={{ fontSize: { xs: 22, sm: 22, md: 20 } }} />
-                                </IconButton>
-                            </Tooltip>
-                        </Box>
+                                    },
+                                    '&:focus-visible': {
+                                        outline: '2px solid',
+                                        outlineColor: 'primary.main',
+                                        outlineOffset: 4,
+                                        borderRadius: '50%',
+                                    },
+                                }}
+                                aria-label="Add custom reminder"
+                            >
+                                <AddRoundedIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </Tooltip>
                     )}
 
-                    {/* Notification Center - left of user avatar/CTA on mobile */}
-                    {notifications && unreadCount !== undefined && (
-                        <Box
+                    {/* Notification Center - visible only for authenticated users */}
+                    {user && notifications && unreadCount !== undefined && (
+                        <NotificationCenter
+                            notifications={notifications}
+                            unreadCount={unreadCount}
+                            onMarkRead={onMarkRead}
+                            onMarkAllRead={onMarkAllRead}
+                            onClearAll={onClearAll}
+                            events={customEvents}
+                            closeSignal={notificationCloseSignal}
+                            onMenuOpen={() => setAvatarCloseSignal((prev) => prev + 1)}
                             sx={{
+                                flexShrink: 0,
                                 width: { xs: 32, sm: 32, md: 36 },
                                 height: { xs: 32, sm: 32, md: 36 },
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                             }}
-                        >
-                            <NotificationCenter
-                                notifications={notifications}
-                                unreadCount={unreadCount}
-                                onMarkRead={onMarkRead}
-                                onMarkAllRead={onMarkAllRead}
-                                onClearAll={onClearAll}
-                                events={customEvents}
-                                closeSignal={notificationCloseSignal}
-                                onMenuOpen={() => setAvatarCloseSignal((prev) => prev + 1)}
-                            />
-                        </Box>
+                        />
                     )}
 
                     {/* Mobile CTA button - shows "Unlock" for guests, user avatar for auth users */}
                     {user ? (
-                        <Box
-                            sx={{
-                                width: { xs: 32, sm: 32, md: 36 },
-                                height: { xs: 32, sm: 32, md: 36 },
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
-                            <UserAvatar
-                                user={user}
-                                onLogout={() => setShowLogoutModal(true)}
-                                onOpen={() => setNotificationCloseSignal((prev) => prev + 1)}
-                                closeSignal={avatarCloseSignal}
-                            />
-                        </Box>
+                        <UserAvatar
+                            user={user}
+                            onLogout={() => setShowLogoutModal(true)}
+                            onOpen={() => setNotificationCloseSignal((prev) => prev + 1)}
+                            closeSignal={avatarCloseSignal}
+                        />
                     ) : (
                         <Button
                             variant="contained"
@@ -239,19 +244,23 @@ const MobileHeader = ({
                             sx={{
                                 textTransform: 'none',
                                 fontWeight: 600,
-                                fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                                height: { xs: 'auto', sm: 32 },
-                                py: { xs: 0.75, sm: 0.5 },
-                                px: { xs: 1.5, sm: 2 },
+                                fontSize: '0.875rem',
+                                py: 0.9,
+                                px: 2,
                                 whiteSpace: 'nowrap',
                                 flexShrink: 0,
                                 borderRadius: 999,
                                 display: 'flex',
                                 alignItems: 'center',
                             }}
+                            title={t('navigation.unlock')}
                         >
-                            <Box sx={{ display: { xs: 'inline', sm: 'none', md: 'inline', lg: 'none' } }}>Unlock</Box>
-                            <Box sx={{ display: { xs: 'none', sm: 'inline', md: 'none', lg: 'inline' } }}>Unlock all features</Box>
+                            <Box sx={{ display: { xs: 'inline', sm: 'none', md: 'inline', lg: 'none' } }}>
+                                {t('navigation.unlock')}
+                            </Box>
+                            <Box sx={{ display: { xs: 'none', sm: 'inline', md: 'none', lg: 'inline' } }}>
+                                {t('navigation.unlockAllFeatures')}
+                            </Box>
                         </Button>
                     )}
                 </Box>

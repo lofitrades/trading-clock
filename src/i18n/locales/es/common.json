@@ -44,13 +44,16 @@
   },
   "navigation": {
     "home": "Inicio",
-    "clock": "Reloj",
+    "clock": "Reloj de Trading",
     "calendar": "Calendario",
     "about": "Acerca de",
     "privacy": "Privacidad",
     "terms": "Términos",
     "contact": "Contacto",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "roadmap": "Hoja de Ruta",
+    "unlock": "Desbloquear",
+    "unlockAllFeatures": "Desbloquear gratis"
   },
   "messages": {
     "success": "Éxito",

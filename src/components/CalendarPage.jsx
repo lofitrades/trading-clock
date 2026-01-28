@@ -27,15 +27,12 @@
  * v1.0.0 - 2026-01-06 - Added provider-wrapped calendar shell with safe-area setup and auth CTA routing.
  */
 
-import { useCallback, useEffect, useMemo, useState, Suspense, lazy } from 'react';
-import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
-import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
-import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
-import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
+import { useCallback, useEffect, useState, Suspense, lazy } from 'react';
 import { setupViewportCssVars } from '../app/clientEffects';
 import CalendarEmbed from './CalendarEmbed';
 import PublicLayout from './PublicLayout';
 import { useAuth } from '../contexts/AuthContext';
+import useAppBarNavItems from '../hooks/useAppBarNavItems.jsx';
 
 const AuthModal2 = lazy(() => import('./AuthModal2'));
 const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
@@ -97,43 +94,11 @@ export default function CalendarPage() {
         setSettingsOpen(false);
     }, []);
 
-    const navItems = useMemo(
-        () => [
-            {
-                id: 'calendar',
-                label: 'Calendar',
-                shortLabel: 'Calendar',
-                to: '/calendar',
-                icon: <CalendarMonthRoundedIcon fontSize="small" />,
-                ariaLabel: 'Economic calendar',
-            },
-            {
-                id: 'clock',
-                label: 'Trading Clock',
-                shortLabel: 'Clock',
-                to: '/clock',
-                icon: <AccessTimeRoundedIcon fontSize="small" />,
-                ariaLabel: 'Open the trading clock',
-            },
-            {
-                id: 'about',
-                label: 'About',
-                shortLabel: 'About',
-                to: '/about',
-                icon: <InfoRoundedIcon fontSize="small" />,
-                ariaLabel: 'Learn about Time 2 Trade',
-            },
-            {
-                id: 'signin',
-                label: 'Sign in',
-                shortLabel: 'Sign in',
-                icon: <LockOpenRoundedIcon fontSize="small" />,
-                primary: true,
-                ariaLabel: 'Sign in or create an account',
-            },
-        ],
-        [],
-    );
+    const navItems = useAppBarNavItems({
+        onOpenAuth: handleOpenAuth,
+        onOpenSettings: handleOpenSettings,
+        onOpenContact: handleOpenContact,
+    });
 
     return (
         <>

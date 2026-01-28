@@ -146,7 +146,7 @@ function UploadDescriptions() {
         for (const event of batchEvents) {
           const docId = generateDocId(event.name);
           const docRef = doc(db, COLLECTION_NAME, docId);
-          
+
           batch.set(docRef, {
             ...event,
             docId: docId,
@@ -253,11 +253,11 @@ function UploadDescriptions() {
           <Alert severity="info" sx={{ mb: 3 }}>
             {t('admin:loggedInAs')}: {firebaseUser.email}
           </Alert>
-          
+
           <Typography variant="h5" gutterBottom sx={{ mb: 3, textAlign: 'center' }}>
             {t('admin:protectedPage')}
           </Typography>
-          
+
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
             {t('admin:enterPasswordMessage')}
           </Typography>
@@ -273,7 +273,7 @@ function UploadDescriptions() {
               variant="outlined"
               sx={{ mb: 2 }}
             />
-            
+
             {passwordError && (
               <Alert severity="error" sx={{ mb: 2 }}>
                 {passwordError}
@@ -410,8 +410,8 @@ function UploadDescriptions() {
                               event.impact === 'high'
                                 ? 'error'
                                 : event.impact === 'medium'
-                                ? 'warning'
-                                : 'default'
+                                  ? 'warning'
+                                  : 'default'
                             }
                           />
                           <Chip

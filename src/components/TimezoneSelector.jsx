@@ -4,6 +4,7 @@
  * Purpose: Asynchronous timezone selector with read-only collapsed display and dedicated search field.
  * Key responsibility: Persist user timezone selection to Firestore via SettingsContext while gating guest edits.
  * 
+ * v1.5.3 - 2026-01-27 - BEP: Added compact prop for seamless integration in merged Language & Timezone section. When compact=true, renders only Autocomplete without Paper wrapper/header, allowing parent flexbox to control layout. Enables clean side-by-side display in SettingsSidebar2 General tab.
  * v1.5.2 - 2026-01-27 - BEP: Fixed "t is not defined" ReferenceError in SearchablePopper by adding useTranslation hook call to ensure context is available when MUI renders the slot component.
  * v1.5.1 - 2026-01-24 - BEP: Phase 2 i18n fix - Created timezone.json namespace (EN/ES/FR) with all 7 strings (label, description, search.placeholder, search.ariaLabel, loadingPlaceholder, selectPlaceholder, selectAriaLabel). Added timezone imports to i18n config.js. Fixed "t is not defined" ReferenceError in SearchablePopper by ensuring all translated strings passed as props.
  * v1.5.0 - 2026-01-23 - BEP: Phase 2 i18n migration - Added useTranslation hook, converted all 7 strings to i18n keys (search placeholder, aria-label, header, description, loading/select placeholders)
@@ -43,7 +44,7 @@ const SearchablePopper = React.forwardRef(
   ({ searchQuery, onSearchChange, searchInputRef, mainInputRef, children, placement = 'bottom-start', searchPlaceholder = 'Search...', searchAriaLabel = 'Search timezone', ...props }, ref) => {
     // Ensure useTranslation is available in case MUI renders this in isolated context
     const { i18n } = useTranslation();
-    
+
     return (
       <Popper
         {...props}
@@ -117,7 +118,7 @@ SearchablePopper.propTypes = {
   ref: PropTypes.any,
 };
 
-export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChange, onRequestSignUp, children }) {
+export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChange, onRequestSignUp, children, compact = false }) {
   const { t } = useTranslation(['timezone', 'common', 'actions']);
   const { user } = useAuth();
   const { selectedTimezone, updateSelectedTimezone } = useSettings();
@@ -273,24 +274,134 @@ export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChan
 
   return (
     <>
-      <Paper
-        elevation={0}
-        sx={{
-          border: 1,
-          borderColor: 'divider',
-          borderRadius: 3,
-          overflow: 'hidden',
-        }}
-      >
-        <Box sx={{ px: 1.75, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-            {t('timezone:label')}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {t('timezone:description')}
-          </Typography>
-        </Box>
-        <Box sx={{ p: { xs: 1.25, sm: 1.5 } }} ref={anchorRef}>
+      {!compact ? (
+        <Paper
+          elevation={0}
+          sx={{
+            border: 1,
+            borderColor: 'divider',
+            borderRadius: 3,
+            overflow: 'hidden',
+          }}
+        >
+          <Box sx={{ px: 1.75, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+              {t('timezone:label')}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {t('timezone:description')}
+            </Typography>
+          </Box>
+          <Box sx={{ p: { xs: 1.25, sm: 1.5 } }} ref={anchorRef}>
+            <Autocomplete
+              value={selectedTimezoneObj}
+              onChange={handleChange}
+              open={open}
+              onOpen={handleOpen}
+              onClose={handleClose}
+              openOnFocus
+              options={timezones}
+              filterOptions={filterOptions}
+              getOptionLabel={(option) => (typeof option === 'string' ? option : option.label)}
+              isOptionEqualToValue={(option, value) => {
+                if (!option || !value) return false;
+                return option.timezone === (value.timezone || value);
+              }}
+              size="small"
+              disableClearable
+              clearOnBlur={false}
+              freeSolo={false}
+              loading={loading}
+              popupIcon={null}
+              slots={{ popper: SearchablePopper }}
+              slotProps={{
+                popper: {
+                  searchQuery,
+                  onSearchChange: setSearchQuery,
+                  searchInputRef,
+                  mainInputRef,
+                  searchPlaceholder: t('timezone:search.placeholder'),
+                  searchAriaLabel: t('timezone:search.ariaLabel'),
+                  ref: popperRef,
+                  placement: 'bottom-start',
+                  sx: { zIndex: 12100 },
+                },
+                listbox: {
+                  sx: {
+                    maxHeight: 280,
+                    overflow: 'auto',
+                    py: 0.5,
+                    '& .MuiAutocomplete-option': {
+                      paddingY: 0.75,
+                      paddingX: 1.25,
+                    },
+                  },
+                },
+                paper: {
+                  elevation: 0,
+                  square: true,
+                  sx: { boxShadow: 'none', borderRadius: 0 },
+                },
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  '& fieldset': { border: 'none' },
+                  '&:hover fieldset': { border: 'none' },
+                },
+                '& .MuiInputBase-input': {
+                  fontSize: '0.9rem',
+                  color: textColor,
+                  padding: '10px 12px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                },
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder={loading ? t('timezone:loadingPlaceholder') : t('timezone:selectPlaceholder')}
+                  InputProps={{
+                    ...params.InputProps,
+                    readOnly: true,
+                    endAdornment: (
+                      <>
+                        {loading ? <CircularProgress color="inherit" size={16} sx={{ mr: 1 }} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                  inputRef={mainInputRef}
+                  inputProps={{
+                    ...params.inputProps,
+                    readOnly: true,
+                    'aria-label': t('timezone:selectAriaLabel'),
+                    onSelect: (e) => e.preventDefault(),
+                  }}
+                />
+              )}
+            />
+          </Box>
+
+          {children ? (
+            <Box
+              sx={{
+                p: { xs: 1.25, sm: 1.5 },
+                borderTop: 1,
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+              }}
+            >
+              {children}
+            </Box>
+          ) : null}
+        </Paper>
+      ) : (
+        /* Compact mode - no wrapper, just the Autocomplete */
+        <Box ref={anchorRef}>
           <Autocomplete
             value={selectedTimezoneObj}
             onChange={handleChange}
@@ -383,20 +494,7 @@ export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChan
             )}
           />
         </Box>
-
-        {children ? (
-          <Box
-            sx={{
-              p: { xs: 1.25, sm: 1.5 },
-              borderTop: 1,
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
-            }}
-          >
-            {children}
-          </Box>
-        ) : null}
-      </Paper>
+      )}
 
       {showUnlock && (
         <AuthModal2
@@ -413,4 +511,5 @@ TimezoneSelector.propTypes = {
   onTimezoneChange: PropTypes.func,
   onRequestSignUp: PropTypes.func,
   children: PropTypes.node,
+  compact: PropTypes.bool,
 };

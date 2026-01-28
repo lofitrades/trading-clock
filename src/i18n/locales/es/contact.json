@@ -1,0 +1,61 @@
+{
+  "seo": {
+    "title": "Contacto | Time 2 Trade",
+    "description": "Contacta con Time 2 Trade. Envía un mensaje para soporte, comentarios o preguntas. ¿Prefieres DM? Comunícate con nosotros en X."
+  },
+  "page": {
+    "overline": "Contacto",
+    "heading": "Ponte en contacto",
+    "description": "Envía un mensaje para soporte, comentarios o preguntas. ¿Prefieres DM? Comunícate con nosotros en X para la respuesta más rápida."
+  },
+  "form": {
+    "heading": "Envía un mensaje",
+    "subheading": "Soporte, comentarios o preguntas — leemos cada mensaje.",
+    "requiredNotice": "Los campos marcados con * son obligatorios.",
+    "email": {
+      "label": "Ingresa tu correo electrónico",
+      "helperText": "Lo usaremos para responder.",
+      "error": "Ingresa una dirección de correo electrónico válida"
+    },
+    "name": {
+      "label": "Ingresa tu nombre",
+      "title": "Tu nombre (opcional)"
+    },
+    "country": {
+      "label": "País / código",
+      "title": "Selecciona tu país para establecer el código de llamada"
+    },
+    "phone": {
+      "label": "Ingresa tu teléfono",
+      "helperText": "(solo dígitos, sin guiones)",
+      "title": "Teléfono opcional (solo dígitos)"
+    },
+    "message": {
+      "label": "Mensaje",
+      "helperText": "Cuéntanos con qué necesitas ayuda.",
+      "error": "El mensaje es obligatorio"
+    },
+    "submitButton": "Enviar mensaje",
+    "submitButtonLoading": "Enviando…",
+    "submitError": "Lo sentimos, algo salió mal. Por favor, intenta de nuevo o envíanos un DM en X.",
+    "preferDm": "¿Prefieres DM?",
+    "xHandle": "@time2_trade",
+    "xAriaLabel": "Visita Time 2 Trade en X",
+    "disclaimer": "Solo usamos tu información para responder. Sin marketing."
+  },
+  "success": {
+    "heading": "Gracias — lo tenemos",
+    "message": "Te daremos seguimiento usando el correo electrónico que proporcionaste. Mientras tanto, puedes acceder al calendario o volver a inicio.",
+    "calendarButton": "Ir al Calendario",
+    "homeButton": "Ir a Inicio",
+    "preferQuickDm": "¿Prefieres un DM rápido?",
+    "xHandle": "@time2_trade",
+    "xAriaLabel": "Visita Time 2 Trade en X"
+  },
+  "footer": {
+    "home": "Inicio",
+    "calendar": "Abrir Calendario",
+    "privacy": "Privacidad",
+    "terms": "Términos"
+  }
+}

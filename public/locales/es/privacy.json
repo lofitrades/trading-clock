@@ -1,0 +1,247 @@
+{
+  "page": {
+    "title": "Política de Privacidad",
+    "subtitle": "Tu privacidad de datos es importante",
+    "description": "Estándares integrales de protección de datos y transparencia",
+    "lastUpdated": "7 de enero de 2026",
+    "effective": "Fecha efectiva: 7 de enero de 2026",
+    "metaTitle": "Política de Privacidad | Time 2 Trade",
+    "intro": "Time 2 Trade se compromete con la transparencia sobre cómo recopilamos, utilizamos y protegemos tus datos. Esta política explica qué información recopilamos, por qué la necesitamos, cómo la utilizamos y qué opciones tienes."
+  },
+  "tableOfContents": {
+    "label": "Tabla de contenidos"
+  },
+  "sections": {
+    "collection": {
+      "heading": "Información que recopilamos",
+      "subsections": {
+        "provided": {
+          "title": "Información que proporcionas",
+          "items": [
+            "Dirección de correo electrónico (para autenticación y recuperación de cuenta)",
+            "Nombre mostrado y foto de perfil (opcional)",
+            "Preferencias de sesión de trading y configuración del reloj",
+            "Favoritos del calendario económico y notas personales",
+            "Selección de zona horaria y preferencias de visualización"
+          ]
+        },
+        "automatic": {
+          "title": "Información que recopilamos automáticamente",
+          "items": [
+            "Dirección IP y ubicación general (país/región)",
+            "Tipo de dispositivo, tipo de navegador y sistema operativo",
+            "Datos de sesión y tokens de autenticación",
+            "Estadísticas de uso (páginas vistas, funciones utilizadas, duración de sesión)",
+            "Registros de errores e información de diagnóstico"
+          ]
+        },
+        "thirdParty": {
+          "title": "Información de terceros",
+          "items": [
+            "Datos del perfil OAuth (nombre, correo electrónico, foto de perfil) cuando inicia sesión con Google o Twitter",
+            "Datos del calendario económico de la API de JBlanked (eventos de mercado disponibles públicamente)"
+          ]
+        }
+      }
+    },
+    "usage": {
+      "heading": "Cómo utilizamos la información",
+      "subsections": {
+        "provide": {
+          "title": "Proporcionar y mantener servicios",
+          "legalBasis": "Necesidad contractual",
+          "items": [
+            "Autenticar tu cuenta y mantener sesiones seguras",
+            "Sincronizar tus preferencias y configuración en todos los dispositivos",
+            "Mostrar eventos del calendario económico en tu zona horaria seleccionada",
+            "Almacenar tus favoritos, notas y configuraciones personalizadas"
+          ]
+        },
+        "improve": {
+          "title": "Mejorar y desarrollar características",
+          "legalBasis": "Interés legítimo",
+          "items": [
+            "Analizar patrones de uso para optimizar el rendimiento",
+            "Identificar y corregir errores y problemas técnicos",
+            "Desarrollar nuevas características basadas en el comportamiento del usuario",
+            "Garantizar la confiabilidad y el tiempo de actividad del servicio"
+          ]
+        },
+        "advertising": {
+          "title": "Publicidad",
+          "legalBasis": "Consentimiento (para anuncios personalizados)",
+          "items": [
+            "Mostrar anuncios de Google AdSense",
+            "Medir el rendimiento y la efectividad de los anuncios",
+            "Entregar anuncios personalizados cuando lo permitas a través del consentimiento de cookies",
+            "Mostrar anuncios no personalizados cuando seleccionas solo cookies esenciales"
+          ]
+        }
+      }
+    },
+    "sharing": {
+      "heading": "Información que compartimos",
+      "subsections": {
+        "providers": {
+          "title": "Proveedores de servicios",
+          "items": [
+            "Firebase Authentication (Google Cloud) - para administración de cuentas",
+            "Cloud Firestore (Google Cloud) - para almacenamiento de datos en región us-central1",
+            "Firebase Hosting (Google Cloud) - para entrega de aplicaciones a través de CDN global",
+            "Firebase Cloud Functions (Google Cloud) - para sincronización de datos programada",
+            "API de JBlanked - para recuperación de datos del calendario económico (sin datos personales compartidos)"
+          ]
+        },
+        "advertising": {
+          "title": "Socios de publicidad",
+          "items": [
+            "Google AdSense - puede recopilar y utilizar datos para entregar anuncios cuando lo permitas",
+            "Administra preferencias de anuncios en Configuración de Anuncios de Google: https://adssettings.google.com"
+          ]
+        },
+        "legal": {
+          "title": "Requisitos legales",
+          "items": [
+            "Podemos divulgar información para cumplir con obligaciones legales, órdenes judiciales o solicitudes gubernamentales",
+            "No vendemos tus datos personales a terceros"
+          ]
+        }
+      }
+    },
+    "rights": {
+      "heading": "Tus derechos de privacidad",
+      "subsections": {
+        "access": {
+          "title": "Acceso y actualización",
+          "items": [
+            "Ver y editar tu información de perfil en la configuración de cuenta",
+            "Actualizar nombre mostrado, foto y preferencias en cualquier momento",
+            "Solicitar una copia de tus datos a través de @time2_trade en X (Twitter)"
+          ]
+        },
+        "delete": {
+          "title": "Eliminar tus datos",
+          "items": [
+            "Elimina tu cuenta en configuración (elimina todos los datos personales y preferencias)",
+            "Contacta a @time2_trade en X (Twitter) para solicitar la eliminación de la cuenta",
+            "Procesamos solicitudes de eliminación dentro de 30 días",
+            "Algunos datos pueden retenerse en sistemas de copia de seguridad hasta 90 días"
+          ]
+        },
+        "cookies": {
+          "title": "Preferencias de cookies",
+          "items": [
+            "Usa el banner de cookies para elegir entre anuncios personalizados o modo solo esencial",
+            "Cambia el consentimiento en cualquier momento borrando datos del navegador para reiniciar el banner",
+            "Las cookies esenciales siempre están activas para mantener la autenticación y configuración"
+          ]
+        },
+        "ads": {
+          "title": "Personalización de anuncios",
+          "items": [
+            "Controla la personalización de anuncios de Google en Configuración de Anuncios de Google: https://adssettings.google.com",
+            "Elige solo cookies esenciales para recibir solo anuncios no personalizados",
+            "Las opciones de anuncios no afectan la funcionalidad de Time 2 Trade"
+          ]
+        },
+        "portability": {
+          "title": "Portabilidad de datos",
+          "items": [
+            "Solicita la exportación de tu configuración y favoritos en formato JSON",
+            "Contacta a @time2_trade en X (Twitter) con tu solicitud",
+            "Proporcionamos exportaciones de datos dentro de 30 días"
+          ]
+        }
+      }
+    },
+    "retention": {
+      "heading": "Retención y eliminación de datos",
+      "items": [
+        "Datos de cuenta: Se almacenan mientras tu cuenta esté activa, más 30 días después de la solicitud de eliminación",
+        "Configuración y preferencias: Se eliminan inmediatamente cuando se elimina la cuenta",
+        "Registros de uso: Se retienen durante 90 días para monitoreo de depuración y seguridad",
+        "Registros de errores: Se retienen durante 180 días para análisis de estabilidad del sistema",
+        "Sistemas de copia de seguridad: Los datos pueden persistir en copias de seguridad hasta 90 días después de la eliminación",
+        "Retenciones legales: Los datos sujetos a requisitos de preservación legal pueden retenerse más tiempo"
+      ]
+    },
+    "security": {
+      "heading": "Medidas de seguridad",
+      "items": [
+        "Encriptación: Todos los datos transmitidos utilizan encriptación TLS 1.2+",
+        "Almacenamiento: Datos encriptados en reposo utilizando estándares de encriptación de Google Cloud",
+        "Control de acceso: Permisos basados en roles con principio de privilegio mínimo",
+        "Autenticación: Gestión segura de sesiones con autenticación basada en tokens",
+        "Monitoreo: Monitoreo continuo de seguridad y detección de amenazas automatizada",
+        "Cuentas de servicio: Permisos mínimos para Cloud Functions y servicios backend",
+        "Sin secretos del lado del cliente: Las claves API y credenciales se almacenan de forma segura en variables de entorno"
+      ]
+    },
+    "international": {
+      "heading": "Transferencias internacionales de datos",
+      "items": [
+        "Time 2 Trade se opera desde los Estados Unidos",
+        "Los datos se almacenan en Google Cloud (Firebase) región us-central1",
+        "Para usuarios en el Espacio Económico Europeo (EEE) y Reino Unido: las transferencias de datos cumplen con GDPR a través de las Cláusulas Contractuales Estándar de Google Cloud",
+        "Los servicios de Firebase están certificados bajo ISO 27001, SOC 2 y SOC 3",
+        "Tienes los derechos descritos en la sección \"Tus derechos de privacidad\" anterior"
+      ]
+    },
+    "children": {
+      "heading": "Privacidad de menores",
+      "items": [
+        "Estados Unidos: Time 2 Trade no está destinado a menores de 13 años (cumplimiento COPPA)",
+        "Unión Europea: No destinado a menores de 16 años sin consentimiento de los padres (GDPR Artículo 8)",
+        "Verificación de edad: No recopilamos intencionadamente datos de menores de los límites de edad aplicables",
+        "Solicitudes de los padres: Si crees que un menor ha proporcionado datos, contacta a @time2_trade en X (Twitter) para eliminación inmediata"
+      ]
+    },
+    "cookies": {
+      "heading": "Cookies y almacenamiento local",
+      "subsections": {
+        "essential": {
+          "title": "Esencial (siempre activo)",
+          "items": [
+            "Tokens de autenticación para mantenerte conectado",
+            "Datos de sesión para mantener el estado de la aplicación",
+            "Preferencias de consentimiento de cookies",
+            "Configuración de zona horaria e idioma"
+          ]
+        },
+        "advertising": {
+          "title": "Publicidad (opcional, requiere consentimiento)",
+          "items": [
+            "Cookies de Google AdSense para entrega y medición de anuncios",
+            "Cookies de personalización de anuncios (solo cuando permites anuncios personalizados)",
+            "Estos no se establecen cuando seleccionas modo solo esencial"
+          ]
+        }
+      }
+    },
+    "changes": {
+      "heading": "Cambios en esta política",
+      "items": [
+        "Podemos actualizar esta política para reflejar cambios de servicio o requisitos legales",
+        "La fecha de última actualización aparece en la parte superior de esta página",
+        "Los cambios materiales se comunicarán por correo electrónico a usuarios registrados",
+        "El uso continuado después de los cambios constituye aceptación de la política actualizada",
+        "Las versiones anteriores están disponibles bajo solicitud en @time2_trade en X (Twitter)"
+      ]
+    },
+    "contact": {
+      "heading": "Contáctanos",
+      "items": [
+        "Consultas generales: @time2_trade en X (Twitter)",
+        "Solicitudes de datos: Envía DM a @time2_trade en X (Twitter) con \"Data Request\" en el mensaje",
+        "Tiempo de respuesta: Respondemos solicitudes dentro de 30 días",
+        "Dirección postal: Disponible bajo solicitud para correspondencia legal formal"
+      ]
+    }
+  },
+  "footer": {
+    "home": "Inicio",
+    "openApp": "Abrir aplicación",
+    "terms": "Términos",
+    "social": "@time2_trade"
+  }
+}

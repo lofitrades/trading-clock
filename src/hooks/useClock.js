@@ -62,7 +62,7 @@ export const useClock = (timezone, sessions, timeEngine = null) => {
     if (timeEngine?.nowTime) {
       setCurrentTime(new Date(timeEngine.nowTime));
     }
-  }, [timeEngine?.nowTime, timezone]);
+  }, [timeEngine?.nowEpochMs, timezone]);
 
   useEffect(() => {
     if (timeEngine) return undefined;

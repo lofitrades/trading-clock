@@ -171,7 +171,7 @@
 |--------|----------|---------|
 | `'Trading Clock'` | `calendar:layout.clock.title` | Left panel header |
 | `'Economic Calendar'` | `calendar:layout.calendar.title` | Right panel header |
-| `'Powered by Forex Factory'` | `calendar:layout.attribution` | Attribution text |
+| `'Powered by Forex Factory data'` | `calendar:layout.attribution` | Attribution text |
 | `'Forecast'` | `calendar:layout.forecast.label` | Forecast section |
 | `'Market Data'` | `calendar:layout.data.label` | Data section header |
 | `'Filters'` | `calendar:layout.filters.label` | Filter section header |

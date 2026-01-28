@@ -42,6 +42,7 @@
  * v1.12.0 - 2026-01-23 - Add unified reminders controls for all event sources with save support.
  * v1.11.4 - 2026-01-22 - BUGFIX: Remove unused imports and variables; add PropTypes validation to all components.
  * v1.11.3 - 2026-01-22 - BEP: Normalize custom impact values (numeric/string) so /clock modal renders correct impact chip instead of Unknown.
+ * v1.11.3 - 2026-01-28 - BEP THEME: Replaced 8+ hardcoded white colors with theme.palette.common.white for proper theme adaptation. Changed alpha('#fff') to alpha(theme.palette.common.white) throughout button hover and disabled states. All modal action buttons now adapt to light/dark theme modes.
  * v1.11.2 - 2026-01-22 - BEP: Fix custom event impact badge on /clock by resolving impact from custom event fields and display cache fallback.
  * v1.11.1 - 2026-01-22 - BEP: Enhanced custom event display with metadata section showing impact badge, 'Custom event' chip, and appearance (custom icon + color). Provides visual consistency with economic events and better context for custom reminders.
  * v1.11.0 - 2026-01-22 - BEP: Add support for custom events with Edit button. Displays custom event fields (title, description, timezone, reminders, appearance). Edit button opens CustomEventDialog at z-index 12003 (above EventModal at 12001). Dynamic rendering based on event.isCustom flag.
@@ -1371,10 +1372,10 @@ function EventModal({
                   sx={{
                     color: 'primary.contrastText',
                     '&:hover': {
-                      bgcolor: alpha('#fff', 0.1),
+                      bgcolor: alpha(theme.palette.common.white, 0.1),
                     },
                     '&.Mui-disabled': {
-                      color: alpha('#fff', 0.5),
+                      color: alpha(theme.palette.common.white, 0.5),
                     },
                   }}
                   size="small"
@@ -1418,12 +1419,12 @@ function EventModal({
                   }}
                   disabled={favoritesLoading || isFavoritePending(currentEvent)}
                   sx={{
-                    color: isFavoriteEvent(currentEvent) ? '#fff' : 'primary.contrastText',
+                    color: isFavoriteEvent(currentEvent) ? theme.palette.common.white : 'primary.contrastText',
                     '&:hover': {
-                      bgcolor: alpha('#fff', 0.1),
+                      bgcolor: alpha(theme.palette.common.white, 0.1),
                     },
                     '&.Mui-disabled': {
-                      color: alpha('#fff', 0.5),
+                      color: alpha(theme.palette.common.white, 0.5),
                     },
                   }}
                   size="small"
@@ -1451,7 +1452,7 @@ function EventModal({
                 sx={{
                   color: 'primary.contrastText',
                   '&:hover': {
-                    bgcolor: alpha('#fff', 0.1),
+                    bgcolor: alpha(theme.palette.common.white, 0.1),
                   },
                 }}
                 size="small"
@@ -1467,7 +1468,7 @@ function EventModal({
             sx={{
               color: 'primary.contrastText',
               '&:hover': {
-                bgcolor: alpha('#fff', 0.1),
+                bgcolor: alpha(theme.palette.common.white, 0.1),
               },
             }}
             size="small"
@@ -1498,7 +1499,7 @@ function EventModal({
                   <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
                     {/* Impact Badge - Hidden for custom events with Unknown impact */}
                     {customImpactValue && customImpactValue !== 'unknown' && (
-                      <ImpactBadge 
+                      <ImpactBadge
                         impact={customImpactValue}
                         label={t(`events:impacts.${customImpactValue === 'strong' ? 'highImpact' : customImpactValue === 'moderate' ? 'mediumImpact' : customImpactValue === 'weak' ? 'lowImpact' : 'unknown'}`)}
                         description={t(`events:impacts.${customImpactValue === 'strong' ? 'highImpactDesc' : customImpactValue === 'moderate' ? 'mediumImpactDesc' : customImpactValue === 'weak' ? 'lowImpactDesc' : 'unknownDesc'}`)}
@@ -1510,7 +1511,7 @@ function EventModal({
                       size="medium"
                       sx={{
                         bgcolor: 'primary.dark',
-                        color: '#ffffff',
+                        color: theme.palette.common.white,
                         fontWeight: 600,
                         fontSize: '0.875rem',
                         height: 28,
@@ -1724,7 +1725,7 @@ function EventModal({
                     {(() => {
                       const config = getImpactConfig(currentEvent.strength || currentEvent.impact);
                       return (
-                        <ImpactBadge 
+                        <ImpactBadge
                           impact={currentEvent.strength || currentEvent.impact}
                           label={config.labelKey ? t(config.labelKey) : undefined}
                           description={config.descriptionKey ? t(config.descriptionKey) : undefined}
@@ -1733,7 +1734,7 @@ function EventModal({
                     })()}
 
                     {currentEvent.currency && (
-                      <CurrencyFlag 
+                      <CurrencyFlag
                         currency={currentEvent.currency}
                         affectsMessage={t('events:tooltips.currencyAffects')}
                         impactMessage={t('events:tooltips.eventImpactsCurrency', { currency: currentEvent.currency })}

@@ -5,7 +5,16 @@
  * Inspired by modern app shells (Airbnb/ChatGPT) with quick toggles, sectional pills, and responsive cards that mirror existing settings logic.
  *
  * Changelog:
- * v2.0.0 - 2026-01-24 - BEP: Complete i18n migration - replaced 56 hardcoded strings with useTranslation hook; navigation, toggles, forms, modals all localized (EN/ES/FR).
+ * v2.0.9 - 2026-01-28 - REACT HOOK BEP FIX: Updated useEffect dependency array to include [themeMode, setThemeMode] instead of empty array. Fixes ESLint warning about missing dependencies and ensures proper hook behavior.
+ * v2.0.8 - 2026-01-28 - BEP UX CONSISTENCY: Set header background color to 'background.paper' explicitly, matching the rest of the sidebar. Ensures Settings header has uniform appearance with the content area in both light and dark themes.
+ * v2.0.7 - 2026-01-28 - BEP UX POLISH: Increased border radius of theme toggle buttons from default to borderRadius: 2 for all three buttons (light/dark/system). Matches app's rounded aesthetic for better visual consistency and modern look.
+ * v2.0.3 - 2026-01-28 - BEP UX: Added Typography overline title to Language & Timezone section matching Appearance section styling (fontWeight: 700, letterSpacing: 0.4, text.secondary color, mb: 2.5). Uses existing i18n key settings:general.languageAndTimezone.title.
+ * v2.0.2 - 2026-01-27 - CRITICAL BEP i18n REFACTOR: Converted ALL About tab content to i18n translation keys.
+ *                       renderContentBlock() now uses t() to translate paragraphs, headings, and lists via aboutContent keys.
+ *                       renderAboutSection now translates title/subtitle/section titles from i18n.
+ *                       Matches AboutPage.jsx pattern for consistent multi-language support (EN/ES/FR).
+ *                       Removed all hardcoded About content strings; now fully i18n compliant with LanguageSwitcher.jsx BEP standards.
+ * v2.0.1 - 2026-01-27 - BEP: Unified Language & Timezone section with merged UI - both components now share one SectionCard with responsive flexbox layout (stacked mobile, side-by-side desktop); updated LanguageSwitcher button styling (borderRadius 1.5, compact px/py) for better visual integration; all i18n keys consolidated into languageAndTimezone namespace (EN/ES/FR).
  * v1.3.11 - 2026-01-22 - BEP: Improve settings dialog UI with rounded drawer corners, refined shadow, and elevated header styling.
  * v1.3.10 - 2026-01-21 - Removed fullscreen toggle control from settings header.
  * v1.3.9 - 2026-01-21 - Add manual JBlanked Forex Factory range sync button for superadmins.
@@ -38,7 +47,7 @@
  */
 
 import PropTypes from 'prop-types';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
 	Alert,
@@ -52,6 +61,8 @@ import {
 	TextField,
 	Tooltip,
 	Typography,
+	ToggleButton,
+	ToggleButtonGroup,
 } from '@mui/material';
 import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 import CloseIcon from '@mui/icons-material/Close';
@@ -65,16 +76,21 @@ import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
 import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import HistoryIcon from '@mui/icons-material/History';
+import LightModeIcon from '@mui/icons-material/LightModeRounded';
+import DarkModeIcon from '@mui/icons-material/DarkModeRounded';
+import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightnessRounded';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useThemeMode } from '../contexts/themeContextUtils';
 import { triggerNfsWeekSync, triggerJblankedActualsSync, triggerJblankedForexFactorySinceSync } from '../services/economicEventsService';
 import AccountModal from './AccountModal';
 import AuthModal2 from './AuthModal2';
 import ConfirmModal from './ConfirmModal';
 import SwitchComponent from './Switch';
 import TimezoneSelector from './TimezoneSelector';
+import LanguageSwitcher from './LanguageSwitcher';
 import { useCallback } from 'react';
 import { aboutContent } from '../content/aboutContent';
 
@@ -143,11 +159,11 @@ function SettingRow({ label, description, children, helperText, dense }) {
 export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenContact }) {
 	const { t } = useTranslation(['settings', 'common']);
 
-	const navItems = [
+	const navItems = useMemo(() => [
 		{ key: 'general', label: t('settings:navigation.general'), icon: <SettingsRoundedIcon fontSize="small" /> },
 		{ key: 'session', label: t('settings:navigation.sessions'), icon: <AccessTimeRoundedIcon fontSize="small" /> },
 		{ key: 'about', label: t('settings:navigation.about'), icon: <InfoRoundedIcon fontSize="small" /> },
-	];
+	], [t]);
 
 	const { user, hasRole } = useAuth();
 	const {
@@ -175,8 +191,11 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 		toggleShowClockNumbers,
 		showClockHands,
 		toggleShowClockHands,
+		updateThemeMode,
 		resetSettings,
 	} = useSettings();
+
+	const { themeMode, setThemeMode } = useThemeMode();
 
 	const sessionLabelControlsVisible = false;
 
@@ -194,6 +213,13 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 	const [syncingForexFactoryRange, setSyncingForexFactoryRange] = useState(false);
 	const [syncSuccess, setSyncSuccess] = useState(null);
 
+	// Sync saved themeMode from SettingsContext to ThemeContext on mount
+	useEffect(() => {
+		if (themeMode && setThemeMode) {
+			// This ensures the theme is properly set from saved preferences
+			setThemeMode(themeMode);
+		}
+	}, [themeMode, setThemeMode]); // Include dependencies to avoid stale closures
 
 	const handleUserMenuClose = () => setUserMenuAnchor(null);
 
@@ -393,7 +419,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 				})}
 			</Box>
 		),
-		[activeSection]
+		[activeSection, navItems]
 	);
 
 	const quickToggles = (
@@ -705,9 +731,135 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 
 	const renderGeneralSection = (
 		<>
-			<Box sx={{ mb: { xs: 2, sm: 3 } }}>
-				<TimezoneSelector onRequestSignUp={onOpenAuth} />
-			</Box>
+			{/* Appearance Section */}
+			<SectionCard>
+				<Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.4, color: 'text.secondary', display: 'block', mb: 1.5 }}>
+					{t('settings:general.appearance.title')}
+				</Typography>
+				<Box sx={{ mb: 0.75 }}>
+					<Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>
+						{t('settings:general.appearance.themeMode')}
+					</Typography>
+					<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
+						{t('settings:general.appearance.systemDescription')}
+					</Typography>
+					<ToggleButtonGroup
+						value={themeMode}
+						exclusive
+						onChange={(e, newMode) => {
+							if (newMode) {
+								setThemeMode(newMode);
+								updateThemeMode(newMode); // Persist to Firestore/localStorage
+							}
+						}}
+						size="small"
+						fullWidth
+						sx={{
+							display: 'flex',
+							gap: 0.75,
+							'& .MuiToggleButton-root': {
+								flex: 1,
+								minWidth: 0,
+								'&.Mui-selected': {
+									bgcolor: 'primary.main',
+									color: 'primary.contrastText',
+									borderColor: 'primary.main',
+									'&:hover': {
+										bgcolor: 'primary.dark',
+									},
+								},
+								'&:hover': {
+									bgcolor: 'action.hover',
+								},
+							},
+						}}
+					>
+						<ToggleButton value="light" aria-label="light" sx={{ flex: 1, borderRadius: 2 }}>
+							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+								<LightModeIcon sx={{ fontSize: '1.1rem' }} />
+								{t('settings:general.appearance.light')}
+							</Box>
+						</ToggleButton>
+						<ToggleButton value="dark" aria-label="dark" sx={{ flex: 1, borderRadius: 2 }}>
+							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+								<DarkModeIcon sx={{ fontSize: '1.1rem' }} />
+								{t('settings:general.appearance.dark')}
+							</Box>
+						</ToggleButton>
+						<ToggleButton value="system" aria-label="system" sx={{ flex: 1, borderRadius: 2 }}>
+							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+								<SettingsBrightnessIcon sx={{ fontSize: '1.1rem' }} />
+								{t('settings:general.appearance.system')}
+							</Box>
+						</ToggleButton>
+					</ToggleButtonGroup>
+				</Box>
+			</SectionCard>
+
+			{/* Language & Timezone Section */}
+			<SectionCard>
+				<Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.4, color: 'text.secondary', display: 'block', mb: 2.5 }}>
+					{t('settings:general.languageAndTimezone.title')}
+				</Typography>
+				<Paper
+					elevation={0}
+					sx={{
+						border: 1,
+						borderColor: 'divider',
+						borderRadius: 3,
+						overflow: 'hidden',
+					}}
+				>
+					{/* Language Selector */}
+					<Box
+						sx={{
+							display: 'flex',
+							flexDirection: { xs: 'column', sm: 'row' },
+							gap: 0,
+							p: { xs: 1.5, sm: 2 },
+							borderBottom: 1,
+							borderColor: 'divider',
+							alignItems: { xs: 'stretch', sm: 'center' },
+							justifyContent: 'space-between',
+						}}
+					>
+						<Box sx={{ flex: 1, mb: { xs: 1.5, sm: 0 } }}>
+							<Typography variant="body2" sx={{ fontWeight: 700, mb: 0.25 }}>
+								{t('settings:general.languageAndTimezone.language.label')}
+							</Typography>
+							<Typography variant="caption" color="text.secondary">
+								{t('settings:general.languageAndTimezone.language.description')}
+							</Typography>
+						</Box>
+						<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
+							<LanguageSwitcher />
+						</Box>
+					</Box>
+
+					{/* Timezone Selector */}
+					<Box
+						sx={{
+							p: { xs: 1.5, sm: 2 },
+							display: 'flex',
+							flexDirection: 'column',
+							gap: { xs: 1.5, sm: 2 },
+							alignItems: 'stretch',
+						}}
+					>
+						<Box>
+							<Typography variant="body2" sx={{ fontWeight: 700, mb: 0.25 }}>
+								{t('settings:general.languageAndTimezone.timezone.label')}
+							</Typography>
+							<Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+								{t('settings:general.languageAndTimezone.timezone.description')}
+							</Typography>
+						</Box>
+						<Box sx={{ width: '100%' }}>
+							<TimezoneSelector onRequestSignUp={onOpenAuth} compact />
+						</Box>
+					</Box>
+				</Paper>
+			</SectionCard>
 
 			{quickToggles}
 
@@ -845,8 +997,12 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 	);
 
 	// Helper to render content blocks from shared content module
+	// BEP: All text comes from i18n translation keys, not hardcoded strings
 	const renderContentBlock = (block, index) => {
 		if (block.type === 'paragraph') {
+			const text = t(block.key, '');
+			if (!text) return null;
+
 			return (
 				<Typography
 					key={index}
@@ -863,19 +1019,46 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 							'&:hover': { textDecoration: 'underline' }
 						}
 					}}
-					dangerouslySetInnerHTML={{ __html: block.text }}
+					dangerouslySetInnerHTML={{ __html: text }}
 				/>
+			);
+		}
+
+		if (block.type === 'heading') {
+			const text = t(block.key, '');
+			if (!text) return null;
+
+			return (
+				<Typography
+					key={index}
+					variant="h3"
+					sx={{
+						fontSize: { xs: '1.1rem', sm: '1.25rem' },
+						fontWeight: 700,
+						mb: 1.5,
+						mt: 2,
+						color: 'text.primary',
+					}}
+				>
+					{text}
+				</Typography>
 			);
 		}
 
 		if (block.type === 'list') {
 			return (
 				<Box key={index} component="ul" sx={{ pl: 3, mb: 2 }}>
-					{block.items.map((item, itemIndex) => (
-						<Box key={itemIndex} component="li" sx={{ fontSize: { xs: '0.95rem', sm: '1rem' }, lineHeight: 1.7, mb: 1 }}>
-							<strong>{item.label}:</strong> {item.text}
-						</Box>
-					))}
+					{block.items.map((item, itemIndex) => {
+						const label = t(item.labelKey, '');
+						const text = t(item.textKey, '');
+						if (!label || !text) return null;
+
+						return (
+							<Box key={itemIndex} component="li" sx={{ fontSize: { xs: '0.95rem', sm: '1rem' }, lineHeight: 1.7, mb: 1 }}>
+								<strong>{label}:</strong> {text}
+							</Box>
+						);
+					})}
 				</Box>
 			);
 		}
@@ -894,7 +1077,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 					mt: 0,
 				}}
 			>
-				{aboutContent.title}
+				{t(aboutContent.title)}
 			</Typography>
 			<Typography
 				variant="subtitle1"
@@ -904,7 +1087,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 					mb: 3,
 				}}
 			>
-				{aboutContent.subtitle}
+				{t(aboutContent.subtitle)}
 			</Typography>
 			{aboutContent.sections.map((section, sectionIndex) => (
 				<Box key={sectionIndex} sx={{ mb: sectionIndex < aboutContent.sections.length - 1 ? 3 : 0 }}>
@@ -918,7 +1101,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 								mt: sectionIndex > 0 ? 3 : 0,
 							}}
 						>
-							{section.title}
+							{t(section.title)}
 						</Typography>
 					)}
 					{section.content.map((block, blockIndex) => renderContentBlock(block, blockIndex))}
@@ -1000,16 +1183,13 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 						justifyContent: 'space-between',
 						gap: 1.5,
 						flexShrink: 0,
-						backgroundImage: 'linear-gradient(120deg, rgba(1,135,134,0.12), rgba(1,135,134,0.02))',
+						bgcolor: 'background.paper',
 						boxShadow: '0 8px 20px rgba(15,23,42,0.06)',
 					}}
 				>
 					<Box>
 						<Typography variant="h6" sx={{ fontWeight: 700 }}>
 							Settings
-						</Typography>
-						<Typography variant="caption" color="text.secondary">
-							Live-preview updates on the canvas
 						</Typography>
 					</Box>
 					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

@@ -28,5 +28,75 @@
     "actual": "Real",
     "forecast": "Pronóstico",
     "previous": "Anterior"
+  },
+  "event": {
+    "unnamed": "Evento sin nombre",
+    "upcoming": "Próximo"
+  },
+  "badges": {
+    "eventInProgress": "Evento en progreso",
+    "now": "AHORA",
+    "next": "PRÓXIMO",
+    "nextCountdown": "Próximo en {{time}}"
+  },
+  "labels": {
+    "loading": "Cargando...",
+    "events": "{{count}} evento",
+    "events_plural": "{{count}} eventos",
+    "noEvents": "Sin eventos"
+  },
+  "headers": {
+    "poweredBy": "Impulsado por",
+    "forexFactory": "Forex Factory"
+  },
+  "actions": {
+    "addCustomEvent": "Agregar evento",
+    "addEventShort": "Agregar evento"
+  },
+  "stats": {
+    "eventsCount": "{{count}} eventos visibles",
+    "nextIn": "Próximo en {{time}}",
+    "eventsInProgress": "Eventos en progreso"
+  },
+  "empty": {
+    "selectDateRange": "Selecciona un rango de fechas para ver eventos"
+  },
+  "sync": {
+    "updated": "Actualizado hace {{time}}",
+    "awaitingSync": "Esperando sincronización..."
+  },
+  "tooltip": {
+    "loadingNotes": "Cargando notas...",
+    "viewNotes": "Ver notas",
+    "addNote": "Agregar una nota",
+    "addReminder": "Agregar recordatorio",
+    "removeFavorite": "Eliminar favorito",
+    "addToFavorites": "Agregar a favoritos",
+    "customEvent": "Evento personalizado",
+    "unknown": "Desconocido",
+    "global": "Global"
+  },
+  "clock": {
+    "title": "Reloj de Trading",
+    "subtitle": "Sesiones de mercado de hoy y eventos económicos.",
+    "hidden": "Reloj oculto en configuración.",
+    "selectTimezone": "Seleccionar zona horaria"
+  },
+  "aria": {
+    "eventsOn": "Eventos el {{date}}",
+    "close": "cerrar",
+    "addReminder": "Agregar recordatorio"
+  },
+  "table": {
+    "headers": {
+      "time": "HORA",
+      "currency": "MON",
+      "impact": "IMP",
+      "event": "EVENTO",
+      "actual": "R",
+      "forecast": "P",
+      "previous": "A"
+    }
   }
 }
+

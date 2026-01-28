@@ -4,8 +4,7 @@
   Purpose: HTML document entry for Time 2 Trade SPA, defining global head metadata, fonts, and mount point.
   Key responsibility and main functionality: Provides SEO + social share metadata, loads fonts efficiently, and bootstraps the React bundle while shipping crawlable fallback content for non-JS/AI crawlers.
 
-  Changelog:
-  v2.0.1 - 2026-01-22 - Updated “main features” emphasis: removed overlaps/PWA/exports mentions; added custom events, notifications, and Forex Factory-powered calendar messaging.
+  Changelog:  v2.1.0 - 2026-01-27 - BEP SEO: Added multi-language hreflang tags (EN/ES/FR + x-default) for crawler discoverability. Updated JSON-LD schemas with availableLanguage array. Enables proper international SEO for translated content.  v2.0.1 - 2026-01-22 - Updated “main features” emphasis: removed overlaps/PWA/exports mentions; added custom events, notifications, and Forex Factory-powered calendar messaging.
   v2.0.0 - 2026-01-22 - Enterprise SEO refresh: NY-time positioning, intraday timing workspace messaging, cleaner fallback (single noscript), expanded meta/OG/Twitter, JSON-LD validity fixes, added modern app + referrer signals; kept AdSense publisher ID.
   v1.9.1 - 2026-01-09 - Improved Google site-name and favicon signals (Organization schema, WebSite publisher/alternateName, robust icon links).
   v1.9.0 - 2026-01-07 - Updated SEO meta to highlight economic calendar, session clock, and Forex Factory source; kept AdSense publisher ID.
@@ -24,6 +23,31 @@
   <head>
     <meta charset="UTF-8" />
 
+    <!-- FOUC Prevention: Set data-theme before React hydrates -->
+    <!-- This blocking script prevents Flash of Unstyled Content when theme preference is dark -->
+    <script>
+      (function() {
+        try {
+          const stored = localStorage.getItem('t2t-theme-mode');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          
+          // Resolve theme: explicit mode > system preference > default light
+          let resolvedTheme = 'light';
+          if (stored === 'dark' || stored === 'light' || stored === 'system') {
+            resolvedTheme = stored === 'system' ? (prefersDark ? 'dark' : 'light') : stored;
+          } else if (prefersDark) {
+            resolvedTheme = 'dark';
+          }
+          
+          // Set attributes before React renders
+          document.documentElement.setAttribute('data-theme', resolvedTheme);
+          document.documentElement.style.colorScheme = resolvedTheme;
+        } catch (e) {
+          // Fail silently if localStorage is unavailable
+        }
+      })();
+    </script>
+
     <!-- Viewport / rendering -->
     <meta
       name="viewport"
@@ -34,9 +58,12 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="format-detection" content="telephone=no" />
 
-    <!-- Canonical + basic alternates -->
+    <!-- Canonical + language alternates for multi-language SEO (BEP) -->
     <link rel="canonical" href="https://time2.trade/" />
+    <link rel="alternate" href="https://time2.trade/" hreflang="x-default" />
     <link rel="alternate" href="https://time2.trade/" hreflang="en" />
+    <link rel="alternate" href="https://time2.trade/?lang=es" hreflang="es" />
+    <link rel="alternate" href="https://time2.trade/?lang=fr" hreflang="fr" />
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
 
     <!-- PWA -->
@@ -223,6 +250,7 @@
     />
 
     <!-- Structured Data: WebSite + Organization + WebApplication -->
+    <!-- BEP SEO: Added availableLanguage for multi-language discovery -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -232,7 +260,8 @@
         "alternateName": "T2T",
         "url": "https://time2.trade/",
         "publisher": { "@id": "https://time2.trade/#organization" },
-        "inLanguage": "en"
+        "inLanguage": "en",
+        "availableLanguage": ["en", "es", "fr"]
       }
     </script>
 
@@ -259,6 +288,8 @@
         "url": "https://time2.trade/",
         "image": "https://time2.trade/Time2Trade_SEO_Meta_5.PNG",
         "description": "A New York time-first intraday timing workspace for futures and forex day traders: session countdowns + a Forex Factory-powered economic calendar with fast filters, custom events, and notifications. This is an awareness tool, not trading signals.",
+        "inLanguage": "en",
+        "availableLanguage": ["en", "es", "fr"],
         "publisher": { "@id": "https://time2.trade/#organization" },
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
         "featureList": [

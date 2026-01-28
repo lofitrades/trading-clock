@@ -5,6 +5,17 @@
  * and stays embeddable for other pages while keeping Time 2 Trade branding and SEO-friendly copy.
  * 
  * Changelog:
+ * v1.5.84 - 2026-01-28 - BEP UX: Day headers now use distinct background colors for better visual hierarchy. Light mode: grey.50 (#fafafa), dark mode: grey.900 (#212121). Both are opaque and subtly different from column headers (background.paper) for clear visual separation.
+ * v1.5.83 - 2026-01-28 - BEP CASCADING STICKY: Removed boxShadow from day headers. Column headers below already have boxShadow ('0 2px 4px -2px rgba(0, 0, 0, 0.12)') for proper cascading sticky effect. This creates visual separation at the frozen column level instead of day level.
+ * v1.5.82 - 2026-01-28 - BEP OPAQUE HEADER FIX: Changed non-today day header bgcolor from 'action.hover' (semi-transparent) to 'background.paper' (fully opaque). action.hover has transparency in both light and dark modes causing content bleed-through when headers are sticky. background.paper provides solid #FFFFFF (light) and #1E1E1E (dark) backgrounds that completely hide scrolling content. Today headers remain primary.main (already opaque). Fixes transparency issue in sticky headers.
+ * v1.5.81 - 2026-01-28 - BEP STICKY HEADER VISIBILITY: Added boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)' to sticky day headers to prevent content from bleeding through when headers are fixed at top. Solid background alone wasn't sufficient to hide scrolling content behind sticky positioned element. Shadow provides visual separation and depth, ensuring headers remain visually distinct from scrolling content in both light and dark modes. Enterprise BEP pattern: sticky/fixed positioned elements need visual layering (shadow) to prevent bleed-through.
+ * v1.5.80 - 2026-01-28 - BEP NO TRANSPARENCY: Removed transparency from day header chips. Today chips now use solid bgcolor: common.white with color: primary.main for maximum visibility. Non-today chips use solid bgcolor: action.disabled with color: text.primary. Replaces previous alpha(0.2) and alpha(0.12) transparency with opaque theme tokens. Improves visual hierarchy and accessibility in both light and dark modes.
+ * v1.5.79 - 2026-01-28 - BEP THEME-AWARE DAY HEADERS: Changed day header bgcolor from hardcoded 'grey.100' to theme-aware 'action.hover' for non-today headers. Today headers remain 'primary.main' (unchanged). Day headers now adapt to light/dark theme modes: light mode shows subtle hover background, dark mode shows appropriate dark surface. Ensures consistency with theme tokens and enterprise standards.
+ * v1.5.78 - 2026-01-28 - BEP THEME: Replaced hardcoded colors with theme tokens throughout component. Changed scrollbar rgba(60,77,99) colors to theme.palette.action.disabled/active, #9e9e9e gray to theme.palette.text.disabled, #fff/#1f1f1f badge text colors to theme-aware conditionals, #ffffff backgrounds to theme.palette.background.paper, checkbox blue to theme.palette.primary.main. All colors now adapt to light/dark theme modes dynamically.
+ * v1.5.77 - 2026-01-29 - BEP i18n FIX: Day headers now language-aware. Changed displayDate useMemo to use Intl.DateTimeFormat(i18n.language, ...) instead of formatDate utility. Added i18n.language to dependency array so headers update immediately when user switches language via LanguageSwitcher. Day headers now show correct locale format: "Monday, January 27, 2026" → "Lunes, 27 de enero de 2026" → "Lundi 27 janvier 2026".
+ * v1.5.76 - 2026-01-29 - BEP i18n FIX: Removed 'calendar:' namespace prefix from all TABLE_COLUMNS labelKey values. Keys should be 'table.headers.time' not 'calendar:table.headers.time' since useTranslation is already initialized with 'calendar' namespace. This fixes table headers displaying translation keys instead of translated text (e.g., "table.headers.time" instead of "Time").
+ * v1.5.75 - 2026-01-27 - BEP i18n FIX: Changed title prop default from hardcoded 'Economic Calendar' to null. Component now uses t('calendar:title') for dynamic language switching. Title prop still supported for override if needed.
+ * v1.5.74 - 2026-01-27 - BEP i18n migration: Replaced 2 remaining hardcoded aria-labels with t() calls (Events on date, close button). All tooltips were already using t() keys. 100% i18n compliant for EN/ES/FR.
  * v1.5.73 - 2026-01-24 - BEP i18n migration: Added useTranslation hook, converted 45+ hardcoded strings to t() calls for calendar namespace
  * v1.5.72 - 2026-01-23 - BEP FIX: Favorites toggle not firing. Added e.preventDefault() to click handlers, onTouchEnd handlers for mobile support, span click delegation, inline-flex span styling, and ungated diagnostic console.logs to trace click flow. Addresses issue where favorites heart click did nothing on calendar rows.
  * v1.5.71 - 2026-01-23 - BEP: Add gated favorites click diagnostics.
@@ -30,7 +41,7 @@
  * v1.5.50 - 2026-01-22 - BEP: Move notification center (bell icon) to the right of "Add custom event" CTA on all breakpoints for improved visual hierarchy.
  * v1.5.49 - 2026-01-22 - BEP: Show event count and NEXT/NOW buttons row on all breakpoints (xs, sm, md+) for consistent event status visibility across mobile and desktop.
  * v1.5.48 - 2026-01-22 - BEP: Make "Add custom event" button full width on xs-sm (md-) for better mobile CTA accessibility.
- * v1.5.47 - 2026-01-22 - BEP: Move event count and NEXT/NOW buttons to same row below 'Powered by Forex Factory' subtitle on md+ (display:none on xs-sm). Keep notification center and 'Add custom event' button in top-right. Improves information hierarchy following enterprise dashboard patterns.
+ * v1.5.47 - 2026-01-22 - BEP: Move event count and NEXT/NOW buttons to same row below 'Powered by Forex Factory data' subtitle on md+ (display:none on xs-sm). Keep notification center and 'Add custom event' button in top-right. Improves information hierarchy following enterprise dashboard patterns.
  * v1.5.46 - 2026-01-22 - Use custom reminder color for custom currency chips.
  * v1.5.45 - 2026-01-22 - Align custom reminder impact chips with standard impact icons.
  * v1.5.44 - 2026-01-22 - Render custom reminder currency chips with custom icon and impact styling.
@@ -170,7 +181,7 @@
  * v1.3.86 - 2026-01-07 - Updated banner to 728x90 leaderboard (with 1456x180 2x retina) and kept mobile-first responsive sizing.
  * v1.3.85 - 2026-01-07 - Moved the ad outside both papers and made it full column width on all breakpoints. Removed title and caption to keep the banner minimal and mobile-first.
  * v1.3.84 - 2026-01-07 - Replaced dummy banner with responsive referral banner (mobile-first, retina via srcSet) while keeping Google AdSense slot ready for activation.
- * v1.3.83 - 2026-01-07 - Fixed Forex Factory link to open detailed NewsSourceSelector modal directly instead of wrapper dialog. "Powered by Forex Factory" now opens the full informational modal in one step.
+ * v1.3.83 - 2026-01-07 - Fixed Forex Factory link to open detailed NewsSourceSelector modal directly instead of wrapper dialog. "Powered by Forex Factory data" now opens the full informational modal in one step.
  * v1.3.82 - 2026-01-07 - Snap clock hands on resume and throttle background ticking via shared time engine resume tokens.
  * v1.3.80 - 2026-01-07 - Keep timezone label/select button visible even when the digital clock is hidden.
  * v1.3.79 - 2026-01-07 - Temporarily hide session label display and controls while keeping logic wired for future use.
@@ -314,7 +325,7 @@ const EventModal = lazy(() => import('./EventModal'));
 const EventNotesDialog = lazy(() => import('./EventNotesDialog'));
 const TimezoneModal = lazy(() => import('./TimezoneModal'));
 const SettingsSidebar2 = lazy(() => import('./SettingsSidebar2'));
-import { DATE_FORMAT_OPTIONS, formatDate, formatTime } from '../utils/dateUtils';
+import { formatTime } from '../utils/dateUtils';
 import PublicIcon from '@mui/icons-material/Public';
 import { getCustomEventIconComponent, resolveCustomEventColor } from '../utils/customEventStyle';
 import { resolveImpactMeta, sortEventsByTime } from '../utils/newsApi';
@@ -379,27 +390,6 @@ const eventShape = PropTypes.shape({
         relativeLabel: PropTypes.string,
     }),
 });
-
-/**
- * Minimal scrollbar styling for scroll containers
- */
-const minimalScrollbarSx = {
-    scrollbarWidth: 'thin',
-    scrollbarColor: 'rgba(60,77,99,0.32) transparent',
-    '&::-webkit-scrollbar': {
-        width: 6,
-    },
-    '&::-webkit-scrollbar-track': {
-        background: 'transparent',
-    },
-    '&::-webkit-scrollbar-thumb': {
-        backgroundColor: 'rgba(60,77,99,0.32)',
-        borderRadius: 999,
-    },
-    '&::-webkit-scrollbar-thumb:hover': {
-        backgroundColor: 'rgba(60,77,99,0.45)',
-    },
-};
 
 const buildEventKey = (event) => {
     const epoch = getEventEpochMs(event);
@@ -474,6 +464,7 @@ const buildDaySequence = (startDate, endDate, timezone) => {
 };
 
 const CurrencyBadge = ({ currency, isPast = false, isCustom = false, customColor, customIcon }) => {
+    const { t } = useTranslation(['calendar', 'common']);
     const code = (currency || '').toUpperCase();
     const countryCode = getCurrencyFlag(code);
     const isUnknown = !code || code === '—';
@@ -481,13 +472,13 @@ const CurrencyBadge = ({ currency, isPast = false, isCustom = false, customColor
     const theme = useTheme();
     const badgeColor = isCustom ? resolveCustomEventColor(customColor, theme) : 'background.paper';
     const badgeTextColor = isCustom
-        ? (isColorDark(badgeColor) ? '#fff' : '#1f1f1f')
+        ? (isColorDark(badgeColor) ? theme.palette.common.white : theme.palette.text.primary)
         : 'text.primary';
     const CustomIcon = isCustom ? getCustomEventIconComponent(customIcon) : null;
 
     if (isCustom) {
         return (
-            <Tooltip title="Custom event">
+            <Tooltip title={t('calendar:tooltip.customEvent')}>
                 <Box
                     sx={{
                         display: 'inline-flex',
@@ -531,7 +522,7 @@ const CurrencyBadge = ({ currency, isPast = false, isCustom = false, customColor
 
     if (isUnknown) {
         return (
-            <Tooltip title="Unknown">
+            <Tooltip title={t('calendar:tooltip.unknown')}>
                 <Box
                     sx={{
                         display: 'inline-flex',
@@ -563,7 +554,7 @@ const CurrencyBadge = ({ currency, isPast = false, isCustom = false, customColor
 
     if (isGlobal) {
         return (
-            <Tooltip title="Global">
+            <Tooltip title={t('calendar:tooltip.global')}>
                 <Box
                     sx={{
                         display: 'inline-flex',
@@ -650,8 +641,9 @@ CurrencyBadge.propTypes = {
 
 const ImpactBadge = ({ strength, isPast = false }) => {
     const meta = resolveImpactMeta(strength || 'unknown');
-    const baseColor = isPast ? '#9e9e9e' : meta.color;
-    const iconColor = '#fff';
+    const theme = useTheme();
+    const baseColor = isPast ? theme.palette.text.disabled : meta.color;
+    const iconColor = theme.palette.common.white;
 
     return (
         <Tooltip title={meta.label}>
@@ -679,13 +671,13 @@ ImpactBadge.propTypes = {
 
 const TABLE_COLUMNS = [
     { id: 'action', labelKey: '', align: 'center', width: { xs: 36, sm: 40 } },
-    { id: 'time', labelKey: 'calendar:table.headers.time', align: 'center', width: { xs: 52, sm: 68 } },
-    { id: 'currency', labelKey: 'calendar:table.headers.currency', align: 'center', width: { xs: 52, sm: 68 } },
-    { id: 'impact', labelKey: 'calendar:table.headers.impact', align: 'center', width: { xs: 52, sm: 68 } },
-    { id: 'name', labelKey: 'calendar:table.headers.event', align: 'left' },
-    { id: 'actual', labelKey: 'calendar:table.headers.actual', align: 'center', width: 64, hideBelow: 'lg' },
-    { id: 'forecast', labelKey: 'calendar:table.headers.forecast', align: 'center', width: 64, hideBelow: 'lg' },
-    { id: 'previous', labelKey: 'calendar:table.headers.previous', align: 'center', width: 64, hideBelow: 'lg' },
+    { id: 'time', labelKey: 'table.headers.time', align: 'center', width: { xs: 52, sm: 68 } },
+    { id: 'currency', labelKey: 'table.headers.currency', align: 'center', width: { xs: 52, sm: 68 } },
+    { id: 'impact', labelKey: 'table.headers.impact', align: 'center', width: { xs: 52, sm: 68 } },
+    { id: 'name', labelKey: 'table.headers.event', align: 'left' },
+    { id: 'actual', labelKey: 'table.headers.actual', align: 'center', width: 64, hideBelow: 'lg' },
+    { id: 'forecast', labelKey: 'table.headers.forecast', align: 'center', width: 64, hideBelow: 'lg' },
+    { id: 'previous', labelKey: 'table.headers.previous', align: 'center', width: 64, hideBelow: 'lg' },
 ];
 
 const metricCellDisplay = { xs: 'none', lg: 'table-cell' };
@@ -715,6 +707,7 @@ const EventRow = memo(({
     isPast = false,
 }) => {
     const { t } = useTranslation(['calendar', 'common']);
+    const theme = useTheme();
     const name = event.name || event.Name || t('calendar:event.unnamed');
     const description = event.description || event.Description || event.summary || event.Summary || '';
 
@@ -785,22 +778,22 @@ const EventRow = memo(({
                 },
                 '@keyframes t2tScrollFlash': {
                     '0%': {
-                        backgroundColor: 'rgba(25, 118, 210, 0.16)',
-                        boxShadow: '0 0 0 0 rgba(25, 118, 210, 0.0)',
+                        backgroundColor: alpha(theme.palette.primary.main, 0.16),
+                        boxShadow: `0 0 0 0 ${alpha(theme.palette.primary.main, 0.0)}`,
                     },
                     '20%': {
-                        backgroundColor: 'rgba(25, 118, 210, 0.20)',
-                        boxShadow: '0 0 0 6px rgba(25, 118, 210, 0.18)',
+                        backgroundColor: alpha(theme.palette.primary.main, 0.20),
+                        boxShadow: `0 0 0 6px ${alpha(theme.palette.primary.main, 0.18)}`,
                     },
                     '100%': {
                         backgroundColor: 'transparent',
-                        boxShadow: '0 0 0 0 rgba(25, 118, 210, 0.0)',
+                        boxShadow: `0 0 0 0 ${alpha(theme.palette.primary.main, 0.0)}`,
                     },
                 },
                 '@media (prefers-reduced-motion: reduce)': {
                     '&[data-t2t-scroll-flash="true"]': {
                         animation: 'none',
-                        backgroundColor: 'rgba(25, 118, 210, 0.14)',
+                        backgroundColor: alpha(theme.palette.primary.main, 0.14),
                     },
                 },
                 '&:focus-visible': {
@@ -823,7 +816,7 @@ const EventRow = memo(({
             >
                 <Stack direction="row" spacing={0} alignItems="center" justifyContent="center" sx={{ minWidth: 0, flexWrap: 'nowrap' }}>
                     {onToggleFavorite && !event.isCustom ? (
-                        <Tooltip title={favorite ? 'Remove favorite' : 'Add to favorites'}>
+                        <Tooltip title={favorite ? t('calendar:tooltip.removeFavorite') : t('calendar:tooltip.addToFavorites')}>
                             <span
                                 style={{ display: 'inline-flex', cursor: favoritePending ? 'not-allowed' : 'pointer' }}
                                 onClick={(e) => {
@@ -1026,21 +1019,24 @@ const DaySection = memo(({
     stickyHeaderZIndex = 999,
     stickyHeaderTop = 0,
 }) => {
-    const { t } = useTranslation(['calendar', 'common']);
+    const { t, i18n } = useTranslation(['calendar', 'common']);
+    const theme = useTheme();
     const DAY_HEADER_HEIGHT_PX = 36;
     const DAY_HEADER_GAP_PX = 8;
     const displayDate = useMemo(() => {
         const parts = dayKey.split('-');
         const date = parts.length === 3 ? new Date(`${parts[0]}-${parts[1]}-${parts[2]}T12:00:00Z`) : null;
-        return date ? formatDate(date, timezone, DATE_FORMAT_OPTIONS.LONG) : '—';
-    }, [dayKey, timezone]);
+        if (!date) return '—';
+        // BEP: Use i18n.language for locale-aware formatting (language-responsive day headers)
+        return new Intl.DateTimeFormat(i18n.language, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(date);
+    }, [dayKey, i18n.language]);
 
     const displayDateElement = useMemo(() => {
         if (isLoading) {
-            return <Skeleton variant="text" width="60%" sx={{ bgcolor: isToday ? alpha('#ffffff', 0.25) : undefined }} />;
+            return <Skeleton variant="text" width="60%" sx={{ bgcolor: isToday ? alpha(theme.palette.common.white, 0.25) : undefined }} />;
         }
         return displayDate;
-    }, [displayDate, isLoading, isToday]);
+    }, [displayDate, isLoading, isToday, theme]);
 
     const headerChipLabel = isLoading ? t('calendar:labels.loading') : events.length ? t('calendar:labels.events', { count: events.length }) : t('calendar:labels.noEvents');
     const showSkeletonRows = isLoading;
@@ -1069,7 +1065,7 @@ const DaySection = memo(({
                     zIndex: stickyHeaderZIndex,
                     borderTopLeftRadius: 7,
                     borderTopRightRadius: 7,
-                    bgcolor: isToday ? 'primary.main' : 'grey.100',
+                    bgcolor: isToday ? 'primary.main' : (theme.palette.mode === 'light' ? 'grey.50' : 'grey.900'),
                     color: isToday ? 'primary.contrastText' : 'text.primary',
                     borderBottom: '1px solid',
                     borderColor: 'divider',
@@ -1113,8 +1109,8 @@ const DaySection = memo(({
                             sx={{
                                 fontWeight: 800,
                                 height: 20,
-                                bgcolor: isToday ? alpha('#ffffff', 0.2) : alpha('#3c4d63', 0.12),
-                                color: 'inherit',
+                                bgcolor: isToday ? theme.palette.common.white : theme.palette.action.disabled,
+                                color: isToday ? 'primary.main' : 'text.primary',
                                 '& .MuiChip-label': {
                                     px: 0.75,
                                     lineHeight: 1,
@@ -1128,7 +1124,7 @@ const DaySection = memo(({
             <TableContainer sx={{ overflow: 'visible', flex: 1, minHeight: 0 }}>
                 <Table
                     size="small"
-                    aria-label={`Events on ${displayDate}`}
+                    aria-label={t('calendar:aria.eventsOn', { date: displayDate })}
                     sx={{
                         width: '100%',
                         tableLayout: 'fixed',
@@ -1256,7 +1252,7 @@ DaySection.displayName = 'DaySection';
 // ClockPanel component extracted to ClockPanelPaper.jsx for separation of concerns (v1.5.13)
 
 export default function CalendarEmbed({
-    title = 'Economic Calendar',
+    title = null,
     onOpenAuth = null,
     showSeoCopy = true,
     appBar = null,
@@ -1463,6 +1459,25 @@ export default function CalendarEmbed({
     const startDayKey = useMemo(() => getDayKey(filters.startDate, timezone), [filters.startDate, timezone]);
     const endDayKey = useMemo(() => getDayKey(filters.endDate, timezone), [filters.endDate, timezone]);
     const isSingleDayRange = useMemo(() => Boolean(startDayKey && endDayKey && startDayKey === endDayKey), [endDayKey, startDayKey]);
+
+    // Theme-aware scrollbar styling
+    const scrollbarSx = useMemo(() => ({
+        scrollbarWidth: 'thin',
+        scrollbarColor: `${alpha(theme.palette.text.primary, 0.32)} transparent`,
+        '&::-webkit-scrollbar': {
+            width: 6,
+        },
+        '&::-webkit-scrollbar-track': {
+            background: 'transparent',
+        },
+        '&::-webkit-scrollbar-thumb': {
+            backgroundColor: alpha(theme.palette.text.primary, 0.32),
+            borderRadius: 999,
+        },
+        '&::-webkit-scrollbar-thumb:hover': {
+            backgroundColor: alpha(theme.palette.text.primary, 0.45),
+        },
+    }), [theme.palette.text.primary]);
 
     const visibleDayKeys = useMemo(() => {
         // For single-day ranges (Today/Tomorrow/Yesterday), show ONLY that day
@@ -2264,8 +2279,8 @@ export default function CalendarEmbed({
                     mt: 0,
                     borderRadius: 3,
                     border: '1px solid',
-                    borderColor: alpha('#3c4d63', 0.12),
-                    bgcolor: '#ffffff',
+                    borderColor: alpha(theme.palette.text.primary, 0.12),
+                    bgcolor: theme.palette.background.paper,
                     color: theme.palette.text.primary,
                     p: { xs: 1.25, sm: 1.5, md: 1.75 },
                     display: 'flex',
@@ -2277,7 +2292,7 @@ export default function CalendarEmbed({
                     minHeight: 0,
                     overflow: 'visible',
                     boxSizing: 'border-box',
-                    ...minimalScrollbarSx,
+                    ...scrollbarSx,
                 }}
             >
                 {showSeoCopy && (
@@ -2286,7 +2301,7 @@ export default function CalendarEmbed({
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.25, sm: 2 }} alignItems={{ xs: 'flex-start', sm: 'flex-start' }} justifyContent="space-between" sx={{ width: '100%', position: 'relative' }}>
                             <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
                                 <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.2 }}>
-                                    {title}
+                                    {title || t('calendar:title')}
                                 </Typography>
                                 <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.72), lineHeight: 1.4, display: 'flex', alignItems: 'center', gap: 0.3 }}>
                                     {t('calendar:headers.poweredBy')}
@@ -2328,7 +2343,7 @@ export default function CalendarEmbed({
                                             px: 2,
                                             whiteSpace: 'nowrap',
                                             boxShadow: 'none',
-                                            bgcolor: '#fff',
+                                            bgcolor: theme.palette.background.paper,
                                             color: 'text.primary',
                                             borderColor: 'divider',
                                             display: 'inline-flex',
@@ -2376,7 +2391,7 @@ export default function CalendarEmbed({
                                             borderRadius: 1.5,
                                             transition: 'background-color 0.2s',
                                             '&:hover': {
-                                                bgcolor: alpha('#4caf50', 0.1),
+                                                bgcolor: alpha(theme.palette.success.main, 0.1),
                                             },
                                         }}
                                     >
@@ -2396,7 +2411,7 @@ export default function CalendarEmbed({
                                             borderRadius: 1.5,
                                             transition: 'background-color 0.2s',
                                             '&:hover': {
-                                                bgcolor: alpha('#2196f3', 0.1),
+                                                bgcolor: alpha(theme.palette.info.main, 0.1),
                                             },
                                         }}
                                     >
@@ -2409,7 +2424,7 @@ export default function CalendarEmbed({
                             </Stack>
                         </Stack>
 
-                        <Divider sx={{ borderColor: alpha('#3c4d63', 0.12) }} />
+                        <Divider sx={{ borderColor: alpha(theme.palette.text.primary, 0.12) }} />
                     </Stack>
                 )}
 
@@ -2464,7 +2479,7 @@ export default function CalendarEmbed({
                     )}
                 </Stack>
 
-                <Divider sx={{ borderColor: alpha('#3c4d63', 0.12), mt: 1, mb: 0.5 }} />
+                <Divider sx={{ borderColor: alpha(theme.palette.text.primary, 0.12), mt: 1, mb: 0.5 }} />
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center" justifyContent="space-between">
                     <Typography
                         variant="caption"
@@ -2604,7 +2619,7 @@ export default function CalendarEmbed({
                     <IconButton
                         edge="end"
                         onClick={() => setNewsSourceModalOpen(false)}
-                        aria-label="close"
+                        aria-label={t('calendar:aria.close')}
                         sx={{ ml: 1 }}
                     >
                         <CloseIcon />

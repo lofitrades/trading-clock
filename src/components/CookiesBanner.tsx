@@ -5,12 +5,15 @@
  * Presents a light, mobile-first surface with a primary CTA to allow ads or keep essential-only cookies.
  * 
  * Changelog:
+ * v1.2.0 - 2026-01-30 - i18n: Replaced all hardcoded strings (heading, description, button labels, link text) 
+ * with i18n translations from dialogs.cookies namespace (EN/ES/FR). Added useTranslation hook and t() calls.
  * v1.1.0 - 2026-01-07 - Add 5s delay before showing banner and skip entirely if consent already stored.
  * v1.0.1 - 2026-01-07 - Removed primary CTA glow to simplify banner styling.
  * v1.0.0 - 2026-01-07 - Created shared consent banner with responsive bottom-right layout and primary CTA.
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Box, Button, Link, Stack, Typography, useTheme } from '@mui/material';
 import {
     CONSENT_ACCEPTED,
@@ -32,6 +35,7 @@ type CookiesBannerProps = {
 
 export default function CookiesBanner({ className }: CookiesBannerProps) {
     const theme = useTheme();
+    const { t } = useTranslation('dialogs');
     const [consent, setConsent] = useState<ConsentValue>(CONSENT_UNKNOWN);
     const [readyToShow, setReadyToShow] = useState<boolean>(false);
 
@@ -92,10 +96,10 @@ export default function CookiesBanner({ className }: CookiesBannerProps) {
         >
             <Stack spacing={1.25} alignItems="flex-start">
                 <Typography variant="subtitle1" sx={{ fontWeight: 800, fontSize: '0.95rem' }}>
-                    We use cookies
+                    {t('cookies.heading')}
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#334155', lineHeight: 1.55 }}>
-                    Essential cookies keep Time 2 Trade running. Ads use Google AdSense and can stay non-personalized unless you allow them.
+                    {t('cookies.description')}
                 </Typography>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: '100%' }} alignItems={{ xs: 'stretch', sm: 'center' }}>
                     <Button
@@ -112,7 +116,7 @@ export default function CookiesBanner({ className }: CookiesBannerProps) {
                             textTransform: 'none',
                         }}
                     >
-                        Allow all
+                        {t('cookies.allowAll')}
                     </Button>
                     <Button
                         onClick={() => handleConsent(CONSENT_ESSENTIAL)}
@@ -127,7 +131,7 @@ export default function CookiesBanner({ className }: CookiesBannerProps) {
                             px: 1,
                         }}
                     >
-                        Essential only
+                        {t('cookies.essentialOnly')}
                     </Button>
                 </Stack>
                 <Link
@@ -141,7 +145,7 @@ export default function CookiesBanner({ className }: CookiesBannerProps) {
                         alignSelf: 'center',
                     }}
                 >
-                    Privacy & cookies
+                    {t('cookies.privacyLink')}
                 </Link>
                 
             </Stack>

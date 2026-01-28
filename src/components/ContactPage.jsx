@@ -5,6 +5,7 @@
  * Key responsibility and main functionality: Render the contact form in standalone or embedded contexts, validate inputs, and submit to Firestore with success feedback.
  * 
  * Changelog:
+ * v1.4.0 - 2026-01-27 - Full i18n integration: Replaced all hardcoded strings with t() calls from contact namespace (EN/ES/FR). Added useTranslation hook. SEO meta now generated from i18n translations.
  * v1.3.6 - 2026-01-13 - PostMessage ready signal in embed mode so ContactModal keeps progress until form is ready.
  * v1.3.5 - 2026-01-13 - Skip SEO render in embed mode to slim iframe payload.
  * v1.3.4 - 2026-01-13 - Embed performance tuning; lazy-load country data and Firestore on demand.
@@ -20,6 +21,7 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { Alert, Box, Button, Container, Link, MenuItem, Paper, Stack, SvgIcon, TextField, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import { siX } from 'simple-icons';
 import SEO from './SEO';
@@ -28,13 +30,6 @@ import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { Link as RouterLink } from 'react-router-dom';
-
-const contactMeta = buildSeoMeta({
-    title: 'Contact | Time 2 Trade',
-    description: 'Contact Time 2 Trade. Send a message for support, feedback, or questions. Prefer DM? Reach us on X.',
-    path: '/contact',
-    keywords: 'contact, support, help, time 2 trade, trading clock, economic calendar',
-});
 
 const XIcon = (props) => (
     <SvgIcon viewBox="0 0 24 24" {...props}>
@@ -45,6 +40,7 @@ const XIcon = (props) => (
 export function ContactCard({ embedded = false, paperSx = undefined }) {
     const theme = useTheme();
     const { user } = useAuth();
+    const { t } = useTranslation('contact');
 
     const [form, setForm] = useState({
         email: '',
@@ -78,8 +74,8 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
                 if (!cancelled && options.length > 0) {
                     setCountryOptions(options);
                 }
-            } catch (err) {
-                console.error('Failed to load country data', err);
+            } catch (error) {
+                console.error('Failed to load country data', error);
             }
         };
         loadCountryData();
@@ -94,7 +90,7 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
         const timer = window.setTimeout(() => {
             try {
                 window.parent?.postMessage({ type: 'contact-embed-ready' }, window.location.origin);
-            } catch (err) {
+            } catch {
                 // Swallow postMessage errors silently; fallback timer in ContactModal will handle display.
             }
         }, 0);
@@ -181,13 +177,13 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
             await addDoc(collection(db, 'contactMessages'), payload);
 
             setSubmitted(true);
-        } catch (err) {
-            console.error('Contact submit failed', err);
-            setSubmitError('Sorry, something went wrong. Please try again or DM us on X.');
+        } catch (error) {
+            console.error('Contact submit failed', error);
+            setSubmitError(t('form.submitError'));
         } finally {
             setSubmitting(false);
         }
-    }, [form, emailError, messageError, user]);
+    }, [form, emailError, messageError, user, t]);
 
     return (
         <Paper
@@ -208,10 +204,10 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
                 <Stack spacing={2.5} alignItems="center" textAlign="center" sx={{ py: { xs: 3, sm: 4 } }}>
                     <CheckCircleOutlineIcon color="primary" sx={{ fontSize: 48 }} />
                     <Typography variant="h5" sx={{ fontWeight: 800 }}>
-                        Thanks — we got it
+                        {t('success.heading')}
                     </Typography>
                     <Typography variant="body1" sx={{ color: '#475569', maxWidth: 520 }}>
-                        We’ll follow up using the email you provided. In the meantime, you can jump into the calendar or head back home.
+                        {t('success.message')}
                     </Typography>
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ width: '100%', maxWidth: 520 }} alignItems={{ xs: 'stretch', sm: 'center' }}>
                         <Button
@@ -221,7 +217,7 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
                             color="primary"
                             sx={{ flex: 1, py: 1.15 }}
                         >
-                            Go to Calendar
+                            {t('success.calendarButton')}
                         </Button>
                         <Button
                             component={RouterLink}
@@ -230,23 +226,23 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
                             color="primary"
                             sx={{ flex: 1, py: 1.15 }}
                         >
-                            Go to Home
+                            {t('success.homeButton')}
                         </Button>
                     </Stack>
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} alignItems="center">
                         <Typography variant="body2" sx={{ color: '#475569' }}>
-                            Prefer a quick DM?
+                            {t('success.preferQuickDm')}
                         </Typography>
                         <Link
                             href="https://x.com/time2_trade"
                             target="_blank"
                             rel="noopener noreferrer"
-                            aria-label="Visit Time 2 Trade on X"
+                            aria-label={t('success.xAriaLabel')}
                             sx={{ display: 'inline-flex', alignItems: 'center' }}
                         >
                             <XIcon sx={{ fontSize: 22, color: theme.palette.text.primary }} />
                             <Typography variant="body2" sx={{ ml: 0.75, fontWeight: 700 }}>
-                                @time2_trade
+                                {t('success.xHandle')}
                             </Typography>
                         </Link>
                     </Stack>
@@ -256,10 +252,10 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
                     <Stack spacing={2.1}>
                         <Box>
                             <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.01em' }}>
-                                Send a message
+                                {t('form.heading')}
                             </Typography>
                             <Typography variant="body2" sx={{ color: '#475569', mt: 0.6 }}>
-                                Support, feedback, or questions — we read every message.
+                                {t('form.subheading')}
                             </Typography>
                         </Box>
 
@@ -268,11 +264,11 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
                         )}
 
                         <Typography variant="caption" sx={{ color: '#475569' }}>
-                            Fields marked with * are required.
+                            {t('form.requiredNotice')}
                         </Typography>
 
                         <TextField
-                            label="Enter your email"
+                            label={t('form.email.label')}
                             name="email"
                             type="email"
                             required
@@ -280,29 +276,29 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
                             onChange={onChange}
                             onBlur={onBlur}
                             error={Boolean(emailError)}
-                            helperText={emailError || 'We’ll use this to reply.'}
+                            helperText={emailError || t('form.email.helperText')}
                             fullWidth
-                            inputProps={{ inputMode: 'email', autoComplete: 'email', title: 'Enter the email we should reply to' }}
+                            inputProps={{ inputMode: 'email', autoComplete: 'email', title: t('form.email.label') }}
                         />
                         <TextField
-                            label="Enter your name"
+                            label={t('form.name.label')}
                             name="name"
                             value={form.name}
                             onChange={onChange}
                             onBlur={onBlur}
                             fullWidth
-                            inputProps={{ autoComplete: 'name', title: 'Your name (optional)' }}
+                            inputProps={{ autoComplete: 'name', title: t('form.name.title') }}
                         />
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'flex-start' }}>
                             <TextField
                                 select
-                                label="Country / code"
+                                label={t('form.country.label')}
                                 name="phoneCountry"
                                 value={form.phoneCountry}
                                 onChange={onChange}
                                 onBlur={onBlur}
                                 sx={{ width: { xs: '100%', sm: 240 } }}
-                                inputProps={{ title: 'Select your country to set the calling code' }}
+                                inputProps={{ title: t('form.country.title') }}
                             >
                                 {countryOptions.map((opt) => (
                                     <MenuItem key={opt.value} value={opt.value}>
@@ -311,18 +307,18 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
                                 ))}
                             </TextField>
                             <TextField
-                                label="Enter your phone"
+                                label={t('form.phone.label')}
                                 name="phone"
                                 value={form.phone}
                                 onChange={onChange}
                                 onBlur={onBlur}
                                 fullWidth
-                                inputProps={{ inputMode: 'numeric', autoComplete: 'tel', pattern: '[0-9]*', title: 'Optional phone (digits only)' }}
-                                helperText="(digits only, no dashes)"
+                                inputProps={{ inputMode: 'numeric', autoComplete: 'tel', pattern: '[0-9]*', title: t('form.phone.title') }}
+                                helperText={t('form.phone.helperText')}
                             />
                         </Stack>
                         <TextField
-                            label="Message"
+                            label={t('form.message.label')}
                             name="message"
                             required
                             value={form.message}
@@ -332,36 +328,36 @@ export function ContactCard({ embedded = false, paperSx = undefined }) {
                             multiline
                             minRows={4}
                             error={Boolean(messageError)}
-                            helperText={messageError || 'Tell us what you need help with.'}
-                            inputProps={{ title: 'Describe what you need help with' }}
+                            helperText={messageError || t('form.message.helperText')}
+                            inputProps={{ title: t('form.message.label') }}
                         />
 
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
                             <Button type="submit" variant="contained" color="primary" sx={{ px: 3, py: 1.25 }} disabled={submitting} fullWidth={!embedded}>
-                                {submitting ? 'Sending…' : 'Send message'}
+                                {submitting ? t('form.submitButtonLoading') : t('form.submitButton')}
                             </Button>
                         </Stack>
 
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} alignItems={{ xs: 'flex-start', sm: 'center' }}>
                             <Typography variant="body2" sx={{ color: '#475569' }}>
-                                Prefer DM?
+                                {t('form.preferDm')}
                             </Typography>
                             <Link
                                 href="https://x.com/time2_trade"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                aria-label="Visit Time 2 Trade on X"
+                                aria-label={t('form.xAriaLabel')}
                                 sx={{ display: 'inline-flex', alignItems: 'center' }}
                             >
                                 <XIcon sx={{ fontSize: 22, color: theme.palette.text.primary }} />
                                 <Typography variant="body2" sx={{ ml: 0.75, fontWeight: 700 }}>
-                                    @time2_trade
+                                    {t('form.xHandle')}
                                 </Typography>
                             </Link>
                         </Stack>
 
                         <Typography variant="caption" sx={{ color: '#475569' }}>
-                            We only use your info to respond. No marketing.
+                            {t('form.disclaimer')}
                         </Typography>
                     </Stack>
                 </Box>
@@ -376,12 +372,20 @@ ContactCard.propTypes = {
 };
 
 export default function ContactPage() {
+    const { t } = useTranslation('contact');
     const isEmbedded = useMemo(() => {
         if (typeof window === 'undefined') return false;
         const params = new URLSearchParams(window.location.search || '');
         if (params.get('embed') === '1') return true;
         return params.has('embed');
     }, []);
+
+    const contactMeta = useMemo(() => buildSeoMeta({
+        title: t('seo.title'),
+        description: t('seo.description'),
+        path: '/contact',
+        keywords: 'contact, support, help, time 2 trade, trading clock, economic calendar',
+    }), [t]);
 
     return (
         <Box
@@ -419,13 +423,13 @@ export default function ContactPage() {
                     {!isEmbedded && (
                         <Box>
                             <Typography variant="overline" sx={{ color: '#475569', fontWeight: 800, letterSpacing: '0.08em' }}>
-                                Contact
+                                {t('page.overline')}
                             </Typography>
                             <Typography variant="h3" sx={{ fontWeight: 800, fontSize: { xs: '1.75rem', sm: '2.15rem' }, letterSpacing: '-0.02em' }}>
-                                Get in touch
+                                {t('page.heading')}
                             </Typography>
                             <Typography variant="body1" sx={{ color: '#475569', mt: 1, maxWidth: 680 }}>
-                                Send a message for support, feedback, or questions. Prefer DM? Reach us on X for the fastest response.
+                                {t('page.description')}
                             </Typography>
                         </Box>
                     )}
@@ -459,16 +463,16 @@ export default function ContactPage() {
                     {!isEmbedded && (
                         <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
                             <Link href="/" underline="hover" sx={{ fontWeight: 700 }}>
-                                Home
+                                {t('footer.home')}
                             </Link>
                             <Link href="/calendar" underline="hover" sx={{ fontWeight: 700 }}>
-                                Open Calendar
+                                {t('footer.calendar')}
                             </Link>
                             <Link href="/privacy" underline="hover" sx={{ fontWeight: 700 }}>
-                                Privacy
+                                {t('footer.privacy')}
                             </Link>
                             <Link href="/terms" underline="hover" sx={{ fontWeight: 700 }}>
-                                Terms
+                                {t('footer.terms')}
                             </Link>
                         </Stack>
                     )}

@@ -1,0 +1,21 @@
+{
+  "errors": {
+    "wrongPassword": "Contraseña incorrecta. Por favor, inténtelo de nuevo o restablézcala.",
+    "userNotFound": "No se encontró cuenta con ese correo. Por favor, regístrese primero.",
+    "emailAlreadyInUse": "Ese correo ya está registrado. Ya ha iniciado sesión.",
+    "invalidEmail": "Por favor, ingrese una dirección de correo válida.",
+    "userDisabled": "Su cuenta está actualmente deshabilitada. Por favor, contacte con soporte.",
+    "tooManyRequests": "Demasiados intentos. Por favor, espere un momento e inténtelo de nuevo.",
+    "networkRequestFailed": "Error de red. Por favor, compruebe su conexión.",
+    "default": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo o use otro método."
+  },
+  "success": {
+    "login": "¡Bienvenido de nuevo! Ha iniciado sesión exitosamente.",
+    "signup": "¡Tu cuenta ha sido creada! Se te ha enviado un correo de verificación.",
+    "verifyEmail": "Hemos enviado un correo de verificación. Por favor, comprueba tu bandeja de entrada.",
+    "passwordReset": "Hemos enviado un enlace de restablecimiento de contraseña a tu correo.",
+    "profileUpdated": "¡Perfil actualizado exitosamente!",
+    "changePassword": "Se ha enviado un correo de restablecimiento de contraseña. Por favor, comprueba tu bandeja de entrada.",
+    "default": "¡Éxito!"
+  }
+}

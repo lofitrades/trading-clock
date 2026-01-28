@@ -1,0 +1,42 @@
+{
+  "units": {
+    "minutes": "minutos",
+    "hours": "horas",
+    "days": "días"
+  },
+  "channels": {
+    "inApp": "En la aplicación",
+    "browser": "Navegador",
+    "push": "Push"
+  },
+  "labels": {
+    "noChannels": "Sin canales seleccionados",
+    "leadTime": "Tiempo de anticipación",
+    "before": "antes"
+  },
+  "permissions": {
+    "browserBlocked": "Las notificaciones del navegador están bloqueadas en la configuración del navegador",
+    "browserUnsupported": "Las notificaciones del navegador no son compatibles con este navegador",
+    "browserDismissed": "Las notificaciones del navegador fueron descartadas. Actívelas en la configuración para intentar de nuevo",
+    "browserError": "Error al solicitar notificaciones del navegador",
+    "pushPending": "Solicitando permisos de notificaciones push...",
+    "pushAuthRequired": "Las notificaciones push requieren autenticación",
+    "pushDismissed": "Las notificaciones push fueron descartadas",
+    "pushIncomplete": "La configuración de notificaciones push está incompleta",
+    "pushError": "Error al configurar notificaciones push",
+    "pushFailure": "No se pudieron habilitar las notificaciones push"
+  },
+  "scope": {
+    "allSeries": "Todos los eventos {{label}}",
+    "allMatching": "Todos los eventos coincidentes",
+    "eventOnly": "Solo este evento"
+  },
+  "actions": {
+    "addReminder": "Agregar recordatorio",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
+  "empty": {
+    "noReminders": "Sin recordatorios establecidos"
+  }
+}

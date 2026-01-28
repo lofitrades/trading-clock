@@ -1,0 +1,8 @@
+{
+  "timeSettings": "Paramètres d'affichage des comptes à rebours de temps",
+  "timeToEnd": "Afficher le temps restant jusqu'à la fin de la session en cours",
+  "timeToStart": "Afficher le temps jusqu'au début de la prochaine session",
+  "timeToEndLabel": "Temps avant la fin",
+  "timeToStartLabel": "Commence dans",
+  "userMenu": "Menu de compte utilisateur"
+}

@@ -1,0 +1,157 @@
+{
+  "page": {
+    "title": "Terms of Service",
+    "subtitle": "Effective January 7, 2026",
+    "description": "These Terms of Service govern your use of Time 2 Trade. By accessing or using the Service, you agree to be bound by these Terms. Please read them carefully.",
+    "lastUpdated": "January 7, 2026",
+    "effective": "January 7, 2026",
+    "metaTitle": "Terms of Service - Time 2 Trade"
+  },
+  "tableOfContents": "Table of contents",
+  "sections": {
+    "acceptance": {
+      "heading": "Acceptance of Terms",
+      "items": [
+        "By accessing or using Time 2 Trade (\"Service\"), you agree to be bound by these Terms of Service (\"Terms\")",
+        "If you do not agree to these Terms, you may not access or use the Service",
+        "We reserve the right to update these Terms at any time. Continued use after changes constitutes acceptance",
+        "If you are using the Service on behalf of an organization, you represent that you have authority to bind that organization"
+      ]
+    },
+    "description": {
+      "heading": "Service Description",
+      "items": [
+        "Time 2 Trade is a web-based application providing trading session visualization and economic calendar tools",
+        "Core features: Market session clock, economic event calendar, timezone management, user preferences synchronization",
+        "Data sources: Economic events from JBlanked API (MQL5/Forex Factory equivalent data)",
+        "Free access: All features are available with free account creation",
+        "No premium tiers: We do not charge subscription fees for service access"
+      ]
+    },
+    "accounts": {
+      "heading": "User Accounts",
+      "creation": {
+        "title": "Account creation",
+        "items": [
+          "You may create an account using email or OAuth providers (Google, Twitter)",
+          "You must provide accurate and complete information",
+          "You are responsible for maintaining the security of your account credentials",
+          "You must notify us immediately of any unauthorized access"
+        ]
+      },
+      "responsibilities": {
+        "title": "Account responsibilities",
+        "items": [
+          "You are responsible for all activities under your account",
+          "You may not share your account with others",
+          "You may not create multiple accounts to circumvent restrictions",
+          "You may not impersonate others or provide false information"
+        ]
+      },
+      "termination": {
+        "title": "Account termination",
+        "items": [
+          "You may delete your account at any time via account settings",
+          "We may suspend or terminate accounts that violate these Terms",
+          "Upon termination, your data will be deleted according to our Privacy Policy",
+          "Some data may be retained in backups for up to 90 days"
+        ]
+      }
+    },
+    "acceptableUse": {
+      "heading": "Acceptable Use Policy",
+      "intro": "Prohibited activities:",
+      "items": [
+        "Automated scraping, crawling, or data harvesting without permission",
+        "Attempting to gain unauthorized access to systems or other user accounts",
+        "Interfering with or disrupting the Service or servers",
+        "Transmitting viruses, malware, or malicious code",
+        "Using the Service for illegal activities or to violate others' rights",
+        "Reverse engineering, decompiling, or disassembling the Service",
+        "Removing or modifying copyright, trademark, or proprietary notices",
+        "Reselling or commercially exploiting the Service without authorization"
+      ]
+    },
+    "disclaimer": {
+      "heading": "No Financial Advice Disclaimer",
+      "critical": "Critical Notice: Time 2 Trade is an informational tool only",
+      "notFinancialAdvice": "Not financial advice: We do not provide trading signals, recommendations, or investment advice",
+      "noGuarantees": "No guarantees: Past performance data and event information do not guarantee future results",
+      "yourResponsibility": "Your responsibility: All trading decisions are your own. Consult licensed financial advisors before making investment decisions",
+      "marketRisks": "Market risks: Trading futures, forex, and other financial instruments involves substantial risk of loss",
+      "educational": "Educational purpose: The Service helps you track market sessions and events; it does not predict market movements",
+      "noLiability": "No liability for losses: We are not responsible for trading losses or investment decisions made using the Service"
+    },
+    "liabilityLimitation": {
+      "heading": "Limitation of Liability",
+      "items": [
+        "To the fullest extent permitted by law, Time 2 Trade is provided 'as-is' without any express or implied warranties",
+        "We make no warranty regarding the Service's accuracy, reliability, or fitness for a particular purpose",
+        "We are not liable for any indirect, incidental, special, consequential, or punitive damages",
+        "In no event shall our liability exceed the fees paid (if any) in the past 12 months",
+        "Some jurisdictions do not allow disclaimer of implied warranties, so this may not apply to you"
+      ]
+    },
+    "intellectual": {
+      "heading": "Intellectual Property Rights",
+      "items": [
+        "Time 2 Trade and its original content, features, and functionality are owned by us and protected by copyright",
+        "You may not reproduce, distribute, or transmit any content without our explicit written permission",
+        "You retain rights to your custom events and notes; we retain rights to use anonymized aggregated data for service improvement",
+        "Trademarks and logos are owned by Time 2 Trade or our licensors and may not be used without permission"
+      ]
+    },
+    "thirdParty": {
+      "heading": "Third-Party Services",
+      "items": [
+        "Economic event data is provided by Forex Factory, NFS, JBlanked, and other sources. We are not responsible for their accuracy or timeliness",
+        "Google AdSense advertisements may appear on the Service. We are not responsible for ad content or practices",
+        "OAuth authentication is provided by Google and Twitter. Their privacy and security policies apply to authentication",
+        "Firestore (Google Cloud) provides data storage and synchronization. Google's terms and privacy policies apply"
+      ]
+    },
+    "arbitration": {
+      "heading": "Arbitration & Dispute Resolution",
+      "items": [
+        "Any dispute arising from these Terms or your use of the Service shall be resolved by binding arbitration",
+        "Arbitration shall be conducted in English, under the rules of the American Arbitration Association (AAA)",
+        "You waive your right to a jury trial and to class action litigation",
+        "Arbitration costs shall be split equally unless arbitrator rules otherwise",
+        "Either party may opt out of arbitration by written notice within 30 days of first claim"
+      ]
+    },
+    "general": {
+      "heading": "General Provisions",
+      "items": [
+        "Entire agreement: These Terms and our Privacy Policy constitute the entire agreement between you and Time 2 Trade",
+        "Severability: If any provision is found unenforceable, the remaining provisions continue in effect",
+        "No waiver: Our failure to enforce any provision does not waive our right to do so later",
+        "Assignment: You may not assign these Terms; we may assign them to affiliates or successors",
+        "Force majeure: We are not liable for delays or failures due to circumstances beyond our control",
+        "Export compliance: You agree to comply with all export control laws when using the Service",
+        "Contact: For questions about these Terms, contact @time2_trade"
+      ]
+    },
+    "contact": {
+      "heading": "Contact Information",
+      "items": [
+        "General inquiries: @time2_trade",
+        "Legal notices: DM @time2_trade with 'Legal Notice' in message",
+        "Terms questions: @time2_trade",
+        "Response time: We respond to inquiries within 5-7 business days"
+      ]
+    }
+  },
+  "disclaimers": {
+    "title": "⚠️ Important Disclaimers",
+    "noFinancialAdvice": "No Financial Advice: Time 2 Trade is informational only. We do not provide trading signals or investment advice.",
+    "tradingRisks": "Trading Risks: Trading involves substantial risk of loss. Past performance does not guarantee future results.",
+    "yourResponsibility": "Your Responsibility: All trading decisions are yours. Consult licensed financial advisors before investing."
+  },
+  "footer": {
+    "home": "Home",
+    "openApp": "Open app",
+    "privacy": "Privacy Policy",
+    "contact": "@time2_trade"
+  }
+}

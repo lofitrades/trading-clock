@@ -804,7 +804,7 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                                                         </Box>
                                                                     )}
                                                                 </>
-                                                                            ) : (
+                                                            ) : (
                                                                 <Typography variant="body2" color="error">
                                                                     {t('admin:failedToLoadMatchedEventDetails')}
                                                                 </Typography>

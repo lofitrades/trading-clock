@@ -5,7 +5,8 @@
  * Renders static background + dynamic session donuts + interactive tooltips.
  *
  * Changelog:
- * v1.3.16 - 2026-01-22 - BEP: Close session arc tooltip on outside click/tap.
+ * v1.3.19 - 2026-01-28 - BEP UI FIX: Removed inline backgroundColor from canvas-container div. Background now fully transparent to eliminate visible gap between outer border and canvas content. Border masking handled by .hand-clock-wrapper in App.css.
+ * v1.3.18 - 2026-01-28 - BEP THEME FIX: Added backgroundColor: theme.palette.background.default to canvas-container inline style. Ensures canvas background matches theme in both light and dark modes. Works with MUI theme system instead of CSS variables.
  * v1.3.15 - 2026-01-22 - BEP: Disable mobile tap highlight on the clock canvas.
  * v1.3.14 - 2026-01-22 - BEP: Add optional touch tooltip delay to avoid showing tooltips during scroll.
  * v1.3.13 - 2026-01-22 - BEP: Allow opt-in vertical scroll on touch devices (landing hero canvas).
@@ -28,7 +29,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { Portal } from '@mui/material';
+import { Portal, useTheme } from '@mui/material';
 import gsap from 'gsap';
 import {
   drawStaticElements,
@@ -42,12 +43,16 @@ import SessionArcTooltip from './SessionArcTooltip';
 import { useTooltipCoordinator } from '../contexts/useTooltipCoordinator';
 
 export default function ClockCanvas({ size, time, sessions, handColor, clockStyle = 'normal', showSessionNamesInCanvas = true, showPastSessionsGray = true, showClockNumbers = true, showClockHands = true, activeSession = null, backgroundBasedOnSession = false, renderHandsInCanvas = true, handAnglesRef = null, allowTouchScroll = false, touchTooltipDelayMs = 0 }) {
+  const theme = useTheme();
   const { selectedTimezone } = useSettings();
   const { openTooltip, closeTooltip: closeGlobalTooltip, isTooltipActive } = useTooltipCoordinator();
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const [hoveredSession, setHoveredSession] = useState(null);
+
+  // Determine theme-aware clock numbers color: light numbers on dark mode, dark numbers on light mode
+  const themeAwareNumbersColor = theme.palette.mode === 'dark' ? '#E0E0E0' : '#0F172A';
   const staticCanvas = useRef(document.createElement('canvas'));
   const targetDprRef = useRef(1);
 
@@ -100,8 +105,8 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     staticCtx.scale(dpr, dpr);
     staticCtx.imageSmoothingEnabled = true;
     staticCtx.imageSmoothingQuality = 'high';
-    drawStaticElements(staticCtx, size, showSessionNamesInCanvas, handColor);
-  }, [size, showSessionNamesInCanvas, handColor]);
+    drawStaticElements(staticCtx, size, showSessionNamesInCanvas, themeAwareNumbersColor);
+  }, [size, showSessionNamesInCanvas, themeAwareNumbersColor]);
 
   // Animate hover effects
   useEffect(() => {
@@ -226,16 +231,17 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
         renderHandsInCanvas && showClockHands
       );
 
-      // Pass handColor as the text color for the clock numbers and showSessionNamesInCanvas to update immediately on toggle
+      // Pass themeAwareNumbersColor as the text color for the clock numbers (independent of hand color)
+      // Light numbers (#E0E0E0) on dark theme, dark numbers (#0F172A) on light theme
       if (showClockNumbers) {
-        drawClockNumbers(ctx, size / 2, size / 2, size / 2 - 5, handColor, showSessionNamesInCanvas);
+        drawClockNumbers(ctx, size / 2, size / 2, size / 2 - 5, themeAwareNumbersColor, showSessionNamesInCanvas);
       }
 
       animationId = requestAnimationFrame(animate);
     };
     animationId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationId);
-  }, [size, sessions, hoveredSession, handColor, clockStyle, showSessionNamesInCanvas, showPastSessionsGray, activeSession, backgroundBasedOnSession, showClockNumbers, showClockHands, renderHandsInCanvas, time, handAngles]);
+  }, [size, sessions, hoveredSession, handColor, themeAwareNumbersColor, clockStyle, showSessionNamesInCanvas, showPastSessionsGray, activeSession, backgroundBasedOnSession, showClockNumbers, showClockHands, renderHandsInCanvas, time, handAngles]);
 
   const detectHoveredSession = useCallback((canvas, mouseX, mouseY) => {
     const rect = canvas.getBoundingClientRect();

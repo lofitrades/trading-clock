@@ -1,0 +1,17 @@
+{
+  "noData": "Sin datos disponibles",
+  "noEvents": "Sin eventos",
+  "noResults": "Sin resultados",
+  "empty": "Vacío",
+  "loading": "Cargando...",
+  "pleaseWait": "Por favor, espera",
+  "syncing": "Sincronizando...",
+  "saving": "Guardando...",  "pending": "Pendiente",  "nothingToDisplay": "Nada que mostrar",
+  "checkBackSoon": "Vuelve pronto",
+  "workingOnUpdates": "Trabajando en actualizaciones...",
+  "comingSoon": "Próximamente",
+  "loadMore": "Cargar más",
+  "showMore": "Mostrar más",
+  "complete": "Completado",
+  "loadingMatchedEventDetails": "Cargando detalles del evento coincidente..."
+}
