@@ -562,7 +562,7 @@ export default function CustomEventDialog({
                                     <Stack spacing={1.5}>
                                         <Stack direction="row" spacing={1.5}>
                                             <TextField
-                                                label={t('events:dialog.schedule.fields.date.label')}
+                                                label={t('events:dialog.schedule.date.label')}
                                                 type="date"
                                                 value={form.localDate}
                                                 onChange={handleFieldChange('localDate')}
@@ -570,7 +570,7 @@ export default function CustomEventDialog({
                                                 fullWidth
                                             />
                                             <TextField
-                                                label={t('events:dialog.schedule.fields.time.label')}
+                                                label={t('events:dialog.schedule.time.label')}
                                                 type="time"
                                                 value={form.localTime}
                                                 onChange={handleFieldChange('localTime')}
@@ -582,7 +582,7 @@ export default function CustomEventDialog({
                                         <Stack spacing={1.5} sx={{ mt: 2 }}>
                                             <TextField
                                                 select
-                                                label={t('events:dialog.schedule.fields.repeat.label')}
+                                                label={t('events:dialog.schedule.repeat.label')}
                                                 value={form.recurrence?.enabled ? form.recurrence?.interval : 'none'}
                                                 onChange={handleRecurrenceIntervalChange}
                                                 fullWidth
@@ -608,7 +608,7 @@ export default function CustomEventDialog({
                                                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                                                         <TextField
                                                             select
-                                                            label={t('events:dialog.schedule.fields.recurrenceEnd.label')}
+                                                            label={t('events:dialog.schedule.recurrenceEnd.label')}
                                                             value={form.recurrence?.ends?.type || 'never'}
                                                             onChange={handleRecurrenceEndTypeChange}
                                                             fullWidth
@@ -632,7 +632,7 @@ export default function CustomEventDialog({
 
                                                         <Grow in={form.recurrence?.ends?.type === 'onDate'} unmountOnExit>
                                                             <TextField
-                                                                label={t('events:dialog.schedule.fields.endDate.label')}
+                                                                label={t('events:dialog.schedule.endDate.label')}
                                                                 type="date"
                                                                 value={form.recurrence?.ends?.untilLocalDate || ''}
                                                                 onChange={handleRecurrenceEndFieldChange('untilLocalDate')}
@@ -643,7 +643,7 @@ export default function CustomEventDialog({
                                                         </Grow>
                                                         <Grow in={form.recurrence?.ends?.type === 'after'} unmountOnExit>
                                                             <TextField
-                                                                label={t('events:dialog.schedule.fields.occurrences.label')}
+                                                                label={t('events:dialog.schedule.occurrences.label')}
                                                                 type="number"
                                                                 value={form.recurrence?.ends?.count || 1}
                                                                 onChange={handleRecurrenceEndFieldChange('count')}
@@ -658,7 +658,7 @@ export default function CustomEventDialog({
                                         </Stack>
                                         <TextField
                                             select
-                                            label={t('events:dialog.schedule.fields.timezone.label')}
+                                            label={t('events:dialog.schedule.timezone.label')}
                                             value={form.timezone}
                                             onChange={handleTimezoneChange}
                                             fullWidth
@@ -860,7 +860,7 @@ export default function CustomEventDialog({
                     variant="filled"
                     sx={{ borderRadius: 2, boxShadow: theme.shadows[8] }}
                 >
-                    Changes saved successfully
+                    {t('events:dialog.actions.saveChanges.success')}
                 </Alert>
             </Snackbar>
 
@@ -893,7 +893,7 @@ export default function CustomEventDialog({
             >
                 <Box>
                     <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', mb: 1.5, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        Select Color
+                        {t('events:dialog.appearance.fields.color.select')}
                     </Typography>
                     <Box
                         sx={{
@@ -1043,7 +1043,7 @@ export default function CustomEventDialog({
                 open={showCloseConfirmation}
                 onConfirm={handleConfirmClose}
                 onCancel={handleCancelClose}
-                message="You have unsaved changes to this custom event. If you close now, your changes will be lost."
+                message={t('events:dialog.unsavedChanges.message')}
                 zIndex={(zIndexOverride || 2000) + 2}
             />
         </>

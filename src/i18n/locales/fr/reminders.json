@@ -12,7 +12,12 @@
   "labels": {
     "noChannels": "Aucun canal sélectionné",
     "leadTime": "Délai d'anticipation",
+    "unit": "Unité",
     "before": "avant"
+  },
+  "sections": {
+    "channels": "Méthodes de notification",
+    "applyTo": "Appliquer à"
   },
   "permissions": {
     "browserBlocked": "Les notifications du navigateur sont bloquées dans les paramètres du navigateur",
@@ -34,7 +39,8 @@
   "actions": {
     "addReminder": "Ajouter un rappel",
     "edit": "Modifier",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "saving": "Enregistrement..."
   },
   "empty": {
     "noReminders": "Aucun rappel défini"

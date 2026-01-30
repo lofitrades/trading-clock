@@ -6,6 +6,11 @@
  * Mobile-first: stacks to single column on xs/sm with clock hidden.
  * 
  * Changelog:
+ * v1.0.5 - 2026-01-29 - BEP FLOATING JUMP BUTTONS: Added disabled state support for floating jump buttons
+ *   when events are hidden by filters. New props: isNextEventHiddenByFilters, isNowEventHiddenByFilters,
+ *   nextCountdownLabel, hiddenNextCountdownLabel. Buttons now show disabled state with opacity/cursor
+ *   and informative tooltips explaining why disabled. Added i18n support via useTranslation('calendar').
+ *   Matches header button behavior in CalendarEmbed.jsx for consistent UX.
  * v1.0.4 - 2026-01-15 - JUMP BUTTONS SAFE-AREA-INSET FIX: Added env(safe-area-inset-bottom) to both xs and sm
  *   button positioning. The AppBar has pb: 'env(safe-area-inset-bottom)' which adds bottom padding on devices with safe areas
  *   (notches, home indicators). The CSS variable --t2t-bottom-nav-height only accounts for the 64px BottomNavigation height,
@@ -36,7 +41,9 @@
  */
 
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 import { Box, Grid, IconButton, Tooltip } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useState, useRef, useEffect } from 'react';
 import KeyboardDoubleArrowDownRoundedIcon from '@mui/icons-material/KeyboardDoubleArrowDownRounded';
 import KeyboardDoubleArrowUpRoundedIcon from '@mui/icons-material/KeyboardDoubleArrowUpRounded';
@@ -77,6 +84,10 @@ const minimalScrollbarSx = {
  * @param {boolean} showJumpToNow - Show jump to now button (takes priority over next)
  * @param {function} onJumpToNow - Handler for jump to now
  * @param {string} jumpToNowDirection - 'up' or 'down'
+ * @param {boolean} isNextEventHiddenByFilters - Next event exists but hidden by filters
+ * @param {boolean} isNowEventHiddenByFilters - Now event exists but hidden by filters
+ * @param {string} nextCountdownLabel - Countdown label for next event (e.g., "2h 15m 30s")
+ * @param {string} hiddenNextCountdownLabel - Countdown label for hidden next event
  */
 const CalendarGridLayout = ({
     isTwoColumn,
@@ -92,7 +103,13 @@ const CalendarGridLayout = ({
     onJumpToNow,
     jumpToNowDirection,
     stickyFiltersNode,
+    isNextEventHiddenByFilters,
+    isNowEventHiddenByFilters,
+    nextCountdownLabel,
+    hiddenNextCountdownLabel,
 }) => {
+    const { t } = useTranslation('calendar');
+
     const JumpNextIcon = jumpToNextDirection === 'up'
         ? KeyboardDoubleArrowUpRoundedIcon
         : KeyboardDoubleArrowDownRoundedIcon;
@@ -252,7 +269,8 @@ const CalendarGridLayout = ({
 
             {/* Floating Jump Buttons */}
             {/* NOW jump button (blue) - takes priority over NEXT */}
-            {showJumpToNow && (
+            {/* Show when: NOW events visible OR NOW events exist but hidden by filters */}
+            {(showJumpToNow || isNowEventHiddenByFilters) && (
                 <Box
                     sx={{
                         position: 'fixed',
@@ -265,32 +283,54 @@ const CalendarGridLayout = ({
                         zIndex: 1500,
                     }}
                 >
-                    <Tooltip title="Jump to Now" placement="left">
-                        <IconButton
-                            aria-label="Jump to event in progress"
-                            onClick={onJumpToNow}
-                            sx={{
-                                bgcolor: 'info.main',
-                                color: 'info.contrastText',
-                                boxShadow: '0 12px 32px rgba(15,23,42,0.26)',
-                                border: '1px solid rgba(255,255,255,0.18)',
-                                width: 48,
-                                height: 48,
-                                '&:hover': { bgcolor: 'info.dark' },
-                                '&:focus-visible': {
-                                    outline: '2px solid #0ea5e9',
-                                    outlineOffset: 3,
-                                },
-                            }}
-                        >
-                            <JumpNowIcon />
-                        </IconButton>
+                    <Tooltip
+                        title={isNowEventHiddenByFilters
+                            ? t('stats.nowEventHiddenByFilters')
+                            : t('stats.eventsInProgress')}
+                        placement="left"
+                    >
+                        {/* Wrap in span to allow Tooltip on disabled button */}
+                        <span style={{ display: 'inline-flex' }}>
+                            <IconButton
+                                aria-label={t('stats.eventsInProgress')}
+                                onClick={isNowEventHiddenByFilters ? undefined : onJumpToNow}
+                                disabled={isNowEventHiddenByFilters}
+                                sx={{
+                                    bgcolor: isNowEventHiddenByFilters
+                                        ? (theme) => alpha(theme.palette.info.main, 0.4)
+                                        : 'info.main',
+                                    color: 'info.contrastText',
+                                    boxShadow: '0 12px 32px rgba(15,23,42,0.26)',
+                                    border: '1px solid rgba(255,255,255,0.18)',
+                                    width: 48,
+                                    height: 48,
+                                    opacity: isNowEventHiddenByFilters ? 0.6 : 1,
+                                    cursor: isNowEventHiddenByFilters ? 'not-allowed' : 'pointer',
+                                    '&:hover': {
+                                        bgcolor: isNowEventHiddenByFilters
+                                            ? (theme) => alpha(theme.palette.info.main, 0.4)
+                                            : 'info.dark',
+                                    },
+                                    '&:focus-visible': {
+                                        outline: '2px solid #0ea5e9',
+                                        outlineOffset: 3,
+                                    },
+                                    '&.Mui-disabled': {
+                                        bgcolor: (theme) => alpha(theme.palette.info.main, 0.4),
+                                        color: 'info.contrastText',
+                                    },
+                                }}
+                            >
+                                <JumpNowIcon />
+                            </IconButton>
+                        </span>
                     </Tooltip>
                 </Box>
             )}
 
-            {/* NEXT jump button (green) - shown when no NOW events */}
-            {showJumpToNext && !showJumpToNow && (
+            {/* NEXT jump button (green) - shown when no NOW events visible/hidden */}
+            {/* Show when: NEXT events visible OR NEXT events exist but hidden by filters (and no NOW events) */}
+            {(showJumpToNext || isNextEventHiddenByFilters) && !showJumpToNow && !isNowEventHiddenByFilters && (
                 <Box
                     sx={{
                         position: 'fixed',
@@ -303,26 +343,49 @@ const CalendarGridLayout = ({
                         zIndex: 1500,
                     }}
                 >
-                    <Tooltip title="Jump to Next" placement="left">
-                        <IconButton
-                            aria-label="Jump to next event"
-                            onClick={onJumpToNext}
-                            sx={{
-                                bgcolor: 'success.main',
-                                color: 'success.contrastText',
-                                boxShadow: '0 12px 32px rgba(15,23,42,0.26)',
-                                border: '1px solid rgba(255,255,255,0.18)',
-                                width: 48,
-                                height: 48,
-                                '&:hover': { bgcolor: 'success.dark' },
-                                '&:focus-visible': {
-                                    outline: '2px solid #22c55e',
-                                    outlineOffset: 3,
-                                },
-                            }}
-                        >
-                            <JumpNextIcon />
-                        </IconButton>
+                    <Tooltip
+                        title={isNextEventHiddenByFilters
+                            ? t('stats.nextEventHiddenByFilters')
+                            : (nextCountdownLabel
+                                ? t('stats.nextEventIn', { time: nextCountdownLabel })
+                                : t('stats.nextEvent'))}
+                        placement="left"
+                    >
+                        {/* Wrap in span to allow Tooltip on disabled button */}
+                        <span style={{ display: 'inline-flex' }}>
+                            <IconButton
+                                aria-label={t('stats.nextEvent')}
+                                onClick={isNextEventHiddenByFilters ? undefined : onJumpToNext}
+                                disabled={isNextEventHiddenByFilters}
+                                sx={{
+                                    bgcolor: isNextEventHiddenByFilters
+                                        ? (theme) => alpha(theme.palette.success.main, 0.4)
+                                        : 'success.main',
+                                    color: 'success.contrastText',
+                                    boxShadow: '0 12px 32px rgba(15,23,42,0.26)',
+                                    border: '1px solid rgba(255,255,255,0.18)',
+                                    width: 48,
+                                    height: 48,
+                                    opacity: isNextEventHiddenByFilters ? 0.6 : 1,
+                                    cursor: isNextEventHiddenByFilters ? 'not-allowed' : 'pointer',
+                                    '&:hover': {
+                                        bgcolor: isNextEventHiddenByFilters
+                                            ? (theme) => alpha(theme.palette.success.main, 0.4)
+                                            : 'success.dark',
+                                    },
+                                    '&:focus-visible': {
+                                        outline: '2px solid #22c55e',
+                                        outlineOffset: 3,
+                                    },
+                                    '&.Mui-disabled': {
+                                        bgcolor: (theme) => alpha(theme.palette.success.main, 0.4),
+                                        color: 'success.contrastText',
+                                    },
+                                }}
+                            >
+                                <JumpNextIcon />
+                            </IconButton>
+                        </span>
                     </Tooltip>
                 </Box>
             )}
@@ -350,6 +413,10 @@ CalendarGridLayout.propTypes = {
     onJumpToNow: PropTypes.func,
     jumpToNowDirection: PropTypes.oneOf(['up', 'down']),
     stickyFiltersNode: PropTypes.node,
+    isNextEventHiddenByFilters: PropTypes.bool,
+    isNowEventHiddenByFilters: PropTypes.bool,
+    nextCountdownLabel: PropTypes.string,
+    hiddenNextCountdownLabel: PropTypes.string,
 };
 
 CalendarGridLayout.defaultProps = {
@@ -365,6 +432,10 @@ CalendarGridLayout.defaultProps = {
     onJumpToNow: undefined,
     jumpToNowDirection: 'down',
     stickyFiltersNode: null,
+    isNextEventHiddenByFilters: false,
+    isNowEventHiddenByFilters: false,
+    nextCountdownLabel: null,
+    hiddenNextCountdownLabel: null,
 };
 
 export default CalendarGridLayout;

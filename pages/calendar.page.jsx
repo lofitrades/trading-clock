@@ -220,10 +220,10 @@ export default function Page() {
                             width: '48px',
                             height: '48px',
                             borderRadius: '999px',
-                            border: '1px solid rgba(255,255,255,0.18)',
-                            backgroundColor: '#0F172A',
-                            color: '#ffffff',
-                            boxShadow: '0 12px 32px rgba(15,23,42,0.26)',
+                            border: '1px solid var(--t2t-divider, rgba(255,255,255,0.18))',
+                            backgroundColor: 'var(--t2t-text-primary, #0F172A)',
+                            color: 'var(--t2t-bg-paper, #ffffff)',
+                            boxShadow: '0 12px 32px var(--t2t-action-hover, rgba(15,23,42,0.26))',
                             cursor: 'pointer',
                         }}
                     >

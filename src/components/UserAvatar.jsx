@@ -8,6 +8,7 @@
  * consistent z-index stacking (Popover: 1300, Modals: 10001+), and semantic button structure.
  * 
  * Changelog:
+ * v1.2.2 - 2026-01-29 - BEP i18n: Removed remaining hardcoded user menu labels and fallback name.
  * v1.2.1 - 2026-01-27 - BEP UI CONSISTENCY: Match add/bell icon sizing exactly - Changed IconButton padding from p: 0.5 to p: 0 (eliminates extra visual size). Fixed fallback Avatar size from 40px to 36px on md+ breakpoint. Added border: '1px solid' with divider color to match add icon styling. UserAvatar now perfectly aligns with add and bell circles in MobileHeader without appearing larger.
  * v1.2.0 - 2026-01-27 - BEP SIZING: Added sx prop support for flexible sizing control from parent components. Container Box now spreads sx prop for consistent sizing across MobileHeader action icons. Updated PropTypes and defaultProps. Enables MobileHeader to enforce consistent circular sizing (32px xs/sm, 36px md+) for all action icons.
  * v1.1.0 - 2026-01-27 - i18n migration: Added useTranslation hook, migrated aria-labels to a11y namespace
@@ -40,7 +41,7 @@ const AccountModal = lazy(() => import('./AccountModal'));
 const LogoutModal = lazy(() => import('./LogoutModal'));
 
 const UserAvatar = ({ user, onLogout, onOpen, closeSignal, sx }) => {
-    const { t } = useTranslation(['a11y']);
+    const { t } = useTranslation(['a11y', 'settings', 'common']);
     // User avatar menu state
     const [userMenuAnchor, setUserMenuAnchor] = useState(null);
     const [showAccountModal, setShowAccountModal] = useState(false);
@@ -80,7 +81,7 @@ const UserAvatar = ({ user, onLogout, onOpen, closeSignal, sx }) => {
     }, [handleUserMenuClose]);
 
     // Safe user display name fallback
-    const userDisplayName = user?.displayName || user?.email || 'User';
+    const userDisplayName = user?.displayName || user?.email || t('common:labels.user');
     const userInitial = userDisplayName.charAt(0).toUpperCase();
 
     return (
@@ -206,7 +207,7 @@ const UserAvatar = ({ user, onLogout, onOpen, closeSignal, sx }) => {
                                 },
                             }}
                         >
-                            My Account
+                            {t('settings:account.myAccount')}
                         </Button>
 
                         {/* Log out Button */}
@@ -233,7 +234,7 @@ const UserAvatar = ({ user, onLogout, onOpen, closeSignal, sx }) => {
                                 },
                             }}
                         >
-                            Log out
+                            {t('settings:account.logoutButton')}
                         </Button>
                     </Box>
                 </Popover>

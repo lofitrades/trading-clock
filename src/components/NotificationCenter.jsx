@@ -6,6 +6,9 @@
  * and provide quick actions to mark as read or clear.
  * 
  * Changelog:
+ * v1.0.21 - 2026-01-29 - BEP THEME-AWARE: Replaced hardcoded #fff with background.paper and
+ *                        rgba shadow colors with theme-aware values. Badge border and menu
+ *                        backgrounds now adapt to light/dark mode. Fully AA accessible.
  * v1.0.20 - 2026-01-24 - Phase 2 i18n migration: Add notification namespace (7 strings EN/ES/FR). Replaced hardcoded "Notifications", "No reminders yet", "Clear all" with t() calls.
  * v1.0.19 - 2026-01-22 - BEP UI CONSISTENCY: Increase bell icon glyph size on xs/sm to visually match add icon and avatar sizing across all pages, including /clock.
  * v1.0.18 - 2026-01-22 - BEP UI CONSISTENCY: Increase bell icon glyph size on xs/sm so it visually matches add icon and avatar sizing in MobileHeader.
@@ -145,13 +148,13 @@ export default function NotificationCenter({
                         borderRadius: '50%',
                         border: '1px solid',
                         borderColor: 'divider',
-                        bgcolor: '#fff',
+                        bgcolor: 'background.paper',
                         color: 'text.primary',
                         p: 0.5,
                         transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
                         '&:hover': {
                             transform: 'scale(1.05)',
-                            bgcolor: '#fff',
+                            bgcolor: 'background.paper',
                         },
                         '&:focus-visible': {
                             outline: '2px solid',
@@ -173,11 +176,12 @@ export default function NotificationCenter({
                             height: 18,
                             borderRadius: '50%',
                             bgcolor: 'error.main',
-                            color: '#fff',
+                            color: 'common.white',
                             fontSize: '0.625rem',
                             fontWeight: 800,
-                            boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
-                            border: '2px solid #fff',
+                            boxShadow: (theme) => `0 3px 8px ${theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.35)'}`,
+                            border: '2px solid',
+                            borderColor: 'background.paper',
                             pointerEvents: 'none',
                             display: 'flex',
                             alignItems: 'center',

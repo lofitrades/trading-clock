@@ -5,6 +5,10 @@
  * Minimal chip-based label optimized for the clock overlay.
  *
  * Changelog:
+ * v1.2.0 - 2026-01-29 - BEP THEME-AWARE: Replaced hardcoded colors with MUI theme tokens.
+ *                       #757575 → text.disabled, #fff/#000 → common.white/common.black,
+ *                       #0F172A → text.primary, #4B4B4B → text.secondary. Adaptive
+ *                       contrast logic preserved for session-based backgrounds.
  * v1.1.2 - 2026-01-08 - Fixed session chip text color: always use dark when backgroundBasedOnSession disabled, dynamic when enabled.
  * v1.1.1 - 2025-12-16 - Apply background-aware text color to inactive/next-session chip via caller-provided contrast color.
  * v1.1.0 - 2025-12-16 - Added PropTypes, removed unused imports/vars, and corrected header path.
@@ -12,7 +16,7 @@
  */
 
 import PropTypes from 'prop-types';
-import { Box, Chip, Stack, Fade } from '@mui/material';
+import { Box, Chip, Stack, Fade, useTheme } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { isColorDark } from '../utils/clockUtils';
 
@@ -42,6 +46,8 @@ export default function SessionLabel({
   contrastTextColor,
   backgroundBasedOnSession,
 }) {
+  const theme = useTheme();
+
   // Responsive scaling based on clock size - clean minimal design
   const baseSize = 375;
   const scaleFactor = Math.min(Math.max(clockSize / baseSize, 0.7), 1.3);
@@ -50,14 +56,14 @@ export default function SessionLabel({
   const titleSize = `${0.875 * scaleFactor}rem`; // 14px base
   const iconSize = 12 * scaleFactor;
 
-  // Session color with adaptive text
-  const sessionColor = activeSession?.color || '#757575';
-  // When backgroundBasedOnSession is disabled, always use dark text
+  // Session color with adaptive text - use theme tokens for defaults
+  const sessionColor = activeSession?.color || theme.palette.text.disabled;
+  // When backgroundBasedOnSession is disabled, always use theme text color
   // When enabled, use isColorDark to determine contrast
   const sessionTextColor = backgroundBasedOnSession
-    ? (isColorDark(sessionColor) ? '#fff' : '#000')
-    : '#0F172A';
-  const outlinedColor = contrastTextColor || '#4B4B4B';
+    ? (isColorDark(sessionColor) ? theme.palette.common.white : theme.palette.common.black)
+    : theme.palette.text.primary;
+  const outlinedColor = contrastTextColor || theme.palette.text.secondary;
   const outlinedBorderColor = `${outlinedColor}66`;
 
   return (

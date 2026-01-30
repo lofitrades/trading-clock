@@ -32,14 +32,14 @@
     "everyQuarter": "Cada trimestre",
     "everyYear": "Cada año"
   },
-  "reminders": {
-    "section": "Recordatorios"
-  },
   "dialog": {
     "title": {
       "create": "Nuevo evento personalizado",
       "edit": "Editar evento personalizado",
       "close": "Cerrar"
+    },
+    "unsavedChanges": {
+      "message": "Tienes cambios sin guardar en este evento personalizado. Si cierras ahora, tus cambios se perderán."
     },
     "details": {
       "section": "Detalles",
@@ -57,45 +57,43 @@
     },
     "schedule": {
       "section": "Cronograma",
-      "fields": {
-        "date": {
-          "label": "Fecha"
-        },
-        "time": {
-          "label": "Hora"
-        },
-        "repeat": {
-          "label": "Repetir"
-        },
-        "recurrence": {
-          "options": {
-            "none": "No se repite",
-            "hour1": "Cada 1 hora",
-            "hour4": "Cada 4 horas",
-            "day1": "Cada día",
-            "week1": "Cada semana",
-            "month1": "Cada mes",
-            "quarter1": "Cada trimestre",
-            "year1": "Cada año"
-          }
-        },
-        "recurrenceEnd": {
-          "label": "Termina",
-          "options": {
-            "never": "Nunca",
-            "onDate": "En la fecha",
-            "after": "Después"
-          }
-        },
-        "endDate": {
-          "label": "Fecha de finalización"
-        },
-        "occurrences": {
-          "label": "Ocurrencias"
-        },
-        "timezone": {
-          "label": "Zona Horaria"
+      "date": {
+        "label": "Fecha"
+      },
+      "time": {
+        "label": "Hora"
+      },
+      "repeat": {
+        "label": "Repetir"
+      },
+      "recurrence": {
+        "options": {
+          "none": "No se repite",
+          "hour1": "Cada 1 hora",
+          "hour4": "Cada 4 horas",
+          "day1": "Cada día",
+          "week1": "Cada semana",
+          "month1": "Cada mes",
+          "quarter1": "Cada trimestre",
+          "year1": "Cada año"
         }
+      },
+      "recurrenceEnd": {
+        "label": "Termina",
+        "options": {
+          "never": "Nunca",
+          "onDate": "En la fecha",
+          "after": "Después"
+        }
+      },
+      "endDate": {
+        "label": "Fecha de finalización"
+      },
+      "occurrences": {
+        "label": "Ocurrencias"
+      },
+      "timezone": {
+        "label": "Zona Horaria"
       }
     },
     "appearance": {
@@ -107,6 +105,7 @@
         },
         "color": {
           "label": "Color",
+          "select": "Seleccionar Color",
           "hex": {
             "label": "Color Hex",
             "placeholder": "#4E7DFF"
@@ -117,6 +116,9 @@
           "description": "Mostrar este evento en tu reloj de trading"
         }
       }
+    },
+    "reminders": {
+      "section": "Recordatorios"
     },
     "actions": {
       "delete": "Eliminar evento",

@@ -41,9 +41,10 @@
   },
   "labels": {
     "loading": "Loading...",
-    "events": "{{count}} event",
+    "events": "{{count}} events",
     "events_plural": "{{count}} events",
-    "noEvents": "No events"
+    "noEvents": "No events",
+    "noEventsForDay": "No events for this day."
   },
   "headers": {
     "poweredBy": "Powered by",
@@ -55,8 +56,13 @@
   },
   "stats": {
     "eventsCount": "{{count}} events visible",
+    "loadingEvents": "Loading events...",
     "nextIn": "Next in {{time}}",
-    "eventsInProgress": "Events in progress"
+    "nextEvent": "Next event",
+    "nextEventIn": "Next event in {{time}}",
+    "eventsInProgress": "Events in progress",
+    "nextEventHiddenByFilters": "Next event hidden by filters. Clear filters to view.",
+    "nowEventHiddenByFilters": "Event in progress hidden by filters. Clear filters to view."
   },
   "empty": {
     "selectDateRange": "Select a date range to see events"

@@ -64,7 +64,7 @@ export default function WelcomeModal({ onClose, userEmail }) {
               mb: 2,
             }}
           >
-            <Typography variant="h3" sx={{ color: 'white' }}>
+            <Typography variant="h3" sx={{ color: 'common.white' }}>
               🎉
             </Typography>
           </Box>

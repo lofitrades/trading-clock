@@ -296,7 +296,7 @@ export function formatDateTime(
  * @param {string} timezone - IANA timezone for comparison
  * @returns {boolean} True if date is in the past
  */
-export function isPast(date, timezone = DEFAULT_TIMEZONE) {
+export function isPast(date, _timezone = DEFAULT_TIMEZONE) {
   const dateObj = parseDate(date);
   if (!dateObj) return false;
 
@@ -503,7 +503,7 @@ export function normalizeToStartOfDay(date, timezone = DEFAULT_TIMEZONE) {
  * @param {string} timezone - IANA timezone for comparison
  * @returns {string} Relative time string (e.g., "in 2 hours", "5 minutes ago")
  */
-export function getRelativeTime(date, timezone = DEFAULT_TIMEZONE) {
+export function getRelativeTime(date, _timezone = DEFAULT_TIMEZONE) {
   const dateObj = parseDate(date);
   if (!dateObj) return 'Unknown';
 

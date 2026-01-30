@@ -4,5 +4,15 @@
   "timeToStart": "Mostrar el tiempo hasta que comience la próxima sesión",
   "timeToEndLabel": "Tiempo para terminar",
   "timeToStartLabel": "Comienza en",
-  "userMenu": "Menú de cuenta de usuario"
+  "timeToEndWithValue": "Tiempo para terminar: {{time}}",
+  "timeToStartWithValue": "Comienza en: {{time}}",
+  "nextSessionWithTime": "Siguiente: {{session}} ({{time}})",
+  "userMenu": "Menú de cuenta de usuario",
+  "jumpToNext": "Ir al siguiente evento",
+  "jumpToNow": "Ir al evento en progreso",
+  "admin": {
+    "syncWeek": "Sincronizar semana NFS",
+    "syncActuals": "Sincronizar los datos reales de hoy (JBlanked)",
+    "syncForexFactory": "Rellenar Forex Factory desde el 01/01/26"
+  }
 }

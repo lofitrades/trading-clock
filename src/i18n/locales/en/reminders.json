@@ -12,7 +12,12 @@
   "labels": {
     "noChannels": "No channels selected",
     "leadTime": "Lead time",
+    "unit": "Unit",
     "before": "before"
+  },
+  "sections": {
+    "channels": "Notification methods",
+    "applyTo": "Apply to"
   },
   "permissions": {
     "browserBlocked": "Browser notifications are blocked by your browser settings",
@@ -34,7 +39,8 @@
   "actions": {
     "addReminder": "Add reminder",
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "saving": "Saving..."
   },
   "empty": {
     "noReminders": "No reminders set"

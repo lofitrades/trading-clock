@@ -41,6 +41,10 @@
         "label": "Manecilla de Segundos",
         "description": "Mostrar la manecilla de segundos"
       },
+      "secondsHand": {
+        "label": "Manecilla de Segundos",
+        "description": "Mostrar la manecilla de segundos"
+      },
       "eventsOnCanvas": {
         "label": "Eventos en el lienzo",
         "description": "Mostrar marcadores de eventos económicos en la esfera"
@@ -70,6 +74,11 @@
         "description": "Mostrar zona horaria actual"
       }
     },
+    "timeDisplay": {
+      "title": "Visualización de tiempo",
+      "showTimeToEnd": "Mostrar tiempo para terminar",
+      "showTimeToStart": "Mostrar tiempo para empezar"
+    },
     "background": {
       "title": "Fondo",
       "sessionBased": {
@@ -90,16 +99,26 @@
       "namePlaceholder": "Nombre Sesión {{number}}",
       "startTimeLabel": "Hora de Inicio",
       "endTimeLabel": "Hora de Cierre",
+      "colorLabel": "Color",
       "deleteConfirm": "¿Eliminar esta sesión?"
     }
   },
   "about": {
-    "title": "Acerca de"
+    "title": "Acerca de",
+    "readFullAbout": "Leer la página completa de Acerca de",
+    "contactButton": "Contáctanos"
+  },
+  "drawer": {
+    "title": "Configuración",
+    "subtitle": "Crea una cuenta gratuita para desbloquear todas las funciones",
+    "unlockButton": "Crear cuenta gratuita para desbloquear toda la configuración"
   },
   "account": {
     "title": "Cuenta",
+    "myAccount": "Mi cuenta",
+    "addNamePrompt": "Haz clic para agregar tu nombre",
     "logoutConfirm": "¿Cerrar sesión y perder configuración local?",
-    "logoutButton": "Cerrar Sesión"
+    "logoutButton": "Cerrar sesión"
   },
   "admin": {
     "syncWeekNFS": "Sincronizar Semana NFS",
@@ -118,13 +137,20 @@
   "modals": {
     "confirmReset": "¿Restablecer toda la configuración a valores predeterminados?",
     "clearSession": "¿Limpiar sesión {{number}}?",
-    "clearSessionInfo": "Esto restablecerá el nombre de sesión, hora de inicio y hora de cierre.",
+    "clearSessionInfo": "¿Limpiar sesión {{number}}? Esto restablecerá el nombre de sesión, hora de inicio y hora de cierre.",
+    "resetSettingsInfo": "Esto restablecerá todos los ajustes, incluidas las sesiones, colores y preferencias, a sus valores predeterminados. Esta acción no se puede deshacer.",
+    "resetSettingsConfirmButton": "Restablecer configuración",
+    "clearSessionConfirmButton": "Borrar sesión",
+    "logoutConfirmMessage": "¿Seguro que quieres cerrar sesión? Tendrás que iniciar sesión de nuevo para acceder a tus ajustes guardados.",
+    "logoutConfirmButton": "Cerrar sesión",
     "contact": "¿Tienes preguntas? Contáctanos"
   },
   "errors": {
     "minimumToggle": "Al menos uno de los elementos principales del reloj debe estar habilitado."
   },
   "footer": {
-    "contactLink": "¿Tienes preguntas? Contáctanos"
+    "contactLink": "¿Tienes preguntas? Contáctanos",
+    "contactPrompt": "¿Tienes preguntas?",
+    "contactLinkText": "Contáctanos"
   }
 }

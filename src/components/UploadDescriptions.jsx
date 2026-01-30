@@ -4,6 +4,7 @@
  * Purpose: Admin-only page for uploading economic event descriptions from JSON to Firestore.
  * Handles password authentication, file selection, batch upload with progress tracking.
  * 
+ * v1.1.1 - 2026-01-29 - BEP i18n: Removed remaining hardcoded validation and status copy.
  * v1.1.0 - 2026-01-24 - BEP: Phase 3c i18n migration - Added useTranslation hook with admin, form, validation namespaces.
  *                       Replaced 18 hardcoded strings with t() calls across auth, upload UI, status messages.
  * Changelog:
@@ -52,7 +53,7 @@ function generateDocId(eventName) {
 }
 
 function UploadDescriptions() {
-  const { t } = useTranslation(['admin', 'form', 'validation']);
+  const { t } = useTranslation(['admin', 'form', 'validation', 'states', 'actions', 'auth']);
   const [firebaseUser, setFirebaseUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -119,7 +120,9 @@ function UploadDescriptions() {
       const data = JSON.parse(fileContent);
 
       if (!data.events || !Array.isArray(data.events)) {
-        throw new Error('Invalid JSON structure: missing "events" array');
+        setError(t('validation:jsonMustBeArrayOrEvents'));
+        setUploading(false);
+        return;
       }
 
       const events = data.events;
@@ -174,7 +177,7 @@ function UploadDescriptions() {
       });
     } catch (err) {
       console.error('Upload error:', err);
-      setError(err.message || t('admin:uploadFailed'));
+      setError(t('validation:failedToValidateJson'));
       setResult({
         success: false,
         message: t('admin:uploadFailed'),
@@ -342,7 +345,7 @@ function UploadDescriptions() {
 
           {selectedFile && (
             <Alert severity="info" sx={{ mb: 2 }}>
-              {t('admin:selected')}: <strong>{selectedFile.name}</strong> ({(selectedFile.size / 1024).toFixed(2)} KB)
+              {t('admin:selected')}: <strong>{selectedFile.name}</strong> ({(selectedFile.size / 1024).toFixed(2)} {t('admin:fileSizeUnit')})
             </Alert>
           )}
         </Box>

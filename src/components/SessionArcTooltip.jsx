@@ -247,7 +247,14 @@ function SessionArcTooltip({ sessionName = '', startTime = '', endTime = '', tim
                         color: 'primary.contrastText',
                         p: 0.5,
                         '&:hover': {
-                            bgcolor: 'rgba(255,255,255,0.12)',
+                            bgcolor: (theme) => theme.palette.mode === 'dark'
+                                ? 'rgba(255,255,255,0.16)'
+                                : 'rgba(255,255,255,0.12)',
+                        },
+                        '&:focus-visible': {
+                            outline: '2px solid',
+                            outlineColor: 'primary.contrastText',
+                            outlineOffset: 2,
                         },
                     }}
                 >

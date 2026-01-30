@@ -32,14 +32,14 @@
     "everyQuarter": "Chaque trimestre",
     "everyYear": "Chaque année"
   },
-  "reminders": {
-    "section": "Rappels"
-  },
   "dialog": {
     "title": {
       "create": "Nouvel événement personnalisé",
       "edit": "Modifier l'événement personnalisé",
       "close": "Fermer"
+    },
+    "unsavedChanges": {
+      "message": "Vous avez des modifications non enregistrées pour cet événement personnalisé. Si vous fermez maintenant, vos modifications seront perdues."
     },
     "details": {
       "section": "Détails",
@@ -57,45 +57,43 @@
     },
     "schedule": {
       "section": "Calendrier",
-      "fields": {
-        "date": {
-          "label": "Date"
-        },
-        "time": {
-          "label": "Heure"
-        },
-        "repeat": {
-          "label": "Répéter"
-        },
-        "recurrence": {
-          "options": {
-            "none": "Ne se répète pas",
-            "hour1": "Toutes les 1 heure",
-            "hour4": "Toutes les 4 heures",
-            "day1": "Tous les jours",
-            "week1": "Chaque semaine",
-            "month1": "Chaque mois",
-            "quarter1": "Chaque trimestre",
-            "year1": "Chaque année"
-          }
-        },
-        "recurrenceEnd": {
-          "label": "Se termine",
-          "options": {
-            "never": "Jamais",
-            "onDate": "À la date",
-            "after": "Après"
-          }
-        },
-        "endDate": {
-          "label": "Date de fin"
-        },
-        "occurrences": {
-          "label": "Occurrences"
-        },
-        "timezone": {
-          "label": "Fuseau Horaire"
+      "date": {
+        "label": "Date"
+      },
+      "time": {
+        "label": "Heure"
+      },
+      "repeat": {
+        "label": "Répéter"
+      },
+      "recurrence": {
+        "options": {
+          "none": "Ne se répète pas",
+          "hour1": "Toutes les 1 heure",
+          "hour4": "Toutes les 4 heures",
+          "day1": "Tous les jours",
+          "week1": "Chaque semaine",
+          "month1": "Chaque mois",
+          "quarter1": "Chaque trimestre",
+          "year1": "Chaque année"
         }
+      },
+      "recurrenceEnd": {
+        "label": "Se termine",
+        "options": {
+          "never": "Jamais",
+          "onDate": "À la date",
+          "after": "Après"
+        }
+      },
+      "endDate": {
+        "label": "Date de fin"
+      },
+      "occurrences": {
+        "label": "Occurrences"
+      },
+      "timezone": {
+        "label": "Fuseau Horaire"
       }
     },
     "appearance": {
@@ -103,10 +101,11 @@
       "fields": {
         "icon": {
           "label": "Icône",
-          "select": "Sélectionner l'Icône"
+          "select": "Sélectionner une Icône"
         },
         "color": {
           "label": "Couleur",
+          "select": "Sélectionner une Couleur",
           "hex": {
             "label": "Couleur Hex",
             "placeholder": "#4E7DFF"
@@ -114,9 +113,12 @@
         },
         "showOnClock": {
           "label": "Afficher sur l'horloge",
-          "description": "Afficher cet événement sur votre Horloge de Trading"
+          "description": "Afficher cet événement sur votre horloge de trading"
         }
       }
+    },
+    "reminders": {
+      "section": "Rappels"
     },
     "actions": {
       "delete": "Supprimer l'événement",

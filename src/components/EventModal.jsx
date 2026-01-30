@@ -370,7 +370,7 @@ const ImpactBadge = memo(({ impact, label, description }) => {
           minWidth: 48,
           height: 28,
           bgcolor: config.color,
-          color: 'white',
+          color: 'common.white',
           fontSize: '0.875rem',
           cursor: 'help',
           '& .MuiChip-label': {
@@ -1325,7 +1325,7 @@ function EventModal({
               mb: 1,
             }}
           >
-            {currentEvent.Name || 'Economic Event'}
+            {currentEvent.Name || t('events:event')}
           </Typography>
 
           {/* Date and Time */}
@@ -1358,7 +1358,7 @@ function EventModal({
           {/* Notes Button */}
           {onOpenNotes && (
             <MuiTooltip
-              title={isEventNotesLoading(currentEvent) ? 'Loading notes...' : (hasEventNotes(currentEvent) ? 'View notes' : 'Add note')}
+              title={isEventNotesLoading(currentEvent) ? t('events:actions.notesLoading') : (hasEventNotes(currentEvent) ? t('events:actions.viewNotes') : t('events:actions.addNote'))}
               arrow
               placement="bottom"
             >
@@ -1395,7 +1395,7 @@ function EventModal({
           {/* Favorite Button */}
           {onToggleFavorite && (
             <MuiTooltip
-              title={favoritesLoading ? 'Loading favorites...' : (isFavoriteEvent(currentEvent) ? 'Remove from favorites' : 'Save to favorites')}
+              title={favoritesLoading ? t('events:actions.favoritesLoading') : (isFavoriteEvent(currentEvent) ? t('events:actions.removeFromFavorites') : t('events:actions.saveToFavorites'))}
               arrow
               placement="bottom"
             >
@@ -1507,7 +1507,7 @@ function EventModal({
                     )}
                     {/* Custom Event Type Chip */}
                     <Chip
-                      label="Custom event"
+                      label={t('events:actions.customEventChip')}
                       size="medium"
                       sx={{
                         bgcolor: 'primary.dark',
@@ -1525,7 +1525,7 @@ function EventModal({
                   {/* Appearance - Icon & Color */}
                   <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary' }}>
-                      Appearance
+                      {t('events:modal.custom.appearance')}
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                       {/* Custom Icon */}
@@ -1596,7 +1596,7 @@ function EventModal({
                   {currentEvent.description && (
                     <Box>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary' }}>
-                        Notes
+                        {t('events:modal.custom.notes')}
                       </Typography>
                       <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
                         {currentEvent.description}
@@ -1607,7 +1607,7 @@ function EventModal({
                   {/* Timezone */}
                   <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary' }}>
-                      Timezone
+                      {t('events:modal.custom.timezone')}
                     </Typography>
                     <Chip
                       label={currentEvent.timezone?.replace(/_/g, ' ') || 'UTC'}
@@ -1619,7 +1619,7 @@ function EventModal({
                   {/* Show on Clock */}
                   <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary' }}>
-                      Visibility
+                      {t('common:visibility')}
                     </Typography>
                     <Chip
                       label={currentEvent.showOnClock !== false ? t('events:modal.custom.visibleOnClock') : t('events:modal.custom.hiddenFromClock')}
@@ -1632,7 +1632,7 @@ function EventModal({
                   {/* Reminders */}
                   <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary' }}>
-                      Reminders
+                      {t('events:actions.reminders')}
                     </Typography>
                     <RemindersEditor2
                       reminders={reminderBaseline}
@@ -1743,7 +1743,7 @@ function EventModal({
 
                     {currentEvent.category && (
                       <MuiTooltip
-                        title={`Category: ${currentEvent.category} - Event classification for filtering and analysis`}
+                        title={t('events:messages.categoryTooltip', { category: currentEvent.category })}
                         arrow
                         placement="top"
                         enterTouchDelay={100}
@@ -1792,7 +1792,7 @@ function EventModal({
                     {/* Status Badge */}
                     {currentEvent.status && (
                       <MuiTooltip
-                        title={`Status: ${currentEvent.status} - Current state of the economic event`}
+                        title={t('events:messages.statusTooltip', { status: currentEvent.status })}
                         arrow
                         placement="top"
                         enterTouchDelay={100}
@@ -1847,7 +1847,7 @@ function EventModal({
 
                     {isNow && !currentEvent.status && (
                       <MuiTooltip
-                        title="This event is happening NOW - within the 9-minute active window"
+                        title={t('events:messages.nowTooltip')}
                         arrow
                         placement="top"
                         enterTouchDelay={100}
@@ -1905,7 +1905,7 @@ function EventModal({
 
                     {isNext && !currentEvent.status && !isNow && (
                       <MuiTooltip
-                        title={`Next event in ${nextCountdown || 'calculating...'}`}
+                        title={t('events:messages.nextTooltip', { countdown: nextCountdown || 'calculating...' })}
                         arrow
                         placement="top"
                         enterTouchDelay={100}
@@ -2019,7 +2019,7 @@ function EventModal({
                     >
                       {(currentEvent.winnerSource || currentEvent.sourceKey) && (
                         <MuiTooltip
-                          title="Primary data source for this event's values"
+                          title={t('events:messages.primarySource')}
                           arrow
                           placement="top"
                           enterTouchDelay={100}
@@ -2063,7 +2063,7 @@ function EventModal({
 
                       {currentEvent.sources && Object.keys(currentEvent.sources).length > 1 && (
                         <MuiTooltip
-                          title={`Available from ${Object.keys(currentEvent.sources).length} sources: ${Object.keys(currentEvent.sources).join(', ')}`}
+                          title={t('events:messages.availableSources', { count: Object.keys(currentEvent.sources).length, sources: Object.keys(currentEvent.sources).join(', ') })}
                           arrow
                           placement="top"
                           enterTouchDelay={100}
@@ -2106,7 +2106,7 @@ function EventModal({
 
                       {currentEvent.qualityScore && (
                         <MuiTooltip
-                          title={`Data quality score: ${currentEvent.qualityScore}/100 - Higher scores indicate more reliable data`}
+                          title={t('events:messages.qualityScore', { score: currentEvent.qualityScore })}
                           arrow
                           placement="top"
                           enterTouchDelay={100}
@@ -2180,7 +2180,7 @@ function EventModal({
                         gap: 0.5,
                       }}
                     >
-                      📊 Event Data
+                      📊 {t('events:actions.dataValues')}
                       <EnhancedTooltip title="Real-time economic data: Actual results vs market forecasts and previous values">
                         <HelpOutlineIcon
                           sx={{
@@ -2209,14 +2209,14 @@ function EventModal({
                             fontSize: { xs: '0.65rem', sm: '0.7rem' },
                           }}
                         >
-                          Updated
+                          {t('events:actions.updated')}
                         </Typography>
                       </Box>
                     </Fade>
                   </Box>
 
                   {/* Refresh Icon - Top Right Corner (MUI Best Practice) */}
-                  <MuiTooltip title="Refresh event data from Firestore" arrow placement="left">
+                  <MuiTooltip title={t('events:actions.refreshData')} arrow placement="left">
                     <IconButton
                       size="small"
                       onClick={handleRefreshEvent}
@@ -2689,7 +2689,7 @@ function EventModal({
               <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                 <Stack spacing={1.5}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    Reminders
+                    {t('events:actions.reminders')}
                   </Typography>
                   <RemindersEditor2
                     reminders={reminderBaseline}
@@ -2709,12 +2709,12 @@ function EventModal({
                   />
                   {remindersDisabled && (
                     <Alert severity="info" sx={{ borderRadius: 2 }}>
-                      Sign in to save reminders across devices.
+                      {t('events:modal.reminders.signInRequired')}
                     </Alert>
                   )}
                   {!remindersDisabled && !reminderBase && (
                     <Alert severity="info" sx={{ borderRadius: 2 }}>
-                      Reminder details are still loading. Reopen this event if Save stays disabled.
+                      {t('events:modal.reminders.detailsLoading')}
                     </Alert>
                   )}
                   {reminderError && (
@@ -2730,23 +2730,23 @@ function EventModal({
                   {showReminderDebug && (
                     <Alert severity="info" sx={{ borderRadius: 2 }}>
                       <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, mb: 0.5 }}>
-                        Reminder Debug
+                        {t('events:modal.debug.reminderDebug')}
                       </Typography>
                       <Typography variant="caption" sx={{ display: 'block' }}>
-                        Event key: {reminderBase?.eventKey || '—'}
+                        {t('events:modal.debug.eventKey')} {reminderBase?.eventKey || '—'}
                       </Typography>
                       <Typography variant="caption" sx={{ display: 'block' }}>
-                        Series key: {reminderBase?.seriesKey || '—'}
+                        {t('events:modal.debug.seriesKey')} {reminderBase?.seriesKey || '—'}
                       </Typography>
                       <Typography variant="caption" sx={{ display: 'block' }}>
-                        Doc id: {reminderDoc?.id || reminderListMatch?.id || '—'}
+                        {t('events:modal.debug.docId')} {reminderDoc?.id || reminderListMatch?.id || '—'}
                       </Typography>
                       <Typography variant="caption" sx={{ display: 'block' }}>
-                        Baseline count: {reminderBaseline.length}
+                        {t('events:modal.debug.baselineCount')} {reminderBaseline.length}
                       </Typography>
                       {reminderDebugInfo && (
                         <Typography variant="caption" sx={{ display: 'block' }}>
-                          Last: {reminderDebugInfo.step} @ {reminderDebugInfo.at}
+                          {t('events:modal.debug.last')} {reminderDebugInfo.step} @ {reminderDebugInfo.at}
                         </Typography>
                       )}
                     </Alert>
@@ -2775,7 +2775,7 @@ function EventModal({
         {/* Event ID - Left Side with Copy to Clipboard */}
         {currentEvent.id && (
           <MuiTooltip
-            title={copySuccess ? "Copied!" : "Click to copy Event ID"}
+            title={copySuccess ? t('events:messages.copySuccess') : t('events:messages.copyEventId')}
             arrow
             placement="top"
           >
@@ -2829,7 +2829,7 @@ function EventModal({
                   transition: 'color 0.2s ease',
                 }}
               >
-                {copySuccess ? '✓ Copied!' : `ID: ${currentEvent.id}`}
+                {copySuccess ? `✓ ${t('events:messages.copySuccess')}` : `ID: ${currentEvent.id}`}
               </Typography>
               {!copySuccess && (
                 <Box
@@ -2864,7 +2864,7 @@ function EventModal({
             ml: 'auto',
           }}
         >
-          Close
+          {t('events:actions.closeModal')}
         </Button>
       </DialogActions>
 

@@ -181,7 +181,7 @@ export default function ForgotPasswordModal({ onClose }) {
               mb: 2,
             }}
           >
-            <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
+            <Typography variant="h4" sx={{ color: 'common.white', fontWeight: 'bold' }}>
               🔑
             </Typography>
           </Box>

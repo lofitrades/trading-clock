@@ -222,7 +222,7 @@ function VerifyingModal({ onClose }) {
             },
           }}
         >
-          <CloudSyncIcon sx={{ fontSize: 40, color: 'white' }} />
+          <CloudSyncIcon sx={{ fontSize: 40, color: 'common.white' }} />
         </Box>
         <Typography variant="h6" gutterBottom fontWeight="600">
           {t('auth:verifying.title')}
@@ -463,7 +463,7 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
             sx={{
               flex: { xs: '0 0 auto', md: '0 0 45%' },
               bgcolor: theme.palette.primary.main,
-              color: 'white',
+              color: 'common.white',
               p: { xs: 4, sm: 5 },
               display: 'flex',
               flexDirection: 'column',
@@ -516,7 +516,7 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
                     </ListItemIcon>
                     <ListItemText
                       primary={
-                        <Typography variant="body1" fontWeight="600" sx={{ color: 'white', mb: 0.5 }}>
+                        <Typography variant="body1" fontWeight="600" sx={{ color: 'common.white', mb: 0.5 }}>
                           {benefit.primary}
                         </Typography>
                       }

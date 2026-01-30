@@ -43,7 +43,8 @@
     "loading": "Chargement...",
     "events": "{{count}} événement",
     "events_plural": "{{count}} événements",
-    "noEvents": "Aucun événement"
+    "noEvents": "Aucun événement",
+    "noEventsForDay": "Aucun événement pour ce jour."
   },
   "headers": {
     "poweredBy": "Alimenté par",
@@ -55,8 +56,13 @@
   },
   "stats": {
     "eventsCount": "{{count}} événements visibles",
-    "nextIn": "Suivant dans {{time}}",
-    "eventsInProgress": "Événements en cours"
+    "loadingEvents": "Chargement des événements...",
+    "nextIn": "Prochain dans {{time}}",
+    "nextEvent": "Prochain événement",
+    "nextEventIn": "Prochain événement dans {{time}}",
+    "eventsInProgress": "Événements en cours",
+    "nextEventHiddenByFilters": "Prochain événement masqué par les filtres. Effacez les filtres pour voir.",
+    "nowEventHiddenByFilters": "Événement en cours masqué par les filtres. Effacez les filtres pour voir."
   },
   "empty": {
     "selectDateRange": "Sélectionnez une plage de dates pour voir les événements"

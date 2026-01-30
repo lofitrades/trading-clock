@@ -585,7 +585,7 @@ const ImpactBadge = memo(({ impact, isPast }) => {
           minWidth: 40,
           height: 22,
           bgcolor: isPast ? theme.palette.text.disabled : config.color,
-          color: 'white',
+          color: 'common.white',
           fontWeight: 700,
           fontSize: '0.75rem',
           fontFamily: 'monospace',

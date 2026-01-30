@@ -340,7 +340,7 @@ const ImpactCell = memo(({ strength, isPast }) => {
       size="small"
       sx={{
         bgcolor: isPast ? '#9e9e9e' : config.color,
-        color: 'white',
+        color: 'common.white',
         fontWeight: 700,
         minWidth: 40,
         height: 20,

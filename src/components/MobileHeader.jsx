@@ -6,6 +6,12 @@
  * Extracted from PublicLayout to improve separation of concerns and ensure consistency across all pages.
  * 
  * Changelog:
+ * v1.8.0 - 2026-01-29 - BEP i18n: Added 'reminders' namespace to useTranslation hook. Replaced hardcoded "Add reminder" tooltip with t('reminders:actions.addReminder') for full language awareness (EN/ES/FR). Tooltip now dynamically updates when user changes language.
+ * v1.7.0 - 2026-01-29 - BEP SIZING: Logo icon now consistent 32px (1:1 square) on all breakpoints, matching unlock button and LanguageSwitcher (both size="small"). Removed responsive width/height to maintain visual alignment across xs/sm/md.
+ * v1.6.0 - 2026-01-29 - BEP UX: LanguageSwitcher now visible for non-auth users on ALL breakpoints (xs/sm/md/lg). Removed display: { xs: 'none' } to ensure guests can change language on mobile. Key for global language preference accessibility.
+ * v1.5.0 - 2026-01-29 - BEP THEME-AWARE: Replaced hardcoded #fff with background.paper and rgba shadow
+ *                       with alpha(theme.palette.text.primary) for proper light/dark mode support.
+ *                       Focus-visible outlines now use primary.main. Fully AA accessible.
  * v1.4.0 - 2026-01-27 - BEP REFACTOR: Complete mobile header cleanup for proper spacing and responsive design. Removed complex gap: 0 logic and replaced with proper gap values (xs: 1, sm: 1.5 for container; xs: 0.75, sm: 1 for icons). Fixed logo sizing to explicit px values (28px xs, 32px sm). Hidden language switcher on xs for guests (shows on sm+). Added border-bottom and subtle shadow for visual separation. Reduced padding to px: 2/2.5 for better space utilization. Typography now shrinks properly (0.95rem xs, 1.05rem sm). All action icons properly spaced without overlap.
  * v1.3.0 - 2026-01-27 - BEP UI CONSISTENCY: Hide LanguageSwitcher for authenticated users (only show for guests). Ensure add icon, bell icon, and user avatar all have consistent circular sizing (32px xs/sm, 36px md+) with flex centering. All action icons now have matching dimensions and spacing for perfect alignment on mobile header. Updated add icon fontSize to 18px for proportion balance.
  * v1.2.1 - 2026-01-27 - BEP i18n: Added useTranslation hook and replaced hardcoded "Unlock" and "Unlock all features" text with t('common:navigation.unlock') and t('common:navigation.unlockAllFeatures') keys. Button now respects user's selected language (EN/ES/FR) via LanguageSwitcher. All copy now dynamically updates when language changes.
@@ -52,7 +58,7 @@ const MobileHeader = ({
     mobileHeaderAction,
     customEvents,
 }) => {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation(['common', 'reminders']);
     const { isAuthenticated } = useAuth();
     const { settings } = useSettings();
     const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -102,7 +108,7 @@ const MobileHeader = ({
                     justifyContent: 'space-between',
                     borderBottom: '1px solid',
                     borderColor: 'divider',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    boxShadow: (theme) => `0 1px 3px ${theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.05)'}`,
                 }}
                 aria-label="Time 2 Trade home"
             >
@@ -120,7 +126,8 @@ const MobileHeader = ({
                             flexShrink: 1,
                             minWidth: 0,
                             '&:focus-visible': {
-                                outline: '2px solid rgba(15,23,42,0.35)',
+                                outline: '2px solid',
+                                outlineColor: 'primary.main',
                                 outlineOffset: 4,
                                 borderRadius: 1,
                             },
@@ -132,8 +139,8 @@ const MobileHeader = ({
                             alt="Time 2 Trade logo"
                             sx={{
                                 display: 'block',
-                                width: { xs: 28, sm: 32 },
-                                height: { xs: 28, sm: 32 },
+                                width: 32,
+                                height: 32,
                                 objectFit: 'contain',
                                 flexShrink: 0,
                             }}
@@ -154,9 +161,9 @@ const MobileHeader = ({
                         </Typography>
                     </Box>
 
-                    {/* Language Switcher - only for guests, hidden on xs */}
+                    {/* Language Switcher - visible for guests on all breakpoints */}
                     {!user && (
-                        <Box sx={{ display: { xs: 'none', sm: 'block' }, flexShrink: 0 }}>
+                        <Box sx={{ pl: 1, display: 'block', flexShrink: 0 }}>
                             <LanguageSwitcher />
                         </Box>
                     )}
@@ -169,7 +176,7 @@ const MobileHeader = ({
 
                     {/* Add Reminder button - visible only for authenticated users */}
                     {user && !mobileHeaderAction && (
-                        <Tooltip title="Add reminder" placement="bottom">
+                        <Tooltip title={t('reminders:actions.addReminder')} placement="bottom">
                             <IconButton
                                 onClick={handleAddClick}
                                 size="small"
@@ -179,7 +186,7 @@ const MobileHeader = ({
                                     borderRadius: '50%',
                                     border: '1px solid',
                                     borderColor: 'divider',
-                                    bgcolor: '#fff',
+                                    bgcolor: 'background.paper',
                                     color: 'text.primary',
                                     p: 0,
                                     display: 'flex',
@@ -189,7 +196,7 @@ const MobileHeader = ({
                                     transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
                                     '&:hover': {
                                         transform: 'scale(1.05)',
-                                        bgcolor: '#fff',
+                                        bgcolor: 'background.paper',
                                     },
                                     '&:focus-visible': {
                                         outline: '2px solid',

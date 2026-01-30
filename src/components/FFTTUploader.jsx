@@ -6,6 +6,10 @@
 * Includes responsive preview table with matching results, expandable source comparison, and pagination.
 * 
 * Changelog:
+* v1.7.0 - 2026-01-29 - BEP THEME-AWARE: Replaced hardcoded #fff and rgba colors with theme tokens.
+*                       Table background uses background.paper, row highlights use alpha() with palette colors.
+*                       Fully AA accessible with proper contrast in light/dark modes.
+* v1.6.1 - 2026-01-29 - BEP i18n: Replaced remaining hardcoded validation copy and unknown labels.
 * v1.6.0 - 2026-01-24 - BEP: Phase 3c i18n migration - Added useTranslation hook (admin, form, validation, states, notifications).
 *                       Replaced 45+ hardcoded strings (filters, buttons, status chips, error messages, tooltips) with t() calls.
 * v1.5.0 - 2026-01-21 - Added sortable columns for events preview table.
@@ -46,7 +50,9 @@ import {
     TextField,
     Tooltip,
     Typography,
+    useTheme,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { UploadFile as UploadFileIcon, Clear as ClearIcon, CloudUpload as CloudUploadIcon, NewReleases as NewReleasesIcon, MergeType as MergeTypeIcon, ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
 import { httpsCallable } from 'firebase/functions';
 import { functions, db } from '../firebase';
@@ -61,16 +67,16 @@ const normalizePayload = (payload) => {
     return null;
 };
 
-const validateEvent = (event) => {
+const validateEvent = (event, t) => {
     const errors = [];
     if (!event || typeof event !== 'object') {
-        return ['Invalid event object'];
+        return [t('validation:invalidEventObject')];
     }
     if (!event.name || typeof event.name !== 'string') {
-        errors.push('Missing event.name');
+        errors.push(t('validation:missingEventName'));
     }
     if (!event.datetimeUtc || typeof event.datetimeUtc !== 'string') {
-        errors.push('Missing event.datetimeUtc');
+        errors.push(t('validation:missingEventDatetime'));
     }
     return errors;
 };
@@ -305,6 +311,7 @@ const orderTableFields = (fieldsArray) => {
 
 const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange, matchingResults = {} }) => {
     const { t } = useTranslation(['admin', 'actions', 'states']);
+    const theme = useTheme();
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(50);
     const [searchQuery, setSearchQuery] = useState('');
@@ -515,7 +522,7 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
             {/* Mobile-first responsive table with fixed column widths */}
             <Box sx={{ overflowX: { xs: 'auto', md: 'visible' }, width: '100%' }}>
                 <TableContainer sx={{ width: '100%' }}>
-                    <Table size="small" stickyHeader sx={{ backgroundColor: '#fff', width: '100%' }}>
+                    <Table size="small" stickyHeader sx={{ backgroundColor: 'background.paper', width: '100%' }}>
                         <TableHead>
                             <TableRow sx={{ backgroundColor: 'action.hover' }}>
                                 <TableCell
@@ -608,7 +615,11 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                     const isMatched = matchResult?.status === 'matched';
                                     const eventKey = `${actualEventIndex}-${matchResult?.matchedEventId}`;
                                     const isExpanded = expandedEventId === eventKey;
-                                    const rowBgColor = isMatched ? 'rgba(255, 152, 0, 0.08)' : isNew ? 'rgba(76, 175, 80, 0.08)' : 'inherit';
+                                    const rowBgColor = isMatched
+                                        ? alpha(theme.palette.warning.main, 0.08)
+                                        : isNew
+                                            ? alpha(theme.palette.success.main, 0.08)
+                                            : 'inherit';
                                     const detailsData = expandedDetails[eventKey];
                                     const isLoading = loadingDetails[eventKey];
 
@@ -724,7 +735,7 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                             })}
                                         </TableRow>,
                                         isMatched && (
-                                            <TableRow key={`details-${actualEventIndex}`} sx={{ backgroundColor: isExpanded ? 'rgba(255, 152, 0, 0.05)' : 'inherit' }}>
+                                            <TableRow key={`details-${actualEventIndex}`} sx={{ backgroundColor: isExpanded ? alpha(theme.palette.warning.main, 0.05) : 'inherit' }}>
                                                 <TableCell colSpan={orderedFields.length + 3} sx={{ py: 0, px: 1, width: '100%' }}>
                                                     <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                                                         <Stack spacing={2} sx={{ py: 2 }}>
@@ -775,7 +786,7 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                                                                             {field}
                                                                                         </Typography>
                                                                                         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-                                                                                            <Box sx={{ p: 0.75, backgroundColor: 'rgba(76, 175, 80, 0.15)', borderRadius: 0.5 }}>
+                                                                                            <Box sx={{ p: 0.75, backgroundColor: alpha(theme.palette.success.main, 0.15), borderRadius: 0.5 }}>
                                                                                                 <Typography variant="caption" fontWeight={700} color="success.dark" display="block">
                                                                                                     {t('admin:newValue')}:
                                                                                                 </Typography>
@@ -783,7 +794,7 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                                                                                     {JSON.stringify(comparison.incoming, null, 2)}
                                                                                                 </Typography>
                                                                                             </Box>
-                                                                                            <Box sx={{ p: 0.75, backgroundColor: 'rgba(255, 152, 0, 0.15)', borderRadius: 0.5 }}>
+                                                                                            <Box sx={{ p: 0.75, backgroundColor: alpha(theme.palette.warning.main, 0.15), borderRadius: 0.5 }}>
                                                                                                 <Typography variant="caption" fontWeight={700} color="warning.dark" display="block">
                                                                                                     {t('admin:existingValue')}:
                                                                                                 </Typography>
@@ -797,7 +808,7 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                                                             </Stack>
                                                                         </Box>
                                                                     ) : (
-                                                                        <Box sx={{ p: 1, backgroundColor: 'rgba(76, 175, 80, 0.1)', borderRadius: 1 }}>
+                                                                        <Box sx={{ p: 1, backgroundColor: alpha(theme.palette.success.main, 0.1), borderRadius: 1 }}>
                                                                             <Typography variant="caption" color="success.dark" fontWeight={700}>
                                                                                 ✓ {t('admin:noFieldDifferences')}
                                                                             </Typography>
@@ -858,7 +869,7 @@ EventsPreviewTable.defaultProps = {
 };
 
 export default function FFTTUploader() {
-    const { t } = useTranslation(['admin', 'form', 'validation', 'actions', 'states', 'notifications']);
+    const { t } = useTranslation(['admin', 'form', 'validation', 'actions', 'states', 'notifications', 'common']);
     const { userProfile, loading } = useAuth();
     const isSuperadmin = useMemo(() => userProfile?.role === 'superadmin', [userProfile?.role]);
     const [selectedFile, setSelectedFile] = useState(null);
@@ -906,15 +917,19 @@ export default function FFTTUploader() {
             const events = normalizePayload(parsed);
 
             if (!events) {
-                throw new Error(t('validation:jsonMustBeArrayOrEvents'));
+                setError(t('validation:jsonMustBeArrayOrEvents'));
+                setValidatedEvents([]);
+                setSelectedEventIndices([]);
+                setMatchingResults({});
+                return;
             }
 
             const issues = [];
             const validEvents = [];
             events.forEach((evt, index) => {
-                const errs = validateEvent(evt);
+                const errs = validateEvent(evt, t);
                 if (errs.length > 0) {
-                    issues.push({ index, errors: errs, name: evt?.name || 'Unknown' });
+                    issues.push({ index, errors: errs, name: evt?.name || t('common:labels.unknown') });
                 } else {
                     validEvents.push(evt);
                 }
@@ -970,7 +985,7 @@ export default function FFTTUploader() {
                 });
             }
         } catch (err) {
-            setError(err.message || t('validation:failedToValidateJson'));
+            setError(t('validation:failedToValidateJson'));
             setValidatedEvents([]);
             setSelectedEventIndices([]);
             setMatchingResults({});
@@ -999,15 +1014,15 @@ export default function FFTTUploader() {
             const events = normalizePayload(parsed);
 
             if (!events) {
-                throw new Error('JSON must be an array or { "events": [] }.');
+                throw new Error(t('validation:jsonMustBeArrayOrEvents'));
             }
 
             const issues = [];
             const validEvents = [];
             events.forEach((evt, index) => {
-                const errs = validateEvent(evt);
+                const errs = validateEvent(evt, t);
                 if (errs.length > 0) {
-                    issues.push({ index, errors: errs, name: evt?.name || 'Unknown' });
+                    issues.push({ index, errors: errs, name: evt?.name || t('common:labels.unknown') });
                 } else {
                     validEvents.push(evt);
                 }
@@ -1046,7 +1061,7 @@ export default function FFTTUploader() {
             setValidatedEvents([]);
             setSelectedEventIndices([]);
         } catch (err) {
-            setError(err.message || t('admin:uploadFailed'));
+            setError(err?.message || t('admin:uploadFailed'));
         } finally {
             setUploading(false);
         }
@@ -1066,7 +1081,7 @@ export default function FFTTUploader() {
                 <Card sx={{ maxWidth: 520, width: '100%' }}>
                     <CardContent>
                         <Typography variant="h6" fontWeight={800} gutterBottom>
-                            FF-T2T Uploader
+                            {t('admin:ffttTitle')}
                         </Typography>
                         <Alert severity="error">{t('admin:superadminAccessRequired')}</Alert>
                     </CardContent>
@@ -1081,7 +1096,7 @@ export default function FFTTUploader() {
                 <Stack spacing={2.5}>
                     <Box>
                         <Typography variant="h4" fontWeight={900} gutterBottom>
-                            FF-T2T Uploader
+                            {t('admin:ffttTitle')}
                         </Typography>
                         <Typography variant="subtitle1" color="text.secondary">
                             {t('admin:uploadGptGeneratedDescription')}

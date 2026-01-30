@@ -8,6 +8,7 @@
  * Changelog:
  * v1.0.28 - 2026-01-15 - TOP SPACING ALIGNMENT: Removed extra top padding so the Economic Calendar paper aligns with PublicLayout spacing like /about.
  * v1.0.27 - 2026-01-15 - HEIGHT & SCROLL FIX (ENTERPRISE AUDIT): Fixed right column height exceeding left column and missing vertical scroll. (1) Added height:'100%' to grid container to fill parent flex. (2) Added maxHeight:'100%' and overflow:'hidden' to both columns to constrain content. (3) Ensured right column has overflowY:'auto' for proper vertical scrolling. (4) Grid now uses alignItems:'stretch' instead of 'start' so columns share same height. Follows enterprise pattern: grid fills available space, columns scroll independently within their bounds.
+ * v1.0.27 - 2026-01-15 - HEIGHT & SCROLL FIX (ENTERPRISE AUDIT): Fixed right column height exceeding left column and missing vertical scroll. (1) Added height:'100%' to grid container to fill parent flex. (2) Added maxHeight:'100%' and overflow:'hidden' to both columns to constrain content. (3) Ensured right column has overflowY:'auto' for proper vertical scrolling. (4) Grid now uses alignItems:'stretch' instead of 'start' so columns share same height. Follows enterprise pattern: grid fills available space, columns scroll independently within their bounds.
  * v1.0.26 - 2026-01-15 - GRID LAYOUT FIX (ENTERPRISE AUDIT): Simplified two-column grid to use flexible fr units instead of strict minmax with large pixel minimums that caused overflow. Changed from minmax(360px, 520px) minmax(480px, 1fr) to 1fr 2fr on md and 1fr 2.5fr on lg. This ensures columns scale properly within PublicLayout constraints (maxWidth:1560, px:responsive) without forcing content wider than viewport. Mobile-first responsive: xs uses single column (1fr), md/lg use proportional two-column splits. Follows enterprise MUI dashboard pattern: grid columns should be flexible within their container, not force container to expand.
  * v1.0.25 - 2026-01-15 - WIDTH CONSTRAINT FIX (ENTERPRISE AUDIT): Removed DASHBOARD_APP_BAR_CONTAINER_SX from AppBar wrapper and removed unused import (eliminates double-layering of width constraints when appBar prop is used). Removed overflowX:'hidden' from content container (was hiding overflow instead of preventing it). AppBar wrapper now only handles sticky positioning and margin-bottom, not width constraints. Content container now properly constrains children without hiding overflow. Follows enterprise single-layer width constraint pattern: PublicLayout provides authoritative centering (maxWidth:1560, mx:auto, px:responsive), all children use width:100% only.
  * v1.0.24 - 2026-01-15 - WIDTH CONSTRAINT FIX (REVERTED): Removed maxWidth/mx/px from CONTENT_CONTAINER_SX and topBanner wrapper. CalendarEmbedLayout is a child of PublicLayout which already provides outer centering (maxWidth: 1560, mx: auto, px: responsive). Double-layering constraints caused width overflow. Now follows AboutPage pattern: child uses only width:100%, parent (PublicLayout) handles centering. Enterprise best practice: single responsibility for width constraints at layout level.
@@ -40,7 +41,9 @@
  */
 
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 import { Box, IconButton, Tooltip } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import KeyboardDoubleArrowDownRoundedIcon from '@mui/icons-material/KeyboardDoubleArrowDownRounded';
 import KeyboardDoubleArrowUpRoundedIcon from '@mui/icons-material/KeyboardDoubleArrowUpRounded';
 
@@ -84,6 +87,9 @@ const CalendarEmbedLayout = ({
     topBanner,
     appBar,
 }) => {
+    const { t } = useTranslation('tooltips');
+    const theme = useTheme();
+
     const JumpNextIcon = jumpToNextDirection === 'up'
         ? KeyboardDoubleArrowUpRoundedIcon
         : KeyboardDoubleArrowDownRoundedIcon;
@@ -226,9 +232,9 @@ const CalendarEmbedLayout = ({
                         zIndex: 1500,
                     }}
                 >
-                    <Tooltip title="Jump to Now" placement="left">
+                    <Tooltip title={t('tooltips.jumpToNow', 'Jump to Now')} placement="left">
                         <IconButton
-                            aria-label="Jump to event in progress"
+                            aria-label={t('tooltips.jumpToNow', 'Jump to Now')}
                             onClick={onJumpToNow}
                             sx={{
                                 bgcolor: 'info.main',
@@ -264,9 +270,9 @@ const CalendarEmbedLayout = ({
                         zIndex: 1500,
                     }}
                 >
-                    <Tooltip title="Jump to Next" placement="left">
+                    <Tooltip title={t('tooltips.jumpToNext', 'Jump to Next')} placement="left">
                         <IconButton
-                            aria-label="Jump to next event"
+                            aria-label={t('tooltips.jumpToNext', 'Jump to Next')}
                             onClick={onJumpToNext}
                             sx={{
                                 bgcolor: 'success.main',

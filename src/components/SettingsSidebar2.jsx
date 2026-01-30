@@ -5,6 +5,14 @@
  * Inspired by modern app shells (Airbnb/ChatGPT) with quick toggles, sectional pills, and responsive cards that mirror existing settings logic.
  *
  * Changelog:
+ * v2.1.4 - 2026-01-30 - BEP i18n: Updated unlock button copy from generic 'unlockAllFeatures' to context-specific 'settings:drawer.unlockButton' (Create free account to unlock all settings). Added i18n key to all 6 locale files (public/locales and src/i18n/locales for EN/ES/FR).
+ * v2.1.3 - 2026-01-30 - BEP HEADER REFINEMENT: Reduced header padding from xs: 2, sm: 2.5 to xs: 1.5, sm: 2 for compact height following BEP standards. Added top border-radius (borderTopLeftRadius: md: 20) for rounded corners matching app's consistent design. Added conditional subtitle for non-auth users only (settings:drawer.subtitle key) inviting them to unlock features. Removed header box-shadow for cleaner look. Changed header flex layout to vertical stack with flex: 1 on title container.
+ * v2.1.2 - 2026-01-29 - HOTFIX: Removed stale showAccountModal reference from Drawer open condition that caused ReferenceError in production. Variable was removed in v2.1.1 but reference in open prop was missed.
+ * v2.1.1 - 2026-01-29 - BEP UX SIMPLIFICATION: Removed account dropdown accordion (collapsible Account/Logout menu) for authenticated users.
+ *                       Hid the entire user profile card for auth users; non-auth users continue to see the "Unlock All Features" button.
+ *                       Removed related state: showAccountModal, userMenuAnchor; removed imports: Avatar, AccountCircleIcon, ArrowDropDownIcon, AccountModal.
+ *                       Simplified header to conditionally show unlock button only when user is not authenticated.
+ * v2.1.0 - 2026-01-29 - BEP i18n: Removed remaining hardcoded account, footer, and confirm modal copy.
  * v2.0.9 - 2026-01-28 - REACT HOOK BEP FIX: Updated useEffect dependency array to include [themeMode, setThemeMode] instead of empty array. Fixes ESLint warning about missing dependencies and ensures proper hook behavior.
  * v2.0.8 - 2026-01-28 - BEP UX CONSISTENCY: Set header background color to 'background.paper' explicitly, matching the rest of the sidebar. Ensures Settings header has uniform appearance with the content area in both light and dark themes.
  * v2.0.7 - 2026-01-28 - BEP UX POLISH: Increased border radius of theme toggle buttons from default to borderRadius: 2 for all three buttons (light/dark/system). Matches app's rounded aesthetic for better visual consistency and modern look.
@@ -47,11 +55,10 @@
  */
 
 import PropTypes from 'prop-types';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
 	Alert,
-	Avatar,
 	Box,
 	Button,
 	Divider,
@@ -67,8 +74,6 @@ import {
 import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
@@ -81,17 +86,15 @@ import DarkModeIcon from '@mui/icons-material/DarkModeRounded';
 import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightnessRounded';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
-import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useThemeMode } from '../contexts/themeContextUtils';
+import { useAuth } from '../contexts/AuthContext';
 import { triggerNfsWeekSync, triggerJblankedActualsSync, triggerJblankedForexFactorySinceSync } from '../services/economicEventsService';
-import AccountModal from './AccountModal';
 import AuthModal2 from './AuthModal2';
 import ConfirmModal from './ConfirmModal';
 import SwitchComponent from './Switch';
 import TimezoneSelector from './TimezoneSelector';
 import LanguageSwitcher from './LanguageSwitcher';
-import { useCallback } from 'react';
 import { aboutContent } from '../content/aboutContent';
 
 function SectionCard({ title, subtitle, children, dense }) {
@@ -157,7 +160,8 @@ function SettingRow({ label, description, children, helperText, dense }) {
 }
 
 export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenContact }) {
-	const { t } = useTranslation(['settings', 'common']);
+	const { t } = useTranslation(['settings', 'common', 'actions', 'tooltips', 'a11y']);
+	const { t: tAbout, ready: aboutReady } = useTranslation('about', { useSuspense: false });
 
 	const navItems = useMemo(() => [
 		{ key: 'general', label: t('settings:navigation.general'), icon: <SettingsRoundedIcon fontSize="small" /> },
@@ -200,13 +204,11 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 	const sessionLabelControlsVisible = false;
 
 	const [activeSection, setActiveSection] = useState('general');
-	const [showAccountModal, setShowAccountModal] = useState(false);
 	const [showUnlockModal, setShowUnlockModal] = useState(false);
 	const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
 	const [showClearSessionConfirm, setShowClearSessionConfirm] = useState(false);
 	const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState(false);
 	const [clearSessionIndex, setClearSessionIndex] = useState(null);
-	const [userMenuAnchor, setUserMenuAnchor] = useState(null);
 	const [toggleError, setToggleError] = useState('');
 	const [syncingWeek, setSyncingWeek] = useState(false);
 	const [syncingActuals, setSyncingActuals] = useState(false);
@@ -220,8 +222,6 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 			setThemeMode(themeMode);
 		}
 	}, [themeMode, setThemeMode]); // Include dependencies to avoid stale closures
-
-	const handleUserMenuClose = () => setUserMenuAnchor(null);
 
 	const handleSyncWeek = useCallback(async () => {
 		if (syncingWeek) return;
@@ -286,15 +286,10 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 		}
 	}, [syncingForexFactoryRange]);
 
-	const handleLogoutClick = () => {
-		setShowLogoutConfirmModal(true);
-	};
-
 	const handleLogout = async () => {
 		try {
 			await signOut(auth);
 			resetSettings();
-			handleUserMenuClose();
 			onClose();
 			setShowLogoutConfirmModal(false);
 		} catch (error) {
@@ -382,7 +377,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 		() => (
 			<Box
 				role="tablist"
-				aria-label="Settings sections"
+				aria-label={t('a11y:settings.sections')}
 				sx={{
 					display: 'flex',
 					gap: 1,
@@ -419,7 +414,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 				})}
 			</Box>
 		),
-		[activeSection, navItems]
+		[activeSection, navItems, t]
 	);
 
 	const quickToggles = (
@@ -774,19 +769,19 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 							},
 						}}
 					>
-						<ToggleButton value="light" aria-label="light" sx={{ flex: 1, borderRadius: 2 }}>
+						<ToggleButton value="light" aria-label={t('settings:general.appearance.light')} sx={{ flex: 1, borderRadius: 2 }}>
 							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
 								<LightModeIcon sx={{ fontSize: '1.1rem' }} />
 								{t('settings:general.appearance.light')}
 							</Box>
 						</ToggleButton>
-						<ToggleButton value="dark" aria-label="dark" sx={{ flex: 1, borderRadius: 2 }}>
+						<ToggleButton value="dark" aria-label={t('settings:general.appearance.dark')} sx={{ flex: 1, borderRadius: 2 }}>
 							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
 								<DarkModeIcon sx={{ fontSize: '1.1rem' }} />
 								{t('settings:general.appearance.dark')}
 							</Box>
 						</ToggleButton>
-						<ToggleButton value="system" aria-label="system" sx={{ flex: 1, borderRadius: 2 }}>
+						<ToggleButton value="system" aria-label={t('settings:general.appearance.system')} sx={{ flex: 1, borderRadius: 2 }}>
 							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
 								<SettingsBrightnessIcon sx={{ fontSize: '1.1rem' }} />
 								{t('settings:general.appearance.system')}
@@ -933,25 +928,25 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 						>
 							<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.25, gap: 1 }}>
 								<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-									Session {index + 1}
+									{t('settings:sessions.sessionLabel', { number: index + 1 })}
 								</Typography>
 								<IconButton
 									size="small"
 									onClick={() => handleRequestClearSession(index)}
 									sx={{ color: 'text.secondary' }}
-									aria-label={`Clear session ${index + 1}`}
+									aria-label={t('a11y:settings.clearSession', { number: index + 1 })}
 								>
 									<DeleteOutlineIcon fontSize="small" />
 								</IconButton>
 							</Box>
 
 							<TextField
-								label="Name"
+								label={t('settings:sessions.form.nameLabel')}
 								size="small"
 								fullWidth
 								value={session.name}
 								onChange={(event) => handleSessionChange(index, 'name', event.target.value)}
-								placeholder={`Session ${index + 1} Name`}
+								placeholder={t('settings:sessions.form.namePlaceholder', { number: index + 1 })}
 								sx={{ mb: 1.5 }}
 							/>
 
@@ -963,7 +958,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 								}}
 							>
 								<TextField
-									label="Start Time"
+									label={t('settings:sessions.form.startTimeLabel')}
 									type="time"
 									size="small"
 									value={session.startNY}
@@ -971,7 +966,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 									InputLabelProps={{ shrink: true }}
 								/>
 								<TextField
-									label="End Time"
+									label={t('settings:sessions.form.endTimeLabel')}
 									type="time"
 									size="small"
 									value={session.endNY}
@@ -979,7 +974,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 									InputLabelProps={{ shrink: true }}
 								/>
 								<TextField
-									label="Color"
+									label={t('settings:sessions.form.colorLabel')}
 									type="color"
 									size="small"
 									value={session.color}
@@ -1000,7 +995,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 	// BEP: All text comes from i18n translation keys, not hardcoded strings
 	const renderContentBlock = (block, index) => {
 		if (block.type === 'paragraph') {
-			const text = t(block.key, '');
+			const text = tAbout(block.key, '');
 			if (!text) return null;
 
 			return (
@@ -1025,7 +1020,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 		}
 
 		if (block.type === 'heading') {
-			const text = t(block.key, '');
+			const text = tAbout(block.key, '');
 			if (!text) return null;
 
 			return (
@@ -1049,8 +1044,8 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 			return (
 				<Box key={index} component="ul" sx={{ pl: 3, mb: 2 }}>
 					{block.items.map((item, itemIndex) => {
-						const label = t(item.labelKey, '');
-						const text = t(item.textKey, '');
+						const label = tAbout(item.labelKey, '');
+						const text = tAbout(item.textKey, '');
 						if (!label || !text) return null;
 
 						return (
@@ -1068,74 +1063,84 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 
 	const renderAboutSection = (
 		<SectionCard>
-			<Typography
-				variant="h2"
-				sx={{
-					fontSize: { xs: '1.5rem', sm: '1.75rem' },
-					fontWeight: 700,
-					mb: 1,
-					mt: 0,
-				}}
-			>
-				{t(aboutContent.title)}
-			</Typography>
-			<Typography
-				variant="subtitle1"
-				sx={{
-					fontSize: { xs: '0.95rem', sm: '1rem' },
-					color: 'text.secondary',
-					mb: 3,
-				}}
-			>
-				{t(aboutContent.subtitle)}
-			</Typography>
-			{aboutContent.sections.map((section, sectionIndex) => (
-				<Box key={sectionIndex} sx={{ mb: sectionIndex < aboutContent.sections.length - 1 ? 3 : 0 }}>
-					{section.title && (
-						<Typography
-							variant="h3"
+			{!aboutReady ? (
+				<Box sx={{ textAlign: 'center', py: 4 }}>
+					<Typography color="text.secondary">
+						{t('common:loading')}
+					</Typography>
+				</Box>
+			) : (
+				<>
+					<Typography
+						variant="h2"
+						sx={{
+							fontSize: { xs: '1.5rem', sm: '1.75rem' },
+							fontWeight: 700,
+							mb: 1,
+							mt: 0,
+						}}
+					>
+						{tAbout(aboutContent.title)}
+					</Typography>
+					<Typography
+						variant="subtitle1"
+						sx={{
+							fontSize: { xs: '0.95rem', sm: '1rem' },
+							color: 'text.secondary',
+							mb: 3,
+						}}
+					>
+						{tAbout(aboutContent.subtitle)}
+					</Typography>
+					{aboutContent.sections.map((section, sectionIndex) => (
+						<Box key={sectionIndex} sx={{ mb: sectionIndex < aboutContent.sections.length - 1 ? 3 : 0 }}>
+							{section.title && (
+								<Typography
+									variant="h3"
+									sx={{
+										fontSize: { xs: '1.1rem', sm: '1.25rem' },
+										fontWeight: 700,
+										mb: 1.5,
+										mt: sectionIndex > 0 ? 3 : 0,
+									}}
+								>
+									{tAbout(section.title)}
+								</Typography>
+							)}
+							{section.content.map((block, blockIndex) => renderContentBlock(block, blockIndex))}
+						</Box>
+					))}
+					<Box sx={{ mt: 3, pt: 3, borderTop: 1, borderColor: 'divider' }}>
+						<Button
+							variant="outlined"
+							fullWidth
+							href="/about"
+							target="_blank"
+							rel="noopener noreferrer"
 							sx={{
-								fontSize: { xs: '1.1rem', sm: '1.25rem' },
-								fontWeight: 700,
-								mb: 1.5,
-								mt: sectionIndex > 0 ? 3 : 0,
+								textTransform: 'none',
+								borderRadius: 2,
+								py: 1.25,
 							}}
 						>
-							{t(section.title)}
-						</Typography>
-					)}
-					{section.content.map((block, blockIndex) => renderContentBlock(block, blockIndex))}
-				</Box>
-			))}
-			<Box sx={{ mt: 3, pt: 3, borderTop: 1, borderColor: 'divider' }}>
-				<Button
-					variant="outlined"
-					fullWidth
-					href="/about"
-					target="_blank"
-					rel="noopener noreferrer"
-					sx={{
-						textTransform: 'none',
-						borderRadius: 2,
-						py: 1.25,
-					}}
-				>
-					Read Full About Page
-				</Button>
-				<Button
-					variant="contained"
-					fullWidth
-					{...(onOpenContact ? { onClick: onOpenContact } : { href: '/contact' })}
-					sx={{
-						textTransform: 'none',
-						borderRadius: 2,
-						py: 1.25,
-						mt: 1.5,
-					}}
-				>
-					Contact us
-				</Button>
-			</Box>
+							{t('settings:about.readFullAbout')}
+						</Button>
+						<Button
+							variant="contained"
+							fullWidth
+							{...(onOpenContact ? { onClick: onOpenContact } : { href: '/contact' })}
+							sx={{
+								textTransform: 'none',
+								borderRadius: 2,
+								py: 1.25,
+								mt: 1.5,
+							}}
+						>
+							{t('settings:about.contactButton')}
+						</Button>
+					</Box>
+				</>
+			)}
 		</SectionCard>
 	);
 
@@ -1149,7 +1154,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 		<>
 			<Drawer
 				anchor="right"
-				open={open && !showUnlockModal && !showAccountModal && !showResetConfirmModal && !showLogoutConfirmModal}
+				open={open && !showUnlockModal && !showResetConfirmModal && !showLogoutConfirmModal}
 				onClose={onClose}
 				variant="temporary"
 				ModalProps={{ keepMounted: true }}
@@ -1175,34 +1180,40 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 			>
 				<Box
 					sx={{
-						p: { xs: 2, sm: 2.5 },
+						p: { xs: 1.5, sm: 2 },
 						borderBottom: 1,
 						borderColor: 'divider',
+						borderTopLeftRadius: { xs: 0, md: 20 },
+						borderTopRightRadius: { xs: 0, md: 0 },
 						display: 'flex',
 						alignItems: 'center',
 						justifyContent: 'space-between',
 						gap: 1.5,
 						flexShrink: 0,
 						bgcolor: 'background.paper',
-						boxShadow: '0 8px 20px rgba(15,23,42,0.06)',
 					}}
 				>
-					<Box>
-						<Typography variant="h6" sx={{ fontWeight: 700 }}>
-							Settings
+					<Box sx={{ flex: 1, minWidth: 0 }}>
+						<Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+							{t('settings:drawer.title')}
 						</Typography>
+						{!user && (
+							<Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+								{t('settings:drawer.subtitle')}
+							</Typography>
+						)}
 					</Box>
 					<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
 						{user && hasRole && hasRole('superadmin') && (
 							<>
-								<Tooltip title="Sync week (NFS)" arrow>
+								<Tooltip title={t('tooltips:admin.syncWeek')} arrow>
 									<span>
 										<IconButton
 											size="small"
 											onClick={handleSyncWeek}
 											disabled={syncingWeek}
 											sx={{ '&:hover': { bgcolor: 'action.hover' } }}
-											aria-label="Sync week"
+											aria-label={t('a11y:settings.syncWeek')}
 										>
 											<CalendarViewWeekIcon
 												sx={{
@@ -1213,14 +1224,14 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 										</IconButton>
 									</span>
 								</Tooltip>
-								<Tooltip title="Sync today's actuals (JBlanked)" arrow>
+								<Tooltip title={t('tooltips:admin.syncActuals')} arrow>
 									<span>
 										<IconButton
 											size="small"
 											onClick={handleSyncActuals}
 											disabled={syncingActuals}
 											sx={{ '&:hover': { bgcolor: 'action.hover' } }}
-											aria-label="Sync actuals"
+											aria-label={t('a11y:settings.syncActuals')}
 										>
 											<FactCheckIcon
 												sx={{
@@ -1231,14 +1242,14 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 										</IconButton>
 									</span>
 								</Tooltip>
-								<Tooltip title="Backfill Forex Factory since 01/01/26" arrow>
+								<Tooltip title={t('tooltips:admin.syncForexFactory')} arrow>
 									<span>
 										<IconButton
 											size="small"
 											onClick={handleSyncForexFactoryRange}
 											disabled={syncingForexFactoryRange}
 											sx={{ '&:hover': { bgcolor: 'action.hover' } }}
-											aria-label="Backfill Forex Factory"
+											aria-label={t('a11y:settings.syncForexFactory')}
 										>
 											<HistoryIcon
 												sx={{
@@ -1255,7 +1266,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 							size="small"
 							onClick={onClose}
 							sx={{ '&:hover': { bgcolor: 'action.hover' } }}
-							aria-label="Close settings"
+							aria-label={t('a11y:settings.closeDrawer')}
 						>
 							<CloseIcon />
 						</IconButton>
@@ -1271,90 +1282,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 				)}
 
 				<Box sx={{ p: { xs: 2, sm: 2.5 }, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
-					{user ? (
-						<>
-							<Paper
-								elevation={0}
-								sx={{
-									border: 1,
-									borderColor: 'divider',
-									borderRadius: 2,
-									overflow: 'hidden',
-								}}
-							>
-								<Box
-									sx={{
-										display: 'flex',
-										alignItems: 'center',
-										gap: 1.25,
-										p: 1.25,
-										cursor: 'pointer',
-										bgcolor: 'action.hover',
-									}}
-									onClick={() => {
-										// If collapsing (menu is open), just close it
-										if (userMenuAnchor) {
-											setUserMenuAnchor(false);
-										}
-										// If expanding and no displayName, open account modal directly
-										else if (!user.displayName) {
-											setShowAccountModal(true);
-										}
-										// Otherwise toggle the menu normally
-										else {
-											setUserMenuAnchor(true);
-										}
-									}}
-								>
-									{user.photoURL ? (
-										<Avatar
-											src={user.photoURL}
-											alt={user.displayName || user.email || 'User'}
-											sx={{ width: 40, height: 40 }}
-											imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' }}
-										/>
-									) : (
-										<Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main' }}>
-											<AccountCircleIcon />
-										</Avatar>
-									)}
-									<Box sx={{ flex: 1, minWidth: 0 }}>
-										<Typography variant="subtitle2" noWrap sx={{ fontWeight: 700 }}>
-											{user.displayName || user.email}
-										</Typography>
-										<Typography variant="caption" color="text.secondary" noWrap>
-											{user.displayName ? user.email : 'Click to add your name'}
-										</Typography>
-									</Box>
-									<ArrowDropDownIcon fontSize="small" sx={{ transform: userMenuAnchor ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-								</Box>
-								{userMenuAnchor && (
-									<Box sx={{ borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
-										<Button
-											fullWidth
-											onClick={() => {
-												setShowAccountModal(true);
-												setUserMenuAnchor(false);
-											}}
-											sx={{ justifyContent: 'flex-start', textTransform: 'none', py: 1.25, px: 1.5, color: 'text.primary' }}
-										>
-											My Account
-										</Button>
-										<Button
-											fullWidth
-											onClick={() => {
-												handleLogoutClick();
-												setUserMenuAnchor(false);
-											}}
-											sx={{ justifyContent: 'flex-start', textTransform: 'none', py: 1.25, px: 1.5, color: 'text.primary' }}
-										>
-											Log out
-										</Button>
-									</Box>
-								)}
-							</Paper>
-						</>
-					) : (
+					{!user && (
 						<Button
 							variant="contained"
 							color="primary"
@@ -1373,7 +1301,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 								},
 							}}
 						>
-							Unlock all features
+							{t('settings:drawer.unlockButton')}
 						</Button>
 					)}
 				</Box>
@@ -1407,7 +1335,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 							color="text.secondary"
 							sx={{ textAlign: 'center', display: 'block' }}
 						>
-							Have questions?{' '}
+							{t('settings:footer.contactPrompt')}{' '}
 							<Button
 								component="button"
 								onClick={onOpenContact}
@@ -1426,7 +1354,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 									},
 								}}
 							>
-								Contact us
+								{t('settings:footer.contactLinkText')}
 							</Button>
 						</Typography>
 					</Box>
@@ -1447,7 +1375,7 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 							color="text.secondary"
 							sx={{ textAlign: 'center', display: 'block' }}
 						>
-							Have questions?{' '}
+							{t('settings:footer.contactPrompt')}{' '}
 							<Button
 								component="button"
 								onClick={onOpenContact}
@@ -1466,20 +1394,13 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 									},
 								}}
 							>
-								Contact us
+								{t('settings:footer.contactLinkText')}
 							</Button>
 						</Typography>
 					</Box>
 				)}
 			</Drawer>
 
-			{showAccountModal && (
-				<AccountModal
-					open={showAccountModal}
-					onClose={() => setShowAccountModal(false)}
-					user={user}
-				/>
-			)}
 			{showUnlockModal && (
 				<AuthModal2
 					open={showUnlockModal}
@@ -1492,9 +1413,9 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 					onClose={() => setShowResetConfirmModal(false)}
 					onConfirm={handleResetSettings}
 					title={t('settings:modals.confirmReset')}
-					message="This will reset all settings including sessions, colors, and preferences to their default values. This action cannot be undone."
-					confirmText="Reset Settings"
-					cancelText="Cancel"
+					message={t('settings:modals.resetSettingsInfo')}
+					confirmText={t('settings:modals.resetSettingsConfirmButton')}
+					cancelText={t('actions:cancel')}
 				/>
 			)}
 			{showClearSessionConfirm && (
@@ -1503,9 +1424,9 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 					onClose={handleCancelClearSession}
 					onConfirm={handleConfirmClearSession}
 					title={t('settings:modals.clearSession')}
-					message={t('settings:modals.clearSessionInfo')}
-					confirmText="Clear session"
-					cancelText="Cancel"
+					message={t('settings:modals.clearSessionInfo', { number: clearSessionIndex + 1 })}
+					confirmText={t('settings:modals.clearSessionConfirmButton')}
+					cancelText={t('actions:cancel')}
 				/>
 			)}
 			{showLogoutConfirmModal && (
@@ -1514,9 +1435,9 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 					onClose={() => setShowLogoutConfirmModal(false)}
 					onConfirm={handleLogout}
 					title={t('settings:account.logoutConfirm')}
-					message="Are you sure you want to log out? You'll need to sign in again to access your saved settings."
-					confirmText="Log out"
-					cancelText="Cancel"
+					message={t('settings:modals.logoutConfirmMessage')}
+					confirmText={t('settings:modals.logoutConfirmButton')}
+					cancelText={t('actions:cancel')}
 					slotProps={{ backdrop: { sx: { zIndex: 1699 } } }}
 				/>
 			)}

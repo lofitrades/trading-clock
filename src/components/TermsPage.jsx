@@ -9,6 +9,10 @@
  * and md+ (sticky AppBar). All content fully internationalized (EN/ES/FR).
  * 
  * Changelog:
+ * v1.4.0 - 2026-01-29 - BEP THEME-AWARE: Replaced all hardcoded hex colors with MUI theme tokens.
+ *                       bgcolor: #f9fafb → background.default, color: #0f172a → text.primary,
+ *                       color: #475569 → text.secondary. Warning box uses theme warning palette.
+ *                       Fully AA accessible with proper contrast in light/dark modes.
  * v1.3.1 - 2026-01-28 - BEP BUGFIX: Added missing `useMemo` import from React. Fixes ReferenceError in TermsPageContent component.
  * v1.3.0 - 2026-01-28 - APPBAR INTEGRATION: Added navItems prop to PublicLayout for sticky AppBar display.
  * Includes Clock, Calendar, and Settings navigation buttons. Uses i18n t() keys from common:navigation namespace.
@@ -23,12 +27,13 @@
 
 import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
-import { Box, Container, Stack, Typography, Link, Divider } from '@mui/material';
+import { Box, Container, Stack, Typography, Link, Divider, useTheme } from '@mui/material';
 import PublicLayout from './PublicLayout';
 import useAppBarNavItems from '../hooks/useAppBarNavItems.jsx';
 
 function TermsPageContent() {
     const { t } = useTranslation('terms');
+    const theme = useTheme();
 
     // Memoize section keys for table of contents
     const sectionKeys = useMemo(() => [
@@ -59,8 +64,8 @@ function TermsPageContent() {
                 height: { xs: 'calc(100vh - 48px - var(--t2t-bottom-nav-height, 64px))', md: 'calc(100vh - 72px)' },
                 overflowY: 'auto',
                 overflowX: 'hidden',
-                bgcolor: '#f9fafb',
-                color: '#0f172a',
+                bgcolor: 'background.default',
+                color: 'text.primary',
             }}
         >
             <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
@@ -69,14 +74,14 @@ function TermsPageContent() {
                     <Stack spacing={1}>
                         <Typography
                             variant="overline"
-                            sx={{ letterSpacing: 1, fontWeight: 700, color: '#475569' }}
+                            sx={{ letterSpacing: 1, fontWeight: 700, color: 'text.secondary' }}
                         >
                             {t('page.metaTitle')}
                         </Typography>
                         <Typography variant="h3" sx={{ fontWeight: 800 }}>
                             {t('page.title')}
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#475569', fontWeight: 600 }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                             {t('page.description')}
                         </Typography>
                     </Stack>
@@ -94,7 +99,7 @@ function TermsPageContent() {
                                     key={key}
                                     href={`#${key}`}
                                     underline="hover"
-                                    sx={{ color: '#0f172a', fontWeight: 600, display: 'block' }}
+                                    sx={{ color: 'text.primary', fontWeight: 600, display: 'block' }}
                                 >
                                     {t(`sections.${key}.heading`)}
                                 </Link>
@@ -109,7 +114,7 @@ function TermsPageContent() {
                         <Typography variant="h5" sx={{ fontWeight: 800, mb: 2 }}>
                             {t('sections.acceptance.heading')}
                         </Typography>
-                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: '#475569' }}>
+                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: 'text.secondary' }}>
                             {renderItems('acceptance').map((item, i) => (
                                 <Typography key={i} component="li" variant="body1">
                                     {item}
@@ -123,7 +128,7 @@ function TermsPageContent() {
                         <Typography variant="h5" sx={{ fontWeight: 800, mb: 2 }}>
                             {t('sections.description.heading')}
                         </Typography>
-                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: '#475569' }}>
+                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: 'text.secondary' }}>
                             {renderItems('description').map((item, i) => (
                                 <Typography key={i} component="li" variant="body1">
                                     {item}
@@ -143,7 +148,7 @@ function TermsPageContent() {
                                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
                                     {t('sections.accounts.creation.title')}
                                 </Typography>
-                                <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: '#475569' }}>
+                                <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: 'text.secondary' }}>
                                     {renderItems('accounts', 'creation').map((item, i) => (
                                         <Typography key={i} component="li" variant="body1">
                                             {item}
@@ -157,7 +162,7 @@ function TermsPageContent() {
                                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
                                     {t('sections.accounts.responsibilities.title')}
                                 </Typography>
-                                <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: '#475569' }}>
+                                <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: 'text.secondary' }}>
                                     {renderItems('accounts', 'responsibilities').map((item, i) => (
                                         <Typography key={i} component="li" variant="body1">
                                             {item}
@@ -171,7 +176,7 @@ function TermsPageContent() {
                                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
                                     {t('sections.accounts.termination.title')}
                                 </Typography>
-                                <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: '#475569' }}>
+                                <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: 'text.secondary' }}>
                                     {renderItems('accounts', 'termination').map((item, i) => (
                                         <Typography key={i} component="li" variant="body1">
                                             {item}
@@ -187,10 +192,10 @@ function TermsPageContent() {
                         <Typography variant="h5" sx={{ fontWeight: 800, mb: 2 }}>
                             {t('sections.acceptableUse.heading')}
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#475569', fontWeight: 600, mb: 1 }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, mb: 1 }}>
                             {t('sections.acceptableUse.intro')}
                         </Typography>
-                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: '#475569' }}>
+                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: 'text.secondary' }}>
                             {renderItems('acceptableUse').map((item, i) => (
                                 <Typography key={i} component="li" variant="body1">
                                     {item}
@@ -204,7 +209,7 @@ function TermsPageContent() {
                         <Typography variant="h5" sx={{ fontWeight: 800, mb: 2 }}>
                             {t('sections.disclaimer.heading')}
                         </Typography>
-                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: '#475569' }}>
+                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: 'text.secondary' }}>
                             {renderItems('disclaimer').map((item, i) => (
                                 <Typography key={i} component="li" variant="body1">
                                     {item}
@@ -218,7 +223,7 @@ function TermsPageContent() {
                         <Typography variant="h5" sx={{ fontWeight: 800, mb: 2 }}>
                             {t('sections.liabilityLimitation.heading')}
                         </Typography>
-                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: '#475569' }}>
+                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: 'text.secondary' }}>
                             {renderItems('liabilityLimitation').map((item, i) => (
                                 <Typography key={i} component="li" variant="body1">
                                     {item}
@@ -232,7 +237,7 @@ function TermsPageContent() {
                         <Typography variant="h5" sx={{ fontWeight: 800, mb: 2 }}>
                             {t('sections.intellectual.heading')}
                         </Typography>
-                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: '#475569' }}>
+                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: 'text.secondary' }}>
                             {renderItems('intellectual').map((item, i) => (
                                 <Typography key={i} component="li" variant="body1">
                                     {item}
@@ -246,7 +251,7 @@ function TermsPageContent() {
                         <Typography variant="h5" sx={{ fontWeight: 800, mb: 2 }}>
                             {t('sections.thirdParty.heading')}
                         </Typography>
-                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: '#475569' }}>
+                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: 'text.secondary' }}>
                             {renderItems('thirdParty').map((item, i) => (
                                 <Typography key={i} component="li" variant="body1">
                                     {item}
@@ -260,7 +265,7 @@ function TermsPageContent() {
                         <Typography variant="h5" sx={{ fontWeight: 800, mb: 2 }}>
                             {t('sections.arbitration.heading')}
                         </Typography>
-                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: '#475569' }}>
+                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: 'text.secondary' }}>
                             {renderItems('arbitration').map((item, i) => (
                                 <Typography key={i} component="li" variant="body1">
                                     {item}
@@ -274,7 +279,7 @@ function TermsPageContent() {
                         <Typography variant="h5" sx={{ fontWeight: 800, mb: 2 }}>
                             {t('sections.general.heading')}
                         </Typography>
-                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: '#475569' }}>
+                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: 'text.secondary' }}>
                             {renderItems('general').map((item, i) => (
                                 <Typography key={i} component="li" variant="body1">
                                     {item}
@@ -288,7 +293,7 @@ function TermsPageContent() {
                         <Typography variant="h5" sx={{ fontWeight: 800, mb: 2 }}>
                             {t('sections.contact.heading')}
                         </Typography>
-                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: '#475569' }}>
+                        <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: 'text.secondary' }}>
                             {renderItems('contact').map((item, i) => (
                                 <Typography key={i} component="li" variant="body1">
                                     {item}
@@ -300,19 +305,25 @@ function TermsPageContent() {
                     <Divider sx={{ my: 4 }} />
 
                     {/* Important Disclaimers */}
-                    <Box sx={{ bgcolor: '#fef3c7', border: '2px solid #f59e0b', borderRadius: 2, p: 3 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, color: '#92400e' }}>
+                    <Box sx={{
+                        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(251, 191, 36, 0.1)' : 'rgba(254, 243, 199, 1)',
+                        border: '2px solid',
+                        borderColor: 'warning.main',
+                        borderRadius: 2,
+                        p: 3
+                    }}>
+                        <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, color: 'warning.dark' }}>
                             {t('disclaimers.title')}
                         </Typography>
                         <Stack spacing={1}>
-                            <Typography variant="body2" sx={{ color: '#78350f' }}>
+                            <Typography variant="body2" sx={{ color: (theme) => theme.palette.mode === 'dark' ? 'warning.light' : 'warning.dark' }}>
                                 {t('disclaimers.noFinancialAdvice')}
                             </Typography>
-                            <Typography variant="body2" sx={{ color: '#78350f' }}>
+                            <Typography variant="body2" sx={{ color: (theme) => theme.palette.mode === 'dark' ? 'warning.light' : 'warning.dark' }}>
                                 {t('disclaimers.tradingRisks')}
                             </Typography>
-                            <Typography variant="body2" sx={{ color: '#78350f' }}>
-                                {t('disclaimers.yourResponsibility')}
+                            <Typography variant="body2" sx={{ color: (theme) => theme.palette.mode === 'dark' ? 'warning.light' : 'warning.dark' }}>
+                                {t('disclaimers.yourResponsibility')}}
                             </Typography>
                         </Stack>
                     </Box>
@@ -357,7 +368,7 @@ export default function TermsPage() {
 
     return (
         <PublicLayout navItems={navItems}>
-            <Box component="main" sx={{ bgcolor: '#f9fafb', color: '#0f172a', minHeight: '100vh' }}>
+            <Box component="main" sx={{ bgcolor: 'background.default', color: 'text.primary', minHeight: '100vh' }}>
                 <TermsPageContent />
             </Box>
         </PublicLayout>

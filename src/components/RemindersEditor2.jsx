@@ -275,10 +275,16 @@ function ReminderCard({
                                 size="small"
                                 onClick={() => onEdit(index)}
                                 disabled={disabled}
+                                aria-label={t('reminders:actions.edit')}
                                 title={t('reminders:actions.edit')}
                                 sx={{
                                     color: 'primary.main',
                                     '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) },
+                                    '&:focus-visible': {
+                                        outline: '2px solid',
+                                        outlineColor: 'primary.main',
+                                        outlineOffset: 2,
+                                    },
                                 }}
                             >
                                 <EditRoundedIcon sx={{ fontSize: 18 }} />
@@ -287,10 +293,16 @@ function ReminderCard({
                                 size="small"
                                 onClick={() => onDelete(index)}
                                 disabled={disabled}
+                                aria-label={t('reminders:actions.delete')}
                                 title={t('reminders:actions.delete')}
                                 sx={{
                                     color: 'error.main',
                                     '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08) },
+                                    '&:focus-visible': {
+                                        outline: '2px solid',
+                                        outlineColor: 'error.main',
+                                        outlineOffset: 2,
+                                    },
                                 }}
                             >
                                 <DeleteOutlineIcon sx={{ fontSize: 18 }} />
@@ -490,10 +502,16 @@ function ReminderCard({
                                 size="small"
                                 onClick={() => onDelete(index)}
                                 disabled={disabled || isSaving}
+                                aria-label={t('reminders:actions.delete')}
                                 title={t('reminders:actions.delete')}
                                 sx={{
                                     color: 'error.main',
                                     '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08) },
+                                    '&:focus-visible': {
+                                        outline: '2px solid',
+                                        outlineColor: 'error.main',
+                                        outlineOffset: 2,
+                                    },
                                 }}
                             >
                                 <DeleteOutlineIcon sx={{ fontSize: 18 }} />

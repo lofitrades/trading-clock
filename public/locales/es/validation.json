@@ -21,5 +21,8 @@
   "jsonMustBeArrayOrEvents": "JSON debe ser un array o { \"events\": [] }.",
   "failedToValidateJson": "Error al validar JSON.",
   "selectAtLeastOneEvent": "Selecciona al menos un evento para cargar.",
-  "eventsHaveValidationErrors": "Algunos eventos tienen errores de validación. Corrígelos antes de cargar."
+  "eventsHaveValidationErrors": "Algunos eventos tienen errores de validación. Corrige antes de cargar.",
+  "invalidEventObject": "Objeto de evento inválido",
+  "missingEventName": "Falta event.name",
+  "missingEventDatetime": "Falta event.datetimeUtc"
 }

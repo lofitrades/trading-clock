@@ -282,7 +282,7 @@ export default function EmailLinkHandler() {
               },
             }}
           >
-            <CircularProgress size={40} sx={{ color: 'white' }} />
+            <CircularProgress size={40} sx={{ color: 'common.white' }} />
           </Box>
 
           <Typography variant="h5" gutterBottom fontWeight="700">
@@ -349,7 +349,7 @@ export default function EmailLinkHandler() {
               },
             }}
           >
-            <CheckCircleIcon sx={{ fontSize: 48, color: 'white' }} />
+            <CheckCircleIcon sx={{ fontSize: 48, color: 'common.white' }} />
           </Box>
 
           <Typography variant="h5" gutterBottom fontWeight="700" color="success.main">

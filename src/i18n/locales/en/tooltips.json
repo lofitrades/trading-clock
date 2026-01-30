@@ -4,5 +4,13 @@
   "timeToStart": "Display the time until the next session starts",
   "timeToEndLabel": "Time to end",
   "timeToStartLabel": "Starts in",
-  "userMenu": "User account menu"
+  "timeToEndWithValue": "Time to end: {{time}}",
+  "timeToStartWithValue": "Starts in: {{time}}",
+  "nextSessionWithTime": "Next: {{session}} ({{time}})",
+  "userMenu": "User account menu",
+  "admin": {
+    "syncWeek": "Sync week (NFS)",
+    "syncActuals": "Sync today's actuals (JBlanked)",
+    "syncForexFactory": "Backfill Forex Factory since 01/01/26"
+  }
 }

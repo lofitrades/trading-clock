@@ -5,6 +5,7 @@
  * Exports unified multi-source events with all fields (NFS, JBlanked, GPT) in enterprise JSON format.
  * Requires superadmin RBAC role.
  * 
+ * v2.1.1 - 2026-01-29 - BEP i18n: Removed remaining hardcoded export copy and standardized error messaging.
  * v2.1.0 - 2026-01-24 - BEP: Phase 3c i18n migration - Added useTranslation hook with admin namespace.
  *                       Replaced 19 hardcoded strings with t() calls across access control, export UI, results display.
  * Changelog:
@@ -223,7 +224,7 @@ export default function ExportEvents() {
       });
     } catch (err) {
       console.error('❌ Export failed:', err);
-      setError(err.message || 'Failed to export events');
+      setError(t('admin:exportFailedDefault'));
     } finally {
       setExporting(false);
     }
@@ -261,7 +262,7 @@ export default function ExportEvents() {
 
         <Alert severity="info" sx={{ mb: 3 }}>
           <Typography variant="body2">
-            <strong>📊 {t('admin:canonicalCollection')}:</strong> economicEvents/events/events<br />
+            <strong>📊 {t('admin:canonicalCollection')}:</strong> {t('admin:canonicalCollectionPathValue')}<br />
             <strong>📋 {t('admin:formatLabel')}:</strong> {t('admin:enterpriseJSON')}
           </Typography>
         </Alert>
@@ -371,7 +372,7 @@ export default function ExportEvents() {
           <List dense sx={{ ml: 1 }}>
             <ListItem disableGutters>
               <Typography variant="caption" component="span">
-                <strong>{t('admin:pathLabel')}:</strong> economicEvents/events/events/{`{eventId}`}
+                <strong>{t('admin:pathLabel')}:</strong> {t('admin:canonicalEventDocPath')}
               </Typography>
             </ListItem>
             <ListItem disableGutters>
@@ -391,7 +392,7 @@ export default function ExportEvents() {
             </ListItem>
             <ListItem disableGutters>
               <Typography variant="caption" component="span">
-                <strong>{t('admin:priorityOrder')}:</strong> NFS → JBlanked-FF → GPT → JBlanked-MT → JBlanked-FXStreet
+                <strong>{t('admin:priorityOrder')}:</strong> {t('admin:priorityOrderValue')}
               </Typography>
             </ListItem>
           </List>

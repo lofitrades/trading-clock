@@ -4,5 +4,13 @@
   "timeToStart": "Afficher le temps jusqu'au début de la prochaine session",
   "timeToEndLabel": "Temps avant la fin",
   "timeToStartLabel": "Commence dans",
-  "userMenu": "Menu de compte utilisateur"
+  "timeToEndWithValue": "Temps avant la fin : {{time}}",
+  "timeToStartWithValue": "Commence dans : {{time}}",
+  "nextSessionWithTime": "Prochaine : {{session}} ({{time}})",
+  "userMenu": "Menu de compte utilisateur",
+  "admin": {
+    "syncWeek": "Synchroniser la semaine NFS",
+    "syncActuals": "Synchroniser les données réelles du jour (JBlanked)",
+    "syncForexFactory": "Remplir Forex Factory depuis le 01/01/26"
+  }
 }

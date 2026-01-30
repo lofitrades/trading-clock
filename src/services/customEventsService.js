@@ -19,6 +19,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -569,14 +570,82 @@ export const updateCustomEvent = async (userId, eventId, payload = {}) => {
   if (data.reminders.length > 0) {
     await upsertReminderForUser(userId, reminderPayload);
   } else {
-    await deleteReminderForUser(userId, reminderPayload.eventKey);
+    // BEP FIX: Query and delete ALL reminder documents with matching keys
+    // This prevents orphaned reminders when reminders are cleared from custom event
+    const eventKey = reminderPayload.eventKey;
+    const seriesKey = reminderPayload.seriesKey;
+    
+    const remindersCollectionRef = collection(db, 'users', userId, 'reminders');
+    const deletePromises = [];
+    
+    // Query by eventKey
+    if (eventKey) {
+      const eventKeyQuery = query(remindersCollectionRef, where('eventKey', '==', eventKey));
+      const eventKeySnapshot = await getDocs(eventKeyQuery);
+      eventKeySnapshot.forEach((docSnap) => {
+        deletePromises.push(deleteDoc(doc(db, 'users', userId, 'reminders', docSnap.id)));
+      });
+    }
+    
+    // Query by seriesKey
+    if (seriesKey) {
+      const seriesKeyQuery = query(remindersCollectionRef, where('seriesKey', '==', seriesKey));
+      const seriesKeySnapshot = await getDocs(seriesKeyQuery);
+      seriesKeySnapshot.forEach((docSnap) => {
+        deletePromises.push(deleteDoc(doc(db, 'users', userId, 'reminders', docSnap.id)));
+      });
+    }
+    
+    // Execute all deletions
+    await Promise.all(deletePromises);
+    
+    // Also try the eventKey as a direct document ID (legacy)
+    try {
+      if (eventKey) {
+        await deleteReminderForUser(userId, eventKey);
+      }
+    } catch (err) {
+      // Ignore if not found
+    }
   }
 };
 
 export const deleteCustomEvent = async (userId, eventId) => {
   if (!userId || !eventId) throw new Error('User must be authenticated to delete a custom event.');
+  
+  // BEP FIX: Query and delete ALL reminder documents with matching eventKey/seriesKey
+  // This prevents orphaned reminders from custom events
+  const eventKey = buildEventKey({ event: { id: eventId }, eventSource: CUSTOM_SOURCE });
+  const seriesKey = `${CUSTOM_SOURCE}__${eventId}`;
+  
+  const remindersCollectionRef = collection(db, 'users', userId, 'reminders');
+  const deletePromises = [];
+  
+  // Query by eventKey
+  const eventKeyQuery = query(remindersCollectionRef, where('eventKey', '==', eventKey));
+  const eventKeySnapshot = await getDocs(eventKeyQuery);
+  eventKeySnapshot.forEach((docSnap) => {
+    deletePromises.push(deleteDoc(doc(db, 'users', userId, 'reminders', docSnap.id)));
+  });
+  
+  // Query by seriesKey
+  const seriesKeyQuery = query(remindersCollectionRef, where('seriesKey', '==', seriesKey));
+  const seriesKeySnapshot = await getDocs(seriesKeyQuery);
+  seriesKeySnapshot.forEach((docSnap) => {
+    deletePromises.push(deleteDoc(doc(db, 'users', userId, 'reminders', docSnap.id)));
+  });
+  
+  // Also try the eventKey as a direct document ID (legacy)
+  try {
+    await deleteReminderForUser(userId, eventKey);
+  } catch (err) {
+    // Ignore if not found
+  }
+  
+  // Execute all deletion queries
+  await Promise.all(deletePromises);
+  
+  // Finally, delete the custom event document
   const eventRef = doc(db, 'users', userId, CUSTOM_EVENTS_COLLECTION, eventId);
   await deleteDoc(eventRef);
-  const reminderId = buildEventKey({ event: { id: eventId }, eventSource: CUSTOM_SOURCE });
-  await deleteReminderForUser(userId, reminderId);
 };

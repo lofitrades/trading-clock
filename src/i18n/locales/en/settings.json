@@ -43,6 +43,10 @@
         "label": "Seconds Hand",
         "description": "Display the seconds hand"
       },
+      "secondsHand": {
+        "label": "Seconds Hand",
+        "description": "Display the seconds hand"
+      },
       "eventsOnCanvas": {
         "label": "Events on canvas",
         "description": "Display economic event markers on the analog face"
@@ -72,6 +76,11 @@
         "description": "Display current timezone"
       }
     },
+    "timeDisplay": {
+      "title": "Time Display",
+      "showTimeToEnd": "Show time to end",
+      "showTimeToStart": "Show time to start"
+    },
     "background": {
       "title": "Background",
       "sessionBased": {
@@ -92,16 +101,26 @@
       "namePlaceholder": "Session {{number}} Name",
       "startTimeLabel": "Start Time",
       "endTimeLabel": "End Time",
+      "colorLabel": "Color",
       "deleteConfirm": "Delete this session?"
     }
   },
   "about": {
-    "title": "About"
+    "title": "About",
+    "readFullAbout": "Read Full About Page",
+    "contactButton": "Contact us"
+  },
+  "drawer": {
+    "title": "Settings",
+    "subtitle": "Create a free account to unlock all features",
+    "unlockButton": "Create free account to unlock all settings"
   },
   "account": {
     "title": "Account",
+    "myAccount": "My Account",
+    "addNamePrompt": "Click to add your name",
     "logoutConfirm": "Logout and lose local settings?",
-    "logoutButton": "Logout"
+    "logoutButton": "Log out"
   },
   "admin": {
     "syncWeekNFS": "Sync NFS Week",
@@ -120,13 +139,20 @@
   "modals": {
     "confirmReset": "Reset all settings to defaults?",
     "clearSession": "Clear session {{number}}?",
-    "clearSessionInfo": "This will reset session name, start, and end times.",
+    "clearSessionInfo": "Clear session {{number}}? This will reset session name, start, and end times.",
+    "resetSettingsInfo": "This will reset all settings including sessions, colors, and preferences to their default values. This action cannot be undone.",
+    "resetSettingsConfirmButton": "Reset settings",
+    "clearSessionConfirmButton": "Clear session",
+    "logoutConfirmMessage": "Are you sure you want to log out? You'll need to sign in again to access your saved settings.",
+    "logoutConfirmButton": "Log out",
     "contact": "Have questions? Contact us"
   },
   "errors": {
     "minimumToggle": "At least one of the main clock elements must be enabled."
   },
   "footer": {
-    "contactLink": "Have questions? Contact us"
+    "contactLink": "Have questions? Contact us",
+    "contactPrompt": "Have questions?",
+    "contactLinkText": "Contact us"
   }
 }

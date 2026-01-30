@@ -12,6 +12,7 @@
  * - Lazy-loaded ClockEventsOverlay for performance
  *
  * Changelog:
+ * v1.2.0 - 2026-01-29 - BEP THEME AWARE: Fixed timezone button to use clockPaperTextColor instead of handColor. Button now adapts dynamically to both light/dark theme modes and session-based backgrounds. Ensures consistent text color adaptation across button text and hover states, matching the paper background context rather than canvas hand visibility.
  * v1.1.0 - 2026-01-28 - BEP THEME: Replaced hardcoded colors with theme tokens. Changed '#ffffff' to theme.palette.background.paper, '#F6F9FB' to theme.palette.background.default, '#0F172A' to theme.palette.text.primary. All clock surface, hand, and text colors now adapt to light/dark theme modes dynamically.
  * v1.0.9 - 2026-01-29 - BEP CONSISTENCY: Fixed font color to match Economic Calendar. Changed clockPaperTextColor to use theme.palette.text.primary when backgroundBasedOnSession is false (instead of hardcoded '#0F172A'). Now Trading Clock panel text color matches CalendarEmbed's text color exactly, ensuring consistent font UI across /calendar page.
  * v1.0.8 - 2026-01-29 - BEP CONSISTENCY: Updated title Typography styling to exactly match CalendarEmbed title. Changed lineHeight from 1.1 to 1.2 (lineHeight: 1.2) for perfect visual consistency between "Trading Clock" and "Economic Calendar" titles on /calendar page. Both now use variant="h6" with fontWeight: 900 and lineHeight: 1.2.
@@ -441,7 +442,7 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
                         onClick={onOpenTimezone}
                         sx={{
                             textTransform: 'none',
-                            color: alpha(handColor, 0.7),
+                            color: alpha(clockPaperTextColor, 0.72),
                             fontSize: '0.75rem',
                             fontWeight: 600,
                             minWidth: 'auto',
@@ -452,8 +453,8 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             '&:hover': {
-                                bgcolor: alpha(handColor, 0.08),
-                                color: handColor,
+                                bgcolor: alpha(clockPaperTextColor, 0.1),
+                                color: clockPaperTextColor,
                             },
                         }}
                     >

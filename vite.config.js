@@ -19,6 +19,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import dns from 'node:dns'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // BEP: Fix localhost DNS resolution mismatch between Node.js and browser
 // Per Vite docs: Node.js under v17 reorders DNS-resolved addresses by default
@@ -28,6 +32,11 @@ dns.setDefaultResultOrder('verbatim')
 export default defineConfig({
   plugins: [react()],
   base: '/',
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   build: {
     // BEP: Reduce chunk size warnings and minimize CSS/JS
     chunkSizeWarningLimit: 600,

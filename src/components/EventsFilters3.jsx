@@ -374,13 +374,13 @@ export default function EventsFilters3({
           // hasCustomEvents prop indicates if custom events exist in the user's subcollection
           const hasCus = hasCustomEvents || Boolean(user);
 
-          // BEP: Build ordered list: ALL first, CUS second, then USD, then other standard currencies, then N/A at end
+          // BEP: Build ordered list: ALL first, then USD, then other standard currencies, N/A, and CUS last
           const orderedStandard = ['USD', ...standardCurrencies.filter((c) => String(c).toUpperCase() !== 'USD')];
           const reordered = [
             CURRENCY_ALL, // Always include ALL for global events
-            ...(hasCus ? [CURRENCY_CUS] : []), // CUS second when user has custom events or is authenticated
             ...orderedStandard,
             ...(hasUnk ? [CURRENCY_UNK] : []), // Only show N/A if events with unknown currency exist
+            ...(hasCus ? [CURRENCY_CUS] : []), // CUS last when user has custom events or is authenticated
           ];
 
           setCurrencies(reordered);

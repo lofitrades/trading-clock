@@ -32,14 +32,14 @@
     "everyQuarter": "Every quarter",
     "everyYear": "Every year"
   },
-  "reminders": {
-    "section": "Reminders"
-  },
   "dialog": {
     "title": {
       "create": "New custom event",
       "edit": "Edit custom event",
       "close": "Close"
+    },
+    "unsavedChanges": {
+      "message": "You have unsaved changes to this custom event. If you close now, your changes will be lost."
     },
     "details": {
       "section": "Details",
@@ -57,45 +57,43 @@
     },
     "schedule": {
       "section": "Schedule",
-      "fields": {
-        "date": {
-          "label": "Date"
-        },
-        "time": {
-          "label": "Time"
-        },
-        "repeat": {
-          "label": "Repeat"
-        },
-        "recurrence": {
-          "options": {
-            "none": "Does not repeat",
-            "hour1": "Every 1 hour",
-            "hour4": "Every 4 hours",
-            "day1": "Every day",
-            "week1": "Every week",
-            "month1": "Every month",
-            "quarter1": "Every quarter",
-            "year1": "Every year"
-          }
-        },
-        "recurrenceEnd": {
-          "label": "Ends",
-          "options": {
-            "never": "Never",
-            "onDate": "On date",
-            "after": "After"
-          }
-        },
-        "endDate": {
-          "label": "End date"
-        },
-        "occurrences": {
-          "label": "Occurrences"
-        },
-        "timezone": {
-          "label": "Timezone"
+      "date": {
+        "label": "Date"
+      },
+      "time": {
+        "label": "Time"
+      },
+      "repeat": {
+        "label": "Repeat"
+      },
+      "recurrence": {
+        "options": {
+          "none": "Does not repeat",
+          "hour1": "Every 1 hour",
+          "hour4": "Every 4 hours",
+          "day1": "Every day",
+          "week1": "Every week",
+          "month1": "Every month",
+          "quarter1": "Every quarter",
+          "year1": "Every year"
         }
+      },
+      "recurrenceEnd": {
+        "label": "Ends",
+        "options": {
+          "never": "Never",
+          "onDate": "On date",
+          "after": "After"
+        }
+      },
+      "endDate": {
+        "label": "End date"
+      },
+      "occurrences": {
+        "label": "Occurrences"
+      },
+      "timezone": {
+        "label": "Timezone"
       }
     },
     "appearance": {
@@ -107,6 +105,7 @@
         },
         "color": {
           "label": "Color",
+          "select": "Select Color",
           "hex": {
             "label": "Hex Color",
             "placeholder": "#4E7DFF"
@@ -117,6 +116,9 @@
           "description": "Display this event on your trading clock"
         }
       }
+    },
+    "reminders": {
+      "section": "Reminders"
     },
     "actions": {
       "delete": "Delete event",

@@ -60,6 +60,7 @@ export default function ConfirmModal({
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
+      sx={{ zIndex: 1700 }}
       slotProps={{
         backdrop: { sx: BACKDROP_OVERLAY_SX },
         paper: { sx: { zIndex: 1700 } },

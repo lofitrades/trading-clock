@@ -57,5 +57,9 @@
     "calendar": "Open Calendar",
     "privacy": "Privacy",
     "terms": "Terms"
+  },
+  "modal": {
+    "title": "Contact Support",
+    "closeAriaLabel": "Close contact form"
   }
 }

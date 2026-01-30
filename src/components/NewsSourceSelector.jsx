@@ -142,7 +142,15 @@ export default function NewsSourceSelector({
           <IconButton
             onClick={() => handleOpenChange(false)}
             size="small"
-            sx={{ ml: 2 }}
+            aria-label="Close data sources dialog"
+            sx={{
+              ml: 2,
+              '&:focus-visible': {
+                outline: '2px solid',
+                outlineColor: 'primary.main',
+                outlineOffset: 2,
+              },
+            }}
           >
             <CloseIcon />
           </IconButton>

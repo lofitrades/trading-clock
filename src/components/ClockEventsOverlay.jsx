@@ -170,6 +170,9 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
 
   useEffect(() => () => clearCloseTimer(), [clearCloseTimer]);
 
+  // Handle tooltip open/close animation states
+  // CRITICAL: Only depend on openMarkerKey to avoid infinite loop
+  // renderedMarkerKey is derived state managed within this effect
   useEffect(() => {
     if (tooltipAnimFrameRef.current) {
       window.cancelAnimationFrame(tooltipAnimFrameRef.current);
@@ -181,23 +184,25 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
     }
 
     if (openMarkerKey) {
+      // Opening: set rendered key immediately, then animate in
       setRenderedMarkerKey(openMarkerKey);
       setTooltipVisible(false);
       tooltipAnimFrameRef.current = window.requestAnimationFrame(() => {
         setTooltipVisible(true);
       });
-      return undefined;
-    }
-
-    if (renderedMarkerKey) {
+    } else {
+      // Closing: animate out, then clear rendered key after delay
       setTooltipVisible(false);
-      tooltipCloseTimerRef.current = window.setTimeout(() => {
-        setRenderedMarkerKey(null);
-      }, TOOLTIP_ANIM_MS);
+      // Only schedule cleanup if there's something to clean up
+      if (renderedMarkerKey) {
+        tooltipCloseTimerRef.current = window.setTimeout(() => {
+          setRenderedMarkerKey(null);
+        }, TOOLTIP_ANIM_MS);
+      }
     }
 
     return undefined;
-  }, [openMarkerKey, renderedMarkerKey]);
+  }, [openMarkerKey]); // Only depend on openMarkerKey - renderedMarkerKey is managed internally
 
   // Track the actual overlay box size so marker math stays aligned even if the parent adds padding/margins.
   useEffect(() => {
@@ -371,6 +376,9 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
   });
 
   // Track marker lifecycle in refs to avoid setState render loops
+  // BEP: Memory leak prevention - limit ref sizes to prevent unbounded growth
+  const MAX_MARKER_HISTORY = 100; // Maximum markers to track in history
+
   useEffect(() => {
     const currentKeys = new Set(markers.map((m) => m.key));
 
@@ -400,6 +408,15 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
         appearedAtRef.current.delete(key);
       }
     });
+
+    // BEP: Memory leak prevention - prune appearedAtRef if it grows too large
+    if (appearedAtRef.current.size > MAX_MARKER_HISTORY) {
+      // Keep only the most recent entries
+      const sorted = Array.from(appearedAtRef.current.entries())
+        .sort((a, b) => b[1] - a[1]) // Sort by timestamp descending (newest first)
+        .slice(0, MAX_MARKER_HISTORY);
+      appearedAtRef.current = new Map(sorted);
+    }
 
     // Snapshot current markers for the next tick
     const nextPrev = new Map();

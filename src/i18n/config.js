@@ -6,6 +6,8 @@
  * Reduces initial bundle size by ~500KB by eliminating 78 static JSON imports
  *
  * Changelog:
+ * v2.0.5 - 2026-01-30 - BEP i18n FIX: Added 'events' and 'reminders' namespaces to preload list. CustomEventDialog and RemindersEditor2 were showing translation keys instead of values because these namespaces weren't preloaded. Events namespace needed for recurrence/appearance dropdowns, reminders namespace needed for lead time units (minutes/hours/days) and channel labels. Preloaded namespaces now: common, pages, filter, calendar, settings, contact, admin, actions, dialogs, form, validation, states, tooltips, a11y, auth, events, reminders.
+ * v2.0.4 - 2026-01-29 - BEP i18n: Expanded preload list to cover admin, actions, dialogs, form, validation, states, tooltips, a11y, and auth namespaces used across UI.
  * v2.0.3 - 2026-01-28 - BEP FIX: Added 'settings' namespace to preload list. SettingsSidebar2 uses useTranslation(['settings', 'common']) for all drawer content including navigation tabs, visibility toggles, appearance, language/timezone, background settings, and session config. Preloading ensures no translation keys flash when opening settings. Preloaded namespaces now: common, pages, filter, calendar, about, settings.
  * v2.0.2 - 2026-01-29 - BEP FIX: Added 'calendar' namespace to preload list. Table headers in CalendarEmbed need immediate access to table.headers.* keys (time, currency, impact, event, actual, forecast, previous) to prevent translation keys from flashing during page load. Preloaded namespaces now: common, pages, filter, calendar.
  * v2.0.1 - 2026-01-29 - BEP FIX: Added 'filter' namespace to preload list. The /calendar page uses EventsFilters3 which requires filter:* keys for date presets, impacts, currencies, actions. Preloading ensures no translation keys are visible during initial render (enterprise BEP standard). Preloaded namespaces now: common, pages, filter.
@@ -33,7 +35,7 @@ i18n
   .use(initReactI18next)      // Initialize React integration
   .init({
     fallbackLng: 'en',        // Fall back to English if language not found
-    ns: ['common', 'pages', 'filter', 'calendar', 'about', 'settings'],  // Preload critical namespaces for instant UX (common, pages, filter for /calendar page; calendar for table headers; about for /about page; settings for SettingsSidebar2)
+    ns: ['common', 'pages', 'filter', 'calendar', 'settings', 'contact', 'admin', 'actions', 'dialogs', 'form', 'validation', 'states', 'tooltips', 'a11y', 'auth', 'events', 'reminders'],  // 'about' lazy loaded when About tab visited
     defaultNS: 'common',
     
     // BEP: Lazy load other namespaces when components mount

@@ -671,4 +671,3 @@ npm run deploy           # Build + deploy to Firebase Hosting
 **Additonal instructions or clarifications can be appended here as needed:**
 - 'bep'/'BEP' = 'following all best React, Firebase, MUI, UI, UX, dev, copywriting, security, performance, loading speed, separation of concerns, SEO, accessibility and mobile-first-responsive top modern enterprise practices'.
 - **i18n Standard:** All client-facing copy MUST use translation keys (t keys) with full translations in EN/ES/FR locale files before deployment.
-- **i18n Standard:** All client-facing copy MUST use translation keys (t keys) with full translations in EN/ES/FR locale files before deployment.

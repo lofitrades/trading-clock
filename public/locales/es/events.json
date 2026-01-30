@@ -32,14 +32,100 @@
     "everyQuarter": "Cada trimestre",
     "everyYear": "Cada año"
   },
-  "reminders": {
-    "section": "Recordatorios"
+  "modal": {
+    "actions": {
+      "editReminder": "Editar"
+    },
+    "custom": {
+      "appearance": "Apariencia",
+      "visibleOnClock": "Visible en el reloj",
+      "hiddenFromClock": "Oculto del reloj",
+      "notes": "Notas",
+      "timezone": "Zona Horaria"
+    },
+    "economic": {
+      "actual": "Real",
+      "forecast": "Pronóstico",
+      "previous": "Anterior",
+      "pastEvent": "Evento Pasado",
+      "aboutTitle": "Acerca de",
+      "tradingImplicationTitle": "Implicaciones Comerciales",
+      "keyThresholdsTitle": "Umbrales Clave",
+      "frequency": "Frecuencia",
+      "source": "Fuente",
+      "outcome": "Resultado"
+    },
+    "reminders": {
+      "signInRequired": "Inicia sesión para guardar recordatorios en todos los dispositivos.",
+      "detailsLoading": "Los detalles del recordatorio aún se están cargando. Vuelve a abrir este evento si Guardar permanece deshabilitado."
+    },
+    "debug": {
+      "reminderDebug": "Depuración de Recordatorio",
+      "eventKey": "Clave del evento:",
+      "seriesKey": "Clave de la serie:",
+      "docId": "Id del documento:",
+      "baselineCount": "Conteo de línea base:",
+      "last": "Último:"
+    }
+  },
+  "impacts": {
+    "highImpact": "!!! Alto Impacto",
+    "highImpactDesc": "Datos económicos altamente significativos que pueden causar movimientos sustanciales del mercado",
+    "mediumImpact": "!! Impacto Medio",
+    "mediumImpactDesc": "Datos económicos moderados con influencia notoria en el mercado",
+    "lowImpact": "! Bajo Impacto",
+    "lowImpactDesc": "Datos económicos menores con impacto limitado en el mercado",
+    "dataNotLoaded": "? Datos No Cargados",
+    "dataNotLoadedDesc": "Los datos del nivel de impacto aún se están cargando",
+    "nonEconomic": "~ No Económico",
+    "nonEconomicDesc": "Este evento no se clasifica como datos económicos",
+    "unknown": "? Desconocido",
+    "unknownDesc": "El nivel de impacto no se puede determinar"
+  },
+  "tooltips": {
+    "currencyAffects": "Los datos económicos afectan esta moneda",
+    "eventImpactsCurrency": "Este evento impacta la valuación de {{currency}}",
+    "aboutDescription": "Explicación detallada del evento económico y su significado",
+    "tradingImplication": "Cómo este evento puede afectar las estrategias comerciales y el comportamiento del mercado",
+    "keyThresholds": "Valores de umbral importantes para comparar resultados reales versus pronósticos",
+    "frequency": "Con qué frecuencia se publican estos datos económicos",
+    "source": "La organización oficial que es la fuente de estos datos",
+    "outcome": "El resultado real o impacto del evento económico"
+  },
+  "actions": {
+    "notesLoading": "Cargando notas...",
+    "viewNotes": "Ver notas",
+    "addNote": "Agregar nota",
+    "favoritesLoading": "Cargando favoritos...",
+    "removeFromFavorites": "Eliminar de favoritos",
+    "saveToFavorites": "Guardar en favoritos",
+    "refreshData": "Actualizar datos del evento desde Firestore",
+    "closeModal": "Cerrar",
+    "updated": "Actualizado",
+    "dataValues": "Datos del Evento",
+    "customEventChip": "Evento personalizado",
+    "reminders": "Recordatorios"
+  },
+  "messages": {
+    "copySuccess": "¡Copiado!",
+    "copyEventId": "Haz clic para copiar el ID del evento",
+    "categoryTooltip": "Categoría: {{category}} - Clasificación de eventos para filtrado y análisis",
+    "statusTooltip": "Estado: {{status}} - Estado actual del evento económico",
+    "nowTooltip": "Este evento está sucediendo AHORA - dentro de la ventana activa de 9 minutos",
+    "nextTooltip": "Próximo evento en {{countdown}}",
+    "pastTooltip": "Este evento ya ocurrió - los datos reflejan resultados reales",
+    "primarySource": "Fuente de datos principal para los valores de este evento",
+    "availableSources": "Disponible desde {{count}} fuentes: {{sources}}",
+    "qualityScore": "Puntuación de calidad de datos: {{score}}/100 - Puntuaciones más altas indican datos más confiables"
   },
   "dialog": {
     "title": {
       "create": "Nuevo evento personalizado",
       "edit": "Editar evento personalizado",
       "close": "Cerrar"
+    },
+    "unsavedChanges": {
+      "message": "Tienes cambios sin guardar en este evento personalizado. Si cierras ahora, tus cambios se perderán."
     },
     "details": {
       "section": "Detalles",
@@ -57,45 +143,43 @@
     },
     "schedule": {
       "section": "Cronograma",
-      "fields": {
-        "date": {
-          "label": "Fecha"
-        },
-        "time": {
-          "label": "Hora"
-        },
-        "repeat": {
-          "label": "Repetir"
-        },
-        "recurrence": {
-          "options": {
-            "none": "No se repite",
-            "hour1": "Cada 1 hora",
-            "hour4": "Cada 4 horas",
-            "day1": "Cada día",
-            "week1": "Cada semana",
-            "month1": "Cada mes",
-            "quarter1": "Cada trimestre",
-            "year1": "Cada año"
-          }
-        },
-        "recurrenceEnd": {
-          "label": "Termina",
-          "options": {
-            "never": "Nunca",
-            "onDate": "En la fecha",
-            "after": "Después"
-          }
-        },
-        "endDate": {
-          "label": "Fecha de finalización"
-        },
-        "occurrences": {
-          "label": "Ocurrencias"
-        },
-        "timezone": {
-          "label": "Zona Horaria"
+      "date": {
+        "label": "Fecha"
+      },
+      "time": {
+        "label": "Hora"
+      },
+      "repeat": {
+        "label": "Repetir"
+      },
+      "recurrence": {
+        "options": {
+          "none": "No se repite",
+          "hour1": "Cada 1 hora",
+          "hour4": "Cada 4 horas",
+          "day1": "Cada día",
+          "week1": "Cada semana",
+          "month1": "Cada mes",
+          "quarter1": "Cada trimestre",
+          "year1": "Cada año"
         }
+      },
+      "recurrenceEnd": {
+        "label": "Termina",
+        "options": {
+          "never": "Nunca",
+          "onDate": "En la fecha",
+          "after": "Después"
+        }
+      },
+      "endDate": {
+        "label": "Fecha de finalización"
+      },
+      "occurrences": {
+        "label": "Ocurrencias"
+      },
+      "timezone": {
+        "label": "Zona Horaria"
       }
     },
     "appearance": {
@@ -107,6 +191,7 @@
         },
         "color": {
           "label": "Color",
+          "select": "Seleccionar Color",
           "hex": {
             "label": "Color Hex",
             "placeholder": "#4E7DFF"
@@ -117,6 +202,9 @@
           "description": "Mostrar este evento en tu reloj de trading"
         }
       }
+    },
+    "reminders": {
+      "section": "Recordatorios"
     },
     "actions": {
       "delete": "Eliminar evento",

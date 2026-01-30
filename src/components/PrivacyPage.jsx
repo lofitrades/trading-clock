@@ -8,6 +8,10 @@
  * Responsive vertical scrolling with proper height constraints per BEP standards.
  * 
  * Changelog:
+ * v2.3.0 - 2026-01-29 - BEP THEME-AWARE: Replaced all hardcoded hex colors with MUI theme tokens.
+ *                       bgcolor: #f9fafb → background.default, color: #0f172a → text.primary,
+ *                       color: #475569 → text.secondary, bgcolor: white → background.paper.
+ *                       Fully AA accessible with proper contrast in light/dark modes.
  * v2.2.1 - 2026-01-28 - RESPONSIVE LAYOUT & GRID FIX: Added scrollable Box container with proper height constraints.
  * xs/sm: calc(100vh - 48px - var(--t2t-bottom-nav-height, 64px)), md+: calc(100vh - 72px). Replaced deprecated Grid summary cards with Box layout.
  * Fixed i18n header display: page.subtitle for overline, page.title for heading, page.lastUpdated for date. Removed Grid import.
@@ -24,12 +28,13 @@
 
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Container, Stack, Typography, Link, Divider } from '@mui/material';
+import { Box, Container, Stack, Typography, Link, Divider, useTheme } from '@mui/material';
 import PublicLayout from './PublicLayout';
 import useAppBarNavItems from '../hooks/useAppBarNavItems.jsx';
 
 function PrivacyPageContent() {
     const { t } = useTranslation('privacy');
+    const theme = useTheme();
 
     // Memoize section keys
     const sectionKeys = useMemo(() => [
@@ -50,8 +55,8 @@ function PrivacyPageContent() {
         <Box
             component="main"
             sx={{
-                bgcolor: '#f9fafb',
-                color: '#0f172a',
+                bgcolor: 'background.default',
+                color: 'text.primary',
                 height: { xs: 'calc(100vh - 48px - var(--t2t-bottom-nav-height, 64px))', md: 'calc(100vh - 72px)' },
                 overflowY: 'auto',
             }}
@@ -101,16 +106,16 @@ function PrivacyPageContent() {
 
                     {/* Header */}
                     <Stack spacing={1}>
-                        <Typography variant="overline" sx={{ letterSpacing: 1, fontWeight: 700, color: '#475569' }}>
+                        <Typography variant="overline" sx={{ letterSpacing: 1, fontWeight: 700, color: 'text.secondary' }}>
                             {t('page.subtitle')}
                         </Typography>
                         <Typography variant="h3" sx={{ fontWeight: 800 }}>
                             {t('page.title')}
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#475569', fontWeight: 600 }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                             {t('page.lastUpdated', 'January 7, 2026')}
                         </Typography>
-                        <Typography variant="body1" sx={{ color: '#475569', mt: 1 }}>
+                        <Typography variant="body1" sx={{ color: 'text.secondary', mt: 1 }}>
                             {t('page.intro')}
                         </Typography>
                     </Stack>
@@ -128,7 +133,7 @@ function PrivacyPageContent() {
                                     href={`#${key}`}
                                     key={key}
                                     underline="hover"
-                                    sx={{ color: '#0f172a', fontWeight: 600, display: 'block' }}
+                                    sx={{ color: 'text.primary', fontWeight: 600, display: 'block' }}
                                 >
                                     {t(`sections.${key}.heading`)}
                                 </Link>
@@ -158,11 +163,11 @@ function PrivacyPageContent() {
                                                     {sub?.title}
                                                 </Typography>
                                                 {sub?.legalBasis && (
-                                                    <Typography variant="body2" sx={{ color: '#64748b', fontStyle: 'italic', mb: 1 }}>
+                                                    <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', mb: 1 }}>
                                                         Legal basis: {sub.legalBasis}
                                                     </Typography>
                                                 )}
-                                                <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: '#475569' }}>
+                                                <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: 'text.secondary' }}>
                                                     {(sub?.items || []).map((item, i) => (
                                                         <Typography key={i} component="li" variant="body1">
                                                             {item}
@@ -173,7 +178,7 @@ function PrivacyPageContent() {
                                         ))}
                                     </Stack>
                                 ) : items && Array.isArray(items) ? (
-                                    <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: '#475569' }}>
+                                    <Stack component="ul" spacing={0.5} sx={{ pl: 3, color: 'text.secondary' }}>
                                         {items.map((item, i) => (
                                             <Typography key={i} component="li" variant="body1" dangerouslySetInnerHTML={{ __html: item }} />
                                         ))}
@@ -191,35 +196,35 @@ function PrivacyPageContent() {
                             Summary of your rights
                         </Typography>
                         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2 }}>
-                            <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 2, border: '1px solid #e5e7eb' }}>
+                            <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
                                 <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
                                     Access & Update
                                 </Typography>
-                                <Typography variant="body2" sx={{ color: '#475569' }}>
+                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                                     View and edit your data in account settings or request a full copy via email.
                                 </Typography>
                             </Box>
-                            <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 2, border: '1px solid #e5e7eb' }}>
+                            <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
                                 <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
                                     Delete
                                 </Typography>
-                                <Typography variant="body2" sx={{ color: '#475569' }}>
+                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                                     Remove your account and all data in settings or by emailing us. Processed within 30 days.
                                 </Typography>
                             </Box>
-                            <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 2, border: '1px solid #e5e7eb' }}>
+                            <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
                                 <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
                                     Control Cookies
                                 </Typography>
-                                <Typography variant="body2" sx={{ color: '#475569' }}>
+                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                                     Choose between personalized ads or essential-only mode via the cookie banner.
                                 </Typography>
                             </Box>
-                            <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 2, border: '1px solid #e5e7eb' }}>
+                            <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
                                 <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
                                     Export Data
                                 </Typography>
-                                <Typography variant="body2" sx={{ color: '#475569' }}>
+                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                                     Request a portable copy of your settings and favorites in JSON format.
                                 </Typography>
                             </Box>

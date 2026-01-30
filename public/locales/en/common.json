@@ -24,6 +24,14 @@
     "support": "Support",
     "contact": "Contact"
   },
+  "actions": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "close": "Close",
+    "submit": "Submit",
+    "confirm": "Confirm"
+  },
   "labels": {
     "email": "Email",
     "password": "Password",
@@ -40,7 +48,10 @@
     "active": "Active",
     "inactive": "Inactive",
     "loading": "Loading...",
-    "noData": "No data available"
+    "noData": "No data available",
+    "user": "User",
+    "unknown": "Unknown",
+    "visibility": "Visibility"
   },
   "navigation": {
     "home": "Home",

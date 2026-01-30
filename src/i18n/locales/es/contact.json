@@ -57,5 +57,9 @@
     "calendar": "Abrir Calendario",
     "privacy": "Privacidad",
     "terms": "Términos"
+  },
+  "modal": {
+    "title": "Contactar Soporte",
+    "closeAriaLabel": "Cerrar formulario de contacto"
   }
 }

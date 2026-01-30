@@ -24,6 +24,14 @@
     "support": "Support",
     "contact": "Contact"
   },
+  "actions": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "close": "Fermer",
+    "submit": "Soumettre",
+    "confirm": "Confirmer"
+  },
   "labels": {
     "email": "Email",
     "password": "Mot de passe",
@@ -40,7 +48,9 @@
     "active": "Actif",
     "inactive": "Inactif",
     "loading": "Chargement...",
-    "noData": "Aucune donnée disponible"
+    "noData": "Aucune donnée disponible",
+    "user": "Utilisateur",
+    "unknown": "Inconnu"
   },
   "navigation": {
     "home": "Accueil",
@@ -54,6 +64,10 @@
     "roadmap": "Feuille de Route",
     "unlock": "Déverrouiller",
     "unlockAllFeatures": "Déverrouiller gratuitement"
+  },
+  "language": {
+    "changingLanguage": "Changement...",
+    "selectLanguage": "Sélectionner la langue"
   },
   "messages": {
     "success": "Succès",

@@ -41,6 +41,10 @@
         "label": "Aiguille des Secondes",
         "description": "Afficher l'aiguille des secondes"
       },
+      "secondsHand": {
+        "label": "Aiguille des Secondes",
+        "description": "Afficher l'aiguille des secondes"
+      },
       "eventsOnCanvas": {
         "label": "Événements sur le canevas",
         "description": "Afficher les marqueurs d'événements économiques sur le cadran"
@@ -70,6 +74,11 @@
         "description": "Afficher le fuseau horaire actuel"
       }
     },
+      "timeDisplay": {
+        "title": "Affichage du temps",
+        "showTimeToEnd": "Afficher le temps avant la fin",
+        "showTimeToStart": "Afficher le temps avant le début"
+      },
     "background": {
       "title": "Arrière-Plan",
       "sessionBased": {
@@ -90,16 +99,26 @@
       "namePlaceholder": "Nom Session {{number}}",
       "startTimeLabel": "Heure de Début",
       "endTimeLabel": "Heure de Fin",
+      "colorLabel": "Couleur",
       "deleteConfirm": "Supprimer cette session ?"
     }
   },
   "about": {
-    "title": "À Propos"
+    "title": "À Propos",
+    "readFullAbout": "Lire la page À propos complète",
+    "contactButton": "Contactez-nous"
+  },
+  "drawer": {
+    "title": "Paramètres",
+    "subtitle": "Créez un compte gratuit pour débloquer toutes les fonctionnalités",
+    "unlockButton": "Créer un compte gratuit pour débloquer tous les paramètres"
   },
   "account": {
     "title": "Compte",
+    "myAccount": "Mon compte",
+    "addNamePrompt": "Cliquez pour ajouter votre nom",
     "logoutConfirm": "Se déconnecter et perdre les paramètres locaux ?",
-    "logoutButton": "Se Déconnecter"
+    "logoutButton": "Se déconnecter"
   },
   "admin": {
     "syncWeekNFS": "Synchroniser la Semaine NFS",
@@ -118,13 +137,20 @@
   "modals": {
     "confirmReset": "Réinitialiser tous les paramètres aux valeurs par défaut ?",
     "clearSession": "Effacer la session {{number}} ?",
-    "clearSessionInfo": "Cela réinitialisera le nom de la session, l'heure de début et l'heure de fin.",
+    "clearSessionInfo": "Effacer la session {{number}} ? Cela réinitialisera le nom de la session, l'heure de début et l'heure de fin.",
+    "resetSettingsInfo": "Cela réinitialisera tous les paramètres, y compris les sessions, les couleurs et les préférences, à leurs valeurs par défaut. Cette action est irréversible.",
+    "resetSettingsConfirmButton": "Réinitialiser les paramètres",
+    "clearSessionConfirmButton": "Effacer la session",
+    "logoutConfirmMessage": "Êtes-vous sûr de vouloir vous déconnecter ? Vous devrez vous reconnecter pour accéder à vos paramètres enregistrés.",
+    "logoutConfirmButton": "Se déconnecter",
     "contact": "Avez-vous des questions ? Contactez-nous"
   },
   "errors": {
     "minimumToggle": "Au moins l'un des éléments principaux de l'horloge doit être activé."
   },
   "footer": {
-    "contactLink": "Avez-vous des questions ? Contactez-nous"
+    "contactLink": "Avez-vous des questions ? Contactez-nous",
+    "contactPrompt": "Des questions ?",
+    "contactLinkText": "Contactez-nous"
   }
 }

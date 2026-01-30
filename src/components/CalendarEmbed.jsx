@@ -5,6 +5,13 @@
  * and stays embeddable for other pages while keeping Time 2 Trade branding and SEO-friendly copy.
  * 
  * Changelog:
+ * v1.5.91 - 2026-01-29 - BEP TABLE LAYOUT STABILITY: Fixed column width layout shift on initial render. Added <colgroup> with <col> elements matching TABLE_COLUMNS widths for immediate column sizing before content paints. Changed 'name' column from implicit auto to explicit width:'auto'. Removed conflicting width:'100%' from EventRow name cell. tableLayout:fixed + colgroup ensures columns are sized correctly on first render, preventing event name from wrapping incorrectly during load. Enterprise BEP pattern: colgroup defines column contract, tableLayout:fixed enforces it.
+ * v1.5.90 - 2026-01-29 - BEP HEADER BUTTON ORDERING: Reordered right-side header buttons on xs/sm/md. Add event button now appears above Next/Now buttons when stacking vertically. Improves visual hierarchy: primary CTA (Add event) gets top position, secondary status info (Next/Now) follows below. On lg+, horizontal layout unaffected. Follows enterprise pattern: primary actions before secondary information.
+ * v1.5.89 - 2026-01-29 - BEP RESPONSIVE HEADER RESTRUCTURE: Reorganized header layout for mobile-first approach. (1) On xs/sm/md: Next/Now buttons now appear in right column below Add custom event button, stacking vertically. (2) Bottom row now only displays event count on xs/sm/md (Next/Now buttons removed). (3) On lg+: Next/Now buttons appear inline with Add button in horizontal layout. (4) Right side header uses responsive flexDirection: column on xs/sm/md, row on lg+. Improves vertical space usage on mobile while maintaining horizontal efficiency on desktop. Follows enterprise dashboard responsive pattern: compact mobile layout, expanded desktop layout.
+ * v1.5.88 - 2026-01-29 - BEP RESPONSIVE HEADER LAYOUT: Moved "Next in" and "Events in progress" buttons to top-right corner on lg+ breakpoints, positioned next to the Add custom event button. On xs/sm/md, buttons remain below the subtitle for better mobile layout. Bottom row now uses responsive display: { xs: 'flex', sm: 'flex', md: 'flex', lg: 'none' }. Top right header area now flexes properly to accommodate both Next/Now buttons and Add button on lg+. Follows enterprise dashboard pattern: desktop shows maximum information density in header, mobile-first approach preserves readability on smaller screens.
+ * v1.5.87 - 2026-01-29 - BEP CHIP PARITY: Updated "Next in" and "Events in progress" buttons in header (below Powered by Forex Factory) to match filter chip styling. Changed from colored text to theme-aware outline button style. Default state uses background.paper with subtle border. Hover state adds progressive disclosure with alpha(success/info.main, 0.08) background and colored border. Active state uses alpha(0.12). Pill shape (borderRadius: 999) with proper padding and smooth transitions. Text color now uses text.primary instead of success/info.main for better contrast. Icons remain colored for quick visual scan.
+ * v1.5.86 - 2026-01-29 - BEP VIRTUAL SCROLL ENHANCEMENTS: (1) Added IntersectionObserver with 400px rootMargin to prefetch DaySections 2 days ahead. (2) Progressive event rendering - events render in batches of 5 with skeleton placeholders for remaining. (3) "No events" only shown after hasBeenVisible confirmed. (4) Skeletons shown during content-visibility paint for slow devices. Improves perceived performance on all devices.
+ * v1.5.85 - 2026-01-29 - BEP PERFORMANCE: Added CSS content-visibility: auto to DaySection for browser-native virtualization. Off-screen day sections skip rendering until scrolled into view. Estimated containIntrinsicSize based on header + event rows. Improves scroll performance for large date ranges (30+ days) without complex react-window table refactoring.
  * v1.5.84 - 2026-01-28 - BEP UX: Day headers now use distinct background colors for better visual hierarchy. Light mode: grey.50 (#fafafa), dark mode: grey.900 (#212121). Both are opaque and subtly different from column headers (background.paper) for clear visual separation.
  * v1.5.83 - 2026-01-28 - BEP CASCADING STICKY: Removed boxShadow from day headers. Column headers below already have boxShadow ('0 2px 4px -2px rgba(0, 0, 0, 0.12)') for proper cascading sticky effect. This creates visual separation at the frozen column level instead of day level.
  * v1.5.82 - 2026-01-28 - BEP OPAQUE HEADER FIX: Changed non-today day header bgcolor from 'action.hover' (semi-transparent) to 'background.paper' (fully opaque). action.hover has transparency in both light and dark modes causing content bleed-through when headers are sticky. background.paper provides solid #FFFFFF (light) and #1E1E1E (dark) backgrounds that completely hide scrolling content. Today headers remain primary.main (already opaque). Fixes transparency issue in sticky headers.
@@ -674,7 +681,8 @@ const TABLE_COLUMNS = [
     { id: 'time', labelKey: 'table.headers.time', align: 'center', width: { xs: 52, sm: 68 } },
     { id: 'currency', labelKey: 'table.headers.currency', align: 'center', width: { xs: 52, sm: 68 } },
     { id: 'impact', labelKey: 'table.headers.impact', align: 'center', width: { xs: 52, sm: 68 } },
-    { id: 'name', labelKey: 'table.headers.event', align: 'left' },
+    // Event name column: auto width (fills remaining space with tableLayout: fixed)
+    { id: 'name', labelKey: 'table.headers.event', align: 'left', width: 'auto' },
     { id: 'actual', labelKey: 'table.headers.actual', align: 'center', width: 64, hideBelow: 'lg' },
     { id: 'forecast', labelKey: 'table.headers.forecast', align: 'center', width: 64, hideBelow: 'lg' },
     { id: 'previous', labelKey: 'table.headers.previous', align: 'center', width: 64, hideBelow: 'lg' },
@@ -889,7 +897,8 @@ const EventRow = memo(({
                 />
             </TableCell>
 
-            <TableCell sx={{ borderColor: 'divider', minWidth: { xs: 0, sm: 180 }, px: { xs: 0.6, sm: 1 }, width: '100%', maxWidth: '100%' }}>
+            {/* BEP: Name column - tableLayout:fixed + colgroup auto width handles sizing, no explicit width needed */}
+            <TableCell sx={{ borderColor: 'divider', px: { xs: 0.6, sm: 1 }, overflow: 'hidden' }}>
                 <Stack direction="row" spacing={{ xs: 0.5, sm: 0.75 }} alignItems="center" sx={{ minWidth: 0, maxWidth: '100%' }}>
                     <Box sx={{ flex: '1 1 auto', minWidth: 0, maxWidth: '100%' }}>
                         <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0, flexWrap: 'wrap' }}>
@@ -1002,6 +1011,11 @@ EventRow.propTypes = {
 };
 EventRow.displayName = 'EventRow';
 
+// BEP: Prefetch margin for IntersectionObserver (2 days ahead ≈ 400px buffer)
+const PREFETCH_ROOT_MARGIN = '400px 0px 400px 0px';
+// BEP: Minimum skeleton rows to show during initial render
+const MIN_SKELETON_ROWS = 3;
+
 const DaySection = memo(({
     dayKey,
     timezone,
@@ -1021,8 +1035,61 @@ const DaySection = memo(({
 }) => {
     const { t, i18n } = useTranslation(['calendar', 'common']);
     const theme = useTheme();
+    const sectionRef = useRef(null);
+    // BEP: Track if section has been visible (for prefetch) - once visible, always render
+    const [hasBeenVisible, setHasBeenVisible] = useState(false);
+    // BEP: Track loaded events count for progressive rendering feedback
+    const [renderedCount, setRenderedCount] = useState(0);
+
     const DAY_HEADER_HEIGHT_PX = 36;
     const DAY_HEADER_GAP_PX = 8;
+
+    // BEP: IntersectionObserver to detect when section is approaching viewport (2 days ahead)
+    useEffect(() => {
+        if (hasBeenVisible) return; // Already visible, no need to observe
+        const el = sectionRef.current;
+        if (!el || typeof IntersectionObserver === 'undefined') {
+            setHasBeenVisible(true); // Fallback: render immediately if no IO support
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setHasBeenVisible(true);
+                    observer.disconnect();
+                }
+            },
+            {
+                rootMargin: PREFETCH_ROOT_MARGIN, // 400px buffer = ~2 days ahead
+                threshold: 0,
+            }
+        );
+
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [hasBeenVisible]);
+
+    // BEP: Progressive rendering - increment rendered count to show events one-by-one
+    useEffect(() => {
+        if (!hasBeenVisible || isLoading) {
+            setRenderedCount(0);
+            return;
+        }
+        if (events.length === 0) {
+            setRenderedCount(0);
+            return;
+        }
+        // Already fully rendered
+        if (renderedCount >= events.length) return;
+
+        // Progressive reveal: batch 5 events at a time for performance
+        const BATCH_SIZE = 5;
+        const nextBatch = Math.min(renderedCount + BATCH_SIZE, events.length);
+        const timer = setTimeout(() => setRenderedCount(nextBatch), 16); // ~1 frame
+        return () => clearTimeout(timer);
+    }, [hasBeenVisible, isLoading, events.length, renderedCount]);
+
     const displayDate = useMemo(() => {
         const parts = dayKey.split('-');
         const date = parts.length === 3 ? new Date(`${parts[0]}-${parts[1]}-${parts[2]}T12:00:00Z`) : null;
@@ -1031,19 +1098,45 @@ const DaySection = memo(({
         return new Intl.DateTimeFormat(i18n.language, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(date);
     }, [dayKey, i18n.language]);
 
+    // BEP: Show skeleton in header until visible AND loaded
+    const showHeaderSkeleton = isLoading || !hasBeenVisible;
     const displayDateElement = useMemo(() => {
-        if (isLoading) {
+        if (showHeaderSkeleton) {
             return <Skeleton variant="text" width="60%" sx={{ bgcolor: isToday ? alpha(theme.palette.common.white, 0.25) : undefined }} />;
         }
         return displayDate;
-    }, [displayDate, isLoading, isToday, theme]);
+    }, [displayDate, showHeaderSkeleton, isToday, theme]);
 
-    const headerChipLabel = isLoading ? t('calendar:labels.loading') : events.length ? t('calendar:labels.events', { count: events.length }) : t('calendar:labels.noEvents');
-    const showSkeletonRows = isLoading;
-    const showEmptyState = !isLoading && events.length === 0;
+    // BEP: Header chip logic - show loading until data confirmed
+    const headerChipLabel = useMemo(() => {
+        if (isLoading || !hasBeenVisible) return t('calendar:labels.loading');
+        if (events.length > 0) return t('calendar:labels.events', { count: events.length });
+        return t('calendar:labels.noEvents');
+    }, [isLoading, hasBeenVisible, events.length, t]);
+
+    // BEP: Determine what to show in table body
+    // Priority: skeleton (not visible or loading) > events (progressive) > empty (confirmed)
+    const showSkeletonRows = isLoading || !hasBeenVisible;
+    // Only show empty state when: not loading, has been visible, AND events array is empty
+    const showEmptyState = !isLoading && hasBeenVisible && events.length === 0;
+    // Events to render (progressive: only up to renderedCount)
+    const eventsToRender = useMemo(() => {
+        if (showSkeletonRows || showEmptyState) return [];
+        return events.slice(0, renderedCount);
+    }, [showSkeletonRows, showEmptyState, events, renderedCount]);
+    // Show skeleton placeholders for events not yet rendered (progressive loading feedback)
+    const remainingSkeletonCount = hasBeenVisible && !isLoading && events.length > 0
+        ? Math.max(0, events.length - renderedCount)
+        : 0;
+
+    // BEP: Estimate height for content-visibility containment (header + event rows)
+    // Use MIN_SKELETON_ROWS as minimum to prevent layout shift
+    const estimatedHeight = DAY_HEADER_HEIGHT_PX + DAY_HEADER_GAP_PX + Math.max(events.length, MIN_SKELETON_ROWS) * 64;
 
     return (
         <Paper
+            ref={sectionRef}
+            data-t2t-day-section={dayKey}
             variant="outlined"
             sx={{
                 borderRadius: 2,
@@ -1056,6 +1149,9 @@ const DaySection = memo(({
                 flexDirection: 'column',
                 minHeight: 0,
                 flexShrink: 0,
+                // BEP: Native browser virtualization - skip rendering for off-screen sections
+                contentVisibility: 'auto',
+                containIntrinsicSize: `auto ${estimatedHeight}px`,
             }}
         >
             <Box
@@ -1133,6 +1229,26 @@ const DaySection = memo(({
                         },
                     }}
                 >
+                    {/* BEP: colgroup defines column widths BEFORE content renders to prevent layout shift */}
+                    <Box
+                        component="colgroup"
+                        sx={{
+                            '& col': {
+                                // Default for auto columns (name column fills remaining space)
+                            },
+                        }}
+                    >
+                        {TABLE_COLUMNS.map((column) => (
+                            <Box
+                                component="col"
+                                key={column.id}
+                                sx={{
+                                    width: column.width === 'auto' ? 'auto' : column.width,
+                                    display: column.hideBelow ? { xs: 'none', [column.hideBelow]: 'table-column' } : 'table-column',
+                                }}
+                            />
+                        ))}
+                    </Box>
                     <TableHead>
                         {!showEmptyState && (
                             <TableRow>
@@ -1166,7 +1282,7 @@ const DaySection = memo(({
                     </TableHead>
                     <TableBody>
                         {showSkeletonRows ? (
-                            Array.from({ length: 3 }).map((_, idx) => (
+                            Array.from({ length: MIN_SKELETON_ROWS }).map((_, idx) => (
                                 <TableRow key={`skeleton-${idx}`}>
                                     <TableCell colSpan={TABLE_COLUMNS.length} sx={{ borderColor: 'divider', py: 1.5 }}>
                                         <Stack direction="row" spacing={1.25} alignItems="center" sx={{ width: '100%', minWidth: 0 }}>
@@ -1193,35 +1309,61 @@ const DaySection = memo(({
                             <TableRow>
                                 <TableCell colSpan={TABLE_COLUMNS.length} sx={{ borderColor: 'divider', py: 2 }}>
                                     <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                        No events for this day.
+                                        {t('calendar:labels.noEventsForDay')}
                                     </Typography>
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            events.map((event) => {
-                                const eventKey = buildEventKey(event);
-                                const eventEpochMs = getEventEpochMs(event);
-                                const pastToday = isPastToday({ eventEpochMs, nowEpochMs, timezone });
-                                const activeNow = nowEventIds.has(eventKey);
-                                const activeNext = nextEventIds.has(eventKey);
-                                return (
-                                    <EventRow
-                                        key={event.id || `${event.name}-${event.date}`}
-                                        event={event}
-                                        timezone={timezone}
-                                        onToggleFavorite={onToggleFavorite}
-                                        isFavorite={isFavorite}
-                                        isFavoritePending={isFavoritePending}
-                                        onOpenEvent={onOpenEvent}
-                                        isNow={activeNow}
-                                        isNext={activeNext}
-                                        nextCountdownLabel={activeNext ? nextCountdownLabel : null}
-                                        isPast={pastToday}
-                                        nowEpochMs={nowEpochMs}
-                                    />
-                                );
-                            })
-
+                            <>
+                                {/* BEP: Progressive rendering - show events as they load */}
+                                {eventsToRender.map((event) => {
+                                    const eventKey = buildEventKey(event);
+                                    const eventEpochMs = getEventEpochMs(event);
+                                    const pastToday = isPastToday({ eventEpochMs, nowEpochMs, timezone });
+                                    const activeNow = nowEventIds.has(eventKey);
+                                    const activeNext = nextEventIds.has(eventKey);
+                                    return (
+                                        <EventRow
+                                            key={event.id || `${event.name}-${event.date}`}
+                                            event={event}
+                                            timezone={timezone}
+                                            onToggleFavorite={onToggleFavorite}
+                                            isFavorite={isFavorite}
+                                            isFavoritePending={isFavoritePending}
+                                            onOpenEvent={onOpenEvent}
+                                            isNow={activeNow}
+                                            isNext={activeNext}
+                                            nextCountdownLabel={activeNext ? nextCountdownLabel : null}
+                                            isPast={pastToday}
+                                            nowEpochMs={nowEpochMs}
+                                        />
+                                    );
+                                })}
+                                {/* BEP: Show skeleton rows for events not yet rendered (progressive loading) */}
+                                {remainingSkeletonCount > 0 && Array.from({ length: Math.min(remainingSkeletonCount, 3) }).map((_, idx) => (
+                                    <TableRow key={`remaining-skeleton-${idx}`}>
+                                        <TableCell colSpan={TABLE_COLUMNS.length} sx={{ borderColor: 'divider', py: 1.5 }}>
+                                            <Stack direction="row" spacing={1.25} alignItems="center" sx={{ width: '100%', minWidth: 0 }}>
+                                                <Box sx={{ display: 'flex', width: { xs: 36, sm: 40 }, justifyContent: 'center' }}>
+                                                    <Skeleton variant="circular" width={20} height={20} />
+                                                </Box>
+                                                <Skeleton variant="rounded" width={{ xs: 52, sm: 68 }} height={18} />
+                                                <Skeleton variant="rounded" width={{ xs: 52, sm: 68 }} height={18} />
+                                                <Skeleton variant="rounded" width={{ xs: 52, sm: 68 }} height={18} />
+                                                <Stack spacing={0.4} sx={{ flex: 1, minWidth: 0 }}>
+                                                    <Skeleton variant="text" width="72%" />
+                                                    <Skeleton variant="text" width="54%" />
+                                                </Stack>
+                                                <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 0.75 }}>
+                                                    <Skeleton variant="text" width={64} />
+                                                    <Skeleton variant="text" width={64} />
+                                                    <Skeleton variant="text" width={64} />
+                                                </Box>
+                                            </Stack>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </>
                         )}
                     </TableBody>
                 </Table>
@@ -1267,6 +1409,7 @@ export default function CalendarEmbed({
         handleFiltersChange,
         applyFilters,
         events: economicEvents,
+        rawEvents,
         loading,
         error,
         lastUpdated,
@@ -1506,10 +1649,30 @@ export default function CalendarEmbed({
 
     const todayKey = useMemo(() => getDayKey(new Date(), timezone), [timezone]);
 
+    // Compute now/next state from FILTERED events (what user sees)
     const nowNextState = useMemo(
         () => computeNowNextState({ events: mergedEvents, nowEpochMs: tableNowEpochMs, nowWindowMs: NOW_WINDOW_MS, buildKey: buildEventKey }),
         [mergedEvents, tableNowEpochMs],
     );
+
+    // Compute now/next state from ALL events (before filters) to detect hidden events
+    const globalNowNextState = useMemo(
+        () => computeNowNextState({ events: rawEvents || [], nowEpochMs: tableNowEpochMs, nowWindowMs: NOW_WINDOW_MS, buildKey: buildEventKey }),
+        [rawEvents, tableNowEpochMs],
+    );
+
+    // Check if next/now events exist globally but are hidden by filters
+    const isNextEventHiddenByFilters = useMemo(() => {
+        const hasGlobalNext = globalNowNextState.nextEventIds?.size > 0;
+        const hasFilteredNext = nowNextState.nextEventIds?.size > 0;
+        return hasGlobalNext && !hasFilteredNext;
+    }, [globalNowNextState.nextEventIds, nowNextState.nextEventIds]);
+
+    const isNowEventHiddenByFilters = useMemo(() => {
+        const hasGlobalNow = globalNowNextState.nowEventIds?.size > 0;
+        const hasFilteredNow = nowNextState.nowEventIds?.size > 0;
+        return hasGlobalNow && !hasFilteredNow;
+    }, [globalNowNextState.nowEventIds, nowNextState.nowEventIds]);
 
     const prevNowEventIdsRef = useRef(new Set());
     const prevNextEventIdsRef = useRef(new Set());
@@ -1733,13 +1896,44 @@ export default function CalendarEmbed({
     }, [nowNextState.nextEventIds]);
 
     const nextEventEpochMs = nowNextState.nextEventEpochMs;
+    const globalNextEventEpochMs = globalNowNextState.nextEventEpochMs;
 
     const nextCountdownLabel = useMemo(
         () => (nextEventEpochMs ? formatCountdownHMS(Math.max(0, nextEventEpochMs - tableNowEpochMs)) : null),
         [nextEventEpochMs, tableNowEpochMs],
     );
 
+    // Show countdown for hidden next event (when filtered out)
+    const hiddenNextCountdownLabel = useMemo(
+        () => (isNextEventHiddenByFilters && globalNextEventEpochMs ? formatCountdownHMS(Math.max(0, globalNextEventEpochMs - tableNowEpochMs)) : null),
+        [isNextEventHiddenByFilters, globalNextEventEpochMs, tableNowEpochMs],
+    );
+
     const scrollFlashRef = useRef({ timerId: null, els: new Set() });
+
+    // BEP: Memory leak prevention - cleanup scrollFlashRef on unmount
+    useEffect(() => {
+        // Capture ref value at effect creation time per React docs
+        const flashState = scrollFlashRef.current;
+        return () => {
+            if (flashState.timerId) {
+                window.clearTimeout(flashState.timerId);
+            }
+            flashState.els.clear();
+        };
+    }, []);
+
+    // BEP: Ref for magic scroll retry cleanup
+    const scrollRetryRef = useRef(null);
+
+    // BEP: Memory leak prevention - cleanup scrollRetryRef on unmount
+    useEffect(() => {
+        return () => {
+            if (scrollRetryRef.current) {
+                clearTimeout(scrollRetryRef.current);
+            }
+        };
+    }, []);
 
     const clearScrollFlash = useCallback(() => {
         if (typeof window === 'undefined') return;
@@ -1805,8 +1999,15 @@ export default function CalendarEmbed({
         const eventKey = buildEventKey(event);
         if (!eventKey) return;
 
+        // Clear any pending retry
+        if (scrollRetryRef.current) {
+            clearTimeout(scrollRetryRef.current);
+            scrollRetryRef.current = null;
+        }
+
         const escapedKey = typeof window !== 'undefined' && window.CSS?.escape ? window.CSS.escape(eventKey) : eventKey.replace(/[^a-zA-Z0-9_-]/g, '_');
         const target = document.querySelector(`[data-t2t-event-row-key="${escapedKey}"]`);
+
         if (target) {
             // Center the event in the viewport on all breakpoints
             target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
@@ -1820,8 +2021,24 @@ export default function CalendarEmbed({
                     clearScrollFlash();
                 }, 1500);
             }
+        } else if (options.retryCount === undefined || options.retryCount < 10) {
+            // BEP: Magic scroll - element not rendered yet, scroll towards it and retry
+            // Find the day section that should contain this event
+            const eventDate = event.date || event.startTime;
+            if (eventDate) {
+                const dayKey = getDayKey(new Date(eventDate), timezone);
+                const daySection = document.querySelector(`[data-t2t-day-section="${dayKey}"]`);
+                if (daySection) {
+                    // Scroll to day section to trigger IntersectionObserver
+                    daySection.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+                }
+            }
+            // Retry after a short delay to allow magic scroll to render the element
+            scrollRetryRef.current = setTimeout(() => {
+                scrollEventIntoView(event, { ...options, retryCount: (options.retryCount || 0) + 1 });
+            }, 200);
         }
-    }, [clearScrollFlash]);
+    }, [clearScrollFlash, timezone]);
 
     const scrollToNextEvent = useCallback(() => {
         if (nextEventIds.size === 0 || mergedEvents.length === 0) return;
@@ -2296,14 +2513,21 @@ export default function CalendarEmbed({
                 }}
             >
                 {showSeoCopy && (
-                    <Stack spacing={1} sx={{ mb: 0, position: 'relative', width: '100%' }}>
-                        {/* Top row: Title/Subtitle on left, Notification + Add custom event on right */}
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.25, sm: 2 }} alignItems={{ xs: 'flex-start', sm: 'flex-start' }} justifyContent="space-between" sx={{ width: '100%', position: 'relative' }}>
-                            <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
-                                <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.2 }}>
+                    <Stack spacing={{ xs: 1.25, sm: 1.5, md: 1.75 }} sx={{ mb: 0, width: '100%' }}>
+                        {/* Header: Title/Subtitle on left, Buttons on right */}
+                        <Stack
+                            direction={{ xs: 'column', sm: 'row' }}
+                            spacing={{ xs: 1.5, sm: 2, md: 2.5, lg: 3 }}
+                            alignItems={{ xs: 'flex-start', sm: 'flex-start' }}
+                            justifyContent="space-between"
+                            sx={{ width: '100%' }}
+                        >
+                            {/* Left: Title and subtitle */}
+                            <Stack spacing={{ xs: 0.5, sm: 0.75 }} sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.2, fontSize: { xs: '1.125rem', sm: '1.25rem' } }}>
                                     {title || t('calendar:title')}
                                 </Typography>
-                                <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.72), lineHeight: 1.4, display: 'flex', alignItems: 'center', gap: 0.3 }}>
+                                <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.72), lineHeight: 1.4, fontSize: { xs: '0.8125rem', sm: '0.875rem' }, display: 'flex', alignItems: 'center', gap: 0.3, flexWrap: 'wrap' }}>
                                     {t('calendar:headers.poweredBy')}
                                     <Link
                                         component="button"
@@ -2325,9 +2549,28 @@ export default function CalendarEmbed({
                                         {t('calendar:headers.forexFactory')}
                                     </Link>
                                 </Typography>
+                                {/* Event count - show on sm/md below subtitle */}
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: { xs: '0.75rem', sm: '0.8125rem' }, lineHeight: 1.4, display: { xs: 'none', sm: 'block', lg: 'none' }, mt: 0.25 }}>
+                                    {showSkeletons ? t('calendar:stats.loadingEvents') : t('calendar:stats.eventsCount', { count: visibleCount.toLocaleString() })}
+                                </Typography>
                             </Stack>
-                            {/* Right side: Add custom event button on xs/sm/md (lg+ shows in EventsFilters3) */}
-                            <Box sx={{ display: { xs: 'flex', sm: 'flex', md: 'flex', lg: 'none' }, position: 'absolute', top: 0, right: 0 }}>
+
+                            {/* Right: Action buttons - Add button on xs, stacked on sm/md, inline on lg+ */}
+                            <Stack
+                                direction={{ xs: 'column', lg: 'row' }}
+                                spacing={{ xs: 0.75, sm: 1, lg: 1.25 }}
+                                alignItems={{ xs: 'flex-end', sm: 'flex-end', md: 'flex-end', lg: 'center' }}
+                                sx={{
+                                    flexShrink: 0,
+                                    width: { xs: 'auto', sm: 'auto' },
+                                    minWidth: 0,
+                                    position: { xs: 'absolute', sm: 'relative' },
+                                    top: { xs: 0, sm: 'auto' },
+                                    right: { xs: 0, sm: 'auto' },
+                                    pr: { xs: 2, sm: 0 },
+                                }}
+                            >
+                                {/* Add custom event button - hide on lg+ (shown in EventsFilters3) */}
                                 <Tooltip title={t('calendar:actions.addCustomEvent')}>
                                     <Button
                                         onClick={() => handleOpenCustomDialog()}
@@ -2336,20 +2579,17 @@ export default function CalendarEmbed({
                                         size="small"
                                         startIcon={<AddRoundedIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />}
                                         sx={{
+                                            display: { xs: 'flex', lg: 'none' },
                                             textTransform: 'none',
                                             fontWeight: 700,
                                             borderRadius: 999,
-                                            height: 40,
-                                            px: 2,
+                                            height: { xs: 36, sm: 40 },
+                                            px: { xs: 1.5, sm: 2 },
                                             whiteSpace: 'nowrap',
                                             boxShadow: 'none',
                                             bgcolor: theme.palette.background.paper,
                                             color: 'text.primary',
                                             borderColor: 'divider',
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            flexShrink: 0,
                                         }}
                                     >
                                         <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
@@ -2360,69 +2600,93 @@ export default function CalendarEmbed({
                                         </Box>
                                     </Button>
                                 </Tooltip>
-                            </Box>
-                        </Stack>
 
-                        {/* Bottom row: Event count + NEXT/NOW buttons below subtitle on all breakpoints */}
-                        <Stack
-                            direction="row"
-                            spacing={1.25}
-                            alignItems="center"
-                            sx={{ width: '100%', display: 'flex' }}
-                        >
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.8125rem', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
-                                {t('calendar:stats.eventsCount', { count: visibleCount.toLocaleString() })}
-                            </Typography>
-                            <Stack
-                                direction="row"
-                                spacing={0.75}
-                                alignItems="center"
-                                flexWrap="nowrap"
-                                sx={{ whiteSpace: 'nowrap' }}
-                            >
-                                {nextCountdownLabel ? (
-                                    <Stack
-                                        direction="row"
-                                        spacing={0.5}
-                                        alignItems="center"
-                                        onClick={scrollToNextEvent}
-                                        sx={{
-                                            cursor: 'pointer',
-                                            borderRadius: 1.5,
-                                            transition: 'background-color 0.2s',
-                                            '&:hover': {
-                                                bgcolor: alpha(theme.palette.success.main, 0.1),
-                                            },
-                                        }}
-                                    >
-                                        <AccessTimeIcon sx={{ fontSize: 14, color: 'success.main' }} />
-                                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.main', fontSize: '0.8125rem' }}>
-                                            {t('calendar:stats.nextIn', { time: nextCountdownLabel })}
-                                        </Typography>
-                                    </Stack>
-                                ) : nowEventIds.size ? (
-                                    <Stack
-                                        direction="row"
-                                        spacing={0.5}
-                                        alignItems="center"
-                                        onClick={scrollToNowEvent}
-                                        sx={{
-                                            cursor: 'pointer',
-                                            borderRadius: 1.5,
-                                            transition: 'background-color 0.2s',
-                                            '&:hover': {
-                                                bgcolor: alpha(theme.palette.info.main, 0.1),
-                                            },
-                                        }}
-                                    >
-                                        <AccessTimeIcon sx={{ fontSize: 14, color: 'info.main' }} />
-                                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main', fontSize: '0.8125rem' }}>
-                                            {t('calendar:stats.eventsInProgress')}
-                                        </Typography>
-                                    </Stack>
-                                ) : null}
+                                {/* Next/Now buttons - show active, disabled (hidden by filters), or nothing */}
+                                {(nextCountdownLabel || hiddenNextCountdownLabel || nowEventIds.size > 0 || isNowEventHiddenByFilters) && (
+                                    <>
+                                        {/* Next event button - active or disabled by filters */}
+                                        {(nextCountdownLabel || hiddenNextCountdownLabel) && (
+                                            <Tooltip title={isNextEventHiddenByFilters ? t('calendar:stats.nextEventHiddenByFilters') : t('tooltips:jumpToNext')}>
+                                                <Stack
+                                                    direction="row"
+                                                    spacing={0.5}
+                                                    alignItems="center"
+                                                    onClick={isNextEventHiddenByFilters ? undefined : scrollToNextEvent}
+                                                    sx={{
+                                                        cursor: isNextEventHiddenByFilters ? 'not-allowed' : 'pointer',
+                                                        px: { xs: 1.25, sm: 1.5 },
+                                                        py: { xs: 0.625, sm: 0.75 },
+                                                        borderRadius: 999,
+                                                        border: '1px solid',
+                                                        bgcolor: theme.palette.background.paper,
+                                                        borderColor: alpha(theme.palette.text.primary, 0.23),
+                                                        transition: 'all 0.2s ease',
+                                                        opacity: isNextEventHiddenByFilters ? 0.5 : 1,
+                                                        ...(!isNextEventHiddenByFilters && {
+                                                            '&:hover': {
+                                                                bgcolor: alpha(theme.palette.success.main, 0.08),
+                                                                borderColor: alpha(theme.palette.success.main, 0.5),
+                                                            },
+                                                            '&:active': {
+                                                                bgcolor: alpha(theme.palette.success.main, 0.12),
+                                                            },
+                                                        }),
+                                                    }}
+                                                >
+                                                    <AccessTimeIcon sx={{ fontSize: { xs: 13, sm: 14 }, color: isNextEventHiddenByFilters ? 'text.disabled' : 'success.main' }} />
+                                                    <Typography variant="caption" sx={{ fontWeight: 600, color: isNextEventHiddenByFilters ? 'text.disabled' : 'text.primary', fontSize: { xs: '0.75rem', sm: '0.8125rem' } }}>
+                                                        {t('calendar:stats.nextIn', { time: nextCountdownLabel || hiddenNextCountdownLabel })}
+                                                    </Typography>
+                                                </Stack>
+                                            </Tooltip>
+                                        )}
+                                        {/* Now event button - active or disabled by filters (only show if no next button) */}
+                                        {!nextCountdownLabel && !hiddenNextCountdownLabel && (nowEventIds.size > 0 || isNowEventHiddenByFilters) && (
+                                            <Tooltip title={isNowEventHiddenByFilters ? t('calendar:stats.nowEventHiddenByFilters') : t('tooltips:jumpToNow')}>
+                                                <Stack
+                                                    direction="row"
+                                                    spacing={0.5}
+                                                    alignItems="center"
+                                                    onClick={isNowEventHiddenByFilters ? undefined : scrollToNowEvent}
+                                                    sx={{
+                                                        cursor: isNowEventHiddenByFilters ? 'not-allowed' : 'pointer',
+                                                        px: { xs: 1.25, sm: 1.5 },
+                                                        py: { xs: 0.625, sm: 0.75 },
+                                                        borderRadius: 999,
+                                                        border: '1px solid',
+                                                        bgcolor: theme.palette.background.paper,
+                                                        borderColor: alpha(theme.palette.text.primary, 0.23),
+                                                        transition: 'all 0.2s ease',
+                                                        opacity: isNowEventHiddenByFilters ? 0.5 : 1,
+                                                        ...(!isNowEventHiddenByFilters && {
+                                                            '&:hover': {
+                                                                bgcolor: alpha(theme.palette.info.main, 0.08),
+                                                                borderColor: alpha(theme.palette.info.main, 0.5),
+                                                            },
+                                                            '&:active': {
+                                                                bgcolor: alpha(theme.palette.info.main, 0.12),
+                                                            },
+                                                        }),
+                                                    }}
+                                                >
+                                                    <AccessTimeIcon sx={{ fontSize: { xs: 13, sm: 14 }, color: isNowEventHiddenByFilters ? 'text.disabled' : 'info.main' }} />
+                                                    <Typography variant="caption" sx={{ fontWeight: 600, color: isNowEventHiddenByFilters ? 'text.disabled' : 'text.primary', fontSize: { xs: '0.75rem', sm: '0.8125rem' } }}>
+                                                        {t('calendar:stats.eventsInProgress')}
+                                                    </Typography>
+                                                </Stack>
+                                            </Tooltip>
+                                        )}
+                                    </>
+                                )}
                             </Stack>
                         </Stack>
+
+                        {/* Event count - show on xs only (sm/md show in subtitle, lg+ in filters) */}
+                        <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.75rem', lineHeight: 1.4 }}>
+                                {showSkeletons ? t('calendar:stats.loadingEvents') : t('calendar:stats.eventsCount', { count: visibleCount.toLocaleString() })}
+                            </Typography>
+                        </Box>
 
                         <Divider sx={{ borderColor: alpha(theme.palette.text.primary, 0.12) }} />
                     </Stack>
@@ -2519,6 +2783,10 @@ export default function CalendarEmbed({
                 showJumpToNow={showJumpToNow}
                 onJumpToNow={scrollToNowEvent}
                 jumpToNowDirection={jumpToNowDirection}
+                isNextEventHiddenByFilters={isNextEventHiddenByFilters}
+                isNowEventHiddenByFilters={isNowEventHiddenByFilters}
+                nextCountdownLabel={nextCountdownLabel}
+                hiddenNextCountdownLabel={hiddenNextCountdownLabel}
                 appBar={appBar}
                 stickyFiltersNode={stickyFiltersNode}
             />

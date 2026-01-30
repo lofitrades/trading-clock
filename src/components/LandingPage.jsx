@@ -372,7 +372,7 @@ export default function HomePage2() {
         return () => window.removeEventListener('resize', measure);
     }, [heroClockSize]);
 
-    const handColor = useMemo(() => '#0F172A', []);
+    const handColor = useMemo(() => theme.palette.text.primary, [theme.palette.text.primary]);
     const showOverlay = (showEventsOnCanvas ?? true) && (showHandClock ?? true);
 
     const openApp = useCallback(() => {

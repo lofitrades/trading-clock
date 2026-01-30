@@ -18,11 +18,13 @@ import PropTypes from 'prop-types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Dialog, DialogContent, DialogTitle, IconButton, LinearProgress, Typography, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { useTranslation } from 'react-i18next';
 import CloseIcon from '@mui/icons-material/Close';
 import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 
 export default function ContactModal({ open, onClose }) {
     const theme = useTheme();
+    const { t } = useTranslation('contact');
     const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const [ready, setReady] = useState(false);
     const fallbackTimer = useRef(null);
@@ -106,10 +108,10 @@ export default function ContactModal({ open, onClose }) {
                 }}
             >
                 <Typography component="span" variant="subtitle1" sx={{ fontWeight: 800 }}>
-                    Contact Support
+                    {t('modal.title')}
                 </Typography>
 
-                <IconButton aria-label="Close contact" onClick={onClose} sx={{ color: 'text.secondary' }}>
+                <IconButton aria-label={t('modal.closeAriaLabel')} onClick={onClose} sx={{ color: 'text.secondary' }}>
                     <CloseIcon />
                 </IconButton>
             </DialogTitle>

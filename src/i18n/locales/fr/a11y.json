@@ -24,5 +24,13 @@
   "userMenu": "Menu du compte utilisateur",
   "userOptions": "Options utilisateur",
   "userMenuDynamic": "Menu de {{name}}",
-  "closeDialog": "fermer"
+  "closeDialog": "fermer",
+  "settings": {
+    "sections": "Sections des paramètres",
+    "syncWeek": "Synchroniser la semaine",
+    "syncActuals": "Synchroniser les données réelles",
+    "syncForexFactory": "Remplir Forex Factory",
+    "closeDrawer": "Fermer les paramètres",
+    "clearSession": "Effacer la session {{number}}"
+  }
 }

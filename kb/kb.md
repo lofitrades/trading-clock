@@ -2111,6 +2111,13 @@ whyDidYouRender(React, {
 
 ## 📝 Change Log
 
+### Version 4.0.72 - January 29, 2026
+**i18n Hardcoded Copy Cleanup**
+
+- Removed remaining hardcoded UI copy in admin tools, settings, and time status components.
+- Added/updated i18n keys for admin, settings, common, tooltips, and validation (EN/ES/FR) and synced public locales.
+- Expanded i18n preload namespaces to cover updated UI surfaces.
+
 ### Version 4.0.71 - January 23, 2026
 **Favorites Toggle Click Handler Fix**
 

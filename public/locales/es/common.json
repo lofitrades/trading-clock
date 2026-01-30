@@ -24,6 +24,14 @@
     "support": "Soporte",
     "contact": "Contacto"
   },
+  "actions": {
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "close": "Cerrar",
+    "submit": "Enviar",
+    "confirm": "Confirmar"
+  },
   "labels": {
     "email": "Correo electrónico",
     "password": "Contraseña",
@@ -40,7 +48,10 @@
     "active": "Activo",
     "inactive": "Inactivo",
     "loading": "Cargando...",
-    "noData": "Sin datos disponibles"
+    "noData": "Sin datos disponibles",
+    "user": "Usuario",
+    "unknown": "Desconocido",
+    "visibility": "Visibilidad"
   },
   "navigation": {
     "home": "Inicio",
@@ -54,10 +65,12 @@
     "roadmap": "Hoja de Ruta",
     "unlock": "Desbloquear",
     "unlockAllFeatures": "Desbloquear gratis"
-  },  "language": {
+  },
+  "language": {
     "changingLanguage": "Cambiando...",
     "selectLanguage": "Seleccionar idioma"
-  },  "messages": {
+  },
+  "messages": {
     "success": "Éxito",
     "error": "Error",
     "warning": "Advertencia",

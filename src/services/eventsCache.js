@@ -5,7 +5,7 @@
  * Optimizes performance by minimizing Firestore reads while ensuring data freshness
  * 
  * Strategy:
- * - Cache recent events (14d back + 8d forward) in localStorage per source
+ * - Cache recent events (3d back + 5d forward = 8 days total) in localStorage per source
  * - Track last sync timestamp from systemJobs
  * - Invalidate cache when API sync occurs
  * - Smart cache expiration (24 hours fallback)
@@ -13,6 +13,7 @@
  * - Multi-source support (forex-factory, mql5, fxstreet)
  * 
  * Changelog:
+ * v2.3.0 - 2026-01-29 - BEP PHASE 1.1: Reduced cache window from 14d back + 8d forward (22 days) to 3d back + 5d forward (8 days). Expected: 60% less data, -200-400 Firestore reads, -5-15 MB localStorage per source.
  * v2.2.0 - 2026-01-22 - BEP: Add N/A/CUS currency filter support. Currency filtering now handles ALL (global), N/A (unknown/null), and CUS (custom events) special currency types.
  * v2.1.2 - 2025-12-08 - Best practice confirmed: cache persists across filter changes for performance, only refreshes when stale/outdated
  * v2.1.1 - 2025-12-08 - Fixed date calculations: always use fresh Date() on every call, added detailed logging for cache date range debugging
@@ -349,16 +350,17 @@ export function subscribeSyncStatus(onSyncUpdate) {
  */
 async function fetchAndCacheAllEvents(source = 'forex-factory') {
   try {
-    // Calculate date range: 14 days back, 8 days forward
+    // Calculate date range: 3 days back, 5 days forward (8 days total)
+    // BEP PHASE 1.1: Reduced from 14 days back + 8 days forward (22 days) to 3 back + 5 forward (8 days)
     // IMPORTANT: Use fresh Date() to ensure we get current date, not cached reference
     const now = new Date(); // Fresh date on every call
     
     const startDate = new Date(now.getTime()); // Clone to avoid mutation
-    startDate.setDate(startDate.getDate() - 14);
+    startDate.setDate(startDate.getDate() - 3);
     startDate.setHours(0, 0, 0, 0);
     
     const endDate = new Date(now.getTime()); // Clone to avoid mutation
-    endDate.setDate(endDate.getDate() + 8);
+    endDate.setDate(endDate.getDate() + 5);
     endDate.setHours(23, 59, 59, 999);
     
     

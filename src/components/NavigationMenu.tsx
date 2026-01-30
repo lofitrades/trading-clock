@@ -5,6 +5,9 @@
  * Matches the landing page navigation UI while supporting auth-aware menu items.
  * 
  * Changelog:
+ * v1.0.4 - 2026-01-29 - BEP THEME-AWARE: Replaced hardcoded #ffffff with background.paper,
+ *                       #f4f7fb with text.secondary, and rgba focus outline with primary.main.
+ *                       Mobile drawer and close icon now adapt to light/dark mode.
  * v1.0.3 - 2026-01-16 - Updated auth navigation target to /clock.
  * v1.0.2 - 2026-01-12 - Highlight active route menu item using theme primary color.
  * v1.0.1 - 2026-01-12 - UI: Reduce header vertical spacing for a tighter, mobile-first nav.
@@ -104,7 +107,8 @@ export default function NavigationMenu({
             textDecoration: 'none',
             color: 'inherit',
             '&:focus-visible': {
-              outline: '2px solid rgba(255,255,255,0.6)',
+              outline: '2px solid',
+              outlineColor: 'primary.main',
               outlineOffset: 4,
               borderRadius: 1,
             },
@@ -246,7 +250,7 @@ export default function NavigationMenu({
         PaperProps={{
           sx: {
             width: 320,
-            bgcolor: '#ffffff',
+            bgcolor: 'background.paper',
             color: theme.palette.text.primary,
           },
         }}
@@ -275,7 +279,7 @@ export default function NavigationMenu({
           <IconButton
             aria-label="Close navigation"
             onClick={closeMobileNav}
-            sx={{ color: '#f4f7fb' }}
+            sx={{ color: 'text.secondary' }}
           >
             <CloseIcon />
           </IconButton>
