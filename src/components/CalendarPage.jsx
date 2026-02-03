@@ -6,6 +6,7 @@
  * Relies on app-level providers to ensure AppBar stays mounted during route navigation.
  * 
  * Changelog:
+ * v1.4.0 - 2026-01-29 - BEP PERFORMANCE: Added preloadNamespaces() for route-aware i18n loading. Preloads calendar, events, settings, dialogs, reminders, sessions, tooltips, a11y, auth namespaces on mount. Reduces TBT by loading namespaces in parallel after initial render.
  * v1.3.3 - 2026-01-22 - BEP: Allow non-auth users to open CustomEventDialog and fill values. Auth check on save - shows AuthModal2 when trying to save without auth. Uses useAuth hook to check authentication status.
  * v1.3.2 - 2026-01-22 - BEP REFACTOR: Mobile header now uses standalone MobileHeader component via PublicLayout. Consistent mobile UX across all pages. No changes needed in CalendarPage - MobileHeader integrated transparently.
  * v1.3.1 - 2026-01-16 - Updated trading clock navigation target to /clock for new public route.
@@ -29,6 +30,7 @@
 
 import { useCallback, useEffect, useState, Suspense, lazy } from 'react';
 import { setupViewportCssVars } from '../app/clientEffects';
+import { preloadNamespaces } from '../i18n/config';
 import CalendarEmbed from './CalendarEmbed';
 import PublicLayout from './PublicLayout';
 import { useAuth } from '../contexts/AuthContext';
@@ -42,6 +44,20 @@ const CustomEventDialog = lazy(() => import('./CustomEventDialog'));
 export default function CalendarPage() {
     useEffect(() => {
         setupViewportCssVars();
+
+        // BEP PERFORMANCE v1.4.0: Preload route-specific i18n namespaces
+        // These load in parallel after initial render, reducing TBT
+        preloadNamespaces([
+            'calendar',   // CalendarEmbed table headers, day labels
+            'events',     // Event details, custom events
+            'settings',   // SettingsSidebar2 drawer
+            'dialogs',    // Modals and dialogs
+            'reminders',  // RemindersEditor2
+            'sessions',   // Session tooltips
+            'tooltips',   // General tooltips
+            'a11y',       // Accessibility labels
+            'auth',       // Auth modal
+        ]);
     }, []);
 
     const { isAuthenticated } = useAuth();

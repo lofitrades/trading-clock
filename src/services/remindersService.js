@@ -158,15 +158,6 @@ export const subscribeToReminder = (userId, reminderId, onChange, onError) => {
 
 export const upsertReminderForUser = async (userId, reminder) => {
     if (!userId) throw new Error('User must be authenticated to save reminders.');
-    // eslint-disable-next-line no-console
-    console.log('[reminders] upsertReminderForUser called', {
-        userId: userId?.substring(0, 8) + '...',
-        hasEventKey: Boolean(reminder?.eventKey),
-        eventKey: reminder?.eventKey,
-        seriesKey: reminder?.seriesKey,
-        scope: reminder?.scope,
-        reminderCount: reminder?.reminders?.length,
-    });
     const normalizedReminders = normalizeReminders(reminder?.reminders ?? []);
     const channels = aggregateReminderChannels(normalizedReminders);
     const normalized = reminder?.eventKey
@@ -215,17 +206,10 @@ export const upsertReminderForUser = async (userId, reminder) => {
         { merge: true }
     );
 
-    // eslint-disable-next-line no-console
-    console.log('[reminders] Reminder saved successfully', { reminderId });
     return reminderId;
 };
 
 export const deleteReminderForUser = async (userId, reminderId) => {
-    // eslint-disable-next-line no-console
-    console.log('[reminders] deleteReminderForUser called', {
-        userId: userId?.substring(0, 8) + '...',
-        reminderId,
-    });
     if (!userId || !reminderId) {
         // eslint-disable-next-line no-console
         console.warn('[reminders] deleteReminderForUser skipped - missing userId or reminderId');
@@ -235,8 +219,6 @@ export const deleteReminderForUser = async (userId, reminderId) => {
     const reminderRef = doc(db, 'users', userId, REMINDERS_COLLECTION, String(encodedReminderId));
     try {
         await deleteDoc(reminderRef);
-        // eslint-disable-next-line no-console
-        console.log('[reminders] deleteReminderForUser completed', { reminderId });
     } catch (err) {
         // eslint-disable-next-line no-console
         console.error('[reminders] deleteReminderForUser FAILED', { reminderId, error: err?.message });

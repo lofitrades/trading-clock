@@ -5,6 +5,7 @@
  * Key responsibility and main functionality: Configures code-splitting, lazy loading, and vendor chunking to reduce initial payload and improve FCP/LCP metrics. Ensures robust HMR WebSocket connection for hot module reloading.
  *
  * Changelog:
+ * v1.10.0 - 2026-02-02 - BEP HMR FIX: Removed hardcoded HMR port config to allow Vite to auto-sync port between server and client. Fixes "WebSocket closed without opened" error when server falls back to alternate port.
  * v1.9.0 - 2026-01-28 - BEP HMR FIX: Added dns.setDefaultResultOrder('verbatim') per Vite docs to fix localhost DNS resolution mismatch between Node.js and browser. This ensures consistent IP address resolution for HMR WebSocket connections.
  * v1.8.0 - 2026-01-27 - BEP HMR CRITICAL FIX: Refactored HMR config with environment variable support and fallback. Changed strictPort: true → false to allow fallback to adjacent ports if 5173 is unavailable. Added 'localhost' to allowedHosts. Made HMR config environment-aware for better cross-environment support (ngrok, Docker, CI/CD). Fixes WebSocket connection failures.
  * v1.7.0 - 2026-01-27 - BEP HMR FIX: Added explicit hmr configuration with protocol/host/port/clientPort to fix WebSocket connection failures. Ensures Vite HMR WebSocket connects properly on localhost:5173 for hot reloading during development.
@@ -36,6 +37,15 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    // BEP: Dedupe React and @emotion to prevent multiple instances
+    // Fixes "Invalid hook call" and "@emotion/react already loaded" errors
+    dedupe: [
+      'react',
+      'react-dom',
+      '@emotion/react',
+      '@emotion/styled',
+      '@emotion/cache',
+    ],
   },
   build: {
     // BEP: Reduce chunk size warnings and minimize CSS/JS
@@ -74,12 +84,9 @@ export default defineConfig({
       // Firebase SDK checks window.closed property from auth popup, which would be blocked by COOP: same-origin
       'Cross-Origin-Opener-Policy': 'unsafe-none',
     },
-    hmr: {
-      protocol: 'ws',
-      host: 'localhost',
-      port: 5173,
-      clientPort: 5173,
-    },
+    // BEP: Let Vite auto-configure HMR WebSocket to match actual server port
+    // Hardcoding port causes "WebSocket closed without opened" when server falls back to alternate port
+    hmr: true,
     proxy: {
       '/api/news': {
         target: 'https://www.jblanked.com',

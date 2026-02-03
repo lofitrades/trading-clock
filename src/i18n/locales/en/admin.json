@@ -48,6 +48,214 @@
   "fileDownloadedInfo": "File downloaded to Downloads folder. Move to data/ folder if needed.",
   "exportAnother": "Export Another",
   "exportFailed": "Export Failed",
+  "events": {
+    "pageTitle": "Event Management",
+    "pageSubtitle": "Manage economic calendar events · {{timezone}}",
+    "filters": {
+      "heading": "Filters",
+      "dateRange": "Date Range",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "currency": "Currency",
+      "allCurrencies": "All Currencies",
+      "impact": "Impact",
+      "allImpacts": "All Impacts",
+      "source": "Source",
+      "allSources": "All Sources",
+      "search": "Search Events",
+      "searchPlaceholder": "Search by event name...",
+      "goButton": "Go",
+      "clearFilters": "Clear Filters",
+      "maxDateRange": "Maximum date range is 90 days"
+    },
+    "table": {
+      "loading": "Loading events...",
+      "noData": "No events found. Adjust filters and click 'Go' to search.",
+      "rowsPerPage": "Rows per page:",
+      "columns": {
+        "date": "Date",
+        "time": "Time",
+        "currency": "Currency",
+        "event": "Event",
+        "impact": "Impact",
+        "forecast": "Forecast",
+        "previous": "Previous",
+        "actual": "Actual",
+        "source": "Source",
+        "manuallyEdited": "Manual",
+        "actions": "Actions"
+      },
+      "editTooltip": "Double-click cell to edit",
+      "saveTooltip": "Save changes",
+      "cancelTooltip": "Cancel editing",
+      "viewChangelogTooltip": "View changelog",
+      "manualBadge": "M",
+      "manualBadgeTooltip": "Manually edited (frozen)",
+      "futureBadgeTooltip": "Manually edited (sync active)"
+    },
+    "editDialog": {
+      "title": "Edit Event",
+      "reasonLabel": "Reason for Change (Optional)",
+      "reasonPlaceholder": "Describe why you're making this change...",
+      "saveButton": "Save Changes",
+      "cancelButton": "Cancel"
+    },
+    "changelogDialog": {
+      "title": "Event Changelog",
+      "noChanges": "No changes recorded for this event.",
+      "timestamp": "Date",
+      "admin": "Admin",
+      "field": "Field",
+      "oldValue": "Old Value",
+      "newValue": "New Value",
+      "reason": "Reason",
+      "closeButton": "Close"
+    },
+    "notifications": {
+      "updateSuccess": "Event updated successfully",
+      "updateError": "Failed to update event",
+      "fetchError": "Failed to fetch events",
+      "validationError": "Please fix validation errors before saving",
+      "dateRangeRequired": "Start and end dates are required",
+      "invalidDateRange": "End date must be after start date"
+    },
+    "impacts": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "highImpact": "High Impact",
+      "mediumImpact": "Medium Impact",
+      "lowImpact": "Low Impact",
+      "nonEconomic": "Non-Economic",
+      "unknown": "Unknown"
+    },
+    "sources": {
+      "nfs": "NFS",
+      "jblanked": "JBlanked",
+      "gpt": "GPT",
+      "manual": "Manual",
+      "unknown": "Unknown"
+    }
+  },
+  "descriptions": {
+    "pageTitle": "Event Descriptions",
+    "pageSubtitle": "Manage economic event descriptions and trading implications",
+    "filters": {
+      "searchPlaceholder": "Search by name, alias, or description...",
+      "category": "Category",
+      "allCategories": "All Categories",
+      "impact": "Impact",
+      "allImpacts": "All Impacts"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "addNew": "Add New",
+      "download": "Download",
+      "downloadTooltip": "Export all descriptions as JSON"
+    },
+    "table": {
+      "loading": "Loading descriptions...",
+      "noData": "No descriptions found.",
+      "rowsPerPage": "Rows per page:",
+      "columns": {
+        "name": "Event Name",
+        "category": "Category",
+        "impact": "Impact",
+        "frequency": "Frequency",
+        "source": "Source",
+        "description": "Description",
+        "aliases": "Aliases",
+        "translations": "Translations",
+        "actions": "Actions"
+      },
+      "editTooltip": "Edit full details",
+      "viewChangelogTooltip": "View changelog",
+      "deleteTooltip": "Delete description"
+    },
+    "changelogDialog": {
+      "title": "Description Changelog",
+      "noChanges": "No changes recorded for this description.",
+      "timestamp": "Date",
+      "admin": "Admin",
+      "field": "Field",
+      "oldValue": "Old Value",
+      "newValue": "New Value",
+      "reason": "Reason",
+      "closeButton": "Close"
+    },
+    "deleteDialog": {
+      "title": "Delete Description",
+      "message": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+      "cancelButton": "Cancel",
+      "confirmButton": "Delete"
+    },
+    "dialog": {
+      "createTitle": "Create New Description",
+      "editTitle": "Edit Description",
+      "sections": {
+        "basicInfo": "Basic Information",
+        "aliases": "Aliases",
+        "content": "Description & Trading Info",
+        "localizedContent": "Localized Content",
+        "keyThresholds": "Key Thresholds"
+      },
+      "fields": {
+        "name": "Event Name",
+        "category": "Category",
+        "impact": "Impact",
+        "frequency": "Frequency",
+        "source": "Data Source",
+        "releaseTime": "Release Time",
+        "description": "Description",
+        "tradingImplication": "Trading Implication",
+        "addAlias": "Add Alias",
+        "newCategory": "New Category Name",
+        "thresholdStrong": "Strong",
+        "thresholdModerate": "Moderate",
+        "thresholdWeak": "Weak"
+      },
+      "selectCategory": "Select a category",
+      "addNewCategory": "Add new category...",
+      "addAliasButton": "Add",
+      "noAliases": "No aliases added",
+      "descriptionPlaceholder": "Describe what this economic indicator measures and its significance...",
+      "tradingImplicationPlaceholder": "How does this indicator typically affect markets? What should traders watch for?",
+      "releaseTimePlaceholder": "e.g., First Friday of the month at 8:30 AM ET",
+      "releaseTimeHint": "Translate the release schedule description",
+      "nameNotEditable": "Event name cannot be changed after creation",
+      "i18nHint": "Provide translations for each language. English is required, others are optional.",
+      "copyFromEnglish": "Tip: Translate from English content above",
+      "translationStatus": {
+        "complete": "Translation complete",
+        "partial": "Translation partially complete",
+        "missing": "Translation missing"
+      },
+      "errors": {
+        "nameRequired": "Event name is required",
+        "englishRequired": "English description is required",
+        "saveFailed": "Failed to save description"
+      },
+      "unsavedChanges": {
+        "message": "You have unsaved changes. Are you sure you want to close?"
+      },
+      "cancelButton": "Cancel",
+      "createButton": "Create",
+      "updateButton": "Save Changes",
+      "saving": "Saving..."
+    },
+    "notifications": {
+      "fetchError": "Failed to fetch descriptions",
+      "refreshSuccess": "Descriptions refreshed",
+      "createSuccess": "Description created successfully",
+      "createError": "Failed to create description",
+      "updateSuccess": "Description updated successfully",
+      "updateError": "Failed to update description",
+      "deleteSuccess": "Description deleted successfully",
+      "deleteError": "Failed to delete description",
+      "downloadSuccess": "Descriptions exported successfully",
+      "downloadError": "Failed to export descriptions"
+    }
+  },
   "exportSpecification": "Export Specification",
   "pathLabel": "Path",
   "fieldsLabel": "Fields",
@@ -87,7 +295,7 @@
   "dateTo": "Date to",
   "showing": "Showing",
   "of": "of",
-  "events": "events",
+  "eventsCount": "Events",
   "new": "New",
   "newEventTooltip": "New event (no existing match found)",
   "matched": "Matched",

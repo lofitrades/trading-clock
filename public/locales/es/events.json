@@ -7,6 +7,14 @@
   "actual": "Real",
   "forecast": "Pronóstico",
   "previous": "Anterior",
+  "relativeTime": {
+    "startingNow": "Comenzando ahora",
+    "future": "En {{time}}",
+    "past": "hace {{time}}",
+    "day": "d",
+    "hour": "h",
+    "minute": "m"
+  },
   "impactLevels": {
     "high": "Alto Impacto",
     "medium": "Impacto Medio",
@@ -69,17 +77,17 @@
     }
   },
   "impacts": {
-    "highImpact": "!!! Alto Impacto",
+    "highImpact": "Alto Impacto",
     "highImpactDesc": "Datos económicos altamente significativos que pueden causar movimientos sustanciales del mercado",
-    "mediumImpact": "!! Impacto Medio",
+    "mediumImpact": "Impacto Medio",
     "mediumImpactDesc": "Datos económicos moderados con influencia notoria en el mercado",
-    "lowImpact": "! Bajo Impacto",
+    "lowImpact": "Bajo Impacto",
     "lowImpactDesc": "Datos económicos menores con impacto limitado en el mercado",
-    "dataNotLoaded": "? Datos No Cargados",
+    "dataNotLoaded": "Datos No Cargados",
     "dataNotLoadedDesc": "Los datos del nivel de impacto aún se están cargando",
-    "nonEconomic": "~ No Económico",
+    "nonEconomic": "No Económico",
     "nonEconomicDesc": "Este evento no se clasifica como datos económicos",
-    "unknown": "? Desconocido",
+    "unknown": "Desconocido",
     "unknownDesc": "El nivel de impacto no se puede determinar"
   },
   "tooltips": {
@@ -214,6 +222,28 @@
         "success": "Cambios guardados"
       },
       "addCustomEvent": "Crear evento"
+    }
+  },
+  "eventPage": {
+    "seoTitleSuffix": "Guía de Eventos Económicos",
+    "notFound": "Evento no encontrado: {{eventId}}",
+    "backToCalendar": "Volver al Calendario",
+    "openPage": "Ver detalles del evento",
+    "tradingImplication": "Implicaciones de Trading",
+    "releaseSchedule": "Calendario de Publicación",
+    "keyThresholds": "Umbrales Clave",
+    "viewOnCalendar": "Ver en el Calendario",
+    "calendarCta": "Consulta las próximas fechas de este evento y configura recordatorios en nuestro calendario económico.",
+    "goToCalendar": "Ir al Calendario",
+    "alsoKnownAs": "También Conocido Como",
+    "breadcrumb": {
+      "home": "Inicio",
+      "calendar": "Calendario"
+    },
+    "thresholds": {
+      "strong": "Fuerte",
+      "moderate": "Moderado",
+      "weak": "Débil"
     }
   }
 }

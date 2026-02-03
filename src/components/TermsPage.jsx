@@ -323,7 +323,7 @@ function TermsPageContent() {
                                 {t('disclaimers.tradingRisks')}
                             </Typography>
                             <Typography variant="body2" sx={{ color: (theme) => theme.palette.mode === 'dark' ? 'warning.light' : 'warning.dark' }}>
-                                {t('disclaimers.yourResponsibility')}}
+                                {t('disclaimers.yourResponsibility')}
                             </Typography>
                         </Stack>
                     </Box>

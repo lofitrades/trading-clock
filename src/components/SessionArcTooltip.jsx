@@ -5,6 +5,8 @@
  * Follows Material Design v7 best practices with proper spacing, typography hierarchy, and alignment.
  *
  * Changelog:
+ * v1.4.3 - 2026-01-29 - BEP i18n: Counter labels and relative time now fully language-aware. Uses translation keys for "Starts in", "Started X ago", "Ended X ago" with full i18n support for EN/ES/FR. All tooltip text now localized.
+ * v1.4.2 - 2026-01-29 - BEP i18n: Time display now fully language-aware and timezone-aware. Uses toLocaleTimeString with i18n language detection (EN/ES/FR) and 12-hour AM/PM format.
  * v1.4.1 - 2026-01-21 - Add close icon button to tooltip header.
  * v1.4.0 - 2026-01-16 - Smart labels with session state: "Starts in X", "Started X ago", "Ended X ago", with overnight session handling
  * v1.2.0 - 2026-01-16 - Enterprise UI: proper spacing system, typography hierarchy, alignment, and visual grouping
@@ -13,16 +15,18 @@
  */
 
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import { Box, Typography, IconButton } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 
 /**
- * Convert 24-hour time string to 12-hour format with AM/PM
+ * Convert time string to language-aware 12-hour format with AM/PM using locale
  * @param {string} timeStr - Time in HH:MM format (24-hour)
- * @returns {string} - Time in 12-hour format with AM/PM (e.g., "9:45 AM")
+ * @param {string} locale - Locale string (e.g., 'en-US', 'es-ES', 'fr-FR')
+ * @returns {string} - Time in language-aware 12-hour format with AM/PM
  */
-const formatTo12Hour = (timeStr) => {
+const formatTo12Hour = (timeStr, locale = 'en-US') => {
     if (!timeStr || typeof timeStr !== 'string') return '';
 
     const [hourStr, minute] = timeStr.split(':');
@@ -30,11 +34,14 @@ const formatTo12Hour = (timeStr) => {
 
     if (isNaN(hour) || isNaN(parseInt(minute, 10))) return '';
 
-    const isPM = hour >= 12;
-    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-    const ampm = isPM ? 'PM' : 'AM';
+    // Create a date object with the time (date doesn't matter, we only care about time)
+    const tempDate = new Date();
+    tempDate.setHours(hour, parseInt(minute, 10), 0);
 
-    return `${displayHour}:${minute} ${ampm}`;
+    return tempDate.toLocaleTimeString(
+        locale,
+        { hour: '2-digit', minute: '2-digit', hour12: true }
+    );
 };
 
 /**
@@ -119,12 +126,13 @@ const getSessionState = (startMins, endMins, currentMins) => {
 };
 
 /**
- * Format session state with smart, enterprise-grade copywriting
+ * Format session state with smart, enterprise-grade copywriting using translations
  * @param {string} state - 'not-started|active|ended'
  * @param {number} minutes - Absolute minutes for the state
+ * @param {Function} t - i18n translation function
  * @returns {string} - Formatted label (e.g., "Starts in 2h 15m", "Started 45m ago")
  */
-const formatSessionLabel = (state, minutes) => {
+const formatSessionLabel = (state, minutes, t = () => '') => {
     const absMins = Math.abs(minutes);
     const hours = Math.floor(absMins / 60);
     const mins = absMins % 60;
@@ -137,14 +145,14 @@ const formatSessionLabel = (state, minutes) => {
         timePart = `${hours}h ${mins}m`;
     }
 
-    // Add state-specific copy
+    // Add state-specific copy using translations
     switch (state) {
         case 'not-started':
-            return `Starts in ${timePart}`;
+            return t('sessions:tooltip.startsIn', { defaultValue: 'Starts in' }) + ` ${timePart}`;
         case 'active':
-            return `Started ${timePart} ago`;
+            return t('sessions:tooltip.startedAgo', { defaultValue: 'Started' }) + ` ${timePart} ${t('sessions:tooltip.ago', { defaultValue: 'ago' })}`;
         case 'ended':
-            return `Ended ${timePart} ago`;
+            return t('sessions:tooltip.endedAgo', { defaultValue: 'Ended' }) + ` ${timePart} ${t('sessions:tooltip.ago', { defaultValue: 'ago' })}`;
         default:
             return '';
     }
@@ -172,6 +180,15 @@ const formatSessionLabel = (state, minutes) => {
  * />
  */
 function SessionArcTooltip({ sessionName = '', startTime = '', endTime = '', timezone = 'UTC', arcColor = 'primary.main', onClose }) {
+    const { i18n, t } = useTranslation(['sessions', 'common']);
+
+    // Helper function to get locale from i18n language code
+    const getLocale = () => {
+        if (i18n.language === 'es') return 'es-ES';
+        if (i18n.language === 'fr') return 'fr-FR';
+        return 'en-US';
+    };
+
     // Memoize time calculations to avoid unnecessary recomputation
     // Timezone-aware: recalculates when timezone or session times change
     const displayData = useMemo(() => {
@@ -187,14 +204,15 @@ function SessionArcTooltip({ sessionName = '', startTime = '', endTime = '', tim
         // Get session state with overnight handling
         const sessionState = getSessionState(startTimeMins, endTimeMins, currentMinutes);
 
-        // Format smart label based on state
-        const relativeLabel = formatSessionLabel(sessionState.state, sessionState.relativeMinutes);
+        // Format smart label based on state with translations
+        const relativeLabel = formatSessionLabel(sessionState.state, sessionState.relativeMinutes, t);
 
-        const startLabel = formatTo12Hour(startTime);
-        const endLabel = formatTo12Hour(endTime);
+        const locale = getLocale();
+        const startLabel = formatTo12Hour(startTime, locale);
+        const endLabel = formatTo12Hour(endTime, locale);
 
         return { startLabel, endLabel, relativeLabel, sessionState: sessionState.state };
-    }, [startTime, endTime, timezone]);
+    }, [startTime, endTime, timezone, i18n.language, t]);
 
     return (
         <Box

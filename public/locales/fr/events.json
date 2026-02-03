@@ -7,6 +7,14 @@
   "actual": "Réel",
   "forecast": "Prévision",
   "previous": "Précédent",
+  "relativeTime": {
+    "startingNow": "Commence maintenant",
+    "future": "Dans {{time}}",
+    "past": "il y a {{time}}",
+    "day": "j",
+    "hour": "h",
+    "minute": "m"
+  },
   "impactLevels": {
     "high": "Impact Élevé",
     "medium": "Impact Moyen",
@@ -69,17 +77,17 @@
     }
   },
   "impacts": {
-    "highImpact": "!!! Impact Élevé",
+    "highImpact": "Impact Élevé",
     "highImpactDesc": "Données économiques hautement importantes qui peuvent causer des mouvements substantiels du marché",
-    "mediumImpact": "!! Impact Moyen",
+    "mediumImpact": "Impact Moyen",
     "mediumImpactDesc": "Données économiques modérées avec une influence notable sur le marché",
-    "lowImpact": "! Impact Faible",
+    "lowImpact": "Impact Faible",
     "lowImpactDesc": "Données économiques mineures avec un impact limité sur le marché",
-    "dataNotLoaded": "? Données Non Chargées",
+    "dataNotLoaded": "Données Non Chargées",
     "dataNotLoadedDesc": "Les données de niveau d'impact sont toujours en cours de chargement",
-    "nonEconomic": "~ Non Économique",
+    "nonEconomic": "Non Économique",
     "nonEconomicDesc": "Cet événement n'est pas classé comme données économiques",
-    "unknown": "? Inconnu",
+    "unknown": "Inconnu",
     "unknownDesc": "Le niveau d'impact ne peut pas être déterminé"
   },
   "tooltips": {
@@ -214,6 +222,28 @@
         "success": "Modifications enregistrées"
       },
       "addCustomEvent": "Créer un événement"
+    }
+  },
+  "eventPage": {
+    "seoTitleSuffix": "Guide des Événements Économiques",
+    "notFound": "Événement non trouvé: {{eventId}}",
+    "backToCalendar": "Retour au Calendrier",
+    "openPage": "Voir les détails de l'événement",
+    "tradingImplication": "Implications de Trading",
+    "releaseSchedule": "Calendrier de Publication",
+    "keyThresholds": "Seuils Clés",
+    "viewOnCalendar": "Voir sur le Calendrier",
+    "calendarCta": "Consultez les prochaines dates de cet événement et configurez des rappels sur notre calendrier économique.",
+    "goToCalendar": "Aller au Calendrier",
+    "alsoKnownAs": "Également Connu Sous",
+    "breadcrumb": {
+      "home": "Accueil",
+      "calendar": "Calendrier"
+    },
+    "thresholds": {
+      "strong": "Fort",
+      "moderate": "Modéré",
+      "weak": "Faible"
     }
   }
 }

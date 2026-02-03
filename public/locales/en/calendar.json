@@ -80,7 +80,13 @@
     "addToFavorites": "Add to favorites",
     "customEvent": "Custom event",
     "unknown": "Unknown",
-    "global": "Global"
+    "global": "Global",
+    "allDay": "All Day",
+    "tentative": "Tentative",
+    "allDayAndTentative": "All Day / Tentative",
+    "time": "Time",
+    "singleEvent": "1 event",
+    "eventCount": "{{count}} events"
   },
   "clock": {
     "title": "Trading Clock",

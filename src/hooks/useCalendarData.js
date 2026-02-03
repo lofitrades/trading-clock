@@ -3,7 +3,7 @@
  * 
  * Purpose: Headless calendar data hook with adaptive storage strategy
  * Fetches economic events via eventsStorageAdapter (Zustand cache → IndexedDB → Batcher → Firestore)
- * with configurable default preset and Zustand real-time subscriptions for instant updates
+ * with configurable default preset
  * 
  * Storage Strategy:
  * 1. Zustand query cache (0-5ms, 5-min TTL) - single source of truth
@@ -12,6 +12,8 @@
  * 4. Firestore (150-300ms) - authoritative source
  * 
  * Changelog:
+ * v1.5.0 - 2026-02-02 - BEP: Removed Zustand real-time subscription (timezone conversion complexity). Data refreshes on page reload/remount for accurate display.
+ * v1.4.0 - 2026-02-02 - BEP REALTIME: Added Zustand subscription for real-time admin edits. Calendar now merges adapter results with live Zustand updates. Admin edits propagate instantly without page refresh.
  * v1.3.0 - 2026-01-29 - BEP PHASE 2.6: Migrate to eventsStorageAdapter + Zustand subscriptions. Replaced direct Firestore calls with adaptive storage. Added selective Zustand subscription for real-time updates without re-fetching. Expected: 75% faster initial load, 80% fewer re-renders, 60% less memory.
  * v1.2.0 - 2026-01-17 - BEP PERFORMANCE PHASE 1: Skip description enrichment on initial fetch. Add processEventForDisplay() pre-computation. Expected 50-60% total performance improvement.
  * v1.1.5 - 2026-01-17 - UX IMPROVEMENT: Immediately set loading=true when filters change to show skeletons.
@@ -39,6 +41,9 @@ import { getEventEpochMs, formatRelativeLabel, NOW_WINDOW_MS } from '../utils/ev
 
 const MAX_DATE_RANGE_DAYS = 365;
 const EVENTS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+// BEP v1.5.0: Removed convertUtcToTimezone - real-time timezone conversion removed
+// Data fetched via adapter is already correctly formatted for display
 
 /**
  * Check if an event is speech-like (press conference, testimony, etc.)
@@ -382,6 +387,14 @@ export function useCalendarData({ defaultPreset = 'thisWeek' } = {}) {
     lastFetchKeyRef.current = fetchKey;
     fetchEvents(filtersRef.current);
   }, [defaultRange, fetchEvents, fetchKey, filters.endDate, filters.startDate, persistFilters]);
+
+  // ========================================================================
+  // BEP v1.5.0: Real-time Zustand subscription removed
+  // Reason: Timezone conversion complexity during real-time updates introduced display inaccuracies
+  // (events showed UTC time instead of user's timezone until page reload)
+  // Solution: Data refreshes reliably on page reload/remount with correct timezone handling
+  // Admin edits take effect when user refreshes or navigates to/from the page
+  // ========================================================================
 
   const deferredSearchQuery = useDeferredValue(filters.searchQuery || '');
 

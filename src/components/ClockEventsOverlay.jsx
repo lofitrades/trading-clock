@@ -5,6 +5,8 @@
  * Renders impact-based icons on AM (inner) and PM (outer) rings using current filters and news source.
  *
  * Changelog:
+ * v1.19.0 - 2026-02-02 - BEP: Removed real-time Firestore listener (timezone conversion complexity introduced inaccuracies). Data refreshes on page reload/remount for consistent, accurate results.
+ * v1.18.26 - 2026-01-30 - BEP NOW WINDOW COLORING: Markers keep full colors during entire 10-minute NOW state. Only gray out after NOW window ends (badge, flag, border, color). Changed from isPastEvent check to isPastNowWindow (isTodayPast && !isNow). Improves UX by maintaining visual emphasis on NOW events throughout their entire active window. Follows enterprise pattern: active events remain prominent.
  * v1.18.25 - 2026-01-23 - BEP: Migrate to useReminderActions hook for centralized reminder subscription (removes duplicate subscription).
  * v1.18.24 - 2026-01-23 - Reduce badge sizes for reminders, notes, and favorites.
  * v1.18.23 - 2026-01-23 - Position reminder bell badge bottom-left for parity with other badges.
@@ -125,6 +127,8 @@ import useClockEventMarkers from '../hooks/useClockEventMarkers';
 import EventMarkerTooltip from './EventMarkerTooltip';
 import { useTooltipCoordinator } from '../contexts/useTooltipCoordinator';
 import { isColorDark } from '../utils/clockUtils';
+// BEP: Real-time listeners removed (v1.19.0) - timezone conversion complexity introduced inaccuracies
+// Data refreshes on page reload/remount which provides consistent, accurate results
 
 const MARKER_TRANSITION_MS = 160; // Fast marker show/hide transition
 const MARKER_EXIT_GRACE_MS = MARKER_TRANSITION_MS + 80; // Keep exiting markers long enough to finish
@@ -154,6 +158,11 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
   const prevMarkersRef = useRef(new Map());
   const prevFiltersKeyRef = useRef('');
   const nowEpochMs = nowTick; // CRITICAL: Use absolute epoch milliseconds - timezone only affects display
+
+  // BEP v1.19.0: Real-time Firestore listeners removed
+  // Reason: Timezone conversion complexity during real-time updates introduced display inaccuracies
+  // Solution: Data refreshes reliably on page reload/remount with correct timezone handling
+  // Admin edits take effect when user refreshes or navigates to/from the page
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current) {
@@ -644,16 +653,18 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
         if (isHovered) {
           zIndex = 100;
         }
+        // BEP: NOW WINDOW COLORING - Keep colors during entire 10-min NOW state, only gray out after NOW window ends
+        const isPastNowWindow = marker.isTodayPast && !marker.isNow;
         const impactBadgeColor = impactMeta?.color || marker.meta?.color || '#9e9e9e';
         const impactBadgeTextColor = isColorDark(impactBadgeColor) ? '#fff' : '#1f1f1f';
         const markerBackground = marker.isNow
           ? '#0288d1'
-          : marker.isTodayPast
+          : isPastNowWindow
             ? '#bdbdbd'
             : marker.meta.color;
         const markerTextColor = isCustomMarker
           ? (isColorDark(markerBackground) ? '#fff' : '#1f1f1f')
-          : (marker.isTodayPast ? '#424242' : '#fff');
+          : (isPastNowWindow ? '#424242' : '#fff');
 
         const isMarkerInteractive = !disableTooltips || Boolean(onEventClick);
         const markerStyle = {
@@ -667,8 +678,8 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
           transformOrigin: 'center',
           backgroundColor: markerBackground,
           color: markerTextColor,
-          border: `2px solid ${marker.isTodayPast ? '#7a7a7a' : alpha('#000', 0.32)}`,
-          boxShadow: marker.isTodayPast ? 'none' : '0 4px 12px rgba(0,0,0,0.2)',
+          border: `2px solid ${isPastNowWindow ? '#7a7a7a' : alpha('#000', 0.32)}`,
+          boxShadow: isPastNowWindow ? 'none' : '0 4px 12px rgba(0,0,0,0.2)',
           cursor: isMarkerInteractive ? 'pointer' : 'default',
           userSelect: 'none',
           opacity: marker.exiting ? 0 : 1,
@@ -767,7 +778,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
                   width: 14,
                   height: 14,
                   borderRadius: '50%',
-                  bgcolor: (marker.isTodayPast || !marker.hasNoteMarker) ? '#616161' : 'primary.main',
+                  bgcolor: (isPastNowWindow || !marker.hasNoteMarker) ? '#616161' : 'primary.main',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -775,7 +786,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
                   pointerEvents: 'none',
                 }}
               >
-                <NoteAltIcon sx={{ fontSize: 10, color: '#fff', opacity: (marker.isTodayPast || !marker.hasNoteMarker) ? 0.9 : 1 }} />
+                <NoteAltIcon sx={{ fontSize: 10, color: '#fff', opacity: (isPastNowWindow || !marker.hasNoteMarker) ? 0.9 : 1 }} />
               </Box>
             )}
             {(marker.isFavoriteMarker || marker.isFavoriteMarkerAny) && (
@@ -787,7 +798,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
                   width: 14,
                   height: 14,
                   borderRadius: '50%',
-                  bgcolor: (marker.isTodayPast || !marker.isFavoriteMarker) ? '#616161' : 'error.main',
+                  bgcolor: (isPastNowWindow || !marker.isFavoriteMarker) ? '#616161' : 'error.main',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -795,7 +806,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
                   pointerEvents: 'none',
                 }}
               >
-                <FavoriteIcon sx={{ fontSize: 10, color: '#fff', opacity: (marker.isTodayPast || !marker.isFavoriteMarker) ? 0.9 : 1 }} />
+                <FavoriteIcon sx={{ fontSize: 10, color: '#fff', opacity: (isPastNowWindow || !marker.isFavoriteMarker) ? 0.9 : 1 }} />
               </Box>
             )}
             {(marker.hasReminderMarker || marker.hasReminderMarkerAny) && (
@@ -807,7 +818,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
                   width: 14,
                   height: 14,
                   borderRadius: '50%',
-                  bgcolor: (marker.isTodayPast || !marker.hasReminderMarker) ? '#616161' : 'warning.main',
+                  bgcolor: (isPastNowWindow || !marker.hasReminderMarker) ? '#616161' : 'warning.main',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -815,7 +826,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
                   pointerEvents: 'none',
                 }}
               >
-                <NotificationsActiveIcon sx={{ fontSize: 10, color: '#fff', opacity: (marker.isTodayPast || !marker.hasReminderMarker) ? 0.9 : 1 }} />
+                <NotificationsActiveIcon sx={{ fontSize: 10, color: '#fff', opacity: (isPastNowWindow || !marker.hasReminderMarker) ? 0.9 : 1 }} />
               </Box>
             )}
             {markerIconNode}
@@ -824,8 +835,8 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
                 className="clock-event-flag"
                 title={marker.currency}
                 style={{
-                  opacity: marker.isTodayPast ? 0.75 : 1,
-                  filter: marker.isTodayPast ? 'grayscale(1)' : 'none',
+                  opacity: isPastNowWindow ? 0.75 : 1,
+                  filter: isPastNowWindow ? 'grayscale(1)' : 'none',
                 }}
               >
                 <span className={`fi fi-${marker.countryCode}`} />
@@ -837,9 +848,9 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
                 style={{
                   backgroundColor: isCustomMarker
                     ? impactBadgeColor
-                    : (marker.isTodayPast ? 'rgba(255,255,255,0.65)' : '#fff'),
-                  opacity: marker.isTodayPast ? 0.75 : 1,
-                  filter: marker.isTodayPast ? 'grayscale(1)' : 'none',
+                    : (isPastNowWindow ? 'rgba(255,255,255,0.65)' : '#fff'),
+                  opacity: isPastNowWindow ? 0.75 : 1,
+                  filter: isPastNowWindow ? 'grayscale(1)' : 'none',
                 }}
               >
                 {isCustomMarker ? (

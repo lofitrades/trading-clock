@@ -7,6 +7,14 @@
   "actual": "Réel",
   "forecast": "Prévision",
   "previous": "Précédent",
+  "relativeTime": {
+    "startingNow": "Commence maintenant",
+    "future": "Dans {{time}}",
+    "past": "il y a {{time}}",
+    "day": "j",
+    "hour": "h",
+    "minute": "m"
+  },
   "impactLevels": {
     "high": "Impact Élevé",
     "medium": "Impact Moyen",
@@ -31,6 +39,92 @@
     "everyMonth": "Chaque mois",
     "everyQuarter": "Chaque trimestre",
     "everyYear": "Chaque année"
+  },
+  "modal": {
+    "actions": {
+      "editReminder": "Modifier"
+    },
+    "custom": {
+      "appearance": "Apparence",
+      "visibleOnClock": "Visible sur l'horloge",
+      "hiddenFromClock": "Caché de l'horloge",
+      "notes": "Notes",
+      "timezone": "Fuseau Horaire"
+    },
+    "economic": {
+      "actual": "Réel",
+      "forecast": "Prévision",
+      "previous": "Précédent",
+      "pastEvent": "Événement Passé",
+      "aboutTitle": "À Propos",
+      "tradingImplicationTitle": "Implications de Trading",
+      "keyThresholdsTitle": "Seuils Clés",
+      "frequency": "Fréquence",
+      "source": "Source",
+      "outcome": "Résultat"
+    },
+    "reminders": {
+      "signInRequired": "Connectez-vous pour enregistrer les rappels sur tous vos appareils.",
+      "detailsLoading": "Les détails du rappel sont toujours en cours de chargement. Rouvrez cet événement si Enregistrer reste désactivé."
+    },
+    "debug": {
+      "reminderDebug": "Débogage du Rappel",
+      "eventKey": "Clé de l'événement:",
+      "seriesKey": "Clé de la série:",
+      "docId": "Id du document:",
+      "baselineCount": "Nombre de base:",
+      "last": "Dernier:"
+    }
+  },
+  "impacts": {
+    "highImpact": "Impact Élevé",
+    "highImpactDesc": "Données économiques hautement importantes qui peuvent causer des mouvements substantiels du marché",
+    "mediumImpact": "Impact Moyen",
+    "mediumImpactDesc": "Données économiques modérées avec une influence notable sur le marché",
+    "lowImpact": "Impact Faible",
+    "lowImpactDesc": "Données économiques mineures avec un impact limité sur le marché",
+    "dataNotLoaded": "Données Non Chargées",
+    "dataNotLoadedDesc": "Les données de niveau d'impact sont toujours en cours de chargement",
+    "nonEconomic": "Non Économique",
+    "nonEconomicDesc": "Cet événement n'est pas classé comme données économiques",
+    "unknown": "Inconnu",
+    "unknownDesc": "Le niveau d'impact ne peut pas être déterminé"
+  },
+  "tooltips": {
+    "currencyAffects": "Les données économiques affectent cette devise",
+    "eventImpactsCurrency": "Cet événement affecte l'évaluation de {{currency}}",
+    "aboutDescription": "Explication détaillée de l'événement économique et de son importance",
+    "tradingImplication": "Comment cet événement peut affecter les stratégies de trading et le comportement du marché",
+    "keyThresholds": "Valeurs de seuil importantes pour comparer les résultats réels par rapport aux prévisions",
+    "frequency": "Fréquence à laquelle ces données économiques sont publiées",
+    "source": "L'organisation officielle qui est la source de ces données",
+    "outcome": "Le résultat réel ou l'impact de l'événement économique"
+  },
+  "actions": {
+    "notesLoading": "Chargement des notes...",
+    "viewNotes": "Afficher les notes",
+    "addNote": "Ajouter une note",
+    "favoritesLoading": "Chargement des favoris...",
+    "removeFromFavorites": "Supprimer des favoris",
+    "saveToFavorites": "Ajouter aux favoris",
+    "refreshData": "Actualiser les données de l'événement depuis Firestore",
+    "closeModal": "Fermer",
+    "updated": "Mis à jour",
+    "dataValues": "Données de l'Événement",
+    "customEventChip": "Événement personnalisé",
+    "reminders": "Rappels"
+  },
+  "messages": {
+    "copySuccess": "Copié!",
+    "copyEventId": "Cliquez pour copier l'ID de l'événement",
+    "categoryTooltip": "Catégorie: {{category}} - Classification d'événement pour le filtrage et l'analyse",
+    "statusTooltip": "Statut: {{status}} - État actuel de l'événement économique",
+    "nowTooltip": "Cet événement se déroule MAINTENANT - dans la fenêtre active de 9 minutes",
+    "nextTooltip": "Prochain événement dans {{countdown}}",
+    "pastTooltip": "Cet événement s'est déjà produit - les données reflètent les résultats réels",
+    "primarySource": "Source de données principale pour les valeurs de cet événement",
+    "availableSources": "Disponible à partir de {{count}} sources: {{sources}}",
+    "qualityScore": "Score de qualité des données: {{score}}/100 - Les scores plus élevés indiquent des données plus fiables"
   },
   "dialog": {
     "title": {
@@ -129,6 +223,27 @@
       },
       "addCustomEvent": "Créer un événement"
     }
+  },
+  "eventPage": {
+    "seoTitleSuffix": "Guide des Événements Économiques",
+    "notFound": "Événement non trouvé: {{eventId}}",
+    "backToCalendar": "Retour au Calendrier",
+    "openPage": "Voir les détails de l'événement",
+    "tradingImplication": "Implications de Trading",
+    "releaseSchedule": "Calendrier de Publication",
+    "keyThresholds": "Seuils Clés",
+    "viewOnCalendar": "Voir sur le Calendrier",
+    "calendarCta": "Consultez les prochaines dates de cet événement et configurez des rappels sur notre calendrier économique.",
+    "goToCalendar": "Aller au Calendrier",
+    "alsoKnownAs": "Également Connu Sous",
+    "breadcrumb": {
+      "home": "Accueil",
+      "calendar": "Calendrier"
+    },
+    "thresholds": {
+      "strong": "Fort",
+      "moderate": "Modéré",
+      "weak": "Faible"
+    }
   }
 }
-

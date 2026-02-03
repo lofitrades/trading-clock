@@ -41,7 +41,7 @@
   },
   "labels": {
     "loading": "Cargando...",
-    "events": "{{count}} evento",
+    "events": "{{count}} eventos",
     "events_plural": "{{count}} eventos",
     "noEvents": "Sin eventos",
     "noEventsForDay": "Sin eventos para este día."
@@ -80,7 +80,13 @@
     "addToFavorites": "Agregar a favoritos",
     "customEvent": "Evento personalizado",
     "unknown": "Desconocido",
-    "global": "Global"
+    "global": "Global",
+    "allDay": "Todo el día",
+    "tentative": "Provisional",
+    "allDayAndTentative": "Todo el día / Provisional",
+    "time": "Hora",
+    "singleEvent": "1 evento",
+    "eventCount": "{{count}} eventos"
   },
   "clock": {
     "title": "Reloj de Trading",

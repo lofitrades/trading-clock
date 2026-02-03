@@ -368,16 +368,15 @@ const DataValuesCell = memo(({ event }) => {
   const now = new Date();
   const isFuture = eventDate.getTime() > now.getTime();
 
-  const actual = isFuture ? '—' : (event.actual || '—');
-  const forecast = event.forecast || '—';
-  const previous = event.previous || '—';
+  const actual = isFuture ? '—' : (hasMetricValue(event.actual) ? event.actual : '—');
+  const forecast = hasMetricValue(event.forecast) ? event.forecast : '—';
+  const previous = hasMetricValue(event.previous) ? event.previous : '—';
 
   return (
     <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
       <Typography
         variant="body2"
         fontWeight={700}
-        color={actual !== '—' ? 'primary.main' : 'text.disabled'}
       >
         {actual}
       </Typography>
@@ -405,6 +404,8 @@ DataValuesCell.propTypes = {
     actual: PropTypes.string,
     forecast: PropTypes.string,
     previous: PropTypes.string,
+    outcome: PropTypes.string,
+    Outcome: PropTypes.string,
   }).isRequired,
 };
 
@@ -1121,7 +1122,6 @@ export default function EventsTable({
                                       variant="body2"
                                       fontWeight={700}
                                       fontSize="0.8125rem"
-                                      color={!isFuture && hasMetricValue(event.actual) ? 'primary.main' : 'text.disabled'}
                                     >
                                       {`Actual: ${hasMetricValue(event.actual) && !isFuture ? event.actual : '—'}`}
                                     </Typography>

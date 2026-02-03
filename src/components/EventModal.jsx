@@ -17,7 +17,14 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
- * v2.2.0 - 2026-01-24 - BEP i18n migration: Added useTranslation hook, converted IMPACT_CONFIG to labelKey pattern, replaced 35+ hardcoded strings with t() calls for events namespace
+ * v2.8.0 - 2026-02-04 - BEP MOBILE RESPONSIVENESS FIX: Fixed EventModal to be fully viewport height aware on mobile devices. DialogContent now has flex:1, minHeight:0, overflowY:auto with minimal scrollbar styling (6px, rgba(60,77,99,0.32)). DialogActions now has flexShrink:0 to stick to bottom. Paper has display:flex, flexDirection:column, height:100vh for full viewport coverage. Footer now correctly positions above mobile navbar instead of below it. Applied minimal scrollbar styling matching LandingPage pattern. Matches BEP patterns from AuthModal2 and SettingsSidebar2.
+ * v2.7.2 - 2026-02-03 - BEP EVENT PAGE LANGUAGE FIX: Added i18n language parameter to event page URL. Now opens /events/{id}?lang=es for Spanish, ?lang=fr for French, no param for English.
+ * v2.7.0 - 2026-02-03 - BEP EVENT PAGE LINK FIX: Fixed "Open event page" button to only appear for canonical economic events. Added hasEventPage() and getEventPageId() validators. Imports economicEventDescriptions.json to verify event ID is valid. Prevents broken links on custom events or calendar variants with invalid IDs (e.g., Firestore document IDs). Button now correctly opens /events/{validEventId} only for events with corresponding SEO pages.
+ * v2.6.0 - 2026-02-02 - BEP i18n: Event descriptions now fetched with current language for multi-language support. Re-fetches when language changes.
+ * v2.5.0 - 2026-01-30 - BEP NOW WINDOW CONSISTENCY: "Past Event" chip now only appears after NOW window ends (isPastNowWindow = isPast && !isNow). During entire 10-minute NOW state, modal displays full NOW badge without "Past Event" indicator. Ensures consistent UX: active NOW events remain prominent throughout their window, matching ClockEventsOverlay behavior.
+ * v2.4.0 - 2026-01-29 - REVERTED: Removed outcome-based coloring from actual values. Actual values now display with consistent default coloring for reliable user experience, matching forecast and previous values.
+ * v2.4.0 - 2026-01-29 - BEP i18n & timezone: Time display now timezone-aware and in AM/PM format (12-hour). Uses toLocaleTimeString with language-aware locale and hour12: true. Respects user's selected timezone.
+ * v2.3.0 - 2026-01-29 - BEP i18n: Language-aware date formatting below event title. Date now respects user's language preference (EN/ES/FR) using toLocaleString with i18n language code.
  * v2.1.0 - 2026-01-23 - BEP: Enable series reminders for recurring custom events. seriesKey now returns custom-series:${seriesId} for recurring custom events, allowing "Apply to all occurrences" functionality.
  * v2.0.0 - 2026-01-24 - BEP MAJOR REFACTOR: Migrated to RemindersEditor2 with Google-like UI. Individual save/cancel buttons per reminder, inline scope selector, view/edit modes, immediate deletion. Removed global save/reset buttons. Max 3 reminders per event.
  * v1.13.17 - 2026-01-24 - BEP FIX: RemindersEditor v1.6.1 - Restored missing if (isSaved) conditional that prevented new reminders from showing edit options. Formatter had removed the conditional check, causing all reminders to render as read-only.
@@ -111,10 +118,10 @@ import Favorite from '@mui/icons-material/Favorite';
 import NoteAltOutlined from '@mui/icons-material/NoteAltOutlined';
 import NoteAlt from '@mui/icons-material/NoteAlt';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { getEventDescription } from '../services/economicEventsService';
 import { doc, getDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { formatTime, formatDate } from '../utils/dateUtils';
 import { resolveImpactMeta } from '../utils/newsApi';
 import { getCustomEventIconComponent } from '../utils/customEventStyle';
 import RemindersEditor2 from './RemindersEditor2';
@@ -131,6 +138,7 @@ import {
   getNowEpochMs,
   computeNowNextState
 } from '../utils/eventTimeEngine';
+import eventDescriptionsData from '../../data/economicEventDescriptions.json';
 
 // ============================================================================
 // CONSTANTS & CONFIGURATION
@@ -288,6 +296,33 @@ const getOutcomeIcon = (outcome) => {
     return <TrendingDownIcon sx={{ color: 'error.main', fontSize: 20 }} />;
   }
   return null;
+};
+
+/**
+ * Check if event has a valid SEO event page
+ * Only canonical economic events with loaded descriptions have event pages
+ * @param {Object} event - The event object
+ * @param {Object} description - The loaded description object (contains the event page id)
+ */
+const hasEventPage = (event, description) => {
+  if (!event) return false;
+  if (event.isCustom) return false; // Custom events don't have pages
+
+  // If description is loaded, use description.id as the canonical event page ID
+  if (description?.id) {
+    const validEventIds = eventDescriptionsData?.events?.map(e => e.id) || [];
+    return validEventIds.includes(description.id);
+  }
+
+  return false;
+};
+
+/**
+ * Get the correct event page ID for SEO event pages
+ * @param {Object} description - The loaded description object
+ */
+const getEventPageId = (description) => {
+  return description?.id || null;
 };
 
 // Date formatting utilities imported from centralized dateUtils
@@ -687,7 +722,7 @@ function EventModal({
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const fullScreen = isMobile;
   const { user } = useAuth();
-  const { t } = useTranslation(['events', 'common']);
+  const { t, i18n } = useTranslation(['events', 'common']);
 
   // Centralized reminder actions hook
   const {
@@ -702,7 +737,6 @@ function EventModal({
   const [refreshingEvent, setRefreshingEvent] = useState(false);
   const [refreshedEvent, setRefreshedEvent] = useState(null);
   const [refreshSuccess, setRefreshSuccess] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
   const [reminderDoc, setReminderDoc] = useState(null);
   const [reminderLoading, setReminderLoading] = useState(false);
@@ -726,8 +760,9 @@ function EventModal({
       setLoading(true);
       setDescription(null);
 
-      // Fetch description
-      getEventDescription(event.Name, event.category)
+      // Fetch description with current language for i18n support
+      const currentLanguage = i18n.language?.split('-')[0] || 'en';
+      getEventDescription(event.Name, event.category, currentLanguage)
         .then((result) => {
           if (result.success) {
             setDescription(result.data);
@@ -746,7 +781,7 @@ function EventModal({
       setRefreshedEvent(null);
       setRefreshSuccess(false);
     }
-  }, [open, event]);
+  }, [open, event, i18n.language]);
 
   // Function to refresh event data from Firestore
   const handleClose = () => {
@@ -947,16 +982,7 @@ function EventModal({
 
     // BEP DEBUG: Log the found reminder's actual document ID vs computed keys
     if (match) {
-      console.log('[reminders] Found existing reminder', {
-        matchId: match.id,
-        matchEventKey: match.eventKey,
-        matchSeriesKey: match.seriesKey,
-        computedEventKey: reminderBase?.eventKey,
-        computedSeriesKey: reminderBase?.seriesKey,
-        keysMatch: match.eventKey === reminderBase?.eventKey,
-        seriesKeysMatch: match.seriesKey === reminderBase?.seriesKey,
-        reminderCount: match.reminders?.length || 0,
-      });
+      // Debug: Found existing reminder for event
     }
 
     setReminderListMatch(match || null);
@@ -1012,15 +1038,6 @@ function EventModal({
         updatedReminders.push(reminder);
       }
 
-      console.log('[reminders] handleSaveReminder', {
-        index,
-        eventKey: reminderBase.eventKey,
-        seriesKey: reminderBase.seriesKey,
-        scope,
-        reminderCount: updatedReminders.length,
-        isCustom: reminderEvent?.isCustom,
-      });
-
       // Save via centralized hook
       const result = await hookSaveReminder({
         event: reminderEvent,
@@ -1073,25 +1090,11 @@ function EventModal({
       const currentReminders = reminderBaseline || [];
       const updatedReminders = currentReminders.filter((_, idx) => idx !== index);
 
-      console.log('[reminders] handleDeleteReminder', {
-        index,
-        remainingCount: updatedReminders.length,
-        eventKey: reminderBase.eventKey,
-      });
-
       if (updatedReminders.length === 0) {
         // BEP FIX: Delete ALL documents with matching eventKey/seriesKey (handles legacy duplicates)
         const existingDocId = reminderDoc?.id || reminderListMatch?.id;
         const existingEventKey = reminderDoc?.eventKey || reminderListMatch?.eventKey;
         const existingSeriesKey = reminderDoc?.seriesKey || reminderListMatch?.seriesKey;
-
-        console.log('[reminders] Deleting all reminder documents', {
-          existingDocId,
-          existingEventKey,
-          existingSeriesKey,
-          eventKey: reminderBase.eventKey,
-          seriesKey: reminderBase.seriesKey,
-        });
 
         // Query Firestore for ALL documents with matching eventKey or seriesKey
         const remindersCollectionRef = collection(db, 'users', user.uid, 'reminders');
@@ -1102,8 +1105,6 @@ function EventModal({
           reminderBase.seriesKey,
         ].filter(Boolean));
 
-        console.log('[reminders] Querying for documents with keys:', Array.from(keysToMatch));
-
         // Delete all matching documents
         const deletePromises = [];
         for (const keyToMatch of keysToMatch) {
@@ -1111,7 +1112,6 @@ function EventModal({
           const eventKeyQuery = query(remindersCollectionRef, where('eventKey', '==', keyToMatch));
           const eventKeySnapshot = await getDocs(eventKeyQuery);
           eventKeySnapshot.forEach((docSnap) => {
-            console.log('[reminders] Found doc to delete (eventKey match):', docSnap.id);
             deletePromises.push(deleteDoc(doc(db, 'users', user.uid, 'reminders', docSnap.id)));
           });
 
@@ -1119,14 +1119,12 @@ function EventModal({
           const seriesKeyQuery = query(remindersCollectionRef, where('seriesKey', '==', keyToMatch));
           const seriesKeySnapshot = await getDocs(seriesKeyQuery);
           seriesKeySnapshot.forEach((docSnap) => {
-            console.log('[reminders] Found doc to delete (seriesKey match):', docSnap.id);
             deletePromises.push(deleteDoc(doc(db, 'users', user.uid, 'reminders', docSnap.id)));
           });
         }
 
         // Execute all deletes
         await Promise.all(deletePromises);
-        console.log('[reminders] Deleted', deletePromises.length, 'documents');
 
         // Also call the hook's delete method for cleanup
         const result = await hookDeleteReminder(reminderEvent, {
@@ -1137,7 +1135,7 @@ function EventModal({
         });
 
         if (!result.success) {
-          console.warn('[reminders] Hook delete returned error (may be expected):', result.error);
+          // Hook delete may return error for expected cases - proceed anyway
         }
       } else {
         // Update with remaining reminders
@@ -1202,6 +1200,10 @@ function EventModal({
 
   const isFutureEvent = eventEpochMs !== null && eventEpochMs > nowEpochMs;
   const isPast = eventEpochMs !== null && !isFutureEvent && !isNow;
+
+  // BEP: NOW WINDOW CONSISTENCY - Keep NOW badge and styling throughout entire 10-min NOW window
+  // Only show "Past Event" chip after NOW window ends (isPast && !isNow)
+  const isPastNowWindow = isPast && !isNow;
 
   // Calculate countdown for NEXT badge using absolute epoch comparison
   const nextCountdown = isNext && eventEpochMs !== null
@@ -1299,7 +1301,10 @@ function EventModal({
       PaperProps={{
         sx: {
           borderRadius: fullScreen ? 0 : 2,
+          height: fullScreen ? '100vh' : 'auto',
           maxHeight: fullScreen ? '100vh' : '90vh',
+          display: 'flex',
+          flexDirection: 'column',
         },
       }}
     >
@@ -1341,13 +1346,21 @@ function EventModal({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <EventIcon sx={{ fontSize: 16 }} />
               <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                {formatDate(currentEvent.date, timezone)}
+                {new Date(currentEvent.date).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : i18n.language === 'fr' ? 'fr-FR' : 'en-US', {
+                  weekday: 'short',
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                })}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <AccessTimeIcon sx={{ fontSize: 16 }} />
-              <Typography variant="body2" sx={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>
-                {currentEvent.timeLabel || formatTime(currentEvent.time || currentEvent.date, timezone)}
+              <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                {new Date(currentEvent.time || currentEvent.date).toLocaleTimeString(
+                  i18n.language === 'es' ? 'es-ES' : i18n.language === 'fr' ? 'fr-FR' : 'en-US',
+                  { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: timezone }
+                )}
               </Typography>
             </Box>
           </Box>
@@ -1478,12 +1491,30 @@ function EventModal({
         </Stack>
       </DialogTitle>
 
-      {/* Dialog Content */}
+      {/* Dialog Content - BEP: Viewport height aware scrolling on mobile */}
       <DialogContent
         sx={{
           p: { xs: 2, sm: 3 },
           pt: { xs: 3, sm: 4 },
           bgcolor: 'background.default',
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(60,77,99,0.32) transparent',
+          '&::-webkit-scrollbar': {
+            width: 6,
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(60,77,99,0.32)',
+            borderRadius: 999,
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            backgroundColor: 'rgba(60,77,99,0.45)',
+          },
         }}
       >
         {loading ? (
@@ -1959,7 +1990,7 @@ function EventModal({
                       </MuiTooltip>
                     )}
 
-                    {isPast && !currentEvent.status && (
+                    {isPastNowWindow && !currentEvent.status && (
                       <MuiTooltip
                         title="This event has already occurred - data reflects actual results"
                         arrow
@@ -2758,7 +2789,7 @@ function EventModal({
         )}
       </DialogContent>
 
-      {/* Dialog Actions */}
+      {/* Dialog Actions - BEP: Fixed footer positioned above mobile navbar */}
       <DialogActions
         sx={{
           p: { xs: 2, sm: 3 },
@@ -2770,86 +2801,30 @@ function EventModal({
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: 2,
+          flexShrink: 0,
+          position: fullScreen ? 'relative' : 'static',
         }}
       >
-        {/* Event ID - Left Side with Copy to Clipboard */}
-        {currentEvent.id && (
-          <MuiTooltip
-            title={copySuccess ? t('events:messages.copySuccess') : t('events:messages.copyEventId')}
-            arrow
-            placement="top"
+        {/* Event Page - Left Side with Link to SEO Event Page */}
+        {/* Only show button for canonical economic events with loaded descriptions */}
+        {hasEventPage(currentEvent, description) && (
+          <Button
+            component="a"
+            href={`/events/${getEventPageId(description)}${i18n.language !== 'en' ? `?lang=${i18n.language}` : ''}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="outlined"
+            size="small"
+            startIcon={<OpenInNewIcon sx={{ fontSize: '1rem' }} />}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              px: 2,
+            }}
           >
-            <Box
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(currentEvent.id);
-                  setCopySuccess(true);
-
-                  // Reset success state after 2 seconds
-                  setTimeout(() => {
-                    setCopySuccess(false);
-                  }, 2000);
-                } catch (error) {
-                  console.error('❌ Failed to copy to clipboard:', error);
-                }
-              }}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                px: 1.5,
-                py: 0.75,
-                borderRadius: 1,
-                bgcolor: copySuccess
-                  ? alpha(theme.palette.success.main, 0.12)
-                  : alpha(theme.palette.primary.main, 0.08),
-                border: '1px solid',
-                borderColor: copySuccess ? 'success.main' : 'divider',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  bgcolor: copySuccess
-                    ? alpha(theme.palette.success.main, 0.18)
-                    : alpha(theme.palette.primary.main, 0.15),
-                  borderColor: copySuccess ? 'success.main' : 'primary.main',
-                  transform: 'translateY(-1px)',
-                },
-                '&:active': {
-                  transform: 'translateY(0)',
-                },
-              }}
-            >
-              <Typography
-                variant="caption"
-                sx={{
-                  fontSize: '0.7rem',
-                  fontFamily: 'monospace',
-                  color: copySuccess ? 'success.main' : 'text.secondary',
-                  fontWeight: 600,
-                  transition: 'color 0.2s ease',
-                }}
-              >
-                {copySuccess ? `✓ ${t('events:messages.copySuccess')}` : `ID: ${currentEvent.id}`}
-              </Typography>
-              {!copySuccess && (
-                <Box
-                  component="svg"
-                  sx={{
-                    width: 14,
-                    height: 14,
-                    fill: 'none',
-                    stroke: 'currentColor',
-                    strokeWidth: 2,
-                    color: 'text.secondary',
-                  }}
-                  viewBox="0 0 24 24"
-                >
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                </Box>
-              )}
-            </Box>
-          </MuiTooltip>
+            {t('eventPage.openPage', 'Open Event Page')}
+          </Button>
         )}
 
         {/* Close Button - Right Side */}

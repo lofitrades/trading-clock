@@ -137,6 +137,10 @@ function normalizeImpactValue(impact) {
 const DESCRIPTIONS_COLLECTION = 'economicEventDescriptions';
 const DESCRIPTIONS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
+/** Supported languages for event descriptions */
+const SUPPORTED_DESCRIPTION_LANGUAGES = ['en', 'es', 'fr'];
+const DEFAULT_DESCRIPTION_LANGUAGE = 'en';
+
 let descriptionsIndexCache = null;
 let descriptionsCacheTimestamp = 0;
 
@@ -202,6 +206,38 @@ const findDescriptionMatch = (index, eventName, category) => {
   }
 
   return null;
+};
+
+/**
+ * Get localized description content with EN fallback
+ * BEP I18N: Returns localized content from i18n structure, falling back to EN or legacy fields
+ * 
+ * @param {Object} desc - Full description object
+ * @param {string} lang - Target language (en, es, fr)
+ * @returns {Object} Localized description with _language and _hasTranslation flags
+ */
+const getLocalizedDescriptionContent = (desc, lang = 'en') => {
+  if (!desc) return null;
+  
+  const i18n = desc.i18n || {};
+  const targetLang = SUPPORTED_DESCRIPTION_LANGUAGES.includes(lang) ? lang : DEFAULT_DESCRIPTION_LANGUAGE;
+  const localized = i18n[targetLang] || i18n[DEFAULT_DESCRIPTION_LANGUAGE] || {};
+  
+  // Fall back to legacy top-level fields if i18n structure doesn't exist
+  const fallbackDescription = localized.description || desc.description || '';
+  const fallbackTradingImplication = localized.tradingImplication || desc.tradingImplication || '';
+  const fallbackKeyThresholds = localized.keyThresholds || desc.keyThresholds || {};
+  const fallbackReleaseTime = localized.releaseTime || desc.releaseTime || '';
+  
+  return {
+    ...desc,
+    description: fallbackDescription,
+    tradingImplication: fallbackTradingImplication,
+    keyThresholds: fallbackKeyThresholds,
+    releaseTime: fallbackReleaseTime,
+    _language: i18n[targetLang] ? targetLang : (i18n[DEFAULT_DESCRIPTION_LANGUAGE] ? DEFAULT_DESCRIPTION_LANGUAGE : null),
+    _hasTranslation: Boolean(i18n[targetLang]),
+  };
 };
 
 /**
@@ -616,20 +652,25 @@ export const getEventsByDateRange = async (startDate, endDate, filters = {}, opt
 };
 
 /**
- * Get event description by name or category
+ * Get event description by name or category with language support
+ * BEP I18N: Returns localized content based on language parameter
  * 
  * @param {string} eventName - Event name to search for
  * @param {string} category - Event category to search for
- * @returns {Promise<Object>} Event description data
+ * @param {string} language - Target language (en, es, fr) - defaults to 'en'
+ * @returns {Promise<Object>} Event description data with localized content
  */
-export const getEventDescription = async (eventName, category) => {
+export const getEventDescription = async (eventName, category, language = 'en') => {
   try {
     const index = await loadDescriptionsIndex();
     const match = findDescriptionMatch(index, eventName, category);
 
+    // Apply localization if match found
+    const localizedMatch = match ? getLocalizedDescriptionContent(match, language) : null;
+
     return {
       success: true,
-      data: match || null,
+      data: localizedMatch,
     };
   } catch (error) {
     console.error('❌ Failed to fetch event description:', error);

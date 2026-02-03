@@ -6,6 +6,8 @@
  * Generates language variants (/es/, /fr/) for enhanced international crawlability (BEP).
  * 
  * Changelog:
+ * v1.4.0 - 2026-02-03 - BEP SEO ENHANCEMENT: Integrated dynamic sitemap generation. Now calls generate-sitemap.mjs at end of prerender to create sitemap.xml with all 166 URLs (7 base + 159 events × 3 languages) with proper hreflang tags. Ensures Google has complete URL list immediately after build.
+ * v1.3.0 - 2026-02-02 - BEP SEO: Added event pages prerendering. Generates 159 event pages (53 events × 3 languages) from economicEventDescriptions.json. Total pages: 180 (21 static + 159 events).
  * v1.2.0 - 2026-01-27 - BEP ENHANCED: Full multi-language prerendering. Generates 21 static HTML files (7 pages × 3 languages). Loads i18n translations during build, injects localized titles/descriptions, updates canonical URLs and hreflang tags per language variant. Firebase rewrites handle /es/* and /fr/* subpaths. Enables non-JS crawlers to see localized content immediately.
  * v1.1.5 - 2026-01-27 - Added /contact route prerendering for SEO discoverability.
  * v1.1.4 - 2026-01-09 - Fixed </head> insertion regex so postbuild prerender runs.
@@ -18,10 +20,41 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { spawn } from 'child_process';
 import { DEFAULT_OG_IMAGE, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from '../src/utils/seoMeta.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distPath = path.resolve(__dirname, '../dist');
+const dataPath = path.resolve(__dirname, '../data');
+
+/**
+ * Load economic event descriptions for SEO event pages
+ * @returns {Array} Array of event objects
+ */
+async function loadEventDescriptions() {
+  const filePath = path.join(dataPath, 'economicEventDescriptions.json');
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    const data = JSON.parse(content);
+    return data.events || [];
+  } catch (error) {
+    console.warn(`⚠️  Failed to load event descriptions: ${error.message}`);
+    return [];
+  }
+}
+
+/**
+ * Get localized content for an event
+ */
+function getLocalizedEventContent(event, lang = 'en') {
+  const i18n = event?.i18n || {};
+  const langContent = i18n[lang] || i18n.en || {};
+  
+  return {
+    description: langContent.description || event?.description || '',
+    tradingImplication: langContent.tradingImplication || event?.tradingImplication || '',
+  };
+}
 
 /**
  * BEP SEO: English (EN) page metadata
@@ -255,7 +288,7 @@ async function prerender() {
   let successCount = 0;
   let failCount = 0;
 
-  // BEP SEO: Generate pages for all supported languages
+  // BEP SEO: Generate static pages for all supported languages
   for (const lang of SUPPORTED_LANGUAGES) {
     const langLabel = lang === DEFAULT_LANGUAGE ? '(DEFAULT)' : '';
     console.log(`\n📍 Language: ${lang.toUpperCase()} ${langLabel}`);
@@ -297,11 +330,99 @@ async function prerender() {
     }
   }
 
+  // BEP SEO: Generate event pages (53 events × 3 languages = 159 pages)
+  console.log('\n📰 Generating event pages...');
+  const events = await loadEventDescriptions();
+  console.log(`   Found ${events.length} events to process\n`);
+
+  for (const lang of SUPPORTED_LANGUAGES) {
+    const langLabel = lang === DEFAULT_LANGUAGE ? '(DEFAULT)' : '';
+    console.log(`\n📍 Event Pages - ${lang.toUpperCase()} ${langLabel}`);
+    
+    for (const event of events) {
+      try {
+        const eventId = event.id || event.docId;
+        if (!eventId) {
+          console.warn(`   ⚠️  Skipping event without ID`);
+          continue;
+        }
+
+        const route = `/events/${eventId}`;
+        const localizedContent = getLocalizedEventContent(event, lang);
+        
+        // Build SEO metadata for event page
+        const seoTitleSuffix = lang === 'es' ? 'Guía de Eventos Económicos' 
+          : lang === 'fr' ? 'Guide des Événements Économiques' 
+          : 'Economic Event Guide';
+        
+        const meta = {
+          title: `${event.name} | ${seoTitleSuffix} - Time 2 Trade`,
+          description: localizedContent.description.substring(0, 160),
+          path: `events/${eventId}/index.html`,
+        };
+        
+        // Generate HTML
+        const html = await generateHTML(route, meta, lang);
+        
+        // Determine output path based on language
+        let outputPath;
+        if (lang === DEFAULT_LANGUAGE) {
+          outputPath = path.join(distPath, meta.path);
+        } else {
+          outputPath = path.join(distPath, lang, meta.path);
+        }
+        
+        const outputDir = path.dirname(outputPath);
+        await fs.mkdir(outputDir, { recursive: true });
+        await fs.writeFile(outputPath, html, 'utf-8');
+        
+        successCount++;
+      } catch (error) {
+        console.error(`   ❌ Event ${event.id || event.name} failed: ${error.message}`);
+        failCount++;
+      }
+    }
+    
+    console.log(`   ✓ ${events.length} event pages generated for ${lang.toUpperCase()}`);
+  }
+
   console.log(`\n✨ Static HTML generation complete!`);
   console.log(`✅ Success: ${successCount} files`);
   if (failCount > 0) {
     console.log(`⚠️  Failed: ${failCount} files`);
   }
+
+  // Generate SEO sitemap after prerender completes
+  console.log(`\n📋 Generating SEO sitemap with all 166 URLs...`);
+  await generateSitemap();
+}
+
+/**
+ * Generate sitemap.xml with all pages and language variants
+ */
+async function generateSitemap() {
+  return new Promise((resolve, reject) => {
+    const sitemapScript = path.join(__dirname, 'generate-sitemap.mjs');
+    const child = spawn('node', [sitemapScript]);
+    
+    let output = '';
+    child.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+    
+    child.stderr.on('data', (data) => {
+      console.error(`❌ Sitemap error: ${data}`);
+    });
+    
+    child.on('close', (code) => {
+      if (code === 0) {
+        console.log(output);
+        resolve();
+      } else {
+        reject(new Error(`Sitemap generation failed with code ${code}`));
+      }
+    });
+  });
 }
 
 prerender().catch((error) => {

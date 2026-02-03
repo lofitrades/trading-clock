@@ -1,9 +1,17 @@
 /**
  * src/components/UploadDescriptions.jsx
  * 
- * Purpose: Admin-only page for uploading economic event descriptions from JSON to Firestore.
- * Handles password authentication, file selection, batch upload with progress tracking.
+ * Purpose: Superadmin-only page for uploading economic event descriptions from JSON to Firestore.
+ * Supports multilingual (EN/ES/FR) event data with i18n structure. Enforces superadmin role via RBAC,
+ * file selection, batch upload with progress tracking, translation status validation.
  * 
+ * v1.3.0 - 2026-02-02 - BEP RBAC: Removed hardcoded password authentication. Added RBAC enforcement
+ *                       via AuthContext.hasRole('superadmin'). Component now uses proper role-based
+ *                       access control instead of password protection. Enforces superadmin-only access
+ *                       with informative error messages for unauthorized users.
+ * v1.2.0 - 2026-02-02 - BEP i18n: Added support for multilingual event descriptions with i18n structure.
+ *                       Updated validation to accept events with nested i18n objects. Added translation
+ *                       status display (complete/partial/missing). Handles both new i18n and legacy formats.
  * v1.1.1 - 2026-01-29 - BEP i18n: Removed remaining hardcoded validation and status copy.
  * v1.1.0 - 2026-01-24 - BEP: Phase 3c i18n migration - Added useTranslation hook with admin, form, validation namespaces.
  *                       Replaced 18 hardcoded strings with t() calls across auth, upload UI, status messages.
@@ -13,6 +21,8 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../contexts/AuthContext';
+import { USER_ROLES } from '../types/userTypes';
 import {
   Box,
   Button,
@@ -27,18 +37,22 @@ import {
   Stack,
   Input,
   TextField,
+  Card,
 } from '@mui/material';
 import {
   Upload as UploadIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Folder as FolderIcon,
+  Translate as TranslateIcon,
+  Lock as LockIcon,
 } from '@mui/icons-material';
 import { db, auth } from '../firebase';
 import { collection, doc, setDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const COLLECTION_NAME = 'economicEventDescriptions';
+const SUPPORTED_LANGUAGES = ['en', 'es', 'fr'];
 
 /**
  * Generate document ID from event name
@@ -52,41 +66,50 @@ function generateDocId(eventName) {
     .substring(0, 100); // Firestore doc ID limit
 }
 
+/**
+ * Validate translation completeness for an event
+ * Checks if description, tradingImplication, keyThresholds fields exist
+ * Returns: 'complete' | 'partial' | 'missing'
+ */
+function getTranslationStatus(event) {
+  // Handle legacy format (no i18n)
+  if (!event.i18n) {
+    return event.description && event.tradingImplication ? 'complete' : 'partial';
+  }
+
+  // Handle new i18n format
+  let languagesComplete = 0;
+  for (const lang of SUPPORTED_LANGUAGES) {
+    const content = event.i18n[lang];
+    if (content && content.description && content.tradingImplication) {
+      languagesComplete++;
+    }
+  }
+
+  if (languagesComplete === SUPPORTED_LANGUAGES.length) return 'complete';
+  if (languagesComplete > 0) return 'partial';
+  return 'missing';
+}
+
+/**
+ * Get translation status color for UI display
+ */
+function getTranslationStatusColor(status) {
+  if (status === 'complete') return 'success';
+  if (status === 'partial') return 'warning';
+  return 'error';
+}
+
+
 function UploadDescriptions() {
   const { t } = useTranslation(['admin', 'form', 'validation', 'states', 'actions', 'auth']);
-  const [firebaseUser, setFirebaseUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const { user, userProfile, authLoading } = useAuth();
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [uploadedEvents, setUploadedEvents] = useState([]);
-
-  const CORRECT_PASSWORD = '9876543210';
-
-  // Check Firebase authentication state
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setFirebaseUser(user);
-      setAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handlePasswordSubmit = (e) => {
-    e.preventDefault();
-    if (password === CORRECT_PASSWORD) {
-      setIsAuthenticated(true);
-      setPasswordError('');
-    } else {
-      setPasswordError(t('validation:incorrectPassword'));
-      setPassword('');
-    }
-  };
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
@@ -136,6 +159,7 @@ function UploadDescriptions() {
         uploadedAt: serverTimestamp(),
         uploadedBy: 'admin',
         totalEvents: totalEvents,
+        supportedLanguages: SUPPORTED_LANGUAGES,
       });
 
       // Batch upload events (Firestore batch limit is 500)
@@ -148,11 +172,13 @@ function UploadDescriptions() {
 
         for (const event of batchEvents) {
           const docId = generateDocId(event.name);
+          const translationStatus = getTranslationStatus(event);
           const docRef = doc(db, COLLECTION_NAME, docId);
 
           batch.set(docRef, {
             ...event,
             docId: docId,
+            _translationStatus: translationStatus, // Track translation status
             uploadedAt: serverTimestamp(),
           }, { merge: true });
 
@@ -161,6 +187,8 @@ function UploadDescriptions() {
             category: event.category,
             impact: event.impact,
             docId: docId,
+            translationStatus: translationStatus,
+            hasI18n: !!event.i18n,
           });
         }
 
@@ -176,7 +204,6 @@ function UploadDescriptions() {
         count: uploadedCount,
       });
     } catch (err) {
-      console.error('Upload error:', err);
       setError(t('validation:failedToValidateJson'));
       setResult({
         success: false,
@@ -204,8 +231,8 @@ function UploadDescriptions() {
     );
   }
 
-  // Check if user is logged in to Firebase
-  if (!firebaseUser) {
+  // Check if user is authenticated
+  if (!user) {
     return (
       <Box
         sx={{
@@ -218,22 +245,19 @@ function UploadDescriptions() {
         }}
       >
         <Paper elevation={3} sx={{ maxWidth: 500, width: '100%', p: 4 }}>
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" icon={<LockIcon />} sx={{ mb: 2 }}>
             {t('admin:requiresAuthentication')}
           </Alert>
           <Typography variant="body2" color="text.secondary">
             {t('admin:pleaseLogInFirst')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            {t('admin:currentAuthState')}: {firebaseUser ? t('auth:loggedIn') : t('auth:notLoggedIn')}
           </Typography>
         </Paper>
       </Box>
     );
   }
 
-  // Show password prompt if not authenticated
-  if (!isAuthenticated) {
+  // Check if user has superadmin role (RBAC)
+  if (userProfile?.role !== USER_ROLES.SUPERADMIN) {
     return (
       <Box
         sx={{
@@ -248,50 +272,30 @@ function UploadDescriptions() {
         <Paper
           elevation={3}
           sx={{
-            maxWidth: 400,
+            maxWidth: 500,
             width: '100%',
             p: 4,
           }}
         >
-          <Alert severity="info" sx={{ mb: 3 }}>
-            {t('admin:loggedInAs')}: {firebaseUser.email}
+          <Alert severity="error" icon={<LockIcon />} sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              {t('admin:accessDenied')}
+            </Typography>
           </Alert>
 
-          <Typography variant="h5" gutterBottom sx={{ mb: 3, textAlign: 'center' }}>
-            {t('admin:protectedPage')}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {t('admin:superadminOnlyAccess')}
           </Typography>
 
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
-            {t('admin:enterPasswordMessage')}
+          <Typography variant="caption" color="text.disabled">
+            {t('admin:yourRole')}: <strong>{userProfile?.role || t('auth:notLoggedIn')}</strong>
           </Typography>
 
-          <form onSubmit={handlePasswordSubmit}>
-            <TextField
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={t('form:enterPassword')}
-              fullWidth
-              autoFocus
-              variant="outlined"
-              sx={{ mb: 2 }}
-            />
-
-            {passwordError && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {passwordError}
-              </Alert>
-            )}
-
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-            >
-              {t('actions:submit')}
-            </Button>
-          </form>
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="caption" color="text.secondary" component="div">
+              {t('admin:contactAdministrator')}
+            </Typography>
+          </Box>
         </Paper>
       </Box>
     );
@@ -393,52 +397,85 @@ function UploadDescriptions() {
             <Typography variant="h6" gutterBottom>
               {t('admin:uploadedEvents', { count: uploadedEvents.length })}
             </Typography>
-            <Paper variant="outlined" sx={{ maxHeight: 400, overflow: 'auto', p: 2 }}>
-              <List dense>
-                {uploadedEvents.map((event, index) => (
-                  <ListItem key={index} divider={index < uploadedEvents.length - 1}>
-                    <ListItemText
-                      primary={event.name}
-                      secondary={
-                        <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
-                          <Chip
-                            label={event.category}
-                            size="small"
-                            variant="outlined"
-                          />
-                          <Chip
-                            label={event.impact}
-                            size="small"
-                            color={
-                              event.impact === 'high'
-                                ? 'error'
-                                : event.impact === 'medium'
-                                  ? 'warning'
-                                  : 'default'
-                            }
-                          />
-                          <Chip
-                            label={event.docId}
-                            size="small"
-                            variant="outlined"
-                            sx={{ fontFamily: 'monospace', fontSize: '0.7rem' }}
-                          />
-                        </Stack>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: 2,
+                maxHeight: 500,
+                overflowY: 'auto',
+              }}
+            >
+              {uploadedEvents.map((event, index) => (
+                <Card key={index} sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 1 }}>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, wordBreak: 'break-word' }}>
+                        {event.name}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        {event.category}
+                      </Typography>
+                    </Box>
+                    {event.hasI18n && (
+                      <Chip
+                        icon={<TranslateIcon sx={{ fontSize: 14 }} />}
+                        label={event.translationStatus === 'complete' ? '✓' : event.translationStatus === 'partial' ? '◐' : '✗'}
+                        size="small"
+                        color={getTranslationStatusColor(event.translationStatus)}
+                        variant="outlined"
+                        sx={{ whiteSpace: 'nowrap' }}
+                      />
+                    )}
+                  </Box>
+                  <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+                    <Chip
+                      label={`Impact: ${event.impact}`}
+                      size="small"
+                      color={
+                        event.impact === 'high'
+                          ? 'error'
+                          : event.impact === 'medium'
+                            ? 'warning'
+                            : 'default'
                       }
+                      variant="filled"
                     />
-                  </ListItem>
-                ))}
-              </List>
-            </Paper>
+                  </Stack>
+                  {event.hasI18n && event.translationStatus === 'complete' && (
+                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                      {SUPPORTED_LANGUAGES.map((lang) => (
+                        <Chip
+                          key={lang}
+                          label={lang.toUpperCase()}
+                          size="small"
+                          variant="outlined"
+                          sx={{
+                            height: 24,
+                            fontSize: '0.7rem',
+                            borderColor: 'success.main',
+                            color: 'success.main',
+                            fontWeight: 600,
+                          }}
+                        />
+                      ))}
+                    </Box>
+                  )}
+                  <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: '0.65rem', color: 'text.disabled', wordBreak: 'break-all' }}>
+                    ID: {event.docId}
+                  </Typography>
+                </Card>
+              ))}
+            </Box>
           </Box>
         )}
 
         {/* Instructions */}
-        <Box sx={{ mt: 4, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
-          <Typography variant="subtitle2" gutterBottom>
+        <Box sx={{ mt: 4, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
             {t('admin:instructions')}:
           </Typography>
-          <Typography variant="body2" color="text.secondary" component="div">
+          <Typography variant="body2" color="text.secondary" component="div" sx={{ mb: 2 }}>
             <ol style={{ margin: 0, paddingLeft: 20 }}>
               <li>{t('admin:instructionStep1')}</li>
               <li>{t('admin:instructionStep2')}</li>
@@ -446,6 +483,11 @@ function UploadDescriptions() {
               <li>{t('admin:instructionStep4', { collection: COLLECTION_NAME })}</li>
             </ol>
           </Typography>
+          <Alert severity="info" sx={{ mt: 2 }}>
+            <Typography variant="caption" component="div">
+              <strong>{t('admin:multilingualSupport')}:</strong> Events can include translations for EN, ES, and FR. Each language translation status will be displayed as a chip (✓ = complete, ◐ = partial, ✗ = missing).
+            </Typography>
+          </Alert>
         </Box>
       </Paper>
     </Box>

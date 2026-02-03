@@ -1,7 +1,7 @@
 # Time 2 Trade - Developer Knowledge Base
 
-**Last Updated:** January 21, 2026  
-**Version:** 4.0.0  
+**Last Updated:** February 2, 2026  
+**Version:** 4.0.74  
 **Maintainer:** Lofi Trades Development Team
 
 ---
@@ -258,9 +258,14 @@ trading-clock/
 │   ├── AboutContent.txt                     # About page content
 │   ├── llms.txt                             # AI crawler discovery file
 │   ├── robots.txt                           # Search engine directives
-│   └── sitemap.xml                          # Site URL map
+│   ├── sitemap.xml                          # Site URL map
+│   └── locales/                             # i18n translations (AUTO-GENERATED)
+│       ├── en/                              # English (30 namespaces)
+│       ├── es/                              # Spanish (30 namespaces)
+│       └── fr/                              # French (30 namespaces)
 ├── scripts/
-│   └── prerender.mjs                        # Post-build meta tag injection
+│   ├── prerender.mjs                        # Post-build meta tag injection
+│   └── sync-locales.mjs                     # i18n locale sync (src → public)
 ├── src/
 │   ├── components/                          # React components
 │   │   ├── AboutPage.jsx                    # Public /about page
@@ -288,6 +293,12 @@ trading-clock/
 │   ├── hooks/
 │   │   ├── useClock.js                      # Clock tick & session detection
 │   │   └── useSettings.js                   # Settings persistence
+│   ├── i18n/
+│   │   ├── config.js                        # i18next HTTP backend config
+│   │   └── locales/                         # SOURCE OF TRUTH (edit here)
+│   │       ├── en/                          # English (30 namespaces)
+│   │       ├── es/                          # Spanish (30 namespaces)
+│   │       └── fr/                          # French (30 namespaces)
 │   ├── routes/
 │   │   └── AppRoutes.jsx                    # React Router configuration
 │   ├── utils/
@@ -2110,6 +2121,53 @@ whyDidYouRender(React, {
 ---
 
 ## 📝 Change Log
+
+### Version 4.0.74 - February 2, 2026
+**i18n Locale Sync Automation**
+
+#### 🌍 Internationalization
+- **NEW**: Added `scripts/sync-locales.mjs` for automated locale synchronization.
+- **Golden Rule**: Only edit `src/i18n/locales/` — everything else is automatic.
+- `src/i18n/locales/` is now the source of truth (Git tracked, editable).
+- `public/locales/` is auto-generated from src (served via HTTP backend).
+- Build process: `prebuild` hook runs sync before Vite build.
+- Orphan detection: Warns about files in `public/` not in `src/` (use `--clean` to remove).
+- Data loss prevention: Warns if `public/` has more keys than `src/` before overwriting.
+- JSON validation: Invalid JSON fails build before deploying broken translations.
+
+#### 📁 Files Added/Updated
+- `scripts/sync-locales.mjs` (v1.1.0): New locale sync script with orphan detection.
+- `package.json`: Added `sync-locales` script and `prebuild` hook.
+- `.github/instructions/t2t_Instructions.instructions.md` (v4.3.0): Updated i18n workflow docs.
+
+#### 🔄 Workflow
+```
+npm run sync-locales          # Sync + warn about orphans
+npm run sync-locales -- --clean  # Sync + remove orphans
+npm run build                 # Auto-syncs via prebuild hook
+```
+
+### Version 4.0.73 - January 29, 2026
+**Outcome-Based Actual Value Coloring (BEP)**
+
+#### 📊 Calendar & Events
+- **NEW**: Actual value font color now reflects event outcome sentiment across all event displays.
+- **Positive outcomes** (better than expected): `success.main` (green)
+- **Negative outcomes** (worse than expected): `error.main` (red)
+- **Neutral/Unknown**: `primary.main` (default - maintains backward compatibility)
+- **100% reliable**: Color determination uses ONLY explicit `outcome` field from API sources (JBlanked/MQL5/Forex Factory).
+- **No guessing**: Never attempts to determine polarity from value comparisons (each indicator has different polarity - unemployment lower is better, jobs higher is better).
+
+#### 🛠️ New Utility
+- Created `src/utils/outcomeColor.js` with `getActualValueColor()` function.
+- Pattern matching for outcome strings: `better/positive/bullish/good` → positive, `worse/negative/bearish/bad` → negative.
+- Exported `OutcomeSentiment` enum, `getOutcomeSentiment()`, `getActualValueColor()`, and `getOutcomeInfo()`.
+
+#### 📁 Files Updated
+- `CalendarEmbed.jsx` (v1.5.92): EventRow actual value uses outcome-based coloring.
+- `EventModal.jsx` (v2.5.0): DataValueBox accepts outcomeColor prop for actual value.
+- `EventsTable.jsx` (v1.12.0): DataValuesCell and expanded view use outcome-based coloring.
+- `EventsTimeline2.jsx` (v3.10.0): Actual value card section uses outcome-based coloring.
 
 ### Version 4.0.72 - January 29, 2026
 **i18n Hardcoded Copy Cleanup**

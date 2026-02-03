@@ -7,6 +7,14 @@
   "actual": "Actual",
   "forecast": "Forecast",
   "previous": "Previous",
+  "relativeTime": {
+    "startingNow": "Starting now",
+    "future": "In {{time}}",
+    "past": "{{time}} ago",
+    "day": "d",
+    "hour": "h",
+    "minute": "m"
+  },
   "impactLevels": {
     "high": "High Impact",
     "medium": "Medium Impact",
@@ -31,6 +39,92 @@
     "everyMonth": "Every month",
     "everyQuarter": "Every quarter",
     "everyYear": "Every year"
+  },
+  "modal": {
+    "actions": {
+      "editReminder": "Edit"
+    },
+    "custom": {
+      "appearance": "Appearance",
+      "visibleOnClock": "Visible on clock",
+      "hiddenFromClock": "Hidden from clock",
+      "notes": "Notes",
+      "timezone": "Timezone"
+    },
+    "economic": {
+      "actual": "Actual",
+      "forecast": "Forecast",
+      "previous": "Previous",
+      "pastEvent": "Past Event",
+      "aboutTitle": "About",
+      "tradingImplicationTitle": "Trading Implications",
+      "keyThresholdsTitle": "Key Thresholds",
+      "frequency": "Frequency",
+      "source": "Source",
+      "outcome": "Outcome"
+    },
+    "reminders": {
+      "signInRequired": "Sign in to save reminders across devices.",
+      "detailsLoading": "Reminder details are still loading. Reopen this event if Save stays disabled."
+    },
+    "debug": {
+      "reminderDebug": "Reminder Debug",
+      "eventKey": "Event key:",
+      "seriesKey": "Series key:",
+      "docId": "Doc id:",
+      "baselineCount": "Baseline count:",
+      "last": "Last:"
+    }
+  },
+  "impacts": {
+    "highImpact": "High Impact",
+    "highImpactDesc": "Highly significant economic data that can cause substantial market movement",
+    "mediumImpact": "Medium Impact",
+    "mediumImpactDesc": "Moderate economic data with noticeable market influence",
+    "lowImpact": "Low Impact",
+    "lowImpactDesc": "Minor economic data with limited market impact",
+    "dataNotLoaded": "Data Not Loaded",
+    "dataNotLoadedDesc": "Impact level data is still loading",
+    "nonEconomic": "Non-Economic",
+    "nonEconomicDesc": "This event is not classified as economic data",
+    "unknown": "Unknown",
+    "unknownDesc": "Impact level cannot be determined"
+  },
+  "tooltips": {
+    "currencyAffects": "Economic data affects this currency",
+    "eventImpactsCurrency": "This event impacts {{currency}} valuation",
+    "aboutDescription": "Detailed explanation of the economic event and its significance",
+    "tradingImplication": "How this event may affect trading strategies and market behavior",
+    "keyThresholds": "Important threshold values for comparing actual vs forecast results",
+    "frequency": "How often this economic data is released",
+    "source": "The official source organization for this data",
+    "outcome": "The actual result or impact of the economic event"
+  },
+  "actions": {
+    "notesLoading": "Loading notes...",
+    "viewNotes": "View notes",
+    "addNote": "Add note",
+    "favoritesLoading": "Loading favorites...",
+    "removeFromFavorites": "Remove from favorites",
+    "saveToFavorites": "Save to favorites",
+    "refreshData": "Refresh event data from Firestore",
+    "closeModal": "Close",
+    "updated": "Updated",
+    "dataValues": "Event Data",
+    "customEventChip": "Custom event",
+    "reminders": "Reminders"
+  },
+  "messages": {
+    "copySuccess": "Copied!",
+    "copyEventId": "Click to copy Event ID",
+    "categoryTooltip": "Category: {{category}} - Event classification for filtering and analysis",
+    "statusTooltip": "Status: {{status}} - Current state of the economic event",
+    "nowTooltip": "This event is happening NOW - within the 9-minute active window",
+    "nextTooltip": "Next event in {{countdown}}",
+    "pastTooltip": "This event has already occurred - data reflects actual results",
+    "primarySource": "Primary data source for this event's values",
+    "availableSources": "Available from {{count}} sources: {{sources}}",
+    "qualityScore": "Data quality score: {{score}}/100 - Higher scores indicate more reliable data"
   },
   "dialog": {
     "title": {
@@ -128,6 +222,28 @@
         "success": "Changes saved"
       },
       "addCustomEvent": "Create event"
+    }
+  },
+  "eventPage": {
+    "seoTitleSuffix": "Economic Event Guide",
+    "notFound": "Event not found: {{eventId}}",
+    "backToCalendar": "Back to Calendar",
+    "openPage": "See event details",
+    "tradingImplication": "Trading Implications",
+    "releaseSchedule": "Release Schedule",
+    "keyThresholds": "Key Thresholds",
+    "viewOnCalendar": "View on Calendar",
+    "calendarCta": "See upcoming dates for this event and set reminders on our economic calendar.",
+    "goToCalendar": "Go to Calendar",
+    "alsoKnownAs": "Also Known As",
+    "breadcrumb": {
+      "home": "Home",
+      "calendar": "Calendar"
+    },
+    "thresholds": {
+      "strong": "Strong",
+      "moderate": "Moderate",
+      "weak": "Weak"
     }
   }
 }

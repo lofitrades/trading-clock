@@ -80,7 +80,13 @@
     "addToFavorites": "Ajouter aux favoris",
     "customEvent": "Événement personnalisé",
     "unknown": "Inconnu",
-    "global": "Global"
+    "global": "Global",
+    "allDay": "Toute la journée",
+    "tentative": "Provisoire",
+    "allDayAndTentative": "Toute la journée / Provisoire",
+    "time": "Heure",
+    "singleEvent": "1 événement",
+    "eventCount": "{{count}} événements"
   },
   "clock": {
     "title": "Horloge de Trading",

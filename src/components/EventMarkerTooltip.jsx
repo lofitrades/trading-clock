@@ -5,6 +5,9 @@
  * Follows Material Design v7 best practices with proper spacing, typography hierarchy, and Airbnb-inspired design.
  *
  * Changelog:
+ * v1.1.32 - 2026-01-29 - BEP i18n: Relative time labels ("In 2h 30m", "5m ago") now fully language-aware using events:relativeTime translations. Supports EN/ES/FR with proper preposition and time unit translations.
+ * v1.1.31 - 2026-01-29 - BEP i18n: Footer event count and All Day/Tentative labels now fully language-aware. Event count uses plural-aware translations ("1 event" vs "N events") with full i18n support for EN/ES/FR. All hardcoded text now localized.
+ * v1.1.30 - 2026-01-29 - BEP i18n: Date and time now fully language-aware and timezone-aware. Uses toLocaleDateString and toLocaleTimeString with i18n language detection (EN/ES/FR) and IANA timezone support.
  * v1.1.29 - 2026-01-22 - Hide time range subtitle when tooltip has a single event.
  * v1.1.28 - 2026-01-22 - Show grouped date as header title and time range as subtitle.
  * v1.1.27 - 2026-01-22 - Show event time above each row and display grouped time ranges in the tooltip header.
@@ -40,9 +43,9 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import { Box, Typography, Chip, Divider, IconButton, Skeleton, useTheme } from '@mui/material';
-import { DATE_FORMAT_OPTIONS, TIME_FORMAT_OPTIONS, formatDate, formatTime } from '../utils/dateUtils';
 import { getCurrencyFlag } from '../utils/currencyFlags';
 import { resolveImpactMeta } from '../utils/newsApi';
 import { formatRelativeLabel, getEventEpochMs, NOW_WINDOW_MS } from '../utils/eventTimeEngine';
@@ -90,6 +93,7 @@ const SKELETON_EVENTS = [
  */
 function EventMarkerTooltip({ events = [], timezone = 'UTC', nowEpochMs = Date.now(), groupEpochMs = null, onClick, onClose, isFavoriteEvent, hasEventNotes }) {
     const theme = useTheme();
+    const { i18n, t } = useTranslation(['calendar', 'common', 'events']);
     const rootRef = useRef(null);
     const listRef = useRef(null);
     const [listMaxHeight, setListMaxHeight] = useState(null);
@@ -97,6 +101,13 @@ function EventMarkerTooltip({ events = [], timezone = 'UTC', nowEpochMs = Date.n
 
     // Memoize display data calculations
     const displayData = useMemo(() => {
+        // Helper function to get locale from i18n language code
+        const getLocale = () => {
+            if (i18n.language === 'es') return 'es-ES';
+            if (i18n.language === 'fr') return 'fr-FR';
+            return 'en-US';
+        };
+
         if (!events || events.length === 0) {
             return { events: [], primaryEvent: null };
         }
@@ -110,14 +121,21 @@ function EventMarkerTooltip({ events = [], timezone = 'UTC', nowEpochMs = Date.n
 
         const primaryEvent = sortedEvents[0];
         const primaryImpact = getImpactMeta(primaryEvent.impact || primaryEvent.strength || primaryEvent.Strength || primaryEvent?._displayCache?.strengthValue);
-        const headerDate = formatDate(
-            primaryEvent.date || primaryEvent.dateTime || primaryEvent.Date,
-            timezone,
-            DATE_FORMAT_OPTIONS.MEDIUM
+        const headerDate = new Date(primaryEvent.date || primaryEvent.dateTime || primaryEvent.Date).toLocaleDateString(
+            getLocale(),
+            {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+            }
         );
 
         const timeLabels = events.map((evt) =>
-            evt.timeLabel || formatTime(evt.date || evt.dateTime || evt.Date, timezone)
+            evt.timeLabel || new Date(evt.date || evt.dateTime || evt.Date).toLocaleTimeString(
+                getLocale(),
+                { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: timezone }
+            )
         ).filter(Boolean);
         const normalizedLabels = timeLabels.map((label) => String(label).toLowerCase());
         const hasAllDay = normalizedLabels.some((label) => label.includes('all day'));
@@ -129,18 +147,27 @@ function EventMarkerTooltip({ events = [], timezone = 'UTC', nowEpochMs = Date.n
                 ? (() => {
                     const rangeStart = groupEpochMs - 2 * 60000;
                     const rangeEnd = groupEpochMs + 2 * 60000;
-                    const startLabel = formatTime(rangeStart, timezone, TIME_FORMAT_OPTIONS.SHORT_12H);
-                    const endLabel = formatTime(rangeEnd, timezone, TIME_FORMAT_OPTIONS.SHORT_12H);
+                    const startLabel = new Date(rangeStart).toLocaleTimeString(
+                        getLocale(),
+                        { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: timezone }
+                    );
+                    const endLabel = new Date(rangeEnd).toLocaleTimeString(
+                        getLocale(),
+                        { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: timezone }
+                    );
                     return `${startLabel} – ${endLabel}`;
                 })()
-                : (primaryEvent.timeLabel || formatTime(primaryEvent.date || primaryEvent.dateTime || primaryEvent.Date, timezone, TIME_FORMAT_OPTIONS.SHORT_12H)))
+                : (primaryEvent.timeLabel || new Date(primaryEvent.date || primaryEvent.dateTime || primaryEvent.Date).toLocaleTimeString(
+                    getLocale(),
+                    { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: timezone }
+                )))
             : (hasAllDay && hasTentative
-                ? 'All Day / Tentative'
+                ? t('calendar:tooltip.allDayAndTentative', { defaultValue: 'All Day / Tentative' })
                 : hasAllDay
-                    ? 'All Day'
+                    ? t('calendar:tooltip.allDay', { defaultValue: 'All Day' })
                     : hasTentative
-                        ? 'Tentative'
-                        : (timeLabels[0] || 'Time'));
+                        ? t('calendar:tooltip.tentative', { defaultValue: 'Tentative' })
+                        : (timeLabels[0] || t('calendar:tooltip.time', { defaultValue: 'Time' })));
 
         const eventEpochs = events
             .map((evt) => getEventEpochMs(evt))
@@ -157,14 +184,17 @@ function EventMarkerTooltip({ events = [], timezone = 'UTC', nowEpochMs = Date.n
             const impactMeta = getImpactMeta(impactValue);
             const currency = evt.currency || evt.Currency;
             const countryCode = currency ? getCurrencyFlag(currency) : null;
-            const timeLabel = evt.timeLabel || formatTime(evt.date || evt.dateTime || evt.Date, timezone);
+            const timeLabel = evt.timeLabel || new Date(evt.date || evt.dateTime || evt.Date).toLocaleTimeString(
+                getLocale(),
+                { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: timezone }
+            );
             const normalizedTimeLabel = (timeLabel || '').toLowerCase();
             const isSpecialTimeLabel = normalizedTimeLabel.includes('all day') || normalizedTimeLabel.includes('tentative');
             const isCustom = Boolean(evt.isCustom);
             // Calculate relative time
             const eventEpochMs = getEventEpochMs(evt);
             const relativeLabel = eventEpochMs !== null
-                ? formatRelativeLabel({ eventEpochMs, nowEpochMs, nowWindowMs: NOW_WINDOW_MS })
+                ? formatRelativeLabel({ eventEpochMs, nowEpochMs, nowWindowMs: NOW_WINDOW_MS, t })
                 : '';
 
             // Determine event state
@@ -200,7 +230,7 @@ function EventMarkerTooltip({ events = [], timezone = 'UTC', nowEpochMs = Date.n
             headerTime,
             headerColor: primaryImpact.color,
         };
-    }, [events, timezone, nowEpochMs, groupEpochMs, isFavoriteEvent, hasEventNotes]);
+    }, [events, timezone, nowEpochMs, groupEpochMs, isFavoriteEvent, hasEventNotes, i18n.language, t]);
 
     const processedEvents = displayData.events || [];
     const headerDate = displayData.headerDate;
@@ -877,7 +907,7 @@ function EventMarkerTooltip({ events = [], timezone = 'UTC', nowEpochMs = Date.n
                         letterSpacing: 0.3,
                     }}
                 >
-                    {showMultiple ? `${processedEvents.length} events` : '1 event'}
+                    {showMultiple ? t('calendar:tooltip.eventCount', { count: processedEvents.length, defaultValue: `${processedEvents.length} events` }) : t('calendar:tooltip.singleEvent', { defaultValue: '1 event' })}
                 </Typography>
             </Box>
         </Box>

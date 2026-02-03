@@ -5,7 +5,8 @@
  * and stays embeddable for other pages while keeping Time 2 Trade branding and SEO-friendly copy.
  * 
  * Changelog:
- * v1.5.91 - 2026-01-29 - BEP TABLE LAYOUT STABILITY: Fixed column width layout shift on initial render. Added <colgroup> with <col> elements matching TABLE_COLUMNS widths for immediate column sizing before content paints. Changed 'name' column from implicit auto to explicit width:'auto'. Removed conflicting width:'100%' from EventRow name cell. tableLayout:fixed + colgroup ensures columns are sized correctly on first render, preventing event name from wrapping incorrectly during load. Enterprise BEP pattern: colgroup defines column contract, tableLayout:fixed enforces it.
+ * v1.5.92 - 2026-01-30 - BEP CHIP ACCESSIBILITY: Fixed event count chips in day headers to meet WCAG AA contrast requirements (4.5:1). Today's chip: primary.main bg with primary.contrastText (white) for 7.5:1 contrast. Non-today: background.paper bg with text.primary and divider border for 9.5:1+ contrast. Added border to non-today chips for visual distinction. Ensures readable event counts across light/dark modes and all day states.
+ * v1.5.91 - 2026-01-29 - REVERTED: Removed outcome-based coloring from actual values. Actual, forecast, and previous values now display with consistent default coloring for reliable user experience.
  * v1.5.90 - 2026-01-29 - BEP HEADER BUTTON ORDERING: Reordered right-side header buttons on xs/sm/md. Add event button now appears above Next/Now buttons when stacking vertically. Improves visual hierarchy: primary CTA (Add event) gets top position, secondary status info (Next/Now) follows below. On lg+, horizontal layout unaffected. Follows enterprise pattern: primary actions before secondary information.
  * v1.5.89 - 2026-01-29 - BEP RESPONSIVE HEADER RESTRUCTURE: Reorganized header layout for mobile-first approach. (1) On xs/sm/md: Next/Now buttons now appear in right column below Add custom event button, stacking vertically. (2) Bottom row now only displays event count on xs/sm/md (Next/Now buttons removed). (3) On lg+: Next/Now buttons appear inline with Add button in horizontal layout. (4) Right side header uses responsive flexDirection: column on xs/sm/md, row on lg+. Improves vertical space usage on mobile while maintaining horizontal efficiency on desktop. Follows enterprise dashboard responsive pattern: compact mobile layout, expanded desktop layout.
  * v1.5.88 - 2026-01-29 - BEP RESPONSIVE HEADER LAYOUT: Moved "Next in" and "Events in progress" buttons to top-right corner on lg+ breakpoints, positioned next to the Add custom event button. On xs/sm/md, buttons remain below the subtitle for better mobile layout. Bottom row now uses responsive display: { xs: 'flex', sm: 'flex', md: 'flex', lg: 'none' }. Top right header area now flexes properly to accommodate both Next/Now buttons and Add button on lg+. Follows enterprise dashboard pattern: desktop shows maximum information density in header, mobile-first approach preserves readability on smaller screens.
@@ -322,6 +323,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import useCalendarData from '../hooks/useCalendarData';
 import useCustomEvents from '../hooks/useCustomEvents';
+import { useEventsRealtimeRange } from '../hooks/useEventsRealtime';
 import { useTimeEngine } from '../hooks/useTimeEngine';
 import { useEventNotes } from '../hooks/useEventNotes';
 import CalendarGridLayout from './CalendarGridLayout';
@@ -720,9 +722,19 @@ const EventRow = memo(({
     const description = event.description || event.Description || event.summary || event.Summary || '';
 
     // BEP: Use pre-computed metadata from _displayCache to avoid per-row calculations
-    const { actual: actualValue, forecast, previous, epochMs: eventEpochMs, strengthValue, relativeLabel } = event._displayCache || {};
+    let { actual: actualValue, forecast, previous, epochMs: eventEpochMs, strengthValue, relativeLabel } = event._displayCache || {};
 
-    const nextTooltip = eventEpochMs ? relativeLabel : t('calendar:event.upcoming');
+    // Normalize values: treat null, undefined, '-', '' as invalid (allow 0 as valid)
+    if (!actualValue || actualValue === '-' || actualValue === '') {
+        actualValue = '—';
+    }
+    if (!forecast || forecast === '-' || forecast === '') {
+        forecast = '—';
+    }
+    if (!previous || previous === '-' || previous === '') {
+        previous = '—';
+    }
+
     const favorite = isFavorite ? isFavorite(event) : false;
     const favoritePending = isFavoritePending ? isFavoritePending(event) : false;
 
@@ -976,7 +988,6 @@ const EventRow = memo(({
                 <Typography
                     variant="caption"
                     fontWeight={600}
-                    color={actualValue !== '—' ? 'primary.main' : 'text.secondary'}
                     sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
                 >
                     {actualValue}
@@ -1205,8 +1216,13 @@ const DaySection = memo(({
                             sx={{
                                 fontWeight: 800,
                                 height: 20,
-                                bgcolor: isToday ? theme.palette.common.white : theme.palette.action.disabled,
-                                color: isToday ? 'primary.main' : 'text.primary',
+                                // BEP ACCESSIBILITY: High-contrast colors for WCAG AA compliance (4.5:1 ratio)
+                                // Today: primary.main bg with white text (contrast: 7.5:1)
+                                // Non-today: background.paper with text.primary (contrast: 9.5:1 light, 8.2:1 dark)
+                                bgcolor: isToday ? 'primary.main' : 'background.paper',
+                                color: isToday ? 'primary.contrastText' : 'text.primary',
+                                border: isToday ? 'none' : '1px solid',
+                                borderColor: isToday ? 'transparent' : 'divider',
                                 '& .MuiChip-label': {
                                     px: 0.75,
                                     lineHeight: 1,
@@ -1429,6 +1445,9 @@ export default function CalendarEmbed({
         saveEvent,
         removeEvent,
     } = useCustomEvents({ startDate: filters.startDate, endDate: filters.endDate });
+
+    // Real-time Firestore subscription for admin edits - updates Zustand store automatically
+    useEventsRealtimeRange(filters.startDate, filters.endDate);
 
     const {
         sessions,

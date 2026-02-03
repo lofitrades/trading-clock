@@ -7,6 +7,14 @@
   "actual": "Actual",
   "forecast": "Forecast",
   "previous": "Previous",
+  "relativeTime": {
+    "startingNow": "Starting now",
+    "future": "In {{time}}",
+    "past": "{{time}} ago",
+    "day": "d",
+    "hour": "h",
+    "minute": "m"
+  },
   "impactLevels": {
     "high": "High Impact",
     "medium": "Medium Impact",
@@ -69,17 +77,17 @@
     }
   },
   "impacts": {
-    "highImpact": "!!! High Impact",
+    "highImpact": "High Impact",
     "highImpactDesc": "Highly significant economic data that can cause substantial market movement",
-    "mediumImpact": "!! Medium Impact",
+    "mediumImpact": "Medium Impact",
     "mediumImpactDesc": "Moderate economic data with noticeable market influence",
-    "lowImpact": "! Low Impact",
+    "lowImpact": "Low Impact",
     "lowImpactDesc": "Minor economic data with limited market impact",
-    "dataNotLoaded": "? Data Not Loaded",
+    "dataNotLoaded": "Data Not Loaded",
     "dataNotLoadedDesc": "Impact level data is still loading",
-    "nonEconomic": "~ Non-Economic",
+    "nonEconomic": "Non-Economic",
     "nonEconomicDesc": "This event is not classified as economic data",
-    "unknown": "? Unknown",
+    "unknown": "Unknown",
     "unknownDesc": "Impact level cannot be determined"
   },
   "tooltips": {
@@ -214,6 +222,28 @@
         "success": "Changes saved"
       },
       "addCustomEvent": "Create event"
+    }
+  },
+  "eventPage": {
+    "seoTitleSuffix": "Economic Event Guide",
+    "notFound": "Event not found: {{eventId}}",
+    "backToCalendar": "Back to Calendar",
+    "openPage": "See event details",
+    "tradingImplication": "Trading Implications",
+    "releaseSchedule": "Release Schedule",
+    "keyThresholds": "Key Thresholds",
+    "viewOnCalendar": "View on Calendar",
+    "calendarCta": "See upcoming dates for this event and set reminders on our economic calendar.",
+    "goToCalendar": "Go to Calendar",
+    "alsoKnownAs": "Also Known As",
+    "breadcrumb": {
+      "home": "Home",
+      "calendar": "Calendar"
+    },
+    "thresholds": {
+      "strong": "Strong",
+      "moderate": "Moderate",
+      "weak": "Weak"
     }
   }
 }

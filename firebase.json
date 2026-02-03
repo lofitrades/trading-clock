@@ -3,6 +3,7 @@
     "path": "firebase.json",
     "purpose": "Firebase Hosting and Functions configuration for Time 2 Trade frontend/backend deployment.",
     "changelog": [
+      "v1.6.0 - 2026-01-30 - BEP SEO FIX: Reverted rewrites to simple '**' catch-all pattern. Firebase Hosting serves exact-match static files (ads.txt, robots.txt, sitemap.xml) BEFORE processing rewrites per official priority order. The negation pattern was unnecessary and non-standard. Static files in dist/ are automatically served at step 3, rewrites only apply when files don't exist (step 4). This follows Firebase Hosting BEP and ensures ads.txt is crawlable by Google AdSense.",
       "v1.5.0 - 2026-01-28 - BEP FIX: Rewrites now serve prerendered subpages (/es/contact, /fr/about, etc.) correctly. Each language route pattern serves its own index.html, enabling SEO for all localized pages.",
       "v1.4.0 - 2026-01-27 - BEP ENHANCED i18n: Added rewrites for /es/* and /fr/* language subpaths. Multi-language prerendered HTML files now serve with proper language parameter. Enables non-JS crawlers to see localized content immediately.",
       "v1.3.0 - 2026-01-27 - BEP CONSOLE FIX: Added Cross-Origin-Opener-Policy: unsafe-none header to all responses. Fixes Firebase Auth SDK warning 'COOP policy would block window.closed call'. Firebase popup auth needs to check window.closed from auth popup window, which COOP: same-origin policy would block.",

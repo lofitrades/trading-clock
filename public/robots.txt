@@ -2,13 +2,28 @@
 # https://time2.trade
 # 
 # SEO Policy: Allow search indexing, block AI training crawlers
+# BEP Strategy: Allow /events/ and /clock pages, block admin/legacy routes
 # Managed by: GitHub Copilot + Cloudflare Bot Controls
 
 # Allow general web crawlers (Google, Bing, etc.)
 User-agent: *
 Allow: /
 
-# Block AI training bots explicitly
+# Explicitly allow trading app and event pages (required for proper crawling)
+Allow: /events/
+Allow: /clock
+Allow: /calendar
+
+# Block legacy app routes
+Disallow: /app/
+
+# Block admin and auth routes
+Disallow: /upload-desc
+Disallow: /export
+Disallow: /login
+Disallow: /fft2t
+
+# Block AI training bots explicitly (privacy + IP protection)
 User-agent: Amazonbot
 Disallow: /
 
@@ -33,14 +48,5 @@ Disallow: /
 User-agent: meta-externalagent
 Disallow: /
 
-# Sitemap location
+# Sitemap location (generated dynamically with 166 URLs: 7 base + 159 events)
 Sitemap: https://time2.trade/sitemap.xml
-
-# Disallow admin and auth routes
-Disallow: /upload-desc
-Disallow: /export
-Disallow: /app/upload-desc
-Disallow: /app/export
-Disallow: /app/login
-Disallow: /login
-Disallow: /fft2t

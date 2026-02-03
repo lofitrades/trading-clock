@@ -6,12 +6,16 @@
  * Reduces initial bundle size by ~500KB by eliminating 78 static JSON imports
  *
  * Changelog:
- * v2.0.5 - 2026-01-30 - BEP i18n FIX: Added 'events' and 'reminders' namespaces to preload list. CustomEventDialog and RemindersEditor2 were showing translation keys instead of values because these namespaces weren't preloaded. Events namespace needed for recurrence/appearance dropdowns, reminders namespace needed for lead time units (minutes/hours/days) and channel labels. Preloaded namespaces now: common, pages, filter, calendar, settings, contact, admin, actions, dialogs, form, validation, states, tooltips, a11y, auth, events, reminders.
- * v2.0.4 - 2026-01-29 - BEP i18n: Expanded preload list to cover admin, actions, dialogs, form, validation, states, tooltips, a11y, and auth namespaces used across UI.
- * v2.0.3 - 2026-01-28 - BEP FIX: Added 'settings' namespace to preload list. SettingsSidebar2 uses useTranslation(['settings', 'common']) for all drawer content including navigation tabs, visibility toggles, appearance, language/timezone, background settings, and session config. Preloading ensures no translation keys flash when opening settings. Preloaded namespaces now: common, pages, filter, calendar, about, settings.
- * v2.0.2 - 2026-01-29 - BEP FIX: Added 'calendar' namespace to preload list. Table headers in CalendarEmbed need immediate access to table.headers.* keys (time, currency, impact, event, actual, forecast, previous) to prevent translation keys from flashing during page load. Preloaded namespaces now: common, pages, filter, calendar.
- * v2.0.1 - 2026-01-29 - BEP FIX: Added 'filter' namespace to preload list. The /calendar page uses EventsFilters3 which requires filter:* keys for date presets, impacts, currencies, actions. Preloading ensures no translation keys are visible during initial render (enterprise BEP standard). Preloaded namespaces now: common, pages, filter.
- * v2.0.0 - 2026-01-27 - BEP PERFORMANCE: Migrate to i18next-http-backend for lazy loading. Load only active language + namespace on-demand. Preload critical namespaces (common, pages) for instant UX. Reduces initial bundle by eliminating 78 static imports.
+ * v3.0.1 - 2026-02-02 - Added 'admin' namespace for /admin/events route (superadmin RBAC, won't impact public users).
+ * v3.0.0 - 2026-01-29 - BEP PERFORMANCE: Reduced preload from 18 → 3 namespaces (common, pages, filter) to cut ~1.5s from critical path. Other namespaces now lazy-loaded via useTranslation() when components mount. Lighthouse audit showed 18 JSON files in network chain causing 1,886ms delay. Components using non-preloaded namespaces should call i18n.loadNamespaces() in useEffect for instant UX.
+ * v2.0.7 - 2026-01-29 - BEP i18n: Added relativeTime translations to 'events' namespace for EventMarkerTooltip.
+ * v2.0.6 - 2026-01-29 - BEP i18n: Added 'sessions' namespace for SessionArcTooltip.
+ * v2.0.5 - 2026-01-30 - BEP i18n FIX: Added 'events' and 'reminders' namespaces for CustomEventDialog/RemindersEditor2.
+ * v2.0.4 - 2026-01-29 - BEP i18n: Expanded preload list (admin, actions, dialogs, form, validation, states, tooltips, a11y, auth).
+ * v2.0.3 - 2026-01-28 - BEP FIX: Added 'settings' namespace for SettingsSidebar2.
+ * v2.0.2 - 2026-01-29 - BEP FIX: Added 'calendar' namespace for CalendarEmbed table headers.
+ * v2.0.1 - 2026-01-29 - BEP FIX: Added 'filter' namespace for EventsFilters3.
+ * v2.0.0 - 2026-01-27 - BEP PERFORMANCE: Migrate to i18next-http-backend for lazy loading.
  * v1.0.0 - 2026-01-24 - Initial i18n configuration with 3 MVP languages (EN, ES, FR)
  */
 
@@ -35,12 +39,17 @@ i18n
   .use(initReactI18next)      // Initialize React integration
   .init({
     fallbackLng: 'en',        // Fall back to English if language not found
-    ns: ['common', 'pages', 'filter', 'calendar', 'settings', 'contact', 'admin', 'actions', 'dialogs', 'form', 'validation', 'states', 'tooltips', 'a11y', 'auth', 'events', 'reminders'],  // 'about' lazy loaded when About tab visited
+    
+    // BEP PERFORMANCE v3.0.0: Only preload 3 critical namespaces (~15 KiB)
+    // Other namespaces lazy-loaded via useTranslation() when components mount
+    // Cuts ~1.5s from critical path (was 18 namespaces = 1,886ms chain)
+    // Note: 'admin' added for /admin/events route (protected by RBAC, won't impact public users)
+    ns: ['common', 'pages', 'filter', 'admin'],
     defaultNS: 'common',
     
-    // BEP: Lazy load other namespaces when components mount
-    // e.g., useTranslation('auth') auto-loads auth.json for active language
-    partialBundledLanguages: false,
+    // BEP: Enable true lazy loading for non-preloaded namespaces
+    // Components call: i18n.loadNamespaces(['calendar', 'events']) in useEffect
+    partialBundledLanguages: true,
     
     interpolation: {
       escapeValue: false,     // React already escapes values
@@ -66,12 +75,24 @@ i18n
         cache: 'default',     // Use browser cache for repeat loads
       },
       
-      // Allow loading multiple namespaces in parallel
-      allowMultiLoading: false,
+      // BEP v3.0.0: Enable parallel loading for lazy-loaded namespaces
+      allowMultiLoading: true,
       
-      // Retry failed loads once (network issues)
+      // No auto-reload (manual refresh on language change)
       reloadInterval: false,
     },
   });
+
+/**
+ * Helper to preload namespaces for a route/component
+ * Usage: await preloadNamespaces(['calendar', 'events']);
+ * @param {string[]} namespaces - Array of namespace names to preload
+ * @returns {Promise<void>}
+ */
+export const preloadNamespaces = (namespaces) => {
+  return i18n.loadNamespaces(namespaces).catch((err) => {
+    console.warn('[i18n] Failed to preload namespaces:', namespaces, err);
+  });
+};
 
 export default i18n;

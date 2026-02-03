@@ -50,7 +50,8 @@
     "loading": "Loading...",
     "noData": "No data available",
     "user": "User",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "visibility": "Visibility"
   },
   "navigation": {
     "home": "Home",

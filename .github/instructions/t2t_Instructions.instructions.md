@@ -4,8 +4,8 @@ applyTo: '**'
 
 # Time 2 Trade (T2T) - GitHub Copilot Instructions
 
-**Version:** 4.2.0  
-**Last Updated:** January 27, 2026  
+**Version:** 4.3.0  
+**Last Updated:** February 2, 2026  
 **Purpose:** AI agent guidelines for working with Time 2 Trade codebase
 
 ---
@@ -343,19 +343,28 @@ await setDoc(doc(db, 'users', uid), {
 
 **File Structure:**
 ```
-public/locales/          ← Served via HTTP (static assets)
-  ├─ en/ (26 namespaces)
-  ├─ es/ (26 namespaces)
-  └─ fr/ (26 namespaces)
+src/i18n/locales/        ← SOURCE OF TRUTH (edit here)
+  ├─ en/ (30 namespaces)
+  ├─ es/ (30 namespaces)
+  └─ fr/ (30 namespaces)
+
+public/locales/          ← AUTO-GENERATED (served via HTTP)
+  ├─ en/ (30 namespaces)
+  ├─ es/ (30 namespaces)
+  └─ fr/ (30 namespaces)
 
 src/i18n/
   └─ config.js          ← HTTP backend config (zero imports)
+
+scripts/
+  └─ sync-locales.mjs   ← Syncs src → public before build
 ```
 
 **Key Files:**
 - `src/i18n/config.js` - HTTP backend configuration
 - `src/components/LanguageSwitcher.jsx` - Language switching with preload
 - `src/contexts/LanguageContext.jsx` - Language state + Firestore sync
+- `scripts/sync-locales.mjs` - Locale sync script (prebuild hook)
 
 **See:** `I18N_PERFORMANCE_OPTIMIZATION.md` for detailed implementation guide
 
@@ -398,19 +407,40 @@ import enCommon from './locales/en/common.json';  // WRONG
 - **Namespaces (26):** `common`, `pages`, `auth`, `settings`, `calendar`, `events`, `dialogs`, `filter`, `reminders`, `about`, `legal`, `terms`, `privacy`, etc.
 - **Supported Languages:** EN (English), ES (Español), FR (Français)
 
-**IMPORTANT:** When adding/updating translations:
-1. Edit `src/i18n/locales/[lang]/[namespace].json`
-2. Copy to `public/locales/[lang]/[namespace].json`
-3. Or use build script to sync automatically
+### 🔑 Golden Rule: Only Edit `src/i18n/locales/`
+
+**Everything else is automatic.** The build process handles syncing to `public/locales/`.
+
+```
+src/i18n/locales/     (EDIT HERE - source of truth, Git tracked)
+       │
+       ▼  npm run build → prebuild syncs automatically
+       │
+public/locales/       (AUTO-GENERATED - don't edit directly)
+       │
+       ▼  Vite builds + prerender generates SEO
+       │
+   dist/              (Runtime + SEO use same translations)
+```
+
+**Workflow:**
+| Task | Command |
+|------|---------|  
+| Edit translations | Edit `src/i18n/locales/[lang]/[file].json` |
+| Test locally | `npm run sync-locales` then refresh |
+| Deploy | `npm run deploy` (sync is automatic) |
+| Check for orphans | `npm run sync-locales` (warns if any) |
+| Clean orphans | `npm run sync-locales -- --clean` |
 
 ### Adding Translations (BEP Process)
 1. **Identify all client-facing copy** in the component (buttons, labels, headings, descriptions, etc.)
 2. **Create translation keys** with descriptive namespaced paths: `namespace.section.key`
-3. **Add to all 3 language files:**
-   - `public/locales/en/[namespace].json`
-   - `public/locales/es/[namespace].json`
-   - `public/locales/fr/[namespace].json`
-4. **Use consistent terminology** across all locales:
+3. **Add to all 3 language files in `src/i18n/locales/`:**
+   - `src/i18n/locales/en/[namespace].json`
+   - `src/i18n/locales/es/[namespace].json`
+   - `src/i18n/locales/fr/[namespace].json`
+4. **Run `npm run sync-locales`** to copy to `public/locales/` (or let build do it)
+5. **Use consistent terminology** across all locales:
    - **"Trading Clock"** (EN) → **"Reloj de Trading"** (ES) → **"Horloge de Trading"** (FR)
    - **"Session Clock"** (EN) → **"Reloj de Sesiones de Trading"** (ES) → **"Horloge de Sessions de Trading"** (FR)
    - Brand terms capitalized in titles, lowercase in descriptions where appropriate
@@ -659,8 +689,8 @@ npm run deploy           # Build + deploy to Firebase Hosting
 
 ---
 
-**Last Updated:** January 27, 2026  
-**Version:** 4.2.0 (Multi-page SPA + Full i18n Standards + BEP Internationalization)
+**Last Updated:** February 2, 2026  
+**Version:** 4.3.0 (Multi-page SPA + Full i18n Standards + BEP Internationalization + Locale Sync)
 
 ---
 
@@ -669,5 +699,5 @@ npm run deploy           # Build + deploy to Firebase Hosting
 ---
 
 **Additonal instructions or clarifications can be appended here as needed:**
-- 'bep'/'BEP' = 'following all best React, Firebase, MUI, UI, UX, dev, copywriting, security, performance, loading speed, separation of concerns, SEO, accessibility and mobile-first-responsive top modern enterprise practices'.
+- 'bep'/'BEP' = 'following all best React, Firebase, MUI, UI, UX, dev, copywriting, security, performance, loading speed, separation of concerns, SEO, accessibility, i18n, theme, and mobile-first-responsive top modern enterprise practices'.
 - **i18n Standard:** All client-facing copy MUST use translation keys (t keys) with full translations in EN/ES/FR locale files before deployment.

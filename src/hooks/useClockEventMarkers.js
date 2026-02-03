@@ -145,18 +145,6 @@ export function useClockEventMarkers({ events = [], timezone, eventFilters, nowE
       if (extractedSeriesId) seriesIds.add(String(extractedSeriesId));
     });
     
-    // BEP DEBUG: Log collected reminder keys
-    if (typeof window !== 'undefined' && window.localStorage?.getItem('t2t_debug_reminders') === '1') {
-      // eslint-disable-next-line no-console
-      console.log('[reminders] Collected reminder key sets', {
-        reminderCount: reminders?.length,
-        eventKeys: Array.from(eventKeys),
-        seriesKeys: Array.from(seriesKeys),
-        eventIds: Array.from(eventIds),
-        seriesIds: Array.from(seriesIds),
-      });
-    }
-    
     return { eventKeys, seriesKeys, eventIds, seriesIds };
   }, [reminders]);
 
@@ -191,23 +179,6 @@ export function useClockEventMarkers({ events = [], timezone, eventFilters, nowE
         || reminderKeySets.seriesKeys.has(String(seriesKey))
         || (eventIdCandidate && reminderKeySets.eventIds.has(String(eventIdCandidate)))
         || (eventSeriesId && reminderKeySets.seriesIds.has(String(eventSeriesId)));
-      
-      // BEP DEBUG: Log reminder matching for custom events
-      if (evt?.isCustom && typeof window !== 'undefined' && window.localStorage?.getItem('t2t_debug_reminders') === '1') {
-        // eslint-disable-next-line no-console
-        console.log('[reminders] Marker matching for custom event', {
-          eventTitle,
-          eventKey,
-          seriesKey,
-          eventIdCandidate,
-          eventSeriesId,
-          hasReminderEvent,
-          reminderEventKeys: Array.from(reminderKeySets.eventKeys),
-          reminderSeriesKeys: Array.from(reminderKeySets.seriesKeys),
-          reminderEventIds: Array.from(reminderKeySets.eventIds),
-          reminderSeriesIds: Array.from(reminderKeySets.seriesIds),
-        });
-      }
       
       const key = `${bucketHour}-${bucketMinute}`;
 

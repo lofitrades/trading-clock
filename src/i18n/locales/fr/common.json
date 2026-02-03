@@ -50,7 +50,8 @@
     "loading": "Chargement...",
     "noData": "Aucune donnée disponible",
     "user": "Utilisateur",
-    "unknown": "Inconnu"
+    "unknown": "Inconnu",
+    "visibility": "Visibilité"
   },
   "navigation": {
     "home": "Accueil",

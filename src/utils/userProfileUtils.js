@@ -37,8 +37,6 @@ export async function createUserProfileSafely(user) {
 
       // If document already exists, ensure required defaults are present
       if (userDoc.exists()) {
-        console.log('[UserProfile] Document already exists for uid:', user.uid);
-
         const existingData = userDoc.data();
 
         // Backfill role and subscription if missing (safety net for legacy docs)
@@ -73,8 +71,6 @@ export async function createUserProfileSafely(user) {
       }
 
       // Document doesn't exist - create new profile
-      console.log('[UserProfile] Creating new profile for uid:', user.uid);
-      
       const defaultProfile = {
         // Basic Info
         email: user.email,

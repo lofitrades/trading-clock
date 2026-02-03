@@ -12,6 +12,9 @@
  * - Premium Routes: Require specific subscription plans
  * 
  * Changelog:
+ * v1.3.0 - 2026-02-02 - Added /events/:eventId route for SEO-discoverable event pages (53 events × 3 languages = 159 pages).
+ * v1.2.2 - 2026-02-02 - Added /admin/descriptions route for event descriptions management (superadmin only).
+ * v1.2.1 - 2026-02-02 - Added /admin/events route for event management (superadmin only).
  * v1.2.0 - 2026-01-16 - Added /clock public route for the trading clock UI and retained /app as noindex app shell.
  * v1.1.8 - 2026-01-16 - Added /fft2t superadmin route for GPT event uploader.
  * v1.1.7 - 2026-01-09 - Added /contact route using ContactPage component.
@@ -49,6 +52,9 @@ const CalendarPage = lazy(() => import('../components/CalendarPage'));
 const PrivacyPage = lazy(() => import('../components/PrivacyPage'));
 const TermsPage = lazy(() => import('../components/TermsPage'));
 const ContactPage = lazy(() => import('../components/ContactPage'));
+const AdminEventsPage = lazy(() => import('../pages/AdminEventsPage'));
+const AdminDescriptionsPage = lazy(() => import('../pages/AdminDescriptionsPage'));
+const EventPage = lazy(() => import('../components/EventPage'));
 
 /**
  * Loading Component
@@ -210,6 +216,16 @@ export default function AppRoutes() {
             }
           />
 
+          {/* Event Detail Page - SEO-optimized individual event pages */}
+          <Route
+            path="/events/:eventId"
+            element={
+              <PublicRoute>
+                <EventPage />
+              </PublicRoute>
+            }
+          />
+
           {/* Login Page - Standalone passwordless authentication */}
           <Route
             path="/login"
@@ -221,6 +237,26 @@ export default function AppRoutes() {
           />
 
           {/* ==================== ADMIN ROUTES ==================== */}
+
+          {/* Admin Event Management - Superadmin only */}
+          <Route
+            path="/admin/events"
+            element={
+              <PrivateRoute roles={['superadmin']} redirectTo="/login">
+                <AdminEventsPage />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Admin Descriptions Management - Superadmin only */}
+          <Route
+            path="/admin/descriptions"
+            element={
+              <PrivateRoute roles={['superadmin']} redirectTo="/login">
+                <AdminDescriptionsPage />
+              </PrivateRoute>
+            }
+          />
 
           {/* Upload Economic Event Descriptions - Admin only */}
           <Route

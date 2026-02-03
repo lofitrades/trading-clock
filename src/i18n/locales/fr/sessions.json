@@ -1,0 +1,8 @@
+{
+  "tooltip": {
+    "startsIn": "Commence dans",
+    "startedAgo": "Commencé il y a",
+    "endedAgo": "Terminé il y a",
+    "ago": "il y a"
+  }
+}

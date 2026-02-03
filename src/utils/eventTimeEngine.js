@@ -7,6 +7,7 @@
  * timezone-aware display formatting.
  *
  * Changelog:
+ * v1.1.0 - 2026-01-29 - BEP i18n: formatRelativeLabel now accepts translation function for language-aware relative time labels ("In", "ago", time units) with full EN/ES/FR support.
  * v1.0.1 - 2025-12-16 - Marked timezone param as intentionally unused to satisfy lint.
  * v1.0.0 - 2025-12-15 - Initial implementation: centralized NOW/NEXT detection with absolute epoch comparisons.
  */
@@ -168,15 +169,16 @@ export function formatCountdownHMS(diffMs) {
 
 /**
  * Format relative time label for tooltips and badges
- * Returns "Starting now" | "In 1h 02m" | "5m ago"
+ * Returns "Starting now" | "In 1h 02m" | "5m ago" (language-aware)
  * 
  * @param {Object} params - Formatting parameters
  * @param {number} params.eventEpochMs - Event time in epoch ms
  * @param {number} params.nowEpochMs - Current time in epoch ms
  * @param {number} [params.nowWindowMs=NOW_WINDOW_MS] - NOW window duration
+ * @param {Function} [params.t] - i18n translation function (optional for backward compatibility)
  * @returns {string} - Formatted relative label
  */
-export function formatRelativeLabel({ eventEpochMs, nowEpochMs, nowWindowMs = NOW_WINDOW_MS }) {
+export function formatRelativeLabel({ eventEpochMs, nowEpochMs, nowWindowMs = NOW_WINDOW_MS, t }) {
   if (eventEpochMs === null || eventEpochMs === undefined) return '';
   
   const diff = eventEpochMs - nowEpochMs;
@@ -186,7 +188,7 @@ export function formatRelativeLabel({ eventEpochMs, nowEpochMs, nowWindowMs = NO
   if (diff <= 0 && absDiff < nowWindowMs) {
     // Within 45 seconds shows "Starting now"
     if (absDiff < 45 * 1000) {
-      return 'Starting now';
+      return t ? t('events:relativeTime.startingNow', { defaultValue: 'Starting now' }) : 'Starting now';
     }
     // Otherwise show "Xm ago" for the NOW window
   }
@@ -200,14 +202,27 @@ export function formatRelativeLabel({ eventEpochMs, nowEpochMs, nowWindowMs = NO
   const hours = Math.floor((absDiff % dayMs) / hourMs);
   const minutes = Math.floor((absDiff % hourMs) / minuteMs);
   
+  // Build parts using translated units
+  const dayUnit = t ? t('events:relativeTime.day', { defaultValue: 'd' }) : 'd';
+  const hourUnit = t ? t('events:relativeTime.hour', { defaultValue: 'h' }) : 'h';
+  const minuteUnit = t ? t('events:relativeTime.minute', { defaultValue: 'm' }) : 'm';
+  
   const parts = [];
-  if (days > 0) parts.push(`${days}d`);
-  if (hours > 0 || days > 0) parts.push(`${hours}h`);
-  parts.push(`${minutes}m`);
+  if (days > 0) parts.push(`${days}${dayUnit}`);
+  if (hours > 0 || days > 0) parts.push(`${hours}${hourUnit}`);
+  parts.push(`${minutes}${minuteUnit}`);
   
-  const label = parts.join(' ');
+  const timeLabel = parts.join(' ');
   
-  return diff >= 0 ? `In ${label}` : `${label} ago`;
+  // Use language-aware pattern interpolation for proper word order
+  // English: "In 2h 30m" / "2h 30m ago"
+  // Spanish: "En 2h 30m" / "hace 2h 30m" (ago before time)
+  // French: "Dans 2h 30m" / "il y a 2h 30m" (ago before time)
+  if (diff >= 0) {
+    return t ? t('events:relativeTime.future', { time: timeLabel, defaultValue: `In ${timeLabel}` }) : `In ${timeLabel}`;
+  } else {
+    return t ? t('events:relativeTime.past', { time: timeLabel, defaultValue: `${timeLabel} ago` }) : `${timeLabel} ago`;
+  }
 }
 
 /**

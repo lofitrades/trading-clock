@@ -1394,9 +1394,7 @@ const EventCard = memo(({
                     sx={{
                       fontWeight: 700,
                       fontSize: { xs: '0.85rem', sm: '0.95rem' },
-                      color: isPast
-                        ? theme.palette.text.secondary
-                        : (actualValue !== '—' ? 'primary.main' : 'text.disabled'),
+                      color: isPast ? theme.palette.text.secondary : undefined,
                     }}
                   >
                     {actualValue}

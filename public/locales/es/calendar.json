@@ -80,7 +80,13 @@
     "addToFavorites": "Agregar a favoritos",
     "customEvent": "Evento personalizado",
     "unknown": "Desconocido",
-    "global": "Global"
+    "global": "Global",
+    "allDay": "Todo el día",
+    "tentative": "Provisional",
+    "allDayAndTentative": "Todo el día / Provisional",
+    "time": "Hora",
+    "singleEvent": "1 evento",
+    "eventCount": "{{count}} eventos"
   },
   "clock": {
     "title": "Reloj de Trading",

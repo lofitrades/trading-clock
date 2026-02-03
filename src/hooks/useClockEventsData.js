@@ -6,8 +6,7 @@
  * (Zustand cache → IndexedDB → Batcher → Firestore) with filter awareness
  * 
  * Filter Sync: Re-fetches when eventFilters (impacts, currencies) change in SettingsContext,
- * ensuring clock canvas reflects user filter preferences. Also subscribes to Zustand store
- * for real-time updates without redundant Firestore queries.
+ * ensuring clock canvas reflects user filter preferences.
  *
  * Storage Strategy:
  * 1. Zustand query cache (0-5ms, 5-min TTL) - single source of truth
@@ -17,6 +16,8 @@
  * All results written back through all layers for future hits
  *
  * Changelog:
+ * v1.6.0 - 2026-02-02 - BEP: Removed Zustand real-time subscription (timezone conversion complexity). Data refreshes on page reload/remount for accurate display.
+ * v1.5.0 - 2026-02-02 - BEP REALTIME FIX: Fixed date parsing to handle multiple formats (Timestamp, Date, string). Added lastNormalizedAt subscription to detect Zustand updates. Admin edits now propagate instantly to clock markers.
  * v1.4.0 - 2026-01-29 - BEP PHASE 2.5: Migrate to eventsStorageAdapter + Zustand subscriptions. Replaced direct Firestore calls with adaptive storage. Added Zustand selective subscription for real-time updates without re-fetching. Expected: 50% faster initial load, 1 re-render per filter change (vs 5+).
  * v1.3.5 - 2026-01-22 - BEP FIX: Apply currency filter to custom events.
  * v1.3.4 - 2026-01-22 - BEP: Add N/A/CUS currency filter support.
@@ -167,6 +168,8 @@ export function useClockEventsData({
 
   // ========================================================================
   // STRATEGY 2: Use adaptive storage adapter for today's events
+  // BEP v1.6.0: Removed Zustand real-time subscription - timezone conversion 
+  // complexity introduced display inaccuracies. Data refreshes on page reload.
   // ========================================================================
   const {
     events: adapterEvents,
@@ -178,58 +181,8 @@ export function useClockEventsData({
     enrich: false,
   });
 
-  // ========================================================================
-  // STRATEGY 3: Subscribe to Zustand store for real-time updates
-  // Real-time subscription (no re-fetch needed when store changes)
-  // ========================================================================
-  // Use stable selectors to avoid infinite render loops
-  // (Zustand selectors must return stable references)
-  const eventsById = useEventsStore((state) => state.eventsById);
-  const eventIds = useEventsStore((state) => state.eventIds);
-  
-  // Memoize the filtered events to prevent re-computation on every render
-  // CRITICAL: Use dayKey (stable string) instead of Date objects to avoid
-  // re-renders when nowEpochMs changes within the same day
-  // dayKey already includes timezone info (e.g., "2026-01-29" for user's timezone)
-  const storeEvents = useMemo(() => {
-    if (!eventIds?.length || !eventsById) return [];
-    
-    // Build date range from dayKey (includes timezone context)
-    const { start, end, dateStr } = buildRangeFromDayKey(dayKey);
-    const startTs = start.getTime();
-    const endTs = end.getTime();
-    const impactFilter = eventFilters?.impacts || [];
-    const currencyFilter = eventFilters?.currencies || [];
-    
-    return eventIds
-      .map((id) => eventsById[id])
-      .filter((event) => {
-        if (!event) return false;
-        
-        // Date filter - use both timestamp and date string matching
-        // This handles events stored with different timezone formats
-        const eventDate = event.date?.toDate?.() || new Date(event.date);
-        const eventTs = eventDate.getTime();
-        
-        // Primary: timestamp range check
-        const inRange = eventTs >= startTs && eventTs <= endTs;
-        
-        // Secondary: date string match (for events with date-only storage)
-        const eventDateStr = event.dateStr || eventDate.toISOString().split('T')[0];
-        const dateMatch = eventDateStr === dateStr;
-        
-        if (!inRange && !dateMatch) return false;
-        
-        // Impact filter
-        if (impactFilter.length > 0 && !impactFilter.includes(event.impact)) return false;
-        // Currency filter
-        if (currencyFilter.length > 0 && !currencyFilter.includes(event.currency)) return false;
-        return true;
-      });
-  }, [eventIds, eventsById, dayKey, eventFilters?.impacts, eventFilters?.currencies]);
-
-  // Prefer Zustand store (real-time) over adapter (initial fetch) when both available
-  const economicEvents = storeEvents.length > 0 ? storeEvents : adapterEvents;
+  // Use adapter events directly (no real-time Zustand merge)
+  const economicEvents = adapterEvents;
 
   const eventKey = (evt) => {
     const epoch = getEventEpochMs(evt);

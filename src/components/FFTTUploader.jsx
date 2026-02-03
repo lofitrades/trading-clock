@@ -201,6 +201,7 @@ const compareEventFields = (incomingEvent, matchedEvent) => {
 };
 
 const DropZoneUploader = ({ selectedFile, onFileSelect, uploading }) => {
+    const { t } = useTranslation(['admin', 'actions']);
     const [isDragActive, setIsDragActive] = useState(false);
 
     const handleDrag = (e) => {

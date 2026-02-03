@@ -48,6 +48,214 @@
   "fileDownloadedInfo": "Fichier téléchargé dans le dossier Téléchargements. Déplacez vers le dossier data/ si nécessaire.",
   "exportAnother": "Exporter un autre",
   "exportFailed": "L'exportation a échoué",
+  "events": {
+    "pageTitle": "Gestion des Événements",
+    "pageSubtitle": "Gérer les événements du calendrier économique · {{timezone}}",
+    "filters": {
+      "heading": "Filtres",
+      "dateRange": "Plage de Dates",
+      "startDate": "Date de Début",
+      "endDate": "Date de Fin",
+      "currency": "Devise",
+      "allCurrencies": "Toutes les Devises",
+      "impact": "Impact",
+      "allImpacts": "Tous les Impacts",
+      "source": "Source",
+      "allSources": "Toutes les Sources",
+      "search": "Rechercher des Événements",
+      "searchPlaceholder": "Rechercher par nom d'événement...",
+      "goButton": "Go",
+      "clearFilters": "Effacer les Filtres",
+      "maxDateRange": "La plage de dates maximale est de 90 jours"
+    },
+    "table": {
+      "loading": "Chargement des événements...",
+      "noData": "Aucun événement trouvé. Ajustez les filtres et cliquez sur 'Go' pour rechercher.",
+      "rowsPerPage": "Lignes par page:",
+      "columns": {
+        "date": "Date",
+        "time": "Heure",
+        "currency": "Devise",
+        "event": "Événement",
+        "impact": "Impact",
+        "forecast": "Prévision",
+        "previous": "Précédent",
+        "actual": "Réel",
+        "source": "Source",
+        "manuallyEdited": "Manuel",
+        "actions": "Actions"
+      },
+      "editTooltip": "Double-cliquez sur la cellule pour éditer",
+      "saveTooltip": "Enregistrer les modifications",
+      "cancelTooltip": "Annuler l'édition",
+      "viewChangelogTooltip": "Voir l'historique des modifications",
+      "manualBadge": "M",
+      "manualBadgeTooltip": "Édité manuellement (gelé)",
+      "futureBadgeTooltip": "Édité manuellement (synchronisation active)"
+    },
+    "editDialog": {
+      "title": "Modifier l'Événement",
+      "reasonLabel": "Raison du Changement (Optionnel)",
+      "reasonPlaceholder": "Décrivez pourquoi vous effectuez ce changement...",
+      "saveButton": "Enregistrer les Modifications",
+      "cancelButton": "Annuler"
+    },
+    "changelogDialog": {
+      "title": "Historique des Modifications de l'Événement",
+      "noChanges": "Aucune modification enregistrée pour cet événement.",
+      "timestamp": "Date",
+      "admin": "Administrateur",
+      "field": "Champ",
+      "oldValue": "Ancienne Valeur",
+      "newValue": "Nouvelle Valeur",
+      "reason": "Raison",
+      "closeButton": "Fermer"
+    },
+    "notifications": {
+      "updateSuccess": "Événement mis à jour avec succès",
+      "updateError": "Échec de la mise à jour de l'événement",
+      "fetchError": "Échec de la récupération des événements",
+      "validationError": "Veuillez corriger les erreurs de validation avant d'enregistrer",
+      "dateRangeRequired": "Les dates de début et de fin sont obligatoires",
+      "invalidDateRange": "La date de fin doit être postérieure à la date de début"
+    },
+    "impacts": {
+      "high": "Élevé",
+      "medium": "Moyen",
+      "low": "Faible",
+      "highImpact": "Impact Élevé",
+      "mediumImpact": "Impact Moyen",
+      "lowImpact": "Faible Impact",
+      "nonEconomic": "Non Économique",
+      "unknown": "Inconnu"
+    },
+    "sources": {
+      "nfs": "NFS",
+      "jblanked": "JBlanked",
+      "gpt": "GPT",
+      "manual": "Manuel",
+      "unknown": "Inconnu"
+    }
+  },
+  "descriptions": {
+    "pageTitle": "Descriptions des Événements",
+    "pageSubtitle": "Gérer les descriptions des événements économiques et les implications de trading",
+    "filters": {
+      "searchPlaceholder": "Rechercher par nom, alias ou description...",
+      "category": "Catégorie",
+      "allCategories": "Toutes les Catégories",
+      "impact": "Impact",
+      "allImpacts": "Tous les Impacts"
+    },
+    "actions": {
+      "refresh": "Actualiser",
+      "addNew": "Ajouter Nouveau",
+      "download": "Télécharger",
+      "downloadTooltip": "Exporter toutes les descriptions en JSON"
+    },
+    "table": {
+      "loading": "Chargement des descriptions...",
+      "noData": "Aucune description trouvée.",
+      "rowsPerPage": "Lignes par page:",
+      "columns": {
+        "name": "Nom de l'Événement",
+        "category": "Catégorie",
+        "impact": "Impact",
+        "frequency": "Fréquence",
+        "source": "Source",
+        "description": "Description",
+        "aliases": "Alias",
+        "translations": "Traductions",
+        "actions": "Actions"
+      },
+      "editTooltip": "Modifier tous les détails",
+      "viewChangelogTooltip": "Voir l'historique des modifications",
+      "deleteTooltip": "Supprimer la description"
+    },
+    "changelogDialog": {
+      "title": "Historique des Modifications",
+      "noChanges": "Aucune modification enregistrée pour cette description.",
+      "timestamp": "Date",
+      "admin": "Admin",
+      "field": "Champ",
+      "oldValue": "Ancienne Valeur",
+      "newValue": "Nouvelle Valeur",
+      "reason": "Raison",
+      "closeButton": "Fermer"
+    },
+    "deleteDialog": {
+      "title": "Supprimer la Description",
+      "message": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ? Cette action est irréversible.",
+      "cancelButton": "Annuler",
+      "confirmButton": "Supprimer"
+    },
+    "dialog": {
+      "createTitle": "Créer une Nouvelle Description",
+      "editTitle": "Modifier la Description",
+      "sections": {
+        "basicInfo": "Informations de Base",
+        "aliases": "Alias",
+        "content": "Description et Info Trading",
+        "localizedContent": "Contenu Localisé",
+        "keyThresholds": "Seuils Clés"
+      },
+      "fields": {
+        "name": "Nom de l'Événement",
+        "category": "Catégorie",
+        "impact": "Impact",
+        "frequency": "Fréquence",
+        "source": "Source de Données",
+        "releaseTime": "Heure de Publication",
+        "description": "Description",
+        "tradingImplication": "Implication de Trading",
+        "addAlias": "Ajouter un Alias",
+        "newCategory": "Nom de la Nouvelle Catégorie",
+        "thresholdStrong": "Fort",
+        "thresholdModerate": "Modéré",
+        "thresholdWeak": "Faible"
+      },
+      "selectCategory": "Sélectionner une catégorie",
+      "addNewCategory": "Ajouter une nouvelle catégorie...",
+      "addAliasButton": "Ajouter",
+      "noAliases": "Aucun alias ajouté",
+      "descriptionPlaceholder": "Décrivez ce que mesure cet indicateur économique et son importance...",
+      "tradingImplicationPlaceholder": "Comment cet indicateur affecte-t-il généralement les marchés ? Que doivent surveiller les traders ?",
+      "releaseTimePlaceholder": "ex., Premier vendredi du mois à 8h30 ET",
+      "releaseTimeHint": "Traduisez la description du calendrier de publication",
+      "nameNotEditable": "Le nom de l'événement ne peut pas être modifié après la création",
+      "i18nHint": "Fournissez des traductions pour chaque langue. L'anglais est requis, les autres sont optionnels.",
+      "copyFromEnglish": "Conseil : Traduisez à partir du contenu en anglais ci-dessus",
+      "translationStatus": {
+        "complete": "Traduction complète",
+        "partial": "Traduction partiellement complète",
+        "missing": "Traduction manquante"
+      },
+      "errors": {
+        "nameRequired": "Le nom de l'événement est requis",
+        "englishRequired": "La description en anglais est requise",
+        "saveFailed": "Échec de l'enregistrement de la description"
+      },
+      "unsavedChanges": {
+        "message": "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir fermer ?"
+      },
+      "cancelButton": "Annuler",
+      "createButton": "Créer",
+      "updateButton": "Enregistrer les Modifications",
+      "saving": "Enregistrement..."
+    },
+    "notifications": {
+      "fetchError": "Échec de la récupération des descriptions",
+      "refreshSuccess": "Descriptions actualisées",
+      "createSuccess": "Description créée avec succès",
+      "createError": "Échec de la création de la description",
+      "updateSuccess": "Description mise à jour avec succès",
+      "updateError": "Échec de la mise à jour de la description",
+      "deleteSuccess": "Description supprimée avec succès",
+      "deleteError": "Échec de la suppression de la description",
+      "downloadSuccess": "Descriptions exportées avec succès",
+      "downloadError": "Échec de l'exportation des descriptions"
+    }
+  },
   "exportSpecification": "Spécification d'exportation",
   "pathLabel": "Chemin",
   "fieldsLabel": "Champs",
@@ -87,7 +295,7 @@
   "dateTo": "Date jusqu'à",
   "showing": "Affichage",
   "of": "de",
-  "events": "événements",
+  "eventsCount": "Événements",
   "new": "Nouveau",
   "newEventTooltip": "Nouvel événement (aucune correspondance existante trouvée)",
   "matched": "Correspondant",

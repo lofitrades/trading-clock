@@ -10,8 +10,11 @@
  * - Query result caching with TTL
  * - Smart cache invalidation on data updates
  * - Selective subscriptions (components only re-render on relevant changes)
+ * - Real-time updates via Firestore onSnapshot listeners
  *
  * Changelog:
+ * v1.2.0 - 2026-02-02 - BEP: updateEvent now adds new events if not found in store. Handles race condition where real-time listener fires before initial fetch.
+ * v1.1.0 - 2026-02-02 - BEP: Added updateEvent action for real-time admin edits, eventIds selector
  * v1.0.0 - 2026-01-29 - BEP PHASE 2.1: Initial Zustand store with normalized state, query caching, and smart invalidation.
  */
 
@@ -77,6 +80,7 @@ const useEventsStore = create(
       // NORMALIZED STATE
       // ========================================================================
       eventsById: {},
+      eventIds: [], // Array of all event IDs for iteration
       dateIndex: {},
       currencyIndex: {},
       impactIndex: {},
@@ -122,9 +126,64 @@ const useEventsStore = create(
             currencyIndex: normalized.currencyIndex,
             impactIndex: normalized.impactIndex,
             totalCount: normalized.count,
+            eventIds: Object.keys(normalized.eventsById),
             lastNormalizedAt: Date.now(),
             sources: new Set([...state.sources, source]),
             lastSyncAt: { ...state.lastSyncAt, [source]: Date.now() },
+          };
+        });
+      },
+
+      /**
+       * Update a single event in-place (for real-time admin edits)
+       * BEP: Optimistic update pattern - update store immediately, invalidate cache
+       * If event doesn't exist in store, add it (handles fresh page load scenario)
+       * @param {string} eventId - Event document ID
+       * @param {Object} updates - Fields to update (or full event if new)
+       */
+      updateEvent: (eventId, updates) => {
+        set((state) => {
+          const existingEvent = state.eventsById[eventId];
+          
+          // If event doesn't exist, add it as a new event
+          // This handles the case where real-time update fires before initial fetch completes
+          if (!existingEvent) {
+            console.log('[eventsStore] updateEvent: Adding new event:', eventId);
+            const newEvent = { ...updates, id: eventId };
+            const allEvents = [...Object.values(state.eventsById), newEvent];
+            const normalized = normalizeEvents(allEvents);
+            
+            return {
+              eventsById: normalized.eventsById,
+              dateIndex: normalized.dateIndex,
+              currencyIndex: normalized.currencyIndex,
+              impactIndex: normalized.impactIndex,
+              totalCount: normalized.count,
+              eventIds: Object.keys(normalized.eventsById),
+              lastNormalizedAt: Date.now(),
+              queryCache: new Map(),
+            };
+          }
+
+          // Merge updates into existing event
+          const updatedEvent = { ...existingEvent, ...updates, id: eventId };
+
+          // Re-normalize with updated event
+          const allEvents = Object.values(state.eventsById).map((evt) =>
+            evt.id === eventId ? updatedEvent : evt
+          );
+          const normalized = normalizeEvents(allEvents);
+
+          return {
+            eventsById: normalized.eventsById,
+            dateIndex: normalized.dateIndex,
+            currencyIndex: normalized.currencyIndex,
+            impactIndex: normalized.impactIndex,
+            totalCount: normalized.count,
+            eventIds: Object.keys(normalized.eventsById),
+            lastNormalizedAt: Date.now(),
+            // Clear query cache to force re-fetch with updated data
+            queryCache: new Map(),
           };
         });
       },
@@ -298,6 +357,7 @@ const useEventsStore = create(
       clear: () => {
         set({
           eventsById: {},
+          eventIds: [],
           dateIndex: {},
           currencyIndex: {},
           impactIndex: {},

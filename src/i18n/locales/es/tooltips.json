@@ -8,6 +8,8 @@
   "timeToStartWithValue": "Comienza en: {{time}}",
   "nextSessionWithTime": "Siguiente: {{session}} ({{time}})",
   "userMenu": "Menú de cuenta de usuario",
+  "jumpToNext": "Ir al siguiente evento",
+  "jumpToNow": "Ir al evento en progreso",
   "admin": {
     "syncWeek": "Sincronizar semana NFS",
     "syncActuals": "Sincronizar los datos reales de hoy (JBlanked)",
