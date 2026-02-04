@@ -229,7 +229,7 @@ export const aboutContent = {
  * Language-specific variants (es, fr) still serve this same English metadata.
  */
 export const aboutMeta = {
-  title: 'About Time 2 Trade | Session Clock + Forex Factory Calendar (NY Time)',
+  title: 'About Time 2 Trade | Trading Clock + Forex Factory Calendar (NY Time)',
   description:
     'Why Time 2 Trade exists: a NY-time-first session clock with countdowns plus a Forex Factory-powered economic calendar, custom events, and notifications for intraday futures and forex traders.',
   keywords:

@@ -2,9 +2,12 @@
  * pages/terms.page.jsx
  *
  * Purpose: Terms & Conditions page describing acceptable use, disclaimers,
- * and AdSense disclosure required for Time 2 Trade.
+ * and AdSense/Meta Pixel disclosure required for Time 2 Trade.
  * 
  * Changelog:
+ * v1.4.0 - 2026-02-02 - BEP: Updated to reference Meta Pixel in Third-Party Services via i18n terms.json.
+ * v1.3.0 - 2026-02-02 - BEP SEO FIX: Added BreadcrumbList schema and enhanced robots directive.
+ *                       Addresses "Discovered - currently not indexed" GSC status.
  * v1.2.0 - 2026-01-24 - Phase 2 i18n migration: Added useTranslation hook, converted all strings to i18n keys (terms, common namespaces)
  * v1.1.0 - 2026-01-22 - BEP upgrade: Expanded acceptable use, added data accuracy disclaimers, clarified account responsibilities, tightened AdSense language
  * v1.0.1 - 2026-01-16 - Updated primary CTA to /clock
@@ -26,15 +29,35 @@ const termsSchema = {
         'Terms & Conditions for Time 2 Trade, including acceptable use, disclaimers, third-party data notice, and advertising disclosure.',
 };
 
+// BEP SEO: BreadcrumbList helps Google understand site hierarchy and prioritize crawling
+const termsBreadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+        {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: siteUrl,
+        },
+        {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Terms & Conditions',
+            item: `${siteUrl}/terms`,
+        },
+    ],
+};
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const documentProps = {
     title: 'Terms & Conditions | Time 2 Trade',
     description:
         'Read the Time 2 Trade Terms & Conditions, acceptable use rules, disclaimers, and advertising disclosures.',
     canonical: `${siteUrl}/terms`,
-    robots: 'index,follow',
+    robots: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1',
     ogImage,
-    structuredData: [termsSchema],
+    structuredData: [termsSchema, termsBreadcrumbSchema],
 };
 
 export default function Page() {

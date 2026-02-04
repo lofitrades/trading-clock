@@ -7,9 +7,11 @@
  * Phase 2 i18n migration: all strings now sourced from i18n pages.legal.privacy.*
  *
  * Changelog:
+ * v2.3.0 - 2026-02-02 - BEP SEO FIX: Added BreadcrumbList schema to help Google understand site
+ *                       hierarchy and prioritize crawling. Addresses "Discovered - currently not indexed" GSC status.
  * v2.2.0 - 2026-01-24 - Phase 2 i18n migration: all 280+ strings moved to pages.legal.privacy namespace (EN/ES/FR)
  * v2.1.0 - 2026-01-22 - BEP compliance refresh:
- *   - Align product language with "Session Clock + Economic Calendar (NY Time)"
+ *   - Align product language with "Trading Clock + Economic Calendar (NY Time)"
  *   - Clarify Forex Factory-powered events feed (no personal data shared)
  *   - Add Custom Events + Reminders/Notifications data handling
  *   - Add explicit cookie reset UX and consent update guidance
@@ -36,16 +38,36 @@ import {
 const siteUrl = 'https://time2.trade';
 const ogImage = `${siteUrl}/Time2Trade_SEO_Meta_5.PNG`;
 
+// BEP SEO: BreadcrumbList helps Google understand site hierarchy and prioritize crawling
+const privacyBreadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+        {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: siteUrl,
+        },
+        {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Privacy Policy',
+            item: `${siteUrl}/privacy`,
+        },
+    ],
+};
+
+const privacyWebPageSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'Privacy Policy | Time 2 Trade',
+    url: `${siteUrl}/privacy`,
+    description: 'How Time 2 Trade collects, uses, and protects your data. Learn about your rights, legal bases for processing, retention timelines, and controls for consent, deletion, and ad personalization.',
+};
+
 const PrivacyPage = () => {
     const { t } = useTranslation('pages');
-
-    const privacySchema = {
-        '@context': 'https://schema.org',
-        '@type': 'WebPage',
-        name: 'Privacy Policy | Time 2 Trade',
-        url: `${siteUrl}/privacy`,
-        description: t('legal.privacy.introduction'),
-    };
 
     return (
         <Box sx={{ py: 6, backgroundColor: '#f9f9f9' }}>
@@ -421,8 +443,9 @@ export const documentProps = {
     title: 'Privacy Policy | Time 2 Trade',
     description: 'How Time 2 Trade collects, uses, and protects your data. Learn about your rights, legal bases for processing, retention timelines, and controls for consent, deletion, and ad personalization.',
     canonical: `${siteUrl}/privacy`,
-    robots: 'index,follow',
+    robots: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1',
     ogImage,
+    structuredData: [privacyWebPageSchema, privacyBreadcrumbSchema],
 };
 
 export default PrivacyPage;

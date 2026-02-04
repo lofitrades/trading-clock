@@ -122,8 +122,6 @@ import BoltIcon from '@mui/icons-material/Bolt';
 import CloseIcon from '@mui/icons-material/Close';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import InfoIcon from '@mui/icons-material/Info';
-import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { siX } from 'simple-icons';
 import ClockCanvas from './ClockCanvas';
@@ -147,7 +145,7 @@ import SEO from './SEO';
 import '../App.css';
 
 const heroMeta = buildSeoMeta({
-    title: 'Time 2 Trade | Session Clock + Forex Factory Calendar (NY Time)',
+    title: 'Time 2 Trade | Trading Clock + Forex Factory Calendar (NY Time)',
     description:
         'Intraday timing workspace for futures & forex day traders. NY-time session clock with countdowns + a Forex Factory-powered economic calendar with impact/currency filters, custom events, and notifications.',
     path: '/',
@@ -227,8 +225,6 @@ export default function HomePage2() {
     const solutionPoints = useMemo(() => t('pages:landing.solutions.points', { returnObjects: true }), [t]);
 
     // Benefits section
-    const benefitsHeading = useMemo(() => t('pages:landing.benefits.heading'), [t]);
-    const benefitsSubheading = useMemo(() => t('pages:landing.benefits.subheading'), [t]);
     const benefitsItems = useMemo(() => t('pages:landing.benefits.items', { returnObjects: true }), [t]);
 
     const featureSections = useMemo(() => {
@@ -249,7 +245,6 @@ export default function HomePage2() {
     const useCasesList = useMemo(() => t('pages:landing.useCases', { returnObjects: true }), [t]);
 
     // How it works
-    const howItWorksHeading = useMemo(() => t('pages:landing.howItWorks.heading'), [t]);
     const howItWorksSteps = useMemo(() => t('pages:landing.howItWorks.steps', { returnObjects: true }), [t]);
 
     // Comparison section
@@ -293,7 +288,7 @@ export default function HomePage2() {
         () => ({
             ...buildSoftwareApplicationSchema({
                 name: 'Time 2 Trade',
-                description: 'Session Clock + Economic Calendar for day traders',
+                description: 'Trading Clock + Economic Calendar for day traders',
                 url: 'https://time2.trade',
             }),
             ...buildFaqSchema(faqEntries),
@@ -416,6 +411,13 @@ export default function HomePage2() {
         return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     }, []);
 
+    // Move useAppBarNavItems hook call outside of callback to comply with React hooks rules
+    const navItems = useAppBarNavItems({
+        onOpenAuth: openAuthModal,
+        onOpenSettings: openSettings,
+        onOpenContact: openContactModal,
+    });
+
     return (
         <>
             {/* SEO metadata and modals rendered outside PublicLayout */}
@@ -511,11 +513,6 @@ export default function HomePage2() {
 
             {/* Navigation and main content */}
             {(() => {
-                const navItems = useAppBarNavItems({
-                    onOpenAuth: openAuthModal,
-                    onOpenSettings: openSettings,
-                    onOpenContact: openContactModal,
-                });
                 return (
                     <PublicLayout navItems={navItems} onOpenSettings={openSettings} onOpenAuth={openAuthModal} onOpenAddReminder={() => setCustomDialogOpen(true)}>
                         {/* NOTE: PublicLayout handles centering with flex:center pattern.

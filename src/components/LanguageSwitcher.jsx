@@ -7,6 +7,7 @@
  * Uses same flag-icons library as event markers for visual consistency
  * 
  * Changelog:
+ * v1.3.0 - 2026-02-04 - BEP SEO CRITICAL: Migrated from query params to subpath URL navigation (/es/, /fr/). When user switches language, navigates to subpath URL (e.g., /clock → /es/clock) to match Firebase hosting rewrites and SEO structure. Maintains current route while changing language prefix. Eliminates duplicate URLs and improves crawlability.
  * v1.2.0 - 2026-01-27 - BEP UX: Enhanced loading state with "Changing..." text label + smaller spinner (16px) during language switch. Provides clear visual feedback for async operation. Updated translation key to common:language.selectLanguage for proper namespace organization.
  * v1.1.0 - 2026-01-27 - BEP PERFORMANCE: Updated for lazy-loaded i18n backend. Language switching now waits for new language resources to load (preload common+pages namespaces) before updating UI. Improved loading state with disabled menu items during switch. Ensures smooth UX with no translation flicker.
  * v1.0.3 - 2026-01-27 - BEP DESIGN: Updated Button styling for merged Language & Timezone section - changed borderRadius from 999 to 1.5, adjusted px/py to { xs: 1.5, sm: 2 } and 0.75 respectively, changed display to 'inline-flex' for better inline behavior; component now visually integrates seamlessly within SettingsSidebar2 unified section.
@@ -47,10 +48,12 @@ export default function LanguageSwitcher() {
     };
 
     /**
-     * BEP PERFORMANCE: Handle language change with lazy loading
-     * - Preload critical namespaces (common, pages) before switching
+     * BEP SEO: Handle language change with subpath URL navigation
+     * - Navigates to language-specific subpath (/es/, /fr/) or removes prefix for EN
+     * - Preloads critical namespaces (common, pages) before switching
      * - Ensures no translation flicker on language change
      * - Persist to localStorage + Firestore for all sessions
+     * - Matches Firebase hosting rewrites and SEO structure
      */
     const handleLanguageChange = async (code) => {
         try {
@@ -77,10 +80,36 @@ export default function LanguageSwitcher() {
                 );
             }
 
+            // BEP SEO: Navigate to subpath URL based on language
+            const currentPath = window.location.pathname;
+            const pathParts = currentPath.split('/').filter(Boolean);
+
+            // Remove existing language prefix if present
+            const supportedLangs = ['es', 'fr'];
+            if (supportedLangs.includes(pathParts[0])) {
+                pathParts.shift();
+            }
+
+            // Build new path with language prefix (except for English)
+            let newPath;
+            if (code === 'en') {
+                // English uses root paths
+                newPath = '/' + pathParts.join('/');
+            } else {
+                // Other languages use subpath prefix
+                newPath = `/${code}/` + pathParts.join('/');
+            }
+
+            // Preserve query params and hash if present
+            const search = window.location.search;
+            const hash = window.location.hash;
+
+            // Navigate to new URL
+            window.location.href = newPath + search + hash;
+
             handleClose();
         } catch (error) {
             console.error('Failed to change language:', error);
-        } finally {
             setIsLoading(false);
         }
     };

@@ -162,7 +162,7 @@ They want **immediate context** before executing trades.
 ---
 
 ## 7) How product features map to audiences
-### Session Clock (core)
+### Trading Clock (core)
 Best for:
 - Futures/forex day traders
 - Students following session-based strategies

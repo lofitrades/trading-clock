@@ -54,6 +54,8 @@
     "visibility": "Visibilidad"
   },
   "navigation": {
+    "siteNavigation": "Navegación del sitio",
+    "primary": "Principal",
     "home": "Inicio",
     "clock": "Reloj de Trading",
     "calendar": "Calendario",

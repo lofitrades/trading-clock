@@ -29,12 +29,17 @@
     "pushDismissed": "Push notifications were dismissed",
     "pushIncomplete": "Push notification setup incomplete",
     "pushError": "Error setting up push notifications",
-    "pushFailure": "Failed to enable push notifications"
+    "pushFailure": "Failed to enable push notifications",
+    "pushServiceWorkerError": "Service worker registration failed. Please reload the page and try again",
+    "pushUnsupported": "Push notifications are not supported in this browser",
+    "pushDenied": "Push notifications are blocked by your browser settings",
+    "pushTokenError": "Failed to register for push notifications. Please try again"
   },
   "scope": {
     "allSeries": "All {{label}} events",
     "allMatching": "All matching events",
-    "eventOnly": "This event only"
+    "eventOnly": "This event only",
+    "matchingEvents": "matching"
   },
   "actions": {
     "addReminder": "Add reminder",

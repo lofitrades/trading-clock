@@ -258,7 +258,7 @@ Utility functions            ~100     common       Internal
 ```json
 {
   "auth": {
-    "headline": "Session Clock + Economic Calendar",
+    "headline": "Trading Clock + Economic Calendar",
     "tagline": "Free account. Faster decisions. Fewer surprises.",
     "buttons": {
       "signUp": "Sign Up",

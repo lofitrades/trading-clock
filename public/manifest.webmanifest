@@ -2,7 +2,7 @@
   "_fileHeader": "public/manifest.webmanifest | Purpose: Installable PWA manifest for Time 2 Trade | Changelog: v1.1.0 - 2025-12-18 - Point start_url to /app for dedicated SPA entry; v1.0.0 - 2025-12-17 - Initial manifest with icons and install settings",
   "name": "Time 2 Trade",
   "short_name": "T2T",
-  "description": "Visual trading intelligence with dual-circle session clock, economic events overlay, and timezone-aware insights for futures and forex traders.",
+  "description": "See every trading session and market-moving event at a glance. A visual 24-hour clock displays New York, London, and Asia sessions with real-time countdowns—plus a Forex Factory-powered calendar filtered by impact and currency.",
   "start_url": "/clock",
   "scope": "/",
   "display": "standalone",

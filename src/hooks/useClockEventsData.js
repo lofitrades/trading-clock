@@ -16,6 +16,9 @@
  * All results written back through all layers for future hits
  *
  * Changelog:
+ * v1.7.2 - 2026-02-03 - BEP FIX: Prevented marker blinking by using dayKey (stable per day) instead of nowEpochMs (changes every second) for date range calculation.
+ * v1.7.1 - 2026-02-03 - BEP FIX: Refactored to call all hooks unconditionally (rules of hooks compliance). Removed unused normalizeImpactValue.
+ * v1.7.0 - 2026-02-03 - BEP FIX: Custom events now display correctly. Fixed buildRangeFromDayKey to use timezone-aware getUtcDayRangeForTimezone instead of local browser time. This ensures custom event queries use the correct day boundaries for the user's selected clock timezone.
  * v1.6.0 - 2026-02-02 - BEP: Removed Zustand real-time subscription (timezone conversion complexity). Data refreshes on page reload/remount for accurate display.
  * v1.5.0 - 2026-02-02 - BEP REALTIME FIX: Fixed date parsing to handle multiple formats (Timestamp, Date, string). Added lastNormalizedAt subscription to detect Zustand updates. Admin edits now propagate instantly to clock markers.
  * v1.4.0 - 2026-01-29 - BEP PHASE 2.5: Migrate to eventsStorageAdapter + Zustand subscriptions. Replaced direct Firestore calls with adaptive storage. Added Zustand selective subscription for real-time updates without re-fetching. Expected: 50% faster initial load, 1 re-render per filter change (vs 5+).
@@ -38,6 +41,7 @@ import useEventsStore from '../stores/eventsStore';
 import { subscribeToCustomEventsByRange } from '../services/customEventsService';
 import { sortEventsByTime } from '../utils/newsApi';
 import { getEventEpochMs } from '../utils/eventTimeEngine';
+import { getUtcDayRangeForTimezone } from '../utils/dateUtils';
 
 const buildDayKey = (timezone, nowEpochMs) => {
   const now = new Date(nowEpochMs ?? Date.now());
@@ -57,35 +61,23 @@ const buildDayKey = (timezone, nowEpochMs) => {
 };
 
 /**
- * Build date range from stable dayKey string
- * dayKey is already timezone-aware (computed via buildDayKey with user's timezone)
- * Returns Date objects for the start/end of that day + the date string for comparison
+ * Build timezone-aware date range for custom events query
+ * Uses getUtcDayRangeForTimezone to get correct day boundaries in the user's selected timezone
+ * This ensures custom events created in a specific timezone are properly queried
+ * 
+ * @param {string} timezone - IANA timezone string (e.g., 'America/New_York')
+ * @param {number} nowEpochMs - Current epoch timestamp for reference
+ * @returns {{ start: Date, end: Date }} Start and end Date objects for the day in UTC
  */
-const buildRangeFromDayKey = (dayKey) => {
-  const start = new Date(`${dayKey}T00:00:00`);
-  const end = new Date(`${dayKey}T23:59:59.999`);
-  return { start, end, dateStr: dayKey };
+const buildTimezoneAwareRange = (timezone, nowEpochMs) => {
+  const referenceDate = new Date(nowEpochMs ?? Date.now());
+  const { startDate, endDate } = getUtcDayRangeForTimezone(timezone, referenceDate);
+  return { start: startDate, end: endDate };
 };
 
-const normalizeImpactValue = (impact) => {
-  if (!impact) return 'Data Not Loaded';
-
-  const value = String(impact).toLowerCase();
-
-  if (value.includes('strong') || value.includes('high') || value.includes('!!!')) {
-    return 'Strong Data';
-  }
-  if (value.includes('moderate') || value.includes('medium') || value.includes('!!')) {
-    return 'Moderate Data';
-  }
-  if (value.includes('weak') || value.includes('low') || value.includes('!')) {
-    return 'Weak Data';
-  }
-  if (value.includes('non-eco') || value.includes('non-economic') || value.includes('none')) {
-    return 'Non-Economic';
-  }
-
-  return 'Data Not Loaded';
+const eventKey = (evt) => {
+  const epoch = getEventEpochMs(evt);
+  return evt.id || evt.Event_ID || `${evt.title || evt.name || evt.Name || 'event'}-${epoch ?? 'na'}`;
 };
 
 export function useClockEventsData({
@@ -99,6 +91,7 @@ export function useClockEventsData({
   const [customEvents, setCustomEvents] = useState([]);
   const [dataKey, setDataKey] = useState('');
 
+  const hasProvidedEvents = Array.isArray(providedEvents);
   const dayKey = useMemo(() => buildDayKey(timezone, nowEpochMs), [timezone, nowEpochMs]);
 
   // ========================================================================
@@ -125,10 +118,13 @@ export function useClockEventsData({
   }, [timezone, dayKey]);
 
   // Get today's date range for the given timezone (for adapter fetch)
-  // Use dayKey as dependency to only recompute when day actually changes
+  // Use timezone-aware boundaries to ensure correct day boundaries
+  // BEP v1.7.1: Use dayKey as dependency (stable per day) instead of nowEpochMs (changes every second)
+  // This prevents re-fetches and re-renders every second while still being timezone-aware
   const { start: todayStart, end: todayEnd } = useMemo(
-    () => buildRangeFromDayKey(dayKey),
-    [dayKey]
+    () => buildTimezoneAwareRange(timezone, Date.now()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [timezone, dayKey]
   );
 
   // Serialize filter arrays for stable comparison
@@ -157,19 +153,18 @@ export function useClockEventsData({
 
   // ========================================================================
   // STRATEGY 1: Use provided events if available (skip adapter fetch)
+  // Memoize sorted provided events
   // ========================================================================
-  if (Array.isArray(providedEvents)) {
-    const mergedEvents = useMemo(() => {
-      return sortEventsByTime([...providedEvents]);
-    }, [providedEvents]);
-
-    return { events: mergedEvents, loading: false, dataKey, requestKey: filterKey };
-  }
+  const sortedProvidedEvents = useMemo(() => {
+    if (!hasProvidedEvents) return null;
+    return sortEventsByTime([...providedEvents]);
+  }, [hasProvidedEvents, providedEvents]);
 
   // ========================================================================
   // STRATEGY 2: Use adaptive storage adapter for today's events
   // BEP v1.6.0: Removed Zustand real-time subscription - timezone conversion 
   // complexity introduced display inaccuracies. Data refreshes on page reload.
+  // Always call hook unconditionally (rules of hooks)
   // ========================================================================
   const {
     events: adapterEvents,
@@ -183,11 +178,6 @@ export function useClockEventsData({
 
   // Use adapter events directly (no real-time Zustand merge)
   const economicEvents = adapterEvents;
-
-  const eventKey = (evt) => {
-    const epoch = getEventEpochMs(evt);
-    return evt.id || evt.Event_ID || `${evt.title || evt.name || evt.Name || 'event'}-${epoch ?? 'na'}`;
-  };
 
   // BEP: Apply currency filter to custom events
   // Custom events should only show when:
@@ -221,12 +211,12 @@ export function useClockEventsData({
   }, [economicEvents, customFiltered]);
 
   // Subscribe to custom events for real-time updates
-  // Use dayKey instead of nowEpochMs to avoid re-subscribing on every tick
+  // BEP v1.7.0: Use timezone-aware range for correct day boundaries
   useEffect(() => {
     if (!user) return undefined;
 
-    // Build date range from stable dayKey
-    const { start, end } = buildRangeFromDayKey(dayKey);
+    // Build timezone-aware date range for custom events query
+    const { start, end } = buildTimezoneAwareRange(timezone, Date.now());
 
     return subscribeToCustomEventsByRange(
       user.uid,
@@ -239,11 +229,16 @@ export function useClockEventsData({
         setCustomEvents([]);
       }
     );
-  }, [dayKey, user]);
+  }, [timezone, dayKey, user]);
 
   useEffect(() => {
     setDataKey(filterKey);
   }, [filterKey]);
+
+  // Return based on strategy (after all hooks have been called)
+  if (hasProvidedEvents) {
+    return { events: sortedProvidedEvents, loading: false, dataKey, requestKey: filterKey };
+  }
 
   return { events: mergedEvents, loading: adapterLoading, dataKey, requestKey: filterKey };
 }

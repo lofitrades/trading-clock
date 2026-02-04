@@ -5,7 +5,9 @@
  * interactive CalendarPage (EventsFilters3 + day-grouped table) on the client.
  *
  * Changelog:
- * v1.2.0 - 2026-01-22 - BEP SEO/copy refresh: align with "Session Clock + Economic Calendar (NY Time)",
+ * v1.3.0 - 2026-02-02 - BEP SEO FIX: Added BreadcrumbList schema to help Google understand site
+ *                       hierarchy and prioritize crawling. Addresses "Discovered - currently not indexed" GSC status.
+ * v1.2.0 - 2026-01-22 - BEP SEO/copy refresh: align with "Trading Clock + Economic Calendar (NY Time)",
  *                       emphasize Forex Factory-powered events, custom events + notifications, remove "exports" from primary claims,
  *                       improve FAQ for trust + non-advice positioning, and add /clock + /calendar CTA parity.
  * v1.1.1 - 2026-01-16 - Updated calendar CTAs to point to /clock.
@@ -80,6 +82,26 @@ const calendarSchema = {
     publisher: { '@type': 'Organization', name: 'Lofi Trades', url: siteUrl },
 };
 
+// BEP SEO: BreadcrumbList helps Google understand site hierarchy and prioritize crawling
+const calendarBreadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+        {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: siteUrl,
+        },
+        {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Economic Calendar',
+            item: `${siteUrl}/calendar`,
+        },
+    ],
+};
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const documentProps = {
     title: 'Free Economic Calendar | Forex Factory-Powered (NY Time)',
@@ -89,7 +111,7 @@ export const documentProps = {
     robots: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1',
     ogImage,
     ogType: 'website',
-    structuredData: [calendarSchema, faqSchema],
+    structuredData: [calendarSchema, faqSchema, calendarBreadcrumbSchema],
 };
 
 export default function Page() {

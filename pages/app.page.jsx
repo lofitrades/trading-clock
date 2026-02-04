@@ -5,7 +5,7 @@
  * interactive React SPA client-side to keep marketing bundles lean.
  *
  * Changelog:
- * v1.2.0 - 2026-01-22 - Updated copy to match BEP positioning (Session Clock + Economic Calendar (NY Time)),
+ * v1.2.0 - 2026-01-22 - Updated copy to match BEP positioning (Trading Clock + Economic Calendar (NY Time)),
  *                       reinforced /app as a non-indexed UI shell, and refreshed loader placeholders to
  *                       reflect custom events + notifications + Forex Factory-powered calendar.
  * v1.1.0 - 2026-01-16 - Marked /app as noindex,nofollow with canonical to / to avoid SEO duplication with /clock.
@@ -64,7 +64,7 @@ export default function Page() {
                     <h1 className="heading-lg">Loading Time 2 Trade…</h1>
 
                     <p className="text-lead">
-                        Your <strong>Session Clock + Economic Calendar (NY Time)</strong> is loading now. This page ships a lightweight HTML
+                        Your <strong>Trading Clock + Economic Calendar (NY Time)</strong> is loading now. This page ships a lightweight HTML
                         shell first, then loads the full interactive workspace client-side for a fast, clean experience.
                     </p>
 

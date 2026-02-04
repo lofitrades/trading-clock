@@ -136,6 +136,19 @@
           }
         ]
       },
+      "advertising": {
+        "title": "Publicidad y medición",
+        "items": [
+          {
+            "label": "Seguimiento basado en consentimiento",
+            "text": "Usamos Google AdSense para anuncios y Meta Pixel para seguimiento de conversiones. Estos solo se activan cuando haces clic en 'Permitir todo' en nuestro banner de cookies."
+          },
+          {
+            "label": "Opción solo esencial",
+            "text": "Elige 'Solo esencial' para usar la aplicación sin cookies publicitarias ni píxeles de seguimiento."
+          }
+        ]
+      },
       "principles": {
         "title": "Principios de protección de datos",
         "items": [

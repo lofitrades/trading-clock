@@ -5,6 +5,7 @@
  * Renders impact-based icons on AM (inner) and PM (outer) rings using current filters and news source.
  *
  * Changelog:
+ * v1.19.1 - 2026-02-03 - BEP FIX: Removed nowEpochMs from renderedMarkers dependencies to prevent marker blinking every second. Uses Date.now() inside memo for fallback timestamps instead of reactive dependency.
  * v1.19.0 - 2026-02-02 - BEP: Removed real-time Firestore listener (timezone conversion complexity introduced inaccuracies). Data refreshes on page reload/remount for consistent, accurate results.
  * v1.18.26 - 2026-01-30 - BEP NOW WINDOW COLORING: Markers keep full colors during entire 10-minute NOW state. Only gray out after NOW window ends (badge, flag, border, color). Changed from isPastEvent check to isPastNowWindow (isTodayPast && !isNow). Improves UX by maintaining visual emphasis on NOW events throughout their entire active window. Follows enterprise pattern: active events remain prominent.
  * v1.18.25 - 2026-01-23 - BEP: Migrate to useReminderActions hook for centralized reminder subscription (removes duplicate subscription).
@@ -211,6 +212,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
     }
 
     return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openMarkerKey]); // Only depend on openMarkerKey - renderedMarkerKey is managed internally
 
   // Track the actual overlay box size so marker math stays aligned even if the parent adds padding/margins.
@@ -435,13 +437,16 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
     prevMarkersRef.current = nextPrev;
   }, [markers, nowEpochMs]);
 
+  // BEP v1.19.1: Removed nowEpochMs from dependencies to prevent marker blinking every second
+  // nowEpochMs is only used for fallback timestamps which don't need reactive updates
   const renderedMarkers = useMemo(() => {
+    const now = Date.now(); // Use fresh timestamp inside memo, not reactive dependency
     if (isFilterLoading) {
       const exitingOnFilter = Array.from(prevMarkersRef.current.values()).map((marker) => ({
         ...marker,
         exiting: true,
-        exitAt: nowEpochMs,
-        appeared: appearedAtRef.current.get(marker.key) || nowEpochMs,
+        exitAt: now,
+        appeared: appearedAtRef.current.get(marker.key) || now,
       }));
       return exitingOnFilter;
     }
@@ -450,10 +455,10 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
     const staying = markers.map((marker) => ({
       ...marker,
       exiting: false,
-      appeared: appearedAtRef.current.get(marker.key) || nowEpochMs,
+      appeared: appearedAtRef.current.get(marker.key) || now,
     }));
     return [...staying, ...exiting];
-  }, [markers, nowEpochMs, isFilterLoading]);
+  }, [markers, isFilterLoading]);
 
   const effectiveSize = measuredSize || size;
   const center = effectiveSize / 2;

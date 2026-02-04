@@ -12,6 +12,9 @@
  * - Permission requests integrated into save flow
  * 
  * Changelog:
+ * v2.5.0 - 2026-02-03 - BEP: Add "Try Again" CTA button on denied notifications. Allows users to retry native browser prompt when blocked. Better UX for permission denied state.
+ * v2.4.0 - 2026-02-03 - Remove temporary debug console.log statements from push permission flow.
+ * v2.3.0 - 2026-02-03 - BEP push notification fix: Added comprehensive status handling for all FCM token statuses (service-worker, token-error, unsupported, denied). Added missing i18n keys. Refactored nested ternary to status map for maintainability.
  * v2.2.0 - 2026-01-24 - BEP i18n migration: Added useTranslation hook, converted 35+ hardcoded strings to t() calls
  * v2.1.0 - 2026-01-23 - Limit to one reminder per event (both custom and non-custom events)
  * v2.0.0 - 2026-01-24 - Complete BEP refactor: Individual save buttons, inline scope selector, view/edit modes, Google-like cards
@@ -82,6 +85,7 @@ function ReminderCard({
     const [localReminder, setLocalReminder] = useState(reminder);
     const [localScope, setLocalScope] = useState(scope);
     const [permissionNotice, setPermissionNotice] = useState('');
+    const [permissionStatus, setPermissionStatus] = useState(null); // 'denied' | 'dismissed' | null
 
     // Update local state when reminder prop changes (after save completes)
     useEffect(() => {
@@ -154,12 +158,14 @@ function ReminderCard({
         let allowChecked = checked;
 
         setPermissionNotice('');
+        setPermissionStatus(null);
 
         if (channel === 'browser' && checked && onRequestBrowserPermission) {
             try {
                 const result = await onRequestBrowserPermission();
                 if (result !== 'granted') {
                     allowChecked = false;
+                    setPermissionStatus('dismissed');
                     setPermissionNotice(
                         result === 'denied'
                             ? t('reminders:permissions.browserBlocked')
@@ -170,6 +176,7 @@ function ReminderCard({
                 }
             } catch {
                 allowChecked = false;
+                setPermissionStatus('error');
                 setPermissionNotice(t('reminders:permissions.browserError'));
             }
         }
@@ -177,22 +184,27 @@ function ReminderCard({
         if (channel === 'push' && checked && onRequestPushPermission) {
             try {
                 const result = await onRequestPushPermission();
+
                 if (result === 'token-missing' || result === 'token-pending') {
                     setPermissionNotice(t('reminders:permissions.pushPending'));
                 } else if (result !== 'granted') {
                     allowChecked = false;
-                    setPermissionNotice(
-                        result === 'auth-required'
-                            ? t('reminders:permissions.pushAuthRequired')
-                            : result === 'permission-default'
-                                ? t('reminders:permissions.pushDismissed')
-                                : result === 'missing-vapid'
-                                    ? t('reminders:permissions.pushIncomplete')
-                                    : t('reminders:permissions.pushError')
-                    );
+                    setPermissionStatus('dismissed');
+                    // Map all possible push status codes to appropriate i18n keys
+                    const pushErrorMessages = {
+                        'auth-required': t('reminders:permissions.pushAuthRequired'),
+                        'permission-default': t('reminders:permissions.pushDismissed'),
+                        'missing-vapid': t('reminders:permissions.pushIncomplete'),
+                        'service-worker': t('reminders:permissions.pushServiceWorkerError'),
+                        'unsupported': t('reminders:permissions.pushUnsupported'),
+                        'denied': t('reminders:permissions.pushDenied'),
+                        'token-error': t('reminders:permissions.pushTokenError'),
+                    };
+                    setPermissionNotice(pushErrorMessages[result] || t('reminders:permissions.pushError'));
                 }
             } catch {
                 allowChecked = false;
+                setPermissionStatus('error');
                 setPermissionNotice(t('reminders:permissions.pushFailure'));
             }
         }
@@ -214,7 +226,59 @@ function ReminderCard({
         setLocalReminder(reminder);
         setLocalScope(scope);
         setPermissionNotice('');
+        setPermissionStatus(null);
         onCancel(index);
+    };
+
+    /**
+     * Retry enabling the permission - attempts native prompt again
+     */
+    const handleRetryPermission = async (channel) => {
+        setPermissionNotice('');
+        setPermissionStatus(null);
+
+        if (channel === 'browser' && onRequestBrowserPermission) {
+            try {
+                const result = await onRequestBrowserPermission();
+                if (result === 'granted') {
+                    // Success - enable the channel
+                    const channels = { ...(localReminder.channels || {}) };
+                    channels.browser = true;
+                    setLocalReminder({ ...localReminder, channels });
+                } else {
+                    // Still denied - show persistent notice
+                    setPermissionStatus('denied');
+                    setPermissionNotice(t('reminders:permissions.browserBlocked'));
+                }
+            } catch {
+                setPermissionStatus('error');
+                setPermissionNotice(t('reminders:permissions.browserError'));
+            }
+        }
+
+        if (channel === 'push' && onRequestPushPermission) {
+            try {
+                const result = await onRequestPushPermission();
+                if (result === 'granted' || result === 'token-missing' || result === 'token-pending') {
+                    // Success - enable the channel
+                    const channels = { ...(localReminder.channels || {}) };
+                    channels.push = true;
+                    setLocalReminder({ ...localReminder, channels });
+                } else {
+                    // Still denied - show persistent notice
+                    setPermissionStatus('denied');
+                    const pushErrorMessages = {
+                        'denied': t('reminders:permissions.pushDenied'),
+                        'unsupported': t('reminders:permissions.pushUnsupported'),
+                        'service-worker': t('reminders:permissions.pushServiceWorkerError'),
+                    };
+                    setPermissionNotice(pushErrorMessages[result] || t('reminders:permissions.pushError'));
+                }
+            } catch {
+                setPermissionStatus('error');
+                setPermissionNotice(t('reminders:permissions.pushFailure'));
+            }
+        }
     };
 
     const scopeLabel = localScope === 'series' && seriesLabel
@@ -471,7 +535,26 @@ function ReminderCard({
 
                     {/* Permission Notice */}
                     {permissionNotice && (
-                        <Alert severity="info" sx={{ borderRadius: 1.5, py: 0.75 }}>
+                        <Alert
+                            severity={permissionStatus === 'error' ? 'error' : 'warning'}
+                            sx={{ borderRadius: 1.5, py: 0.75 }}
+                            action={
+                                permissionStatus === 'dismissed' && (
+                                    <Button
+                                        color="inherit"
+                                        size="small"
+                                        onClick={() => {
+                                            // Determine which channel failed
+                                            const channel = permissionNotice.includes('push') ? 'push' : 'browser';
+                                            handleRetryPermission(channel);
+                                        }}
+                                        sx={{ fontWeight: 600 }}
+                                    >
+                                        {t('dialogs:notificationPermission.tryEnableAgain', 'Try Again')}
+                                    </Button>
+                                )
+                            }
+                        >
                             <Typography variant="caption">{permissionNotice}</Typography>
                         </Alert>
                     )}

@@ -136,6 +136,19 @@
           }
         ]
       },
+      "advertising": {
+        "title": "Advertising and measurement",
+        "items": [
+          {
+            "label": "Consent-based tracking",
+            "text": "We use Google AdSense for ads and Meta Pixel for conversion tracking. These only activate when you click 'Allow all' on our cookie banner."
+          },
+          {
+            "label": "Essential-only option",
+            "text": "Choose 'Essential only' to use the app without advertising cookies or tracking pixels."
+          }
+        ]
+      },
       "principles": {
         "title": "Data protection principles",
         "items": [

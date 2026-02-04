@@ -106,6 +106,7 @@
       "items": [
         "Economic event data is provided by Forex Factory, NFS, JBlanked, and other sources. We are not responsible for their accuracy or timeliness",
         "Google AdSense advertisements may appear on the Service. We are not responsible for ad content or practices",
+        "Meta Pixel is used for conversion tracking and ad measurement when you consent to advertising cookies. Meta's privacy policy applies",
         "OAuth authentication is provided by Google and Twitter. Their privacy and security policies apply to authentication",
         "Firestore (Google Cloud) provides data storage and synchronization. Google's terms and privacy policies apply"
       ]

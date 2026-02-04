@@ -18,6 +18,7 @@
  * - Ensures AuthModal2 renders above ALL UI including WelcomeModal (11000), EmailLinkHandler verification (9998-10000), drawers (1600), and AppBar (1400) on all breakpoints.
  * 
  * Changelog:
+ * v1.7.0 - 2026-02-02 - BEP ANALYTICS: Track sign-ups (new users) and logins to Facebook Pixel. Also track auth modal view as Lead event for conversion optimization.
  * v1.6.0 - 2026-01-28 - BEP: Theme-aware colors. Replaced all hardcoded teal (#018786, #006665) with theme.palette.primary tokens. Uses alpha() for opacity. Now adapts to light/dark modes.
  * v1.5.1 - 2026-01-27 - Fixed hardcoded copy: Replaced all remaining hardcoded strings with i18n translations. Fixed legal_notice rendering (was showing [object Object]). Added forgot_password_link, firebase_attribution, and legal_and translations. All 3 languages (EN/ES/FR) now fully covered without hardcoded UI copy.
  * v1.5.0 - 2026-01-25 - i18n migration: Integrated useTranslation hook for auth namespace. All 50+ hardcoded strings replaced with t() calls. Hero section, form labels, buttons, benefits, modal feedback, email sent, and verifying states now use translations. All 3 languages (EN/ES/FR) supported with professional finance terminology.
@@ -83,6 +84,7 @@ import { auth } from '../firebase';
 import { getFriendlyErrorMessage, getSuccessMessage } from '../utils/messages';
 import { getMagicLinkActionCodeSettings } from '../utils/authLinkSettings';
 import ForgotPasswordModal from './ForgotPasswordModal';
+import { trackAuthModalView, trackSignUp, trackLogin } from '../services/facebookPixelService';
 
 const LOGO_SECONDARY_WHITE_TRANSPARENT = `${import.meta.env.BASE_URL}logos/png/Time2Trade_Logo_Main_Multicolor_Transparent_1080.png`;
 
@@ -247,12 +249,15 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
   const [lastSentEmail, setLastSentEmail] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const navigate = useNavigate();
-  const { t } = useTranslation(['auth', 'common']);
+  const { t, i18n } = useTranslation(['auth', 'common']);
   const theme = useTheme();
 
   // Rate limiting: Check for existing cooldown on mount and when modal opens
   useEffect(() => {
     if (!open) return;
+
+    // BEP ANALYTICS: Track auth modal view as Lead for conversion optimization
+    trackAuthModalView();
 
     const lastSendTime = localStorage.getItem('magicLinkLastSent');
     const lastEmail = localStorage.getItem('magicLinkEmail');
@@ -303,7 +308,12 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
     setIsSendingEmail(true);
 
     try {
-      const actionCodeSettings = getMagicLinkActionCodeSettings(redirectPath);
+      // BEP i18n: Pass current language to preserve user's preference in magic link
+      const preferredLanguage = localStorage.getItem('preferredLanguage') || i18n.language || 'en';
+      const actionCodeSettings = getMagicLinkActionCodeSettings(redirectPath, preferredLanguage);
+
+      // BEP i18n: Set Firebase auth language so email is sent in user's preferred language
+      auth.languageCode = preferredLanguage;
 
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
 
@@ -316,6 +326,8 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
       window.localStorage.setItem('emailForSignIn', email);
       window.localStorage.setItem('isNewUser', isSignup.toString());
 
+      // BEP: Clear email field after successful send to prevent re-submission confusion
+      setEmail('');
       setShowEmailSentModal(true);
     } catch (error) {
       console.error('[AuthModal2] Send email link failed:', error.code, error.message);
@@ -353,6 +365,11 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
       if (isNewUser) {
         window.localStorage.setItem('showWelcomeModal', 'true');
         window.localStorage.setItem('isNewUser', 'true');
+        // BEP ANALYTICS: Track new user sign-up
+        trackSignUp(result.user.email, 'google');
+      } else {
+        // BEP ANALYTICS: Track returning user login
+        trackLogin(result.user.email, 'google');
       }
       setSuccessMsg(getSuccessMessage('login'));
       setTimeout(() => {

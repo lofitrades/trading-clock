@@ -88,7 +88,6 @@ const SKELETON_EVENTS = [
  *   events={[{ name: 'NFP', impact: 'High', currency: 'USD', date: '2026-01-16T08:30:00Z' }]}
  *   timezone="America/New_York"
  *   nowEpochMs={Date.now()}
- *   onClick={() => console.log('Clicked')}
  * />
  */
 function EventMarkerTooltip({ events = [], timezone = 'UTC', nowEpochMs = Date.now(), groupEpochMs = null, onClick, onClose, isFavoriteEvent, hasEventNotes }) {

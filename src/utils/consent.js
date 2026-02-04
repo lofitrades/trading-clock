@@ -6,6 +6,9 @@
  * and localStorage fallback for guests. Notifies listeners when users update their choices.
  * 
  * Changelog:
+ * v1.2.0 - 2026-02-02 - BEP GDPR: Added loadMetaPixel() to trigger consent-gated pixel loading.
+ *                       Pixel is ONLY loaded when user explicitly consents ("Allow all").
+ *                       Exported loadMetaPixel for use in CookiesBanner and other components.
  * v1.1.0 - 2026-01-30 - BEP FIRESTORE SYNC: Added async Firestore persistence for authenticated users.
  *                       New functions: saveConsentToFirestore(), readConsentFromFirestore().
  *                       Consent now syncs to users/{uid}/settings/consent for cross-device persistence.
@@ -103,4 +106,26 @@ const readConsentFromFirestore = async (uid) => {
     return null;
 };
 
-export { CONSENT_KEY, CONSENT_ACCEPTED, CONSENT_ESSENTIAL, CONSENT_UNKNOWN, readConsentStatus, setConsentStatus, hasAdConsent, subscribeConsent, saveConsentToFirestore, readConsentFromFirestore };
+/**
+ * Load Meta Pixel after consent is granted
+ * BEP GDPR: Only loads the pixel when user explicitly accepts ads.
+ * Called from CookiesBanner when user clicks "Allow all".
+ * The actual loader function is defined in index.html (t2tLoadMetaPixel).
+ */
+const loadMetaPixel = () => {
+    if (typeof window === 'undefined') return;
+    
+    // Only load if consent is accepted
+    if (readConsentStatus() !== CONSENT_ACCEPTED) {
+        return;
+    }
+    
+    // Call the loader defined in index.html
+    if (typeof window.t2tLoadMetaPixel === 'function') {
+        window.t2tLoadMetaPixel();
+    } else {
+        console.warn('[Meta Pixel] Loader not found - check index.html');
+    }
+};
+
+export { CONSENT_KEY, CONSENT_ACCEPTED, CONSENT_ESSENTIAL, CONSENT_UNKNOWN, readConsentStatus, setConsentStatus, hasAdConsent, subscribeConsent, saveConsentToFirestore, readConsentFromFirestore, loadMetaPixel };

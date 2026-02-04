@@ -5,6 +5,7 @@
  * Centralizes canonical, social, robots, hreflang, and structured data tags for SPA routes.
  * 
  * Changelog:
+ * v1.2.0 - 2026-02-04 - BEP SEO CRITICAL: Updated canonical URL generation to use subpath structure (/es/, /fr/) instead of query params. Aligns with Firebase hosting rewrites and prerender output.
  * v1.1.0 - 2026-01-27 - BEP SEO: Added multi-language hreflang support, dynamic og:locale based on current language, and language-aware canonical URLs for proper international SEO crawlability.
  * v1.0.0 - 2025-12-22 - Initial implementation for route-level Helmet metadata.
  */
@@ -26,9 +27,9 @@ import {
 const getCanonicalUrl = ({ canonical, path, lang }) => {
     if (canonical) return canonical;
     const normalizedPath = normalizePath(path || '/');
-    // For default language (en), use clean URL; for others, append lang param
-    const langSuffix = lang && lang !== 'en' ? `?lang=${lang}` : '';
-    return `${SITE_URL}${normalizedPath}${langSuffix}`;
+    // For default language (en), use clean URL; for others, use subpath prefix
+    const langPrefix = lang && lang !== 'en' ? `/${lang}` : '';
+    return `${SITE_URL}${langPrefix}${normalizedPath}`;
 };
 
 const SEO = ({

@@ -148,7 +148,6 @@ const useEventsStore = create(
           // If event doesn't exist, add it as a new event
           // This handles the case where real-time update fires before initial fetch completes
           if (!existingEvent) {
-            console.log('[eventsStore] updateEvent: Adding new event:', eventId);
             const newEvent = { ...updates, id: eventId };
             const allEvents = [...Object.values(state.eventsById), newEvent];
             const normalized = normalizeEvents(allEvents);

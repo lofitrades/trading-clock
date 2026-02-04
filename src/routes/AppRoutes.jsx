@@ -12,6 +12,9 @@
  * - Premium Routes: Require specific subscription plans
  * 
  * Changelog:
+ * v1.5.0 - 2026-02-04 - BEP SEO: Added note about language subpath handling. Firebase hosting rewrites handle /es/* and /fr/* paths by serving appropriate static files, while LanguageContext extracts language from pathname for runtime detection. No React Router changes needed - subpath routing is transparent to the SPA.
+ * v1.4.0 - 2026-02-03 - BEP: Add PushPermissionHandler to prompt PWA users for notification permission
+ *                       when they have push reminders enabled. Shows friendly modal on mobile PWA reload.
  * v1.3.0 - 2026-02-02 - Added /events/:eventId route for SEO-discoverable event pages (53 events × 3 languages = 159 pages).
  * v1.2.2 - 2026-02-02 - Added /admin/descriptions route for event descriptions management (superadmin only).
  * v1.2.1 - 2026-02-02 - Added /admin/events route for event management (superadmin only).
@@ -38,6 +41,7 @@ import { initAnalytics, logPageView } from '../utils/analytics';
 import PrivateRoute from '../components/routes/PrivateRoute';
 import PublicRoute from '../components/routes/PublicRoute';
 import CookiesBanner from '../components/CookiesBanner';
+import { usePushPermissionPrompt } from '../hooks/usePushPermissionPrompt';
 
 // Lazy load components for code splitting
 const LandingPage = lazy(() => import('../components/LandingPage'));
@@ -53,6 +57,7 @@ const PrivacyPage = lazy(() => import('../components/PrivacyPage'));
 const TermsPage = lazy(() => import('../components/TermsPage'));
 const ContactPage = lazy(() => import('../components/ContactPage'));
 const AdminEventsPage = lazy(() => import('../pages/AdminEventsPage'));
+const PushPermissionModal = lazy(() => import('../components/PushPermissionModal'));
 const AdminDescriptionsPage = lazy(() => import('../pages/AdminDescriptionsPage'));
 const EventPage = lazy(() => import('../components/EventPage'));
 
@@ -103,6 +108,12 @@ function AnalyticsInitializer() {
  * 
  * Centralized routing configuration with the following features:
  * 
+ * LANGUAGE HANDLING (BEP SEO):
+ * - Firebase hosting rewrites serve /es/* and /fr/* requests from language-specific static files
+ * - LanguageContext extracts language from pathname (e.g., /es/clock → 'es')
+ * - React Router sees all routes without language prefix (transparent to SPA)
+ * - No duplicate route definitions needed - same routes work for all languages
+ * 
  * 1. PUBLIC ROUTES (accessible to everyone)
  *    - / - Marketing landing page
  *    - /clock - Public trading clock experience
@@ -126,12 +137,34 @@ function AnalyticsInitializer() {
  *    - /alerts - Custom alerts (requires premium plan)
  *    - /api-access - API key management (requires pro plan)
  */
+/**
+ * Global Push Permission Handler
+ * Prompts PWA users for notification permission if they have push reminders
+ */
+function PushPermissionHandler() {
+  const { shouldShowModal, dismissModal, requestPermission, isRequesting } = usePushPermissionPrompt();
+
+  if (!shouldShowModal) return null;
+
+  return (
+    <Suspense fallback={null}>
+      <PushPermissionModal
+        open={shouldShowModal}
+        onClose={dismissModal}
+        onRequestPermission={requestPermission}
+        isRequesting={isRequesting}
+      />
+    </Suspense>
+  );
+}
+
 export default function AppRoutes() {
   return (
     <>
       <EmailLinkHandler />
       <AnalyticsInitializer />
       <CookiesBanner />
+      <PushPermissionHandler />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           {/* ==================== PUBLIC ROUTES ==================== */}

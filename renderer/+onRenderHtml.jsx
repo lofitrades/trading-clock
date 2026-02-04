@@ -108,7 +108,7 @@ export async function onRenderHtml(pageContext) {
     throw new Error('No Page component found for route: ' + urlPathname);
   }
 
-  const title = documentProps.title || 'Time 2 Trade | Trading Session Clock & Events';
+  const title = documentProps.title || 'Time 2 Trade | Trading Trading Clock & Events';
   const description = documentProps.description || 'Visual trading intelligence with dual-circle session clock, live economic events overlay, and timezone-aware guidance for futures and forex day traders.';
   const canonical = documentProps.canonical || `${siteUrl}${urlPathname}`;
   const robots = documentProps.robots || 'index,follow';

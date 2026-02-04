@@ -27,6 +27,10 @@
  * ✅ Notes: buildEventIdentity (composite key)
  *
  * Changelog:
+ * v1.2.7 - 2026-02-03 - BEP FIX: Prioritize raw event ID (id/eventId) over composite key for custom events. 
+ *                       Prevents duplicate reminder documents when custom events are saved with/without date fields.
+ *                       Custom events (isCustom=true) and events with explicit IDs (seriesId, docId) now consistently
+ *                       use the raw ID instead of name-currency-time composite.
  * v1.2.6 - 2026-01-23 - Fix: Encode eventId when looking up in favoritesMap for proper matching.
  * v1.2.5 - 2026-01-23 - Fix: Encode eventKeys with slashes for safe Firestore document IDs.
  * v1.2.4 - 2026-01-23 - BEP FIX: Strict composite matching in isEventFavorite and toggleFavoriteEvent - all three components (name+currency+time) must match. Prevents NFP USD from matching NFP GBP.
@@ -171,20 +175,32 @@ export const buildEventIdentity = (event = {}) => {
   const parsedDate = dateSource ? new Date(dateSource) : null;
   const dateKey = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.getTime() : null;
   
-  // Build composite key: name-currency-time
-  // Only create composite key if we have ALL three components; otherwise fall back to name-based key
-  // This ensures consistent matching: same event always generates same key
+  // BEP FIX: For custom events (isCustom=true) or events with explicit IDs (seriesId, docId),
+  // always prefer the raw ID to ensure consistent reminder/notification key generation.
+  // This prevents duplicate documents when the same custom event is saved with/without date fields.
+  const isCustomEvent = Boolean(event.isCustom);
+  const hasExplicitId = Boolean(event.seriesId || event.docId || event._id);
+  
+  // Build composite key: name-currency-time (for economic events without explicit IDs)
   let compositeKey = null;
-  if (primaryNameKey && currencyKey && dateKey) {
-    // Explicit composite key: name-currency-time (type-safe)
-    compositeKey = `${primaryNameKey}-${currencyKey}-${dateKey}`;
-  } else if (primaryNameKey && currencyKey) {
-    // Fallback: name-currency (if time is missing)
-    compositeKey = `${primaryNameKey}-${currencyKey}`;
+  if (!isCustomEvent && !hasExplicitId) {
+    if (primaryNameKey && currencyKey && dateKey) {
+      // Explicit composite key: name-currency-time (type-safe)
+      compositeKey = `${primaryNameKey}-${currencyKey}-${dateKey}`;
+    } else if (primaryNameKey && currencyKey) {
+      // Fallback: name-currency (if time is missing)
+      compositeKey = `${primaryNameKey}-${currencyKey}`;
+    }
   }
   
-  const fallbackId = compositeKey || dedupeKeys([primaryNameKey, currencyKey, dateKey]).join('-') || null;
-  const resolvedEventId = fallbackId || rawEventId ? String(fallbackId || rawEventId) : null;
+  // BEP: Prefer raw ID for custom events, composite key for economic events
+  const resolvedEventId = rawEventId 
+    ? String(rawEventId) 
+    : compositeKey 
+      ? String(compositeKey) 
+      : primaryNameKey 
+        ? String(primaryNameKey) 
+        : null;
 
   if (shouldDebugFavorites()) {
     logFavoriteDebug('identity', {
@@ -193,6 +209,7 @@ export const buildEventIdentity = (event = {}) => {
       primaryNameKey,
       currencyKey,
       dateKey,
+      isCustomEvent,
     });
   }
 

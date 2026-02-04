@@ -29,12 +29,17 @@
     "pushDismissed": "Las notificaciones push fueron descartadas",
     "pushIncomplete": "La configuración de notificaciones push está incompleta",
     "pushError": "Error al configurar notificaciones push",
-    "pushFailure": "No se pudieron habilitar las notificaciones push"
+    "pushFailure": "No se pudieron habilitar las notificaciones push",
+    "pushServiceWorkerError": "Error al registrar el service worker. Por favor recargue la página e intente de nuevo",
+    "pushUnsupported": "Las notificaciones push no son compatibles con este navegador",
+    "pushDenied": "Las notificaciones push están bloqueadas en la configuración del navegador",
+    "pushTokenError": "Error al registrar notificaciones push. Por favor intente de nuevo"
   },
   "scope": {
     "allSeries": "Todos los eventos {{label}}",
     "allMatching": "Todos los eventos coincidentes",
-    "eventOnly": "Solo este evento"
+    "eventOnly": "Solo este evento",
+    "matchingEvents": "coincidentes"
   },
   "actions": {
     "addReminder": "Agregar recordatorio",

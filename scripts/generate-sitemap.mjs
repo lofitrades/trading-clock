@@ -5,6 +5,7 @@
  * Key responsibility: Reads economicEventDescriptions.json and generates XML with hreflang tags for EN/ES/FR
  * 
  * Changelog:
+ * v1.1.0 - 2026-02-04 - BEP SEO CRITICAL: Fixed URL strategy mismatch. Changed from query params (?lang=es) to subpath structure (/es/, /fr/) to match Firebase hosting rewrites and prerender output. Eliminates duplicate URL issues (e.g., /es/clock vs /clock?lang=es) and conflicting canonicals. Improves crawl efficiency and prevents 'low value content' signals.
  * v1.0.0 - 2026-02-02 - Initial implementation: Generate sitemap with 159 event pages (53 events × 3 languages) + 7 base pages
  */
 
@@ -38,6 +39,7 @@ const languages = ['en', 'es', 'fr'];
 
 /**
  * Generate xhtml:link tags for hreflang (multi-language support)
+ * BEP SEO: Uses subpath-based URLs (/es/, /fr/) to match Firebase hosting rewrites
  * @param {string} basePath - The page path (e.g., /events/adp_employment_change)
  * @returns {string} XML string with all hreflang variants
  */
@@ -45,7 +47,7 @@ function generateHreflangLinks(basePath) {
   let xml = `    <xhtml:link rel="alternate" hreflang="x-default" href="${BASE_URL}${basePath}"/>\n`;
   
   for (const lang of languages) {
-    const url = lang === 'en' ? `${BASE_URL}${basePath}` : `${BASE_URL}${basePath}?lang=${lang}`;
+    const url = lang === 'en' ? `${BASE_URL}${basePath}` : `${BASE_URL}/${lang}${basePath}`;
     xml += `    <xhtml:link rel="alternate" hreflang="${lang}" href="${url}"/>\n`;
   }
   
@@ -123,11 +125,12 @@ function writeSitemap() {
     
     fs.writeFileSync(outputPath, sitemapContent, 'utf-8');
     
-    const totalUrls = basePages.length + (descriptionsData.events.length * languages.length);
+    const urlEntries = basePages.length + descriptionsData.events.length;
+    const totalDiscoverable = basePages.length + (descriptionsData.events.length * languages.length);
     console.log(`✅ Sitemap generated successfully!`);
     console.log(`   📍 Base pages: ${basePages.length}`);
-    console.log(`   🎯 Event pages: ${descriptionsData.events.length * languages.length} (${descriptionsData.events.length} events × ${languages.length} languages)`);
-    console.log(`   📊 Total URLs: ${totalUrls}`);
+    console.log(`   🎯 Event pages: ${descriptionsData.events.length} (with hreflang for ${languages.length} languages)`);
+    console.log(`   📊 URL entries: ${urlEntries} | Discoverable URLs: ${totalDiscoverable}`);
     console.log(`   📁 Output: ${outputPath}`);
   } catch (error) {
     console.error(`❌ Error generating sitemap: ${error.message}`);

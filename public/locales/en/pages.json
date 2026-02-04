@@ -2,12 +2,16 @@
   "landing": {
     "badge": "Powered by Forex Factory data",
     "hero": {
-      "heading": "Session Clock + Economic Calendar (NY Time)",
-      "subheading": "A fast workspace for intraday futures and forex traders. Track session timing and countdowns, see Forex Factory-powered economic events, and add your own custom events and reminders—so you never trade blind into a release.",
+      "heading": "Trading Clock + Economic Calendar (NY Time)",
+      "subheading": "See every trading session and market-moving event at a glance. A visual 24-hour clock displays New York, London, and Asia sessions with real-time countdowns—while an integrated Forex Factory calendar shows upcoming releases filtered by impact and currency. Built for futures and forex day traders who refuse to trade blind.",
       "cta1": "Open the clock",
       "cta2": "Open calendar",
       "cta3": "Learn more",
-      "chips": ["NY time-first workflow", "Forex Factory-powered events", "Custom events + reminders"]
+      "chips": [
+        "NY time-first workflow",
+        "Forex Factory-powered events",
+        "Custom events + reminders"
+      ]
     },
     "socialProof": {
       "heading": "Built for traders like you",
@@ -214,7 +218,7 @@
     },
     "highlights": {
       "product": {
-        "label": "Session Clock",
+        "label": "Trading Clock",
         "value": "NY + London + Asia",
         "hint": "Real-time countdown to key transitions"
       },
@@ -447,12 +451,73 @@
         "title": "Ready to see your trading day clearly?",
         "text": "Open the app and answer three questions in seconds: What session am I in? What's the next scheduled catalyst? Does this timing match my plan?"
       }
+    },
+    "header": {
+      "logoAlt": "Time 2 Trade home",
+      "openClock": "Open clock",
+      "clockAlt": "Open the session clock",
+      "openCalendar": "Open calendar",
+      "calendarAlt": "Open the economic calendar",
+      "home": "Home",
+      "homeAlt": "Back to home page"
+    },
+    "hero": {
+      "heading": "About Time 2 Trade",
+      "description": "Time 2 Trade is an intraday timing workspace for futures and forex day traders. It shows where you are in the trading day with clear countdowns, paired with a Forex Factory-powered economic calendar so you can see scheduled catalysts before they hit."
+    },
+    "mission": {
+      "heading": "Why we built it",
+      "description": "Most trading mistakes are timing mistakes—not analysis mistakes. A trader can have perfect chart analysis but still lose money by entering right before a high-impact release, trading through a session transition, or executing during low-liquidity conditions.",
+      "descriptionContinued": "Time 2 Trade solves this by combining two things: a visual session clock that answers \"where am I in the trading day right now?\" and an economic calendar that answers \"what's coming next?\" The goal is simple: reduce timing friction so you can keep a consistent, disciplined process."
+    },
+    "pillars": {
+      "heading": "What guides the product",
+      "sessionClarity": {
+        "title": "Session clarity (NY time-first)",
+        "body": "A visual session clock makes New York, London, and Asia timing obvious. See exactly where you are in the trading day and get countdowns to key session transitions—so you never have to do timezone math in your head while your charts are moving."
+      },
+      "eventAwareness": {
+        "title": "Forex Factory-powered event awareness",
+        "body": "Know what's coming next. The app pulls Forex Factory event data so you can see scheduled catalysts before they hit. Filter by impact and currency to focus on what moves your instruments."
+      },
+      "customEvents": {
+        "title": "Custom events and notifications",
+        "body": "Trade your own rules, not a generic calendar. Add custom events (no-trade windows, checkpoints, personal reminders) and enable notifications so you never get surprised by planned volatility."
+      },
+      "privacyFirst": {
+        "title": "Privacy-first, consent-based",
+        "body": "Your settings and preferences can be saved locally (guest mode) or synced across devices (account mode). No broker connections. No signals. No unnecessary data collection—just a timing tool built for your workflow."
+      }
+    },
+    "founder": {
+      "heading": "A note from the founder",
+      "description": "Time 2 Trade is built by an independent software developer focused on practical tools for intraday routines—especially session timing, event awareness, and repeatable daily checklists.",
+      "descriptionContinued": "The product is intentionally narrow: it aims to be the timing layer you keep next to your charts, built with a \"fast, clean, reliable\" mindset rather than feature bloat."
+    },
+    "cta": {
+      "heading": "Start with the clock, then check the calendar",
+      "description": "In seconds, answer three questions: What session am I in? What's the next scheduled catalyst? Does this timing match my plan?",
+      "openClock": "Open the clock",
+      "clockAlt": "Open the session clock",
+      "openCalendar": "Open calendar",
+      "calendarAlt": "Open the economic calendar",
+      "backHome": "Back to home",
+      "homeAlt": "Back to home page"
+    },
+    "footer": {
+      "logoAlt": "Time 2 Trade home",
+      "openClock": "Open clock",
+      "clockAlt": "Open the session clock",
+      "openCalendar": "Open calendar",
+      "calendarAlt": "Open the economic calendar",
+      "home": "Home",
+      "homeAlt": "Back to home page"
     }
   },
   "legal": {
     "privacy": {
       "pageTitle": "Privacy Policy",
-      "lastUpdated": "January 22, 2026",
+      "lastUpdated": "February 2, 2026",
       "heading": "Privacy Policy",
       "introduction": "Time 2 Trade is committed to transparency about how we collect, use, and protect your data. This policy explains what information we gather, why we need it, how we use it, and the choices you have.",
       "tableOfContents": "Table of contents",
@@ -478,7 +543,8 @@
               "Device type, browser type, and operating system",
               "Session data and authentication tokens",
               "Usage statistics (pages viewed, features used, session duration)",
-              "Error logs and diagnostic information"
+              "Error logs and diagnostic information",
+              "Meta Pixel data (page views, sign-ups, logins) for conversion tracking and ad measurement"
             ]
           },
           "thirdParty": {
@@ -517,7 +583,8 @@
             "basis": "Consent (for personalized ads)",
             "items": [
               "Display Google AdSense advertisements (where shown)",
-              "Measure ad performance and effectiveness",
+              "Measure ad performance and effectiveness via Meta Pixel",
+              "Track conversions (sign-ups, logins) for ad optimization",
               "Deliver personalized ads when you allow them via cookie consent",
               "Show non-personalized ads when you select essential-only cookies"
             ]
@@ -548,7 +615,9 @@
             "title": "Advertising partners",
             "items": [
               "Google AdSense - may collect and use data for ad delivery when you allow personalized ads",
-              "Manage ad preferences at Google Ad Settings (https://adssettings.google.com)"
+              "Meta Pixel (Facebook) - collects page views and conversion events (sign-ups, logins) for ad measurement and optimization",
+              "Manage Google ad preferences at Google Ad Settings (https://adssettings.google.com)",
+              "Manage Meta ad preferences at Meta Privacy Center (https://www.facebook.com/privacy/center/)"
             ]
           },
           "legal": {
@@ -658,6 +727,7 @@
             "title": "Advertising (optional, requires consent)",
             "items": [
               "Google AdSense cookies for ad delivery and measurement",
+              "Meta Pixel (_fbp cookie) for conversion tracking and ad optimization",
               "Ad personalization cookies (only when you allow personalized ads)",
               "These are not set when you choose essential-only mode"
             ]

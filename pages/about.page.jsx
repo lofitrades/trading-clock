@@ -5,12 +5,21 @@
  * structured data, and lean markup for SEO and accessibility.
  *
  * Changelog:
- * v1.2.0 - 2026-01-22 - Updated positioning to match BEP SEO: Session Clock + Forex Factory-powered economic calendar (NY time),
+ * v1.5.0 - 2026-02-03 - BEP I18N: Converted all hardcoded strings to i18n translation keys.
+ *                       Added useTranslation hook with 'pages' namespace. All pillars, headings, nav items,
+ *                       and body copy now use t() calls. Supports full EN/ES/FR localization per BEP standards.
+ * v1.4.0 - 2026-02-02 - BEP: Added Privacy & Advertising section with Meta Pixel + AdSense disclosure.
+ *                       Updated pillar copy to mention consent-based tracking approach.
+ * v1.3.0 - 2026-02-02 - BEP SEO FIX: Added BreadcrumbList schema to help Google understand site
+ *                       hierarchy and prioritize crawling. Addresses "Discovered - currently not indexed" GSC status.
+ * v1.2.0 - 2026-01-22 - Updated positioning to match BEP SEO: Trading Clock + Forex Factory-powered economic calendar (NY time),
  *                       added custom events + notifications pillars, removed “overlaps/PWA install/JBlanked” claims, added /calendar CTAs,
  *                       expanded structured data (WebPage + WebApplication).
  * v1.1.0 - 2026-01-16 - Updated /clock CTAs and refreshed About meta title/description.
  * v1.0.0 - 2025-12-18 - Initial SSR About page implementation.
  */
+
+import { useTranslation } from 'react-i18next';
 
 const siteUrl = 'https://time2.trade';
 const ogImage = `${siteUrl}/Time2Trade_SEO_Meta_5.PNG`;
@@ -51,58 +60,81 @@ const aboutAppSchema = {
     screenshot: ogImage,
 };
 
+// BEP SEO: BreadcrumbList helps Google understand site hierarchy and prioritize crawling
+const aboutBreadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+        {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: siteUrl,
+        },
+        {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'About',
+            item: `${siteUrl}/about`,
+        },
+    ],
+};
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const documentProps = {
-    title: 'About Time 2 Trade | Session Clock + Forex Factory Calendar (NY Time)',
+    title: 'About Time 2 Trade | Trading Clock + Forex Factory Calendar (NY Time)',
     description:
         'Why Time 2 Trade exists: a NY-time-first session clock with countdowns plus a Forex Factory-powered economic calendar, custom events, and notifications for intraday futures and forex traders.',
     canonical: `${siteUrl}/about`,
     robots: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1',
     ogImage,
-    structuredData: [aboutWebPageSchema, aboutAppSchema],
+    structuredData: [aboutWebPageSchema, aboutAppSchema, aboutBreadcrumbSchema],
 };
 
-const pillars = [
-    {
-        title: 'Session clarity (NY time-first)',
-        body:
-            'A visual session clock makes New York, London, and Asia timing obvious, with clean countdowns to key transitions—so you stop doing timezone math mid-trade.',
-    },
-    {
-        title: 'Forex Factory-powered event awareness',
-        body:
-            'Scheduled releases are surfaced in a familiar format. Filter by impact and currency to focus on what actually moves your instruments before you press buy or sell.',
-    },
-    {
-        title: 'Custom events + notifications',
-        body:
-            'Add your own timing rules (no-trade windows, routine checkpoints, session reminders) and enable notifications (where supported) so your routine stays consistent under pressure.',
-    },
-    {
-        title: 'Trustworthy, lightweight delivery',
-        body:
-            'Lean, crawlable marketing pages for SEO, and dedicated interactive workspaces (/clock and /calendar) for daily use—built to stay fast, readable, and mobile-first.',
-    },
-];
-
 export default function Page() {
+    const { t } = useTranslation('pages');
+
+    // Get pillar data from i18n
+    const pillars = [
+        {
+            key: 'session-clarity',
+            title: t('about.pillars.sessionClarity.title'),
+            body: t('about.pillars.sessionClarity.body'),
+        },
+        {
+            key: 'event-awareness',
+            title: t('about.pillars.eventAwareness.title'),
+            body: t('about.pillars.eventAwareness.body'),
+        },
+        {
+            key: 'custom-events',
+            title: t('about.pillars.customEvents.title'),
+            body: t('about.pillars.customEvents.body'),
+        },
+        {
+            key: 'privacy-first',
+            title: t('about.pillars.privacyFirst.title'),
+            body: t('about.pillars.privacyFirst.body'),
+        },
+    ];
+
     return (
         <div className="page-shell__max">
-            <header className="header" aria-label="Site navigation">
-                <a className="logo" href="/" aria-label="Time 2 Trade home">
+            <header className="header" aria-label={t('common:navigation.siteNavigation')}>
+                <a className="logo" href="/" aria-label={t('about.header.logoAlt')}>
                     <span className="logo__dot" aria-hidden="true" />
                     <span>Time 2 Trade</span>
                 </a>
 
-                <nav className="nav" aria-label="Primary">
-                    <a href="/clock" aria-label="Open the session clock">
-                        Open clock
+                <nav className="nav" aria-label={t('common:navigation.primary')}>
+                    <a href="/clock" aria-label={t('about.header.clockAlt')}>
+                        {t('about.header.openClock')}
                     </a>
-                    <a href="/calendar" aria-label="Open the economic calendar">
-                        Open calendar
+                    <a href="/calendar" aria-label={t('about.header.calendarAlt')}>
+                        {t('about.header.openCalendar')}
                     </a>
-                    <a href="/" aria-label="Return to landing page">
-                        Home
+                    <a href="/" aria-label={t('about.header.homeAlt')}>
+                        {t('about.header.home')}
                     </a>
                 </nav>
             </header>
@@ -110,37 +142,32 @@ export default function Page() {
             <main>
                 <section className="section" aria-labelledby="about-heading">
                     <h1 id="about-heading" className="heading-xl">
-                        About Time 2 Trade
+                        {t('about.hero.heading')}
                     </h1>
                     <p className="text-lead">
-                        Time 2 Trade is an intraday timing workspace for futures and forex day traders: a{' '}
-                        <strong>Session Clock + Economic Calendar (NY Time)</strong>. It pairs session context and countdowns with a{' '}
-                        <strong>Forex Factory-powered</strong> calendar, plus custom events and notifications, so you can make timing decisions
-                        with clarity—not guesses.
+                        {t('about.hero.description')}
                     </p>
                 </section>
 
                 <section className="section" aria-labelledby="mission-heading">
                     <h2 id="mission-heading" className="heading-lg">
-                        Why we built it
+                        {t('about.mission.heading')}
                     </h2>
                     <p className="text-lead">
-                        Intraday trading moves fast. But most traders still waste focus on the same friction: timezone confusion, missed session
-                        transitions, and surprise volatility from scheduled releases. Time 2 Trade exists to remove that friction—so you can
-                        execute a repeatable routine next to your charts.
+                        {t('about.mission.description')}
                     </p>
                     <p className="text-lead" style={{ marginTop: 12 }}>
-                        This is not a signal tool. It’s a timing layer built for awareness: sessions + scheduled catalysts + your personal rules.
+                        {t('about.mission.descriptionContinued')}
                     </p>
                 </section>
 
                 <section className="section" aria-labelledby="pillar-heading">
                     <h2 id="pillar-heading" className="heading-lg">
-                        What guides the product
+                        {t('about.pillars.heading')}
                     </h2>
                     <div className="feature-grid">
                         {pillars.map((pillar) => (
-                            <div className="card" key={pillar.title} style={{ padding: '18px' }}>
+                            <div className="card" key={pillar.key} style={{ padding: '18px' }}>
                                 <h3 className="heading-md">{pillar.title}</h3>
                                 <p className="text-lead" style={{ margin: 0, fontSize: '1rem' }}>
                                     {pillar.body}
@@ -152,36 +179,32 @@ export default function Page() {
 
                 <section className="section" aria-labelledby="founder-heading">
                     <h2 id="founder-heading" className="heading-lg">
-                        Founder note (non-personal)
+                        {t('about.founder.heading')}
                     </h2>
                     <p className="text-lead">
-                        Time 2 Trade is built by an independent founder with a product philosophy centered on enterprise-grade practices:
-                        predictable UX, mobile-first performance, secure-by-default architecture, and copy that avoids hype. The goal is to ship a
-                        tool traders can trust daily—clear, consistent, and focused on timing.
+                        {t('about.founder.description')}
                     </p>
                     <p className="text-lead" style={{ marginTop: 12 }}>
-                        The product is intentionally narrow: it aims to be the fastest way to answer “where are we in the trading day?” and “what’s
-                        coming next?”—without turning into a noisy dashboard.
+                        {t('about.founder.descriptionContinued')}
                     </p>
                 </section>
 
                 <section className="section" aria-labelledby="cta-heading">
                     <h2 id="cta-heading" className="heading-lg">
-                        Start with the clock, then check the calendar
+                        {t('about.cta.heading')}
                     </h2>
                     <p className="text-lead">
-                        Use guest mode for immediate value. Create a free account if you want to sync preferences and personalize your workflow
-                        with favorites, notes, reminders, and custom events.
+                        {t('about.cta.description')}
                     </p>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                        <a className="btn btn-primary" href="/clock" aria-label="Launch the session clock">
-                            Open the clock
+                        <a className="btn btn-primary" href="/clock" aria-label={t('about.cta.clockAlt')}>
+                            {t('about.cta.openClock')}
                         </a>
-                        <a className="btn btn-secondary" href="/calendar" aria-label="Open the economic calendar">
-                            Open the calendar
+                        <a className="btn btn-secondary" href="/calendar" aria-label={t('about.cta.calendarAlt')}>
+                            {t('about.cta.openCalendar')}
                         </a>
-                        <a className="btn btn-secondary" href="/" aria-label="Return to landing page">
-                            Back to home
+                        <a className="btn btn-secondary" href="/" aria-label={t('about.cta.homeAlt')}>
+                            {t('about.cta.backHome')}
                         </a>
                     </div>
                 </section>
@@ -198,20 +221,20 @@ export default function Page() {
                         alignItems: 'center',
                     }}
                 >
-                    <a className="logo" href="/" aria-label="Time 2 Trade footer home">
+                    <a className="logo" href="/" aria-label={t('about.footer.logoAlt')}>
                         <span className="logo__dot" aria-hidden="true" />
                         <span>Time 2 Trade</span>
                     </a>
 
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                        <a className="btn btn-secondary" href="/clock" aria-label="Open the clock from footer">
-                            Open clock
+                        <a className="btn btn-secondary" href="/clock" aria-label={t('about.footer.clockAlt')}>
+                            {t('about.footer.openClock')}
                         </a>
-                        <a className="btn btn-secondary" href="/calendar" aria-label="Open the calendar from footer">
-                            Open calendar
+                        <a className="btn btn-secondary" href="/calendar" aria-label={t('about.footer.calendarAlt')}>
+                            {t('about.footer.openCalendar')}
                         </a>
-                        <a className="btn btn-secondary" href="/" aria-label="Go to landing page">
-                            Home
+                        <a className="btn btn-secondary" href="/" aria-label={t('about.footer.homeAlt')}>
+                            {t('about.footer.home')}
                         </a>
                     </div>
                 </div>
@@ -219,3 +242,4 @@ export default function Page() {
         </div>
     );
 }
+

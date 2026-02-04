@@ -1,7 +1,7 @@
 # Time 2 Trade - Developer Knowledge Base
 
-**Last Updated:** February 2, 2026  
-**Version:** 4.0.74  
+**Last Updated:** February 4, 2026  
+**Version:** 4.0.75  
 **Maintainer:** Lofi Trades Development Team
 
 ---
@@ -660,6 +660,77 @@ curl https://us-central1-time-2-trade-app.cloudfunctions.net/syncEconomicEventsC
   "message": "Successfully synced 12966 events"
 }
 ```
+
+#### 3. `sendFcmRemindersScheduled` (v1.7.0)
+```typescript
+// Runs every 1 minute
+export const sendFcmRemindersScheduled = onSchedule(
+  {
+    schedule: "* * * * *",  // Every minute
+    timeZone: "UTC",
+    region: "us-central1"
+  },
+  async (event) => {
+    await processFcmReminders();
+  }
+);
+```
+
+**Behavior:**
+- Queries all users with FCM-enabled devices.
+- Checks reminders with push channel enabled.
+- Finds occurrences within 90-second lookback window (NOT forward).
+- Sends FCM push notifications via Admin SDK v1 API.
+- Creates trigger record in Firestore for deduplication.
+- Respects quiet hours (configurable, default 22:00-06:00 disabled for testing).
+
+**Architecture:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│              Push Notification Flow                         │
+├─────────────────────────────────────────────────────────────┤
+│ 1. User creates event with push reminder                   │
+│ 2. FCM scheduler runs every 1 minute                       │
+│ 3. Server checks: reminderAt within [now-90s, now]         │
+│ 4. Server sends FCM via Admin SDK (not client!)            │
+│ 5. FCM delivers to service worker (background)             │
+│ 6. Service worker shows system notification                │
+│ 7. Server creates trigger in Firestore (deduplication)     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**FCM Payload Structure (v1 API):**
+```json
+{
+  "notification": {
+    "title": "Event Name",
+    "body": "🔔 Event Name is starting now!"
+  },
+  "android": {
+    "notification": {
+      "tag": "reminder-xxx",
+      "sound": "default",
+      "channelId": "reminders",
+      "color": "#018786",
+      "icon": "notification_icon"
+    }
+  },
+  "webpush": {
+    "notification": {
+      "badge": "/icons/badge-72.png",
+      "vibrate": [200, 100, 200],
+      "requireInteraction": true
+    }
+  }
+}
+```
+
+**Key Files:**
+- `functions/src/services/fcmReminderScheduler.ts` - Main scheduler logic
+- `functions/src/index.ts` - Function exports
+- `public/sw.js` - Service worker FCM handler
+- `src/hooks/useCustomEventNotifications.js` - Client-side notification hooks
+- `src/services/remindersService.js` - Reminder persistence
 
 ---
 
@@ -2068,6 +2139,76 @@ firebase deploy --only functions
 
 ### Multi-Source Troubleshooting
 
+### Push Notification Troubleshooting
+
+#### 8. Push Notifications Not Showing
+**Symptoms:** Browser/in-app works but push doesn't appear
+
+**Causes:**
+- Client wrote push trigger (blocking server)
+- Quiet hours enabled (22:00-06:00 default)
+- FCM token not registered
+- Service worker not active
+
+**Solutions:**
+```bash
+# Check FCM scheduler logs
+firebase functions:log --only sendFcmRemindersScheduled
+
+# Look for "Trigger already sent" - means client blocked server
+# Look for "Found X enabled devices" - should be > 0
+# Look for "FCM response: X succeeded, Y failed"
+
+# Clear old triggers and retry
+firebase firestore:delete --recursive "users/USER_ID/notificationTriggers" --force
+
+# Verify service worker active
+# DevTools → Application → Service Workers
+# Should show sw.js status: "activated and is running"
+
+# Check FCM token registration
+# Firestore → users/{uid}/fcmDevices
+```
+
+#### 9. Notifications Firing Early
+**Symptoms:** Notification appears before scheduled time
+
+**Causes:**
+- FCM scheduler window looking into future (fixed in v1.7.0)
+- Multiple devices with different clocks
+- Timezone mismatch
+
+**Solutions:**
+```bash
+# Verify v1.7.0+ deployed
+firebase functions:log --only sendFcmRemindersScheduled
+# Look for: "windowEnd" should equal "nowEpochMs" (not future)
+
+# Redeploy if needed
+cd functions && npm run build && cd ..
+firebase deploy --only functions:sendFcmRemindersScheduled
+```
+
+#### 10. Mobile PWA Shows Wrong Notification Content
+**Symptoms:** Title/body incorrect on mobile but works on desktop
+
+**Causes:**
+- Old service worker cached
+- FCM payload not reaching SW correctly
+
+**Solutions:**
+```bash
+# Force service worker update
+# public/sw.js should have skipWaiting() + clients.claim()
+
+# Clear PWA cache on mobile
+# Android: Settings → Apps → Time 2 Trade → Clear Cache
+# Or: Uninstall and reinstall PWA
+
+# Verify sw.js version
+# DevTools → Application → Service Workers → Check cache name (should be v2+)
+```
+
 **Issue:** Categories not loading for Forex Factory/FXStreet  
 **Cause:** These sources don't provide category data (MQL5-only field)  
 **Solution:** Expected behavior - categories will be empty array for non-MQL5 sources  
@@ -2121,6 +2262,82 @@ whyDidYouRender(React, {
 ---
 
 ## 📝 Change Log
+
+### Version 4.0.76 - February 3, 2026
+**BEP FIX: Custom Event Notifications Audit + Debug Logging**
+
+#### 🔔 Notifications - In-App Optimistic Update
+- **FIXED**: In-app notifications now appear immediately in NotificationCenter.
+- **Root Cause**: Notifications relied on Firestore subscription callback, causing delay.
+- **Solution**: Added optimistic `setNotifications()` update before async Firestore write.
+- **Location**: `useCustomEventNotifications.js` line ~433
+
+#### 🔔 Notifications - Push Per-Offset Channel Check
+- **FIXED**: Push notifications only sent for reminder offsets with `channels.push === true`.
+- **Root Cause**: Push was sent for ALL offsets if ANY offset had push enabled.
+- **Solution**: Added per-offset check `if (!offset?.channels?.push) continue;`.
+- **Location**: `fcmReminderScheduler.ts` line ~378
+
+#### 🐛 Debug Logging (Temporary)
+- **NEW**: Added comprehensive debug logs for custom event notification tracing.
+- **Coverage**: Events input, normalized reminders, Firestore subscription, occurrences, isDue checks.
+- **Usage**: Open browser DevTools → Console → Look for `[DEBUG]` prefixed logs.
+- **Location**: `useCustomEventNotifications.js` v2.3.0
+
+#### 📁 Files Updated
+- `src/hooks/useCustomEventNotifications.js` (v2.3.0): Debug logs + optimistic in-app update.
+- `functions/src/services/fcmReminderScheduler.ts` (v1.1.0): Per-offset push channel check.
+
+#### 📚 Documentation
+- **NEW**: `kb/knowledge/CUSTOM_EVENTS_NOTIFICATION_AUDIT_2026-02-03.md` - Full audit with architecture, timezone handling, and verification checklist.
+
+### Version 4.0.75 - February 2, 2026
+**BEP SEO: Google Search Console Fixes**
+
+#### 🔍 SEO - "Page with redirect" Fix
+- **FIXED**: `firebase.json` now includes `trailingSlash: false` and `cleanUrls: true`.
+- **Root Cause**: Firebase was auto-redirecting `/about` → `/about/` (301 redirect).
+- **Impact**: Google Search Console was reporting "Page with redirect" errors, blocking indexing.
+- **Solution**: Added explicit rewrites for English routes (`/clock`, `/calendar`, `/about`, `/privacy`, `/terms`, `/contact`) to match existing ES/FR patterns.
+- **Result**: All pages now return 200 directly without redirect chains.
+
+#### 🔍 SEO - "Soft 404" Fix
+- **FIXED**: Prerendered pages now have page-specific `<noscript>` fallback content.
+- **Root Cause**: All pages shared the same generic landing page noscript content.
+- **Impact**: Google was detecting `/privacy`, `/terms`, `/about`, `/contact` as thin/duplicate content.
+- **Solution**: Added unique, semantic HTML fallback content for each page type in `scripts/prerender.mjs`.
+- **Coverage**: Landing, Clock, Calendar, About, Privacy, Terms, Contact pages + all 159 event pages.
+- **Result**: Crawlers now see unique, relevant content for each page (eliminates soft-404 detection).
+
+#### 📁 Files Updated
+- `firebase.json` (v1.7.0): Added trailingSlash: false, cleanUrls: true, explicit EN rewrites.
+- `scripts/prerender.mjs` (v1.5.0): Added page-specific noscript content for all pages + events.
+
+### Version 4.0.75 - February 4, 2026
+**Push Notification System Architecture (BEP)**
+
+#### 🔔 Push Notifications
+- **NEW**: Complete push notification architecture with server-side FCM delivery.
+- **Dual-Channel Design**: Browser (client-side Notification API) + Push (server-side FCM).
+- **Desktop tab open** → Browser notification from client-side.
+- **Desktop/Mobile background** → Push notification from server-side FCM.
+- **FCM Scheduler v1.7.0**: 1-minute interval, 90-second lookback window (no early firing).
+- **FIX**: Notifications no longer fire 1+ minute early (window only looks BACK, not forward).
+- **FIX**: Client no longer writes push triggers to Firestore (server handles deduplication).
+- **FIX**: Service worker cache invalidation with `skipWaiting()` + `clients.claim()`.
+
+#### 📁 Files Updated
+- `functions/src/services/fcmReminderScheduler.ts` (v1.7.0): Fixed timing window, 1-minute schedule.
+- `src/services/remindersService.js` (v1.2.0): Push trigger write blocking safeguard.
+- `src/hooks/useCustomEventNotifications.js` (v2.8.0): Push channel = server-side only.
+- `public/sw.js` (v1.3.0): skipWaiting + clients.claim for immediate SW updates.
+
+#### 🏗️ Architecture
+| Device State | Channel | Handler |
+|--------------|---------|----------|
+| Tab open (foreground) | Browser | Client Notification API |
+| Tab closed/background | Push | Server FCM → Service Worker |
+| Mobile PWA background | Push | Server FCM → System notification |
 
 ### Version 4.0.74 - February 2, 2026
 **i18n Locale Sync Automation**

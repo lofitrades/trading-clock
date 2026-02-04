@@ -6,11 +6,17 @@
  * Key responsibility and main functionality: Caches core assets on install, cleans up old caches on activate, and serves cached responses with a network-first strategy.
  * 
  * Changelog:
+ * v1.3.0 - 2026-02-04 - BEP FIX: Bump cache version to v2 to force PWA cache invalidation.
+ *                       Old cached bundles were still writing push triggers to Firestore,
+ *                       blocking server-side FCM delivery. This forces fresh bundle download.
+ * v1.2.0 - 2026-02-03 - BEP FIX: Add Android PWA push notification support with badge images and vibration.
+ *                       Service worker now properly displays notifications when app is closed on Android Chrome.
+ *                       Added tag deduplication, badge icon, and vibration pattern parsing for Android.
  * v1.1.0 - 2026-01-23 - Add Firebase Cloud Messaging background notification handling for PWA push.
  * v1.0.0 - 2025-12-17 - Initial service worker with cache priming and network-first fetch handler.
  */
 
-const CACHE_NAME = 't2t-shell-v1';
+const CACHE_NAME = 't2t-shell-v2';
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -48,13 +54,37 @@ const handleBackgroundMessage = () => {
     const title = notification.title || data.title || 'Reminder';
     const body = notification.body || data.body || '';
     const icon = notification.icon || '/icons/icon-192.png';
-    const tag = data.tag || `t2t-${data.eventKey || 'reminder'}`;
+    const badge = notification.badge || '/icons/icon-192.png';
+    const tag = notification.tag || data.tag || `t2t-${data.eventKey || 'reminder'}`;
+    const sound = notification.sound || 'default';
 
-    self.registration.showNotification(title, {
+    // BEP: Android PWA push notification options
+    const notificationOptions = {
       body,
       icon,
-      tag,
+      badge,
+      tag, // Prevents duplicate notifications on Android
+      sound, // Android system notification sound
       data,
+      // Android-specific options
+      requireInteraction: false, // Allow user to dismiss without action
+      // Parse vibration pattern from data if provided
+      vibrate: data.vibrate ? JSON.parse(data.vibrate) : [200],
+      // Show notification even if browser tab is focused
+      dir: 'auto',
+    };
+
+    // Show the notification
+    self.registration.showNotification(title, notificationOptions);
+    
+    // BEP DEBUG: Log Android PWA notification for troubleshooting
+    console.log('[ServiceWorker] 📱 Showing notification', {
+      title,
+      body,
+      tag,
+      badge,
+      hasVibrate: !!data.vibrate,
+      platform: navigator.userAgent.includes('Android') ? 'Android' : 'Unknown',
     });
   });
 };
@@ -62,6 +92,10 @@ const handleBackgroundMessage = () => {
 handleBackgroundMessage();
 
 self.addEventListener('install', (event) => {
+  // BEP: Skip waiting to immediately activate new service worker
+  // This ensures users get the latest JS bundles without needing to close all tabs
+  self.skipWaiting();
+  
   event.waitUntil(
     caches
       .open(CACHE_NAME)
@@ -71,6 +105,7 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
+  // BEP: Claim clients immediately so new service worker takes over existing pages
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
@@ -78,7 +113,7 @@ self.addEventListener('activate', (event) => {
           .filter((key) => key !== CACHE_NAME)
           .map((key) => caches.delete(key))
       )
-    )
+    ).then(() => self.clients.claim())
   );
 });
 

@@ -3,11 +3,15 @@
     "badge": "Alimenté par Forex Factory",
     "hero": {
       "heading": "Horloge de Sessions de Trading + Calendrier Économique (Heure de New York)",
-      "subheading": "Un espace de travail rapide pour les traders forex et contrats à terme intrajournaliers. Suivez la chronologie et les comptes à rebours des sessions, consultez les événements économiques alimentés par Forex Factory, et ajoutez vos propres événements personnalisés et rappels - afin de ne jamais trader sans connaître une publication.",
+      "subheading": "Visualisez chaque session de trading et événement majeur du marché en un coup d'œil. Une horloge visuelle de 24 heures affiche les sessions de New York, Londres et Asie avec des comptes à rebours en temps réel—tandis qu'un calendrier Forex Factory intégré présente les publications à venir filtrées par impact et devise. Conçu pour les traders forex et contrats à terme intrajournaliers qui refusent de trader à l'aveugle.",
       "cta1": "Ouvrir l'horloge",
       "cta2": "Ouvrir le calendrier",
       "cta3": "En savoir plus",
-      "chips": ["Flux de travail prioritaire à l'heure de New York", "Événements alimentés par Forex Factory", "Événements personnalisés + rappels"]
+      "chips": [
+        "Flux de travail prioritaire à l'heure de New York",
+        "Événements alimentés par Forex Factory",
+        "Événements personnalisés + rappels"
+      ]
     },
     "socialProof": {
       "heading": "Construit pour les traders comme toi",
@@ -211,7 +215,8 @@
       "primary": "Déverrouille toutes les fonctionnalités",
       "secondary": "Aller au Calendrier",
       "signIn": "Connecte-toi"
-    },    "highlights": {
+    },
+    "highlights": {
       "product": {
         "label": "Horloge de Sessions de Trading",
         "value": "NY + Londres + Asie",
@@ -238,7 +243,8 @@
       "calendar": "Calendrier",
       "about": "À propos",
       "faq": "FAQ"
-    },    "nav": {
+    },
+    "nav": {
       "openClock": "Ouvre l'horloge",
       "calendar": "Calendrier",
       "about": "À propos",
@@ -445,12 +451,73 @@
         "title": "Prêt à voir ta journée de trading clairement ?",
         "text": "Ouvre l'application et réponds à trois questions en secondes : Dans quelle session suis-je ? Quel est le prochain catalyseur programmé ? Cette synchronisation correspond-elle à mon plan ?"
       }
+    },
+    "header": {
+      "logoAlt": "Accueil de Time 2 Trade",
+      "openClock": "Ouvrir l'horloge",
+      "clockAlt": "Ouvrir l'horloge de trading",
+      "openCalendar": "Ouvrir le calendrier",
+      "calendarAlt": "Ouvrir le calendrier économique",
+      "home": "Accueil",
+      "homeAlt": "Retour à la page d'accueil"
+    },
+    "hero": {
+      "heading": "À propos de Time 2 Trade",
+      "description": "Time 2 Trade est un espace de travail de timing intrajournalier pour les traders de contrats à terme et de forex. Il montre où vous êtes dans la journée de trading avec des comptes à rebours clairs, associé à un calendrier économique alimenté par Forex Factory pour que vous puissiez voir les catalyseurs programmés avant qu'ils ne se manifestent."
+    },
+    "mission": {
+      "heading": "Pourquoi nous l'avons construit",
+      "description": "La plupart des erreurs de trading sont des erreurs de timing, pas des erreurs d'analyse. Un trader peut avoir une analyse graphique parfaite mais perdre de l'argent en entrant juste avant une libération d'un impact élevé, en tradant lors d'une transition de session ou en exécutant pendant des conditions de liquidité faible.",
+      "descriptionContinued": "Time 2 Trade résout ce problème en combinant deux choses : une horloge de session visuelle qui répond à \"Où suis-je dans la journée de trading maintenant ?\" et un calendrier économique qui répond à \"Que se passe-t-il ensuite ?\". L'objectif est simple : réduire la friction de timing afin que vous puissiez maintenir un processus cohérent et discipliné."
+    },
+    "pillars": {
+      "heading": "Ce qui guide le produit",
+      "sessionClarity": {
+        "title": "Clarté des sessions (heure de New York en premier)",
+        "body": "Une horloge de session visuelle rend le timing de New York, Londres et Asie évident. Voyez exactement où vous êtes dans la journée de trading et obtenez des comptes à rebours pour les transitions de session clés, afin que vous n'ayez jamais à faire des calculs de fuseau horaire dans votre tête pendant que vos graphiques bougent."
+      },
+      "eventAwareness": {
+        "title": "Sensibilisation aux événements alimentée par Forex Factory",
+        "body": "Sachant ce qui vient ensuite. L'application récupère les données d'événements de Forex Factory pour que vous puissiez voir les catalyseurs programmés avant qu'ils ne se manifestent. Filtrez par impact et devise pour vous concentrer sur ce qui fait bouger vos instruments."
+      },
+      "customEvents": {
+        "title": "Événements personnalisés et notifications",
+        "body": "Tradez vos propres règles, pas un calendrier générique. Ajoutez des événements personnalisés (fenêtres sans trading, points de contrôle, rappels personnels) et activez les notifications pour que vous ne soyez jamais surpris par une volatilité planifiée."
+      },
+      "privacyFirst": {
+        "title": "Confidentialité d'abord, basée sur le consentement",
+        "body": "Vos paramètres et préférences peuvent être enregistrés localement (mode invité) ou synchronisés sur les appareils (mode compte). Pas de connexions de courtier. Pas de signaux. Pas de collecte de données inutile, juste un outil de timing conçu pour votre flux de travail."
+      }
+    },
+    "founder": {
+      "heading": "Une note du fondateur",
+      "description": "Time 2 Trade est construit par un développeur logiciel indépendant axé sur les outils pratiques pour les routines intrajournalières, en particulier le timing des sessions, la sensibilisation aux événements et les listes de contrôle quotidiennes répétables.",
+      "descriptionContinued": "Le produit est intentionnellement étroit : il vise à être la couche de timing que vous gardez à côté de vos graphiques, construite avec un état d'esprit \"rapide, propre, fiable\" plutôt qu'avec un excès de fonctionnalités."
+    },
+    "cta": {
+      "heading": "Commencez par l'horloge, puis vérifiez le calendrier",
+      "description": "En quelques secondes, répondez à trois questions : Dans quelle session suis-je ? Quel est le prochain catalyseur programmé ? Ce timing correspond-il à mon plan ?",
+      "openClock": "Ouvrir l'horloge",
+      "clockAlt": "Ouvrir l'horloge de trading",
+      "openCalendar": "Ouvrir le calendrier",
+      "calendarAlt": "Ouvrir le calendrier économique",
+      "backHome": "Retour à l'accueil",
+      "homeAlt": "Retour à la page d'accueil"
+    },
+    "footer": {
+      "logoAlt": "Accueil de Time 2 Trade",
+      "openClock": "Ouvrir l'horloge",
+      "clockAlt": "Ouvrir l'horloge de trading",
+      "openCalendar": "Ouvrir le calendrier",
+      "calendarAlt": "Ouvrir le calendrier économique",
+      "home": "Accueil",
+      "homeAlt": "Retour à la page d'accueil"
     }
   },
   "legal": {
     "privacy": {
       "pageTitle": "Politique de confidentialité",
-      "lastUpdated": "22 janvier 2026",
+      "lastUpdated": "2 février 2026",
       "heading": "Politique de confidentialité",
       "introduction": "Time 2 Trade s'engage envers la transparence sur la façon dont nous collectons, utilisons et protégeons vos données. Cette politique explique les informations que nous collectons, pourquoi nous les avons besoin, comment nous les utilisons et les choix qui s'offrent à vous.",
       "tableOfContents": "Table des matières",
@@ -476,7 +543,8 @@
               "Type d'appareil, type de navigateur et système d'exploitation",
               "Données de session et jetons d'authentification",
               "Statistiques d'utilisation (pages consultées, fonctionnalités utilisées, durée de session)",
-              "Journaux d'erreurs et informations de diagnostic"
+              "Journaux d'erreurs et informations de diagnostic",
+              "Données Meta Pixel (pages vues, inscriptions, connexions) pour le suivi des conversions et la mesure des annonces"
             ]
           },
           "thirdParty": {
@@ -515,7 +583,8 @@
             "basis": "Consentement (pour les annonces personnalisées)",
             "items": [
               "Afficher les annonces Google AdSense (le cas échéant)",
-              "Mesurer les performances et l'efficacité des annonces",
+              "Mesurer les performances et l'efficacité des annonces via Meta Pixel",
+              "Suivre les conversions (inscriptions, connexions) pour l'optimisation des annonces",
               "Livrer des annonces personnalisées lorsque vous l'autorisez via le consentement des cookies",
               "Afficher des annonces non personnalisées lorsque vous choisissez le mode essentiel uniquement"
             ]
@@ -546,7 +615,9 @@
             "title": "Partenaires publicitaires",
             "items": [
               "Google AdSense - peut collecter et utiliser des données pour la livraison des annonces lorsque vous autorisez les annonces personnalisées",
-              "Gérez les préférences des annonces sur Paramètres des annonces Google (https://adssettings.google.com)"
+              "Meta Pixel (Facebook) - collecte les pages vues et les événements de conversion (inscriptions, connexions) pour la mesure et l'optimisation des annonces",
+              "Gérez les préférences des annonces Google sur Paramètres des annonces Google (https://adssettings.google.com)",
+              "Gérez les préférences des annonces Meta sur Centre de confidentialité Meta (https://www.facebook.com/privacy/center/)"
             ]
           },
           "legal": {
@@ -656,6 +727,7 @@
             "title": "Publicité (facultatif, nécessite le consentement)",
             "items": [
               "Cookies Google AdSense pour la livraison et la mesure des annonces",
+              "Meta Pixel (cookie _fbp) pour le suivi des conversions et l'optimisation des annonces",
               "Cookies de personnalisation des annonces (uniquement lorsque vous autorisez les annonces personnalisées)",
               "Ceux-ci ne sont pas définis lorsque vous choisissez le mode essentiel uniquement"
             ]

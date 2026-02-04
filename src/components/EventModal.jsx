@@ -18,6 +18,7 @@
  * 
  * Changelog:
  * v2.8.0 - 2026-02-04 - BEP MOBILE RESPONSIVENESS FIX: Fixed EventModal to be fully viewport height aware on mobile devices. DialogContent now has flex:1, minHeight:0, overflowY:auto with minimal scrollbar styling (6px, rgba(60,77,99,0.32)). DialogActions now has flexShrink:0 to stick to bottom. Paper has display:flex, flexDirection:column, height:100vh for full viewport coverage. Footer now correctly positions above mobile navbar instead of below it. Applied minimal scrollbar styling matching LandingPage pattern. Matches BEP patterns from AuthModal2 and SettingsSidebar2.
+ * v2.7.3 - 2026-02-04 - BEP SEO CRITICAL: Updated event page link to use subpath URLs (/es/events/..., /fr/events/...) instead of query params. Aligns with Firebase hosting rewrites and SEO structure.
  * v2.7.2 - 2026-02-03 - BEP EVENT PAGE LANGUAGE FIX: Added i18n language parameter to event page URL. Now opens /events/{id}?lang=es for Spanish, ?lang=fr for French, no param for English.
  * v2.7.0 - 2026-02-03 - BEP EVENT PAGE LINK FIX: Fixed "Open event page" button to only appear for canonical economic events. Added hasEventPage() and getEventPageId() validators. Imports economicEventDescriptions.json to verify event ID is valid. Prevents broken links on custom events or calendar variants with invalid IDs (e.g., Firestore document IDs). Button now correctly opens /events/{validEventId} only for events with corresponding SEO pages.
  * v2.6.0 - 2026-02-02 - BEP i18n: Event descriptions now fetched with current language for multi-language support. Re-fetches when language changes.
@@ -2810,7 +2811,7 @@ function EventModal({
         {hasEventPage(currentEvent, description) && (
           <Button
             component="a"
-            href={`/events/${getEventPageId(description)}${i18n.language !== 'en' ? `?lang=${i18n.language}` : ''}`}
+            href={`${i18n.language !== 'en' ? `/${i18n.language}` : ''}/events/${getEventPageId(description)}`}
             target="_blank"
             rel="noopener noreferrer"
             variant="outlined"

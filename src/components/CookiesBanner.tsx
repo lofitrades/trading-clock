@@ -5,6 +5,9 @@
  * Presents a light, mobile-first surface with a primary CTA to allow ads or keep essential-only cookies.
  * 
  * Changelog:
+ * v1.6.0 - 2026-02-02 - BEP GDPR: Trigger Meta Pixel load when user clicks "Allow all".
+ *                       Imported loadMetaPixel from consent.js. Called after consent is set.
+ *                       Pixel is now consent-gated and only loads after explicit user action.
  * v1.5.0 - 2026-01-30 - BEP FIRESTORE SYNC: Implemented full cross-device consent persistence.
  *                       For authenticated users: Reads consent from Firestore first, then saves updates to Firestore + localStorage.
  *                       For guests: Uses localStorage as primary storage (backward compatible).
@@ -33,6 +36,7 @@ import {
     subscribeConsent,
     saveConsentToFirestore,
     readConsentFromFirestore,
+    loadMetaPixel,
 } from '../utils/consent';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -113,6 +117,10 @@ export default function CookiesBanner({ className }: CookiesBannerProps) {
             saveConsentToFirestore((user as any).uid, value).catch((error) => {
                 console.error('Failed to save consent to Firestore:', error);
             });
+        }
+        // BEP GDPR: Load Meta Pixel only when user explicitly accepts
+        if (value === CONSENT_ACCEPTED) {
+            loadMetaPixel();
         }
     }, [user]);
 

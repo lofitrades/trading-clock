@@ -6,6 +6,10 @@
  * and persist notification trigger IDs for client-side reminder firing.
  * 
  * Changelog:
+ * v1.2.0 - 2026-02-04 - BEP CRITICAL: Block push triggers in recordNotificationTrigger().
+ *                       Server-side FCM exclusively handles push trigger creation. This 
+ *                       safeguard ensures even old cached client code can't write push 
+ *                       triggers that would block server-side FCM delivery.
  * v1.1.3 - 2026-01-23 - Fix: Encode eventKeys with slashes for safe Firestore document IDs.
  * v1.1.2 - 2026-01-24 - Add completion/error logging to deleteReminderForUser for debugging.
  * v1.1.1 - 2026-01-23 - Preserve reminder eventKey when saving to keep non-custom reminders stable.
@@ -243,6 +247,13 @@ export const saveLocalTriggerIds = (userId, triggers) => {
 };
 
 export const recordNotificationTrigger = async (userId, triggerId, payload = {}) => {
+    // BEP CRITICAL: NEVER write push triggers from client - server-side FCM handles these
+    // This safeguard prevents old cached code from blocking server-side FCM delivery
+    if (payload.channel === 'push') {
+        console.warn('[recordNotificationTrigger] ⚠️ Blocked push trigger write - server handles push');
+        return;
+    }
+
     const nextPayload = {
         ...payload,
         updatedAt: serverTimestamp(),

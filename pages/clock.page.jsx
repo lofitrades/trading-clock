@@ -5,7 +5,9 @@
  * while providing indexable metadata for the public trading clock route.
  *
  * Changelog:
- * v1.1.0 - 2026-01-22 - BEP SEO/copy refresh: align with "Session Clock + Economic Calendar (NY Time)",
+ * v1.2.0 - 2026-02-02 - BEP SEO FIX: Added BreadcrumbList schema to help Google understand site
+ *                       hierarchy and prioritize crawling. Addresses "Discovered - currently not indexed" GSC status.
+ * v1.1.0 - 2026-01-22 - BEP SEO/copy refresh: align with "Trading Clock + Economic Calendar (NY Time)",
  *                       emphasize Forex Factory-powered events, custom events + notifications, and remove "overlaps"
  *                       from primary positioning (kept optional/secondary).
  * v1.0.0 - 2026-01-16 - Added /clock SSR page with SEO metadata and app hydration.
@@ -23,17 +25,17 @@ export const prerender = () => ['/clock'];
 const clockSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'Session Clock | Time 2 Trade',
+    name: 'Trading Clock | Time 2 Trade',
     url: `${siteUrl}/clock`,
     description:
-        'Session Clock + Economic Calendar (NY Time) for futures and forex day traders. Real-time market sessions, countdowns, Forex Factory-powered events, custom events, and reminders.',
+        'Trading Clock + Economic Calendar (NY Time) for futures and forex day traders. Real-time market sessions, countdowns, Forex Factory-powered events, custom events, and reminders.',
     primaryImageOfPage: ogImage,
     publisher: { '@type': 'Organization', name: 'Lofi Trades', url: siteUrl },
 };
 
 const clockFaqEntries = [
     {
-        q: 'What does the Session Clock show?',
+        q: 'What does the Trading Clock show?',
         a: 'It shows the current session context for the trading day with real-time countdowns and clear time boundaries. The default workflow is New York time-first, with timezone switching available.',
     },
     {
@@ -63,15 +65,35 @@ const clockFaqSchema = {
     })),
 };
 
+// BEP SEO: BreadcrumbList helps Google understand site hierarchy and prioritize crawling
+const clockBreadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+        {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: siteUrl,
+        },
+        {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Trading Clock',
+            item: `${siteUrl}/clock`,
+        },
+    ],
+};
+
 export const documentProps = {
-    title: 'Session Clock + Economic Calendar (NY Time) | Time 2 Trade',
+    title: 'Trading Clock + Economic Calendar (NY Time) | Time 2 Trade',
     description:
-        'Free Session Clock + Economic Calendar (NY Time) for futures and forex day traders. Real-time session timing and countdowns, Forex Factory-powered events, custom events, and reminders.',
+        'Free Trading Clock + Economic Calendar (NY Time) for futures and forex day traders. Real-time session timing and countdowns, Forex Factory-powered events, custom events, and reminders.',
     canonical: `${siteUrl}/clock`,
     robots: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1',
     ogImage,
     ogType: 'website',
-    structuredData: [clockSchema, clockFaqSchema],
+    structuredData: [clockSchema, clockFaqSchema, clockBreadcrumbSchema],
 };
 
 export default function Page() {
@@ -104,7 +126,7 @@ export default function Page() {
                     <h1 className="heading-lg">Loading Time 2 Trade…</h1>
 
                     <p className="text-lead">
-                        Your <strong>Session Clock + Economic Calendar (NY Time)</strong> is loading now. This route is prerendered so you get fast,
+                        Your <strong>Trading Clock + Economic Calendar (NY Time)</strong> is loading now. This route is prerendered so you get fast,
                         crawlable HTML first, then the full interactive workspace hydrates client-side.
                     </p>
 

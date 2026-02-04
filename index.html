@@ -4,7 +4,9 @@
   Purpose: HTML document entry for Time 2 Trade SPA, defining global head metadata, fonts, and mount point.
   Key responsibility and main functionality: Provides SEO + social share metadata, loads fonts efficiently, and bootstraps the React bundle while shipping crawlable fallback content for non-JS/AI crawlers.
 
-  Changelog:  v2.1.0 - 2026-01-27 - BEP SEO: Added multi-language hreflang tags (EN/ES/FR + x-default) for crawler discoverability. Updated JSON-LD schemas with availableLanguage array. Enables proper international SEO for translated content.  v2.0.1 - 2026-01-22 - Updated “main features” emphasis: removed overlaps/PWA/exports mentions; added custom events, notifications, and Forex Factory-powered calendar messaging.
+  Changelog:
+  v2.2.0 - 2026-02-04 - BEP SEO CRITICAL: Updated hreflang tags to use subpath URLs (/es/, /fr/) instead of query params (?lang=es). Aligns with Firebase hosting rewrites, prerender output, and sitemap structure. Eliminates duplicate URL signals and improves SEO consistency.
+  v2.1.0 - 2026-01-27 - BEP SEO: Added multi-language hreflang tags (EN/ES/FR + x-default) for crawler discoverability. Updated JSON-LD schemas with availableLanguage array. Enables proper international SEO for translated content.  v2.0.1 - 2026-01-22 - Updated “main features” emphasis: removed overlaps/PWA/exports mentions; added custom events, notifications, and Forex Factory-powered calendar messaging.
   v2.0.0 - 2026-01-22 - Enterprise SEO refresh: NY-time positioning, intraday timing workspace messaging, cleaner fallback (single noscript), expanded meta/OG/Twitter, JSON-LD validity fixes, added modern app + referrer signals; kept AdSense publisher ID.
   v1.9.1 - 2026-01-09 - Improved Google site-name and favicon signals (Organization schema, WebSite publisher/alternateName, robust icon links).
   v1.9.0 - 2026-01-07 - Updated SEO meta to highlight economic calendar, session clock, and Forex Factory source; kept AdSense publisher ID.
@@ -90,8 +92,8 @@
     <link rel="canonical" href="https://time2.trade/" />
     <link rel="alternate" href="https://time2.trade/" hreflang="x-default" />
     <link rel="alternate" href="https://time2.trade/" hreflang="en" />
-    <link rel="alternate" href="https://time2.trade/?lang=es" hreflang="es" />
-    <link rel="alternate" href="https://time2.trade/?lang=fr" hreflang="fr" />
+    <link rel="alternate" href="https://time2.trade/es/" hreflang="es" />
+    <link rel="alternate" href="https://time2.trade/fr/" hreflang="fr" />
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
 
     <!-- PWA -->
@@ -111,7 +113,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
 
-    <title>Time 2 Trade | Session Clock + Forex Factory Economic Calendar (NY Time)</title>
+    <title>Time 2 Trade | Trading Clock + Forex Factory Economic Calendar (NY Time)</title>
 
     <!-- Dynamic light/dark favicon switching -->
     <script>
@@ -219,15 +221,15 @@
     </script>
 
     <!-- SEO Meta -->
-    <meta name="title" content="Time 2 Trade | Session Clock + Forex Factory Economic Calendar (NY Time)" />
+    <meta name="title" content="Time 2 Trade | Trading Clock + Forex Factory Economic Calendar (NY Time)" />
     <meta
       name="description"
-      content="Intraday timing workspace for futures & forex day traders: NY-time session clock with countdowns + a Forex Factory-powered economic calendar with impact/currency filters, custom events, and notifications."
+      content="See every trading session and market-moving event at a glance. A visual 24-hour clock displays New York, London, and Asia sessions with real-time countdowns—plus a Forex Factory-powered calendar filtered by impact and currency. Built for futures and forex day traders."
     />
     <meta name="author" content="Time 2 Trade" />
     <meta
       name="keywords"
-      content="session clock, trading sessions, london session, new york session, asia session, session countdown, economic calendar, forex factory economic calendar, high-impact events, CPI, NFP, FOMC, forex day trading, futures day trading, prop trader routine, custom events, trading notifications"
+      content="trading clock, session clock, trading sessions, london session, new york session, asia session, session countdown, economic calendar, forex factory economic calendar, high-impact events, CPI, NFP, FOMC, forex day trading, futures day trading, prop trader routine, custom events, trading notifications"
     />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
     <meta
@@ -242,11 +244,11 @@
     <meta property="og:url" content="https://time2.trade/" />
     <meta
       property="og:title"
-      content="Time 2 Trade | Session Clock + Forex Factory Economic Calendar (NY Time)"
+      content="Time 2 Trade | Trading Clock + Forex Factory Economic Calendar (NY Time)"
     />
     <meta
       property="og:description"
-      content="A clean intraday timing workspace (not signals): session countdowns + a Forex Factory-powered economic calendar with fast filters, custom events, and notifications."
+      content="See every trading session and market-moving event at a glance. A visual 24-hour clock displays New York, London, and Asia sessions with real-time countdowns—plus a Forex Factory-powered calendar filtered by impact and currency."
     />
     <meta property="og:image" content="https://time2.trade/Time2Trade_SEO_Meta_5.PNG" />
     <meta property="og:image:secure_url" content="https://time2.trade/Time2Trade_SEO_Meta_5.PNG" />
@@ -265,11 +267,11 @@
     <meta name="twitter:creator" content="@time2_trade" />
     <meta
       name="twitter:title"
-      content="Time 2 Trade | Session Clock + Forex Factory Economic Calendar (NY Time)"
+      content="Time 2 Trade | Trading Clock + Forex Factory Economic Calendar (NY Time)"
     />
     <meta
       name="twitter:description"
-      content="Intraday timing workspace (not signals): NY-time session countdowns + Forex Factory-powered economic calendar with filters, custom events, and notifications."
+      content="See every trading session and market-moving event at a glance. Visual 24-hour clock with NY, London, Asia sessions + Forex Factory-powered calendar filtered by impact and currency."
     />
     <meta name="twitter:image" content="https://time2.trade/Time2Trade_SEO_Meta_5.PNG" />
     <meta
@@ -285,7 +287,7 @@
         "@type": "WebSite",
         "@id": "https://time2.trade/#website",
         "name": "Time 2 Trade",
-        "alternateName": "T2T",
+        "alternateName": "Time2Trade",
         "url": "https://time2.trade/",
         "publisher": { "@id": "https://time2.trade/#organization" },
         "inLanguage": "en",
@@ -321,13 +323,13 @@
         "publisher": { "@id": "https://time2.trade/#organization" },
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
         "featureList": [
-          "Session clock with New York time-first session awareness and countdowns",
-          "Forex Factory-powered economic calendar for scheduled releases",
-          "Fast impact, currency, and search filtering",
-          "Custom events for personal timing windows and reminders",
-          "Notifications for upcoming events (where supported)",
-          "Favorites and personal notes (synced when signed in)",
-          "Built for intraday awareness and event-avoidance (no signals)"
+          "Visual 24-hour trading clock displaying New York, London, and Asia sessions with real-time countdowns",
+          "Forex Factory-powered economic calendar showing scheduled releases filtered by impact and currency",
+          "Custom events and reminders for personal timing windows, no-trade zones, and routines",
+          "Notifications for upcoming events so you never trade blind into a release",
+          "Favorites and personal notes to track events that matter to your instruments",
+          "Mobile-first, fast, and clean—built for quick pre-trade timing checks",
+          "Awareness and timing context for intraday traders (not trading signals)"
         ]
       }
     </script>
@@ -388,13 +390,57 @@
         color: #6b7280;
       }
     </style>
+
+    <!-- Meta Pixel Code (Consent-Gated - BEP GDPR Compliance) -->
+    <!-- Pixel is NOT loaded until user explicitly consents via cookie banner -->
+    <!-- The loadMetaPixel() function is called from consent.js when user clicks "Allow all" -->
+    <script>
+      // BEP: Define global pixel loader (called when consent is granted)
+      // This does NOT load the pixel immediately - only when user consents
+      window.t2tMetaPixelLoaded = false; // BEP: Dedicated flag to prevent duplicate loads
+      window.t2tLoadMetaPixel = function() {
+        if (window.t2tMetaPixelLoaded) return; // Already loaded - prevent duplicate
+        window.t2tMetaPixelLoaded = true;
+        
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+        
+        fbq('init', '1200042785666815');
+        fbq('track', 'PageView');
+        console.log('[Meta Pixel] Loaded after consent');
+      };
+      
+      // BEP: Check if user already consented (returning visitor)
+      // If so, load pixel immediately; otherwise wait for consent
+      (function() {
+        try {
+          var consent = localStorage.getItem('t2t-cookie-consent');
+          if (consent === 'accepted') {
+            window.t2tLoadMetaPixel();
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <!-- End Meta Pixel Code -->
   </head>
 
   <body>
+    <!-- Meta Pixel noscript fallback (must be in body, not head per HTML5 spec) -->
+    <noscript><img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=1200042785666815&ev=PageView&noscript=1"
+    /></noscript>
+    <!-- End Meta Pixel noscript -->
+    
     <div id="root">
       <noscript>
         <main class="t2t-noscript" aria-label="Time 2 Trade overview">
-          <h1>Time 2 Trade: Session Clock + Forex Factory Economic Calendar (NY Time)</h1>
+          <h1>Time 2 Trade: Trading Clock + Forex Factory Economic Calendar (NY Time)</h1>
           <p>
             Time 2 Trade is a clean <strong>intraday timing workspace</strong> for futures and forex day traders.
             Know what part of the trading day you’re in, then confirm whether a high-impact release is coming up — without
@@ -416,7 +462,7 @@
             to brokers.
           </p>
 
-          <a class="cta primary" href="/clock">Open Session Clock</a>
+          <a class="cta primary" href="/clock">Open Trading Clock</a>
           <a class="cta secondary" href="/calendar">Open Economic Calendar</a>
 
           <p class="note">

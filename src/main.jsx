@@ -5,6 +5,7 @@
  * Bootstraps React with providers and routing. Includes ThemeContextProvider for dynamic theme switching.
  * 
  * Changelog:
+ * v5.1.0 - 2026-02-02 - BEP ANALYTICS: Integrated Facebook Pixel for conversion tracking. Initialized on app startup.
  * v5.0.1 - 2026-01-28 - BEP FIX: Cache root instance to prevent duplicate createRoot() calls during HMR.
  *                       Stores root on container element to reuse across hot reloads.
  * v5.0.0 - 2026-01-28 - BEP: Added ThemeContextProvider for light/dark mode support. 
@@ -35,6 +36,7 @@ import { TooltipProvider } from './contexts/TooltipContext';
 import { ThemeContextProvider } from './contexts/ThemeContext';
 import { useThemeMode } from './contexts/themeContextUtils';
 import { getTheme } from './theme';
+import { initFacebookPixel } from './services/facebookPixelService';
 import './index.css';
 import './i18n/config.js';  // Initialize i18next BEFORE App
 import i18n from './i18n/config.js';
@@ -50,6 +52,9 @@ if (seoFallback) {
 
 // Setup viewport CSS variables for mobile browser chrome
 setupViewportCssVars();
+
+// Initialize Facebook Pixel for conversion tracking
+initFacebookPixel();
 
 // Load non-critical assets (flag-icons CSS, service worker) when idle
 scheduleNonCriticalAssets(registerServiceWorker);

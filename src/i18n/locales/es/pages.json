@@ -3,7 +3,7 @@
     "badge": "Impulsado por datos de Forex Factory",
     "hero": {
       "heading": "Reloj de Trading + Calendario Económico (Hora de Nueva York)",
-      "subheading": "Un espacio de trabajo rápido para operadores intradía de futuros y forex. Rastrea el tiempo de sesión y las cuentas regresivas, ve eventos económicos impulsados por Forex Factory, y agrega tus propios eventos personalizados y recordatorios, para que nunca operes sin saber de un lanzamiento.",
+      "subheading": "Visualiza cada sesión de trading y evento que mueve el mercado de un vistazo. Un reloj visual de 24 horas muestra las sesiones de Nueva York, Londres y Asia con cuentas regresivas en tiempo real—mientras un calendario integrado de Forex Factory muestra los próximos lanzamientos filtrados por impacto y divisa. Creado para operadores de futuros y forex intradía que se niegan a operar a ciegas.",
       "cta1": "Abre el reloj",
       "cta2": "Abre el calendario",
       "cta3": "Aprende más",
@@ -445,12 +445,73 @@
         "title": "¿Listo para ver tu día de negociación claramente?",
         "text": "Abre la aplicación y responde tres preguntas en segundos: ¿En qué sesión estoy? ¿Cuál es el próximo catalizador programado? ¿Coincide este tiempo con mi plan?"
       }
+    },
+    "header": {
+      "logoAlt": "Página de inicio de Time 2 Trade",
+      "openClock": "Abre el reloj",
+      "clockAlt": "Abre el reloj de sesiones de trading",
+      "openCalendar": "Abre el calendario",
+      "calendarAlt": "Abre el calendario económico",
+      "home": "Inicio",
+      "homeAlt": "Volver a la página de inicio"
+    },
+    "hero": {
+      "heading": "Acerca de Time 2 Trade",
+      "description": "Time 2 Trade es un espacio de trabajo de tiempo intradía para operadores de futuros y forex. Muestra dónde estás en el día de negociación con cuentas regresivas claras, combinado con un calendario económico impulsado por Forex Factory para que puedas ver catalizadores programados antes de que golpeen."
+    },
+    "mission": {
+      "heading": "Por qué lo construimos",
+      "description": "La mayoría de los errores de trading son errores de timing, no errores de análisis. Un operador puede tener un análisis de gráfico perfecto pero aún perder dinero al entrar justo antes de un lanzamiento de alto impacto, operar a través de una transición de sesión o ejecutar durante condiciones de baja liquidez.",
+      "descriptionContinued": "Time 2 Trade resuelve esto combinando dos cosas: un reloj de sesión visual que responde \"¿dónde estoy en el día de negociación ahora mismo?\" y un calendario económico que responde \"¿qué viene después?\". El objetivo es simple: reducir la fricción de timing para que puedas mantener un proceso consistente y disciplinado."
+    },
+    "pillars": {
+      "heading": "Qué guía el producto",
+      "sessionClarity": {
+        "title": "Claridad de sesión (hora de Nueva York primero)",
+        "body": "Un reloj de sesión visual hace que el timing de Nueva York, Londres y Asia sea obvio. Ve exactamente dónde estás en el día de negociación y obtén cuentas regresivas a las transiciones clave de sesión, para que nunca tengas que hacer matemática de zona horaria en tu cabeza mientras tus gráficos se mueven."
+      },
+      "eventAwareness": {
+        "title": "Conocimiento de eventos impulsado por Forex Factory",
+        "body": "Sabe qué viene después. La aplicación extrae datos de eventos de Forex Factory para que puedas ver catalizadores programados antes de que golpeen. Filtra por impacto y divisa para enfocarte en lo que mueve tus instrumentos."
+      },
+      "customEvents": {
+        "title": "Eventos personalizados y notificaciones",
+        "body": "Opera tus propias reglas, no un calendario genérico. Agrega eventos personalizados (ventanas de no operación, puntos de control, recordatorios personales) y habilita notificaciones para que nunca te sorprenda la volatilidad planificada."
+      },
+      "privacyFirst": {
+        "title": "Privacidad primero, basado en consentimiento",
+        "body": "Tu configuración y preferencias pueden guardarse localmente (modo invitado) o sincronizarse en dispositivos (modo de cuenta). Sin conexiones de brokers. Sin señales. Sin recopilación innecesaria de datos, solo una herramienta de timing construida para tu flujo de trabajo."
+      }
+    },
+    "founder": {
+      "heading": "Una nota del fundador",
+      "description": "Time 2 Trade es construido por un desarrollador de software independiente enfocado en herramientas prácticas para rutinas intradía, especialmente timing de sesión, conocimiento de eventos y listas de verificación diarias repetibles.",
+      "descriptionContinued": "El producto es intencionalmente estrecho: tiene como objetivo ser la capa de timing que mantienes al lado de tus gráficos, construido con una mentalidad \"rápido, limpio, confiable\" en lugar de exceso de características."
+    },
+    "cta": {
+      "heading": "Comienza con el reloj, luego revisa el calendario",
+      "description": "En segundos, responde tres preguntas: ¿En qué sesión estoy? ¿Cuál es el próximo catalizador programado? ¿Este timing coincide con mi plan?",
+      "openClock": "Abre el reloj",
+      "clockAlt": "Abre el reloj de sesiones de trading",
+      "openCalendar": "Abre el calendario",
+      "calendarAlt": "Abre el calendario económico",
+      "backHome": "Volver al inicio",
+      "homeAlt": "Volver a la página de inicio"
+    },
+    "footer": {
+      "logoAlt": "Página de inicio de Time 2 Trade",
+      "openClock": "Abre el reloj",
+      "clockAlt": "Abre el reloj de sesiones de trading",
+      "openCalendar": "Abre el calendario",
+      "calendarAlt": "Abre el calendario económico",
+      "home": "Inicio",
+      "homeAlt": "Volver a la página de inicio"
     }
   },
   "legal": {
     "privacy": {
       "pageTitle": "Política de Privacidad",
-      "lastUpdated": "22 de enero de 2026",
+      "lastUpdated": "2 de febrero de 2026",
       "heading": "Política de Privacidad",
       "introduction": "Time 2 Trade se compromete a ser transparente sobre cómo recopilamos, utilizamos y protegemos sus datos. Esta política explica qué información recopilamos, por qué la necesitamos, cómo la usamos y qué opciones tiene.",
       "tableOfContents": "Tabla de contenidos",
@@ -476,7 +537,8 @@
               "Tipo de dispositivo, tipo de navegador y sistema operativo",
               "Datos de sesión y tokens de autenticación",
               "Estadísticas de uso (páginas vistas, funciones utilizadas, duración de la sesión)",
-              "Registros de errores e información de diagnóstico"
+              "Registros de errores e información de diagnóstico",
+              "Datos de Meta Pixel (vistas de página, registros, inicios de sesión) para seguimiento de conversiones y medición de anuncios"
             ]
           },
           "thirdParty": {
@@ -515,7 +577,8 @@
             "basis": "Consentimiento (para anuncios personalizados)",
             "items": [
               "Mostrar anuncios de Google AdSense (donde se muestren)",
-              "Medir el rendimiento y la efectividad de los anuncios",
+              "Medir el rendimiento y la efectividad de los anuncios mediante Meta Pixel",
+              "Rastrear conversiones (registros, inicios de sesión) para optimización de anuncios",
               "Entregar anuncios personalizados cuando lo permite a través del consentimiento de cookies",
               "Mostrar anuncios no personalizados cuando selecciona solo cookies esenciales"
             ]
@@ -546,7 +609,9 @@
             "title": "Socios publicitarios",
             "items": [
               "Google AdSense - puede recopilar y utilizar datos para entrega de anuncios cuando permite anuncios personalizados",
-              "Gestione las preferencias de anuncios en Configuración de Anuncios de Google (https://adssettings.google.com)"
+              "Meta Pixel (Facebook) - recopila vistas de página y eventos de conversión (registros, inicios de sesión) para medición y optimización de anuncios",
+              "Gestione las preferencias de anuncios de Google en Configuración de Anuncios de Google (https://adssettings.google.com)",
+              "Gestione las preferencias de anuncios de Meta en Centro de Privacidad de Meta (https://www.facebook.com/privacy/center/)"
             ]
           },
           "legal": {
@@ -656,6 +721,7 @@
             "title": "Publicidad (opcional, requiere consentimiento)",
             "items": [
               "Cookies de Google AdSense para entrega y medición de anuncios",
+              "Meta Pixel (cookie _fbp) para seguimiento de conversiones y optimización de anuncios",
               "Cookies de personalización de anuncios (solo cuando permite anuncios personalizados)",
               "Estos no se configuran cuando elige modo solo esencial"
             ]

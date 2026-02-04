@@ -442,7 +442,6 @@ public/locales/       (AUTO-GENERATED - don't edit directly)
 4. **Run `npm run sync-locales`** to copy to `public/locales/` (or let build do it)
 5. **Use consistent terminology** across all locales:
    - **"Trading Clock"** (EN) → **"Reloj de Trading"** (ES) → **"Horloge de Trading"** (FR)
-   - **"Session Clock"** (EN) → **"Reloj de Sesiones de Trading"** (ES) → **"Horloge de Sessions de Trading"** (FR)
    - Brand terms capitalized in titles, lowercase in descriptions where appropriate
 5. **Verify all 3 languages are complete** before marking task complete
 

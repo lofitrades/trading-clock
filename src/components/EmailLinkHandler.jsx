@@ -11,8 +11,12 @@
  * - Success confirmation modal before redirecting
  * - Clean error handling with "Request New Link" option
  * - Enterprise-quality copywriting and visual design
+ * - BEP i18n: Detects and applies language from magic link URL parameter
  * 
  * Changelog:
+ * v2.1.1 - 2026-02-04 - BEP SEO CRITICAL: Updated language detection to use pathname subpaths (/es/, /fr/) instead of query params. Magic links land on subpath URLs, language extracted from pathname before auth.
+ * v2.1.0 - 2026-02-02 - BEP ANALYTICS: Track magic link sign-ups and logins to Facebook Pixel based on isNewUser flag.
+ * v2.0.0 - 2026-02-02 - BEP i18n: Detect ?lang= parameter from magic link URL and apply language before auth UI renders. Resend link also preserves current language. Improves UX for ES/FR users.
  * v1.9.0 - 2026-01-24 - i18n migration: added useTranslation hook for dialogs + states namespaces
  * v1.8.0 - 2026-01-23 - Migrated from AuthModal to AuthModal2 with proper open prop; removed legacy AuthModal.jsx dependency
  * v1.7.0 - 2026-01-08 - Extended magicLinkProcessing timeout to 8s to eliminate loading screen during welcome modal display; prevents auto-unmounting per enterprise best practices
@@ -34,9 +38,10 @@ import { Dialog, DialogContent, DialogTitle, TextField, Button, Typography, Aler
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AuthModal2 from './AuthModal2';
 import { createUserProfileSafely } from '../utils/userProfileUtils';
+import { trackSignUp, trackLogin } from '../services/facebookPixelService';
 
 export default function EmailLinkHandler() {
-  const { t } = useTranslation(['dialogs', 'states', 'actions']);
+  const { t, i18n } = useTranslation(['dialogs', 'states', 'actions']);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [showVerifyingModal, setShowVerifyingModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -54,7 +59,28 @@ export default function EmailLinkHandler() {
   // Loader is handled independently; modals render above loader using high z-index
 
   useEffect(() => {
+    /**
+     * BEP SEO: Detect and apply language from URL pathname
+     * Magic links now use subpath structure (/es/calendar, /fr/clock)
+     * This runs before auth processing so UI renders in correct language
+     */
+    const applyLanguageFromUrl = async () => {
+      // Extract language from pathname (e.g., /es/calendar → es)
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      const firstPart = pathParts[0];
+      const supportedLangs = ['es', 'fr'];
+
+      if (firstPart && supportedLangs.includes(firstPart)) {
+        // Apply language immediately
+        localStorage.setItem('preferredLanguage', firstPart);
+        await i18n.changeLanguage(firstPart);
+      }
+    };
+
     const handleEmailLink = async () => {
+      // Apply language first (even if not a magic link, for consistency)
+      await applyLanguageFromUrl();
+
       if (!isSignInWithEmailLink(auth, window.location.href)) {
         return;
       }
@@ -115,6 +141,13 @@ export default function EmailLinkHandler() {
       const additionalUserInfo = getAdditionalUserInfo(result);
       const newUser = additionalUserInfo?.isNewUser ?? false;
       setIsNewUser(newUser);
+
+      // BEP ANALYTICS: Track sign-up or login based on isNewUser flag
+      if (newUser) {
+        trackSignUp(result.user.email, 'email');
+      } else {
+        trackLogin(result.user.email, 'email');
+      }
 
       // SHOW SUCCESS IMMEDIATELY - essential auth is complete
       setShowVerifyingModal(false);
@@ -228,7 +261,13 @@ export default function EmailLinkHandler() {
     }
 
     try {
-      const actionCodeSettings = getMagicLinkActionCodeSettings();
+      // BEP i18n: Pass current language when resending magic link
+      const preferredLanguage = localStorage.getItem('preferredLanguage') || i18n.language || 'en';
+      const actionCodeSettings = getMagicLinkActionCodeSettings('/calendar', preferredLanguage);
+
+      // BEP i18n: Set Firebase auth language so email is sent in user's preferred language
+      auth.languageCode = preferredLanguage;
+
       await sendSignInLinkToEmail(auth, targetEmail, actionCodeSettings);
 
       // Persist for subsequent link handling

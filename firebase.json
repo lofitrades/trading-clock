@@ -3,6 +3,8 @@
     "path": "firebase.json",
     "purpose": "Firebase Hosting and Functions configuration for Time 2 Trade frontend/backend deployment.",
     "changelog": [
+      "v1.8.0 - 2026-02-02 - BEP SEO REDIRECT FIX: Added explicit /index.html rewrites for all pages and language variants to prevent 301 redirects. With cleanUrls: true, Firebase was redirecting /page/index.html → /page. Now all direct file requests return 200 OK. Covers 21 rewrites: 7 EN pages + 7 ES pages + 7 FR pages. Added /events pattern rewrites for all 3 languages to fallback to /calendar when event static files don't exist (proper SPA behavior). Eliminates redirect waste and improves crawl efficiency.",
+      "v1.7.0 - 2026-02-02 - BEP SEO CRITICAL: Added trailingSlash: false and cleanUrls: true to eliminate 301 redirects. Google Search Console was reporting 'Page with redirect' errors for /about and other pages because Firebase was auto-redirecting /about → /about/. cleanUrls allows serving /about/index.html at /about without redirects. trailingSlash: false prevents enforcing trailing slashes. Also added explicit EN rewrites for /clock, /calendar, /about, /privacy, /terms, /contact to match ES/FR patterns. Fixes Google indexing issues.",
       "v1.6.0 - 2026-01-30 - BEP SEO FIX: Reverted rewrites to simple '**' catch-all pattern. Firebase Hosting serves exact-match static files (ads.txt, robots.txt, sitemap.xml) BEFORE processing rewrites per official priority order. The negation pattern was unnecessary and non-standard. Static files in dist/ are automatically served at step 3, rewrites only apply when files don't exist (step 4). This follows Firebase Hosting BEP and ensures ads.txt is crawlable by Google AdSense.",
       "v1.5.0 - 2026-01-28 - BEP FIX: Rewrites now serve prerendered subpages (/es/contact, /fr/about, etc.) correctly. Each language route pattern serves its own index.html, enabling SEO for all localized pages.",
       "v1.4.0 - 2026-01-27 - BEP ENHANCED i18n: Added rewrites for /es/* and /fr/* language subpaths. Multi-language prerendered HTML files now serve with proper language parameter. Enables non-JS crawlers to see localized content immediately.",
@@ -14,12 +16,126 @@
   },
   "hosting": {
     "public": "dist",
+    "trailingSlash": false,
+    "cleanUrls": true,
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
     "rewrites": [
+      {
+        "source": "/index.html",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/clock/index.html",
+        "destination": "/clock/index.html"
+      },
+      {
+        "source": "/calendar/index.html",
+        "destination": "/calendar/index.html"
+      },
+      {
+        "source": "/about/index.html",
+        "destination": "/about/index.html"
+      },
+      {
+        "source": "/privacy/index.html",
+        "destination": "/privacy/index.html"
+      },
+      {
+        "source": "/terms/index.html",
+        "destination": "/terms/index.html"
+      },
+      {
+        "source": "/contact/index.html",
+        "destination": "/contact/index.html"
+      },
+      {
+        "source": "/es/index.html",
+        "destination": "/es/index.html"
+      },
+      {
+        "source": "/es/clock/index.html",
+        "destination": "/es/clock/index.html"
+      },
+      {
+        "source": "/es/calendar/index.html",
+        "destination": "/es/calendar/index.html"
+      },
+      {
+        "source": "/es/about/index.html",
+        "destination": "/es/about/index.html"
+      },
+      {
+        "source": "/es/privacy/index.html",
+        "destination": "/es/privacy/index.html"
+      },
+      {
+        "source": "/es/terms/index.html",
+        "destination": "/es/terms/index.html"
+      },
+      {
+        "source": "/es/contact/index.html",
+        "destination": "/es/contact/index.html"
+      },
+      {
+        "source": "/fr/index.html",
+        "destination": "/fr/index.html"
+      },
+      {
+        "source": "/fr/clock/index.html",
+        "destination": "/fr/clock/index.html"
+      },
+      {
+        "source": "/fr/calendar/index.html",
+        "destination": "/fr/calendar/index.html"
+      },
+      {
+        "source": "/fr/about/index.html",
+        "destination": "/fr/about/index.html"
+      },
+      {
+        "source": "/fr/privacy/index.html",
+        "destination": "/fr/privacy/index.html"
+      },
+      {
+        "source": "/fr/terms/index.html",
+        "destination": "/fr/terms/index.html"
+      },
+      {
+        "source": "/fr/contact/index.html",
+        "destination": "/fr/contact/index.html"
+      },
+      {
+        "source": "/clock{,/**}",
+        "destination": "/clock/index.html"
+      },
+      {
+        "source": "/calendar{,/**}",
+        "destination": "/calendar/index.html"
+      },
+      {
+        "source": "/about{,/**}",
+        "destination": "/about/index.html"
+      },
+      {
+        "source": "/privacy{,/**}",
+        "destination": "/privacy/index.html"
+      },
+      {
+        "source": "/terms{,/**}",
+        "destination": "/terms/index.html"
+      },
+      {
+        "source": "/contact{,/**}",
+        "destination": "/contact/index.html"
+      },
+      {
+        "source": "/events{,/**}",
+        "destination": "/calendar/index.html"
+      },
       {
         "source": "/es/clock{,/**}",
         "destination": "/es/clock/index.html"
@@ -43,6 +159,10 @@
       {
         "source": "/es/contact{,/**}",
         "destination": "/es/contact/index.html"
+      },
+      {
+        "source": "/es/events{,/**}",
+        "destination": "/es/calendar/index.html"
       },
       {
         "source": "/es{,/**}",
@@ -71,6 +191,10 @@
       {
         "source": "/fr/contact{,/**}",
         "destination": "/fr/contact/index.html"
+      },
+      {
+        "source": "/fr/events{,/**}",
+        "destination": "/fr/calendar/index.html"
       },
       {
         "source": "/fr{,/**}",

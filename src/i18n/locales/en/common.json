@@ -54,6 +54,8 @@
     "visibility": "Visibility"
   },
   "navigation": {
+    "siteNavigation": "Site navigation",
+    "primary": "Primary",
     "home": "Home",
     "clock": "Trading Clock",
     "calendar": "Calendar",

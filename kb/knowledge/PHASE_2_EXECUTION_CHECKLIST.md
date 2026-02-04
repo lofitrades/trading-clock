@@ -82,7 +82,7 @@ Target: 350+ strings migrated to phase 2
     "landing": {
       "hero": {
         "headline": "Unlock all features",
-        "subheading": "Session Clock + Economic Calendar (NY Time)"
+        "subheading": "Trading Clock + Economic Calendar (NY Time)"
       },
       "benefits": {
         "one": "Trade the right window",

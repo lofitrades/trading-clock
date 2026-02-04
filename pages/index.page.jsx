@@ -6,12 +6,19 @@
  * launching the trading clock or learning more.
  *
  * Changelog:
+ * v2.3.0 - 2026-02-02 - BEP SEO FIX: Added SiteNavigationElement schema to explicitly declare site
+ *                       navigation structure. Helps Google prioritize crawling of pages flagged as
+ *                       "Discovered - currently not indexed" (/clock, /calendar, /terms).
+ * v2.2.0 - 2026-02-02 - BEP SEO FIX: Removed SearchAction schema from WebSite structured data.
+ *                       Google was indexing /?q={search_term_string} as an alternate page because
+ *                       the schema declared search support that doesn't exist. Fixes GSC error:
+ *                       "Alternate page with proper canonical tag" for search URL template.
  * v2.1.0 - 2026-01-24 - BEP optimizations: Removed unused hardcoded constants (features/highlights), 
  *                       added defensive null-coalescing for i18n data hydration, added sync warnings 
  *                       for faqEntries duplication, improved error resilience with .filter(Boolean).
  * v2.0.0 - 2026-01-24 - Migrated to i18n: Replaced 100+ hardcoded strings with t() calls from pages namespace.
  *                       Supports EN/ES/FR languages with full translations for hero, features, benefits, FAQ, and navigation.
- * v1.2.0 - 2026-01-22 - BEP copy + schema refresh: align hero with "Session Clock + Economic Calendar (NY Time)",
+ * v1.2.0 - 2026-01-22 - BEP copy + schema refresh: align hero with "Trading Clock + Economic Calendar (NY Time)",
  *                       prioritize Forex Factory-powered events, custom events, and reminders/notifications.
  *                       Removed overlaps/PWA/export from "main feature" positioning (kept secondary where helpful).
  * v1.1.0 - 2026-01-16 - Updated /clock CTAs and refreshed home meta/title lengths.
@@ -19,6 +26,8 @@
  */
 
 import { useTranslation } from 'react-i18next';
+
+const siteUrl = 'https://time2.trade';
 const ogImage = `${siteUrl}/Time2Trade_SEO_Meta_5.PNG`;
 // FAQ entries for schema.org FAQPage schema generation
 // ⚠️ SYNC ALERT: Keep in sync with i18n translations in src/i18n/locales/*/pages.json → landing.faq.entries
@@ -28,7 +37,7 @@ const faqEntries = [
     {
         question: 'What is Time 2 Trade?',
         answer:
-            'Time 2 Trade is a Session Clock + Economic Calendar (NY Time) for intraday futures and forex traders. It combines session timing, countdowns, and Forex Factory-powered economic events in one fast workspace.',
+            'Time 2 Trade is a Trading Clock + Economic Calendar (NY Time) for intraday futures and forex traders. It combines session timing, countdowns, and Forex Factory-powered economic events in one fast workspace.',
     },
     {
         question: 'Is the economic calendar powered by Forex Factory?',
@@ -73,11 +82,11 @@ const softwareSchema = {
     operatingSystem: 'Web Browser',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     description:
-        'Session Clock + Economic Calendar (NY Time) for futures and forex day traders: session timing and countdowns, Forex Factory-powered events, custom events, reminders, timezone switching, and synced settings.',
+        'Trading Clock + Economic Calendar (NY Time) for futures and forex day traders: session timing and countdowns, Forex Factory-powered events, custom events, reminders, timezone switching, and synced settings.',
     url: `${siteUrl}/clock`,
     creator: { '@type': 'Organization', name: 'Lofi Trades', url: siteUrl },
     featureList: [
-        'Session Clock (NY Time-first) with real-time countdowns',
+        'Trading Clock (NY Time-first) with real-time countdowns',
         'Forex Factory-powered economic calendar with impact and currency filtering',
         'Custom events (prep checkpoints, reminders, no-trade windows)',
         'Reminders/notifications where available',
@@ -94,45 +103,74 @@ const webSiteSchema = {
     '@type': 'WebSite',
     name: 'Time 2 Trade',
     url: siteUrl,
-    potentialAction: {
-        '@type': 'SearchAction',
-        target: `${siteUrl}/?q={search_term_string}`,
-        'query-input': 'required name=search_term_string',
-    },
+    // BEP SEO: Removed SearchAction - site doesn't have search functionality
+    // Having SearchAction without actual search causes Google to index /?q={search_term_string}
+    // as an alternate page, triggering "Alternate page with proper canonical tag" GSC error
+};
+
+// BEP SEO: SiteNavigationElement explicitly declares main navigation for Google
+// Helps prioritize crawling of key pages marked as "Discovered - currently not indexed"
+const siteNavigationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: [
+        {
+            '@type': 'SiteNavigationElement',
+            position: 1,
+            name: 'Trading Clock',
+            description: 'Live trading session clock with real-time countdowns and economic events',
+            url: `${siteUrl}/clock`,
+        },
+        {
+            '@type': 'SiteNavigationElement',
+            position: 2,
+            name: 'Economic Calendar',
+            description: 'Forex Factory-powered economic calendar with filters and custom events',
+            url: `${siteUrl}/calendar`,
+        },
+        {
+            '@type': 'SiteNavigationElement',
+            position: 3,
+            name: 'About',
+            description: 'Learn about Time 2 Trade and our mission for day traders',
+            url: `${siteUrl}/about`,
+        },
+        {
+            '@type': 'SiteNavigationElement',
+            position: 4,
+            name: 'Privacy Policy',
+            description: 'How Time 2 Trade handles your data and privacy',
+            url: `${siteUrl}/privacy`,
+        },
+        {
+            '@type': 'SiteNavigationElement',
+            position: 5,
+            name: 'Terms & Conditions',
+            description: 'Terms of use for Time 2 Trade trading clock and calendar',
+            url: `${siteUrl}/terms`,
+        },
+        {
+            '@type': 'SiteNavigationElement',
+            position: 6,
+            name: 'Contact',
+            description: 'Get in touch with Time 2 Trade for support or feedback',
+            url: `${siteUrl}/contact`,
+        },
+    ],
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const documentProps = {
-    title: 'Time 2 Trade | Session Clock + Economic Calendar (NY Time)',
+    title: 'Time 2 Trade | Trading Clock + Economic Calendar (NY Time)',
     description:
-        'Session Clock + Economic Calendar (NY Time) for futures and forex day traders. Track session timing and countdowns, Forex Factory-powered events, custom events, and reminders in one fast workspace.',
+        'Trading Clock + Economic Calendar (NY Time) for futures and forex day traders. Track session timing and countdowns, Forex Factory-powered events, custom events, and reminders in one fast workspace.',
     canonical: `${siteUrl}/`,
     robots: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1',
     ogImage,
     ogType: 'website',
-    structuredData: [webSiteSchema, softwareSchema, faqSchema],
+    structuredData: [webSiteSchema, softwareSchema, faqSchema, siteNavigationSchema],
 };
 
-const features = [
-    {
-        title: 'Session Clock (NY Time-first)',
-        body: 'See today’s session timing at a glance with real-time countdowns to key transitions. New York time is the default workflow, with timezone switching available anytime.',
-    },
-    {
-        title: 'Forex Factory-powered economic events',
-        body: 'Keep catalysts in the same view as your session timing. Filter by impact and currency so you only focus on what matters for your pairs and instruments.',
-    },
-    {
-        title: 'Custom events + reminders',
-        body: 'Add your own checkpoints: prep windows, no-trade zones, funding rule reminders, session opens, and personal routines. Use reminders/notifications where available.',
-    },
-    {
-        title: 'Settings that stick',
-        body: 'Sign in to sync preferences across devices, or stay in guest mode with local persistence. Either way, your workflow stays consistent day after day.',
-    },
-];
-
-// ✅ Note: features and highlights arrays removed (now hydrated from i18n in component)
 // This ensures single source of truth and enables multi-language support
 
 export default function Page() {

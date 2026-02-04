@@ -6,6 +6,10 @@
  * Automatically creates user documents with role and subscription on account creation.
  * 
  * Changelog:
+ * v2.4.0 - 2026-02-03 - BEP FIX: Mobile PWA token refresh - add 2s delay before attempting
+ *                       FCM token refresh on mobile PWAs to ensure service worker is ready.
+ * v2.3.0 - 2026-02-03 - BEP: Use refreshFcmTokenForUser on every app load to keep tokens fresh.
+ *                       Ensures FCM tokens are always up-to-date and lastSeenAt is tracked.
  * v2.2.0 - 2026-01-23 - Add FCM token registration on login when permission is granted.
  * v2.1.2 - 2026-01-15 - Resilience: provide a safe default context to prevent HMR/context mismatch crashes.
  * v2.1.1 - 2025-12-01 - Documentation: Clarified that selectedTimezone in default settings is for new user creation only, SettingsContext is source of truth
@@ -21,7 +25,7 @@ import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/fires
 import { USER_ROLES, SUBSCRIPTION_PLANS, SUBSCRIPTION_STATUS, PLAN_FEATURES } from '../types/userTypes';
 import WelcomeModal from '../components/WelcomeModal';
 import { createUserProfileSafely, updateLastLoginSafely } from '../utils/userProfileUtils';
-import { registerFcmTokenForUser } from '../services/pushNotificationsService';
+import { refreshFcmTokenForUser } from '../services/pushNotificationsService';
 
 const defaultAuthContext = {
   user: null,
@@ -200,12 +204,37 @@ export const AuthProvider = ({ children }) => {
     return () => unsubscribeAuth();
   }, []);
 
+  // BEP: Refresh FCM token on every app load when user is authenticated
+  // This keeps tokens up-to-date (handles Firebase token rotation) and updates lastSeenAt
+  // for stale device tracking. Only runs if permission already granted - no prompts.
+  // Mobile PWAs may need a delay before Notification API is fully ready after reload.
   useEffect(() => {
     if (!user?.uid) return;
     if (typeof Notification === 'undefined') return;
-    if (Notification.permission !== 'granted') return;
 
-    registerFcmTokenForUser(user.uid).catch(() => undefined);
+    // Function to attempt token refresh
+    const attemptRefresh = () => {
+      if (Notification.permission !== 'granted') {
+        return;
+      }
+      refreshFcmTokenForUser(user.uid).catch((err) => {
+        console.warn('[AuthContext] FCM refresh failed:', err?.message || err);
+      });
+    };
+
+    // For mobile PWAs, add a delay to ensure service worker and Notification API are ready
+    const isMobilePWA =
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) &&
+      (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone);
+
+    if (isMobilePWA) {
+      // Mobile PWA: Wait a bit for service worker initialization
+      const timeout = setTimeout(attemptRefresh, 2000);
+      return () => clearTimeout(timeout);
+    } else {
+      // Desktop: Attempt immediately
+      attemptRefresh();
+    }
   }, [user?.uid]);
 
   /**

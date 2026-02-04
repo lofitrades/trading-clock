@@ -5,6 +5,8 @@
  * Provides consistent OG/Twitter images, language-aware metadata, and schema objects across routes.
  *
  * Changelog:
+ * v1.5.0 - 2026-02-04 - BEP SEO CRITICAL: Migrated from query params (?lang=xx) to subpath URLs (/es/, /fr/) for all language variants. Updated buildHreflangUrls() and buildSeoMeta() to generate subpath-based URLs matching Firebase hosting rewrites and prerender output. Eliminates duplicate URLs and improves SEO crawlability.
+ * v1.4.0 - 2026-02-03 - BEP SEO: Updated featureList copy to align with new hero messaging ("Trading clock" not "Session clock"), benefit-driven descriptions.
  * v1.3.0 - 2026-01-27 - BEP SEO: Added multi-language support with SUPPORTED_LANGUAGES, getOgLocale(), buildHreflangUrls(), and language-aware schema builders. Enables proper international SEO crawlability for EN/ES/FR.
  * v1.2.0 - 2026-01-22 - SEO refresh aligned with index.html: stronger robots defaults, theme-color alignment, and updated featureList (custom events, notifications, Forex Factory-powered calendar). Removed overlaps/PWA/exports from "main features".
  * v1.1.0 - 2025-12-22 - Added robots/theme-color defaults, exported normalizer, and refreshed SoftwareApplication schema.
@@ -45,7 +47,7 @@ export const getOgLocale = (lang = DEFAULT_LANGUAGE) => {
 /**
  * Build hreflang URLs for a given path
  * BEP SEO: Generates proper hreflang URLs for all supported languages
- * Uses ?lang=xx format for non-default languages (simpler than subpaths for SPA)
+ * Uses subpath structure (/es/, /fr/) to match Firebase hosting rewrites
  * @param {string} path - Route path (e.g., '/', '/clock', '/calendar')
  * @returns {Object} Map of language codes to URLs, including x-default
  */
@@ -61,9 +63,8 @@ export const buildHreflangUrls = (path = '/') => {
     if (lang === DEFAULT_LANGUAGE) {
       urls[lang] = baseUrl;
     } else {
-      // Use query param for non-default languages
-      const separator = normalizedPath.includes('?') ? '&' : '?';
-      urls[lang] = `${baseUrl}${separator}lang=${lang}`;
+      // Use subpath prefix for non-default languages
+      urls[lang] = `${SITE_URL}/${lang}${normalizedPath}`;
     }
   });
   
@@ -88,8 +89,9 @@ export const buildSeoMeta = ({
   lang = DEFAULT_LANGUAGE,
 }) => {
   const normalizedPath = normalizePath(path);
-  const langSuffix = lang && lang !== 'en' ? `?lang=${lang}` : '';
-  const url = canonical || `${SITE_URL}${normalizedPath}${langSuffix}`;
+  // BEP SEO: Use subpath structure for non-English languages
+  const langPrefix = lang && lang !== DEFAULT_LANGUAGE ? `/${lang}` : '';
+  const url = canonical || `${SITE_URL}${langPrefix}${normalizedPath}`;
 
   return {
     title,
@@ -143,13 +145,13 @@ export const buildSoftwareApplicationSchema = ({ description, lang = DEFAULT_LAN
     url: `${SITE_URL}/`,
   },
   featureList: [
-    'Session clock with New York time-first session awareness and countdowns',
-    'Forex Factory-powered economic calendar for scheduled releases',
-    'Fast filters for impact, currency, and search',
-    'Custom events for personal timing windows and reminders',
-    'Notifications for upcoming events (where supported)',
-    'Favorites and personal notes for authenticated users',
-    'Designed for intraday awareness and event-avoidance (not trading signals)',
+    'Visual 24-hour trading clock displaying New York, London, and Asia sessions with real-time countdowns',
+    'Forex Factory-powered economic calendar showing scheduled releases filtered by impact and currency',
+    'Custom events and reminders for personal timing windows, no-trade zones, and routines',
+    'Notifications for upcoming events so you never trade blind into a release',
+    'Favorites and personal notes to track events that matter to your instruments',
+    'Mobile-first, fast, and clean—built for quick pre-trade timing checks',
+    'Awareness and timing context for intraday traders (not trading signals)',
   ],
   screenshot: DEFAULT_OG_IMAGE,
 });

@@ -6,6 +6,7 @@
  * Reduces initial bundle size by ~500KB by eliminating 78 static JSON imports
  *
  * Changelog:
+ * v3.0.2 - 2026-02-03 - Added 'dialogs' namespace to preload for AccountModal/NotificationPreferencesPanel.
  * v3.0.1 - 2026-02-02 - Added 'admin' namespace for /admin/events route (superadmin RBAC, won't impact public users).
  * v3.0.0 - 2026-01-29 - BEP PERFORMANCE: Reduced preload from 18 → 3 namespaces (common, pages, filter) to cut ~1.5s from critical path. Other namespaces now lazy-loaded via useTranslation() when components mount. Lighthouse audit showed 18 JSON files in network chain causing 1,886ms delay. Components using non-preloaded namespaces should call i18n.loadNamespaces() in useEffect for instant UX.
  * v2.0.7 - 2026-01-29 - BEP i18n: Added relativeTime translations to 'events' namespace for EventMarkerTooltip.
@@ -40,11 +41,13 @@ i18n
   .init({
     fallbackLng: 'en',        // Fall back to English if language not found
     
-    // BEP PERFORMANCE v3.0.0: Only preload 3 critical namespaces (~15 KiB)
+    // BEP PERFORMANCE v3.0.0: Only preload critical namespaces (~20 KiB)
     // Other namespaces lazy-loaded via useTranslation() when components mount
     // Cuts ~1.5s from critical path (was 18 namespaces = 1,886ms chain)
     // Note: 'admin' added for /admin/events route (protected by RBAC, won't impact public users)
-    ns: ['common', 'pages', 'filter', 'admin'],
+    // Note: 'reminders' added for RemindersEditor2 permission messages (critical for UX)
+    // Note: 'dialogs' added for AccountModal, NotificationPreferencesPanel, and modal components
+    ns: ['common', 'pages', 'filter', 'admin', 'reminders', 'dialogs'],
     defaultNS: 'common',
     
     // BEP: Enable true lazy loading for non-preloaded namespaces

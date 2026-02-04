@@ -6,6 +6,31 @@
  * and optionally trigger browser notifications with permission checks.
  * 
  * Changelog:
+ * v2.8.0 - 2026-02-04 - BEP CRITICAL FIX: Do NOT record push triggers to Firestore from client-side.
+ *                       Client was creating trigger documents that blocked server-side FCM from sending.
+ *                       Server now exclusively owns push trigger creation + FCM delivery. Client only
+ *                       tracks push triggers in localStorage for in-session deduplication.
+ * v2.7.0 - 2026-02-03 - BEP FIX: Remove 'push' channel client-side handling. Push notifications 
+ *                       are now handled exclusively server-side via FCM Cloud Function. Client 
+ *                       just records triggers - FCM sends to all enabled devices. Service Worker 
+ *                       receives messages when app is closed. Only 'inApp' and 'browser' channels 
+ *                       are handled locally now. This fixes architecture where 'push' channel 
+ *                       was being treated as local browser notification instead of server-side FCM.
+ * v2.6.0 - 2026-02-03 - BEP FIX: Add real-time listener to preferences document so quiet hours
+ *                       changes reflect immediately when user toggles in NotificationPreferencesPanel.
+ *                       Uses onSnapshot() instead of one-time load to auto-sync preferences.
+ * v2.5.0 - 2026-02-03 - BEP: Support user-customizable quiet hours from Firestore preferences.
+ *                       Loads user's quietHours settings and passes to isWithinQuietHours().
+ *                       Defaults to {enabled: true, start: 21, end: 6} if no preferences set.
+ * v2.4.0 - 2026-02-03 - BEP FIX: Expand rangeStartMs to look back by NOW_WINDOW_MS (9 min) so events
+ *                       currently happening are still included in occurrences. Fixes bug where notifications
+ *                       failed to trigger because occurrences became 0 immediately when event time passed.
+ * v2.3.0 - 2026-02-03 - DEBUG: Add comprehensive debug logging for custom event notification tracing.
+ *                       Logs: events input, normalized reminders, Firestore subscription, occurrences, isDue checks.
+ *                       Remove these logs after troubleshooting is complete.
+ * v2.2.0 - 2026-02-03 - BEP FIX: Add optimistic UI update for in-app notifications. Notifications now appear 
+ *                       immediately in NotificationCenter instead of waiting for Firestore subscription callback.
+ *                       Includes duplicate prevention in local state.
  * v2.1.0 - 2026-01-23 - Add series reminder matching for upcoming economic events.
  * v2.0.1 - 2026-01-23 - Skip reminder triggers for repeat intervals under 1h.
  * v2.0.0 - 2026-01-23 - Upgrade to unified reminders engine with recurrence expansion and trigger dedupe.
@@ -19,13 +44,16 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
+import { db } from '../firebase';
 import { NOW_WINDOW_MS, getEventEpochMs } from '../utils/eventTimeEngine';
 import { resolveImpactMeta } from '../utils/newsApi';
 import { formatTime } from '../utils/dateUtils';
 import { buildSeriesKey, expandReminderOccurrences, normalizeEventForReminder } from '../utils/remindersRegistry';
 import { DAILY_REMINDER_CAP, THROTTLE_WINDOW_MS, getDayKeyForTimezone, isWithinQuietHours } from '../utils/remindersPolicy';
 import { getEventsByDateRange } from '../services/economicEventsService';
+import { getNotificationPreferences } from '../services/pushNotificationsService';
 import {
   addLocalNotification,
   addNotificationForUser,
@@ -91,9 +119,46 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
   const [permission, setPermission] = useState(() => (typeof Notification !== 'undefined' ? Notification.permission : 'default'));
   const [reminders, setReminders] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [quietHours, setQuietHours] = useState({ enabled: true, start: 21, end: 6 });
   const triggersRef = useRef(loadLocalTriggerIds(user?.uid));
   const dailyCountsRef = useRef(loadDailyCounts(user?.uid));
   const lastTriggeredRef = useRef(new Map());
+
+  // Load user's quiet hours preferences with real-time listener
+  useEffect(() => {
+    if (!user?.uid) {
+      setQuietHours({ enabled: true, start: 21, end: 6 });
+      return undefined;
+    }
+
+    try {
+      const prefRef = doc(db, 'users', user.uid, 'preferences', 'notifications');
+      const unsubscribe = onSnapshot(
+        prefRef,
+        (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.data();
+            setQuietHours({
+              enabled: data.quietHoursEnabled ?? true,
+              start: data.quietHoursStart ?? 21,
+              end: data.quietHoursEnd ?? 6,
+            });
+          } else {
+            setQuietHours({ enabled: true, start: 21, end: 6 });
+          }
+        },
+        (err) => {
+          console.warn('[useCustomEventNotifications] Failed to subscribe to quiet hours:', err);
+          setQuietHours({ enabled: true, start: 21, end: 6 });
+        }
+      );
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn('[useCustomEventNotifications] Error setting up quiet hours listener:', err);
+      setQuietHours({ enabled: true, start: 21, end: 6 });
+      return undefined;
+    }
+  }, [user?.uid]);
 
   useEffect(() => {
     if (!user?.uid) {
@@ -148,9 +213,12 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
     return () => unsubscribe();
   }, [user?.uid]);
 
-  const legacyReminders = useMemo(() => (
-    (events || [])
-      .map((event) => normalizeEventForReminder({
+  const legacyReminders = useMemo(() => {
+    if (events?.length > 0) {
+    }
+    
+    const mapped = (events || []).map((event) => {
+      const normalized = normalizeEventForReminder({
         event,
         source: 'custom',
         userId: user?.uid,
@@ -162,9 +230,14 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
           isCustom: true,
           seriesId: event.seriesId || event.id || null,
         },
-      }))
-      .filter((reminder) => reminder.reminders && reminder.reminders.length > 0)
-  ), [events, user?.uid]);
+      });
+      return normalized;
+    });
+    
+    const filtered = mapped.filter((reminder) => reminder.reminders && reminder.reminders.length > 0);
+    
+    return filtered;
+  }, [events, user?.uid]);
 
   const effectiveReminders = useMemo(() => {
     const map = new Map();
@@ -227,7 +300,10 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
         if (!effectiveReminders.length) return;
 
         const nowEpochMs = Date.now();
-        const rangeStartMs = nowEpochMs;
+        // BEP FIX: Look back by NOW_WINDOW_MS so events currently happening (within the 9-min window) 
+        // are still included in occurrences. Without this, occurrences become 0 immediately when 
+        // eventEpochMs < nowEpochMs, even though isDue should be true for up to NOW_WINDOW_MS after.
+        const rangeStartMs = nowEpochMs - NOW_WINDOW_MS;
         const rangeEndMs = nowEpochMs + 24 * 60 * 60 * 1000;
         let triggers = triggersRef.current;
         let dailyCounts = dailyCountsRef.current;
@@ -248,6 +324,7 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
               rangeStartMs,
               rangeEndMs,
             });
+
 
           const remindersList = Array.isArray(reminderRecord.reminders)
             ? reminderRecord.reminders
@@ -272,13 +349,19 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
 
               const reminderAt = occurrenceEpochMs - minutesBefore * 60 * 1000;
               const isDue = nowEpochMs >= reminderAt && nowEpochMs < occurrenceEpochMs + NOW_WINDOW_MS;
+              
               if (!isDue) return;
 
               const timezone = reminderRecord.timezone || 'America/New_York';
               const dayKey = getDayKeyForTimezone({ epochMs: reminderAt, timezone });
               const channels = getChannelsForReminder(reminder);
 
-              if (isWithinQuietHours({ epochMs: reminderAt, timezone })) {
+              // Check quiet hours - skip if disabled by user or within quiet time range
+              const userQuietHours = quietHours.enabled
+                ? { start: quietHours.start, end: quietHours.end }
+                : { start: 0, end: 0 }; // Disabled = no quiet hours (start === end bypasses check)
+
+              if (isWithinQuietHours({ epochMs: reminderAt, timezone, quietHours: userQuietHours })) {
                 channels.forEach((channel) => {
                   const triggerId = buildTriggerId({
                     eventKey: reminderRecord.eventKey,
@@ -309,7 +392,10 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
                   minutesBefore,
                   channel,
                 });
-                if (triggers.has(triggerId)) return;
+                
+                if (triggers.has(triggerId)) {
+                  return;
+                }
 
                 if (dayKey && (dailyCounts[dayKey] || 0) >= DAILY_REMINDER_CAP) {
                   triggers = new Set(triggers);
@@ -328,7 +414,9 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
 
                 const lastKey = `${reminderRecord.eventKey}:${channel}`;
                 const lastTriggeredAt = lastTriggeredRef.current.get(lastKey);
-                if (lastTriggeredAt && nowEpochMs - lastTriggeredAt < THROTTLE_WINDOW_MS) return;
+                if (lastTriggeredAt && nowEpochMs - lastTriggeredAt < THROTTLE_WINDOW_MS) {
+                  return;
+                }
 
                 const eventTime = formatTime(new Date(occurrenceEpochMs), timezone);
                 const impact = matchedEvent?.strength || matchedEvent?.impact || reminderRecord.impact || 'medium';
@@ -373,6 +461,14 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
                 };
 
                 if (channel === 'inApp') {
+                  // BEP: Optimistic update - immediately show notification in UI
+                  // Then persist to Firestore (subscription will dedupe if needed)
+                  setNotifications((prev) => {
+                    // Prevent duplicates in local state
+                    if (prev.some((n) => n.id === notification.id)) return prev;
+                    return [notification, ...prev];
+                  });
+
                   if (user?.uid) {
                     addNotificationForUser(user.uid, notification).catch((error) => {
                       console.error('❌ Failed to save notification to Firestore, falling back to localStorage:', error);
@@ -380,8 +476,7 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
                       setNotifications(updated);
                     });
                   } else {
-                    const updated = addLocalNotification(user?.uid, notification);
-                    setNotifications(updated);
+                    addLocalNotification(user?.uid, notification);
                   }
                 }
 
@@ -389,6 +484,15 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
                   notifyBrowser(title, message);
                 }
 
+                if (channel === 'push') {
+                  // BEP: Push notifications are handled server-side via FCM Cloud Function.
+                  // Server creates its own trigger in Firestore - DO NOT create client-side trigger
+                  // or it will block the server from sending. Client only records to localStorage
+                  // for in-session deduplication.
+                  return; // Skip Firestore trigger - server will create it when it sends FCM
+                }
+
+                // BEP: Only record inApp/browser triggers to Firestore - NOT push
                 void recordNotificationTrigger(user?.uid, triggerId, {
                   eventKey: reminderRecord.eventKey,
                   occurrenceEpochMs,
@@ -416,7 +520,8 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [effectiveReminders, notifyBrowser, user?.uid]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveReminders, notifyBrowser, user?.uid, quietHours]);
 
   const visibleNotifications = useMemo(
     () => notifications.filter((item) => !item.deleted),

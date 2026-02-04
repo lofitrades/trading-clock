@@ -14,6 +14,11 @@ Allow: /events/
 Allow: /clock
 Allow: /calendar
 
+# Block static assets that shouldn't be indexed (saves crawl budget)
+Disallow: /*.ico$
+Disallow: /favicon.ico
+Disallow: /faviconDark.ico
+
 # Block legacy app routes
 Disallow: /app/
 

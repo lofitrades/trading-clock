@@ -106,6 +106,7 @@
       "items": [
         "Les données sur les événements économiques sont fournies par Forex Factory, NFS, JBlanked et d'autres sources. Nous ne sommes pas responsables de leur exactitude ou de leur rapidité",
         "Les annonces Google AdSense peuvent apparaître sur le Service. Nous ne sommes pas responsables du contenu ou des pratiques publicitaires",
+        "Meta Pixel est utilisé pour le suivi des conversions et la mesure publicitaire lorsque vous consentez aux cookies publicitaires. La politique de confidentialité de Meta s'applique",
         "L'authentification OAuth est fournie par Google et Twitter. Leurs politiques de confidentialité et de sécurité s'appliquent à l'authentification",
         "Firestore (Google Cloud) fournit le stockage de données et la synchronisation. Les conditions et les politiques de confidentialité de Google s'appliquent"
       ]

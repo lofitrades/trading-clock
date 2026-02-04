@@ -6,6 +6,7 @@
  * updates into the canonical economic events collection.
  *
  * Changelog:
+ * v1.6.0 - 2026-02-04 - BEP FIX: FCM scheduler now runs every 1 minute for near-instant push delivery.
  * v1.5.0 - 2026-01-23 - Add scheduled FCM push reminders for unified event reminders.
  * v1.4.0 - 2026-01-21 - Add callable email sender for custom reminder notifications.
  * v1.3.0 - 2026-01-21 - Add manual JBlanked Forex Factory range backfill endpoint.
@@ -109,13 +110,15 @@ export const syncTodayActualsFromJblanked = onSchedule(
 
 /**
  * Scheduled Cloud Function - FCM push reminders
- * Runs every 5 minutes to deliver reminder notifications.
+ * Runs every 1 minute for near-instant push notification delivery.
+ * BEP: Cost-effective at ~43,200/month (2.16% of free tier).
+ * Window is 90 seconds to ensure no gaps with deduplication.
  */
 export const sendFcmRemindersScheduled = onSchedule(
   {
-    schedule: "every 5 minutes",
+    schedule: "every 1 minutes",
     timeZone: "America/New_York",
-    timeoutSeconds: 300,
+    timeoutSeconds: 60,
     memory: "256MiB",
   },
   async () => {

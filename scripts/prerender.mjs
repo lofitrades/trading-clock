@@ -6,6 +6,12 @@
  * Generates language variants (/es/, /fr/) for enhanced international crawlability (BEP).
  * 
  * Changelog:
+ * v1.8.0 - 2026-02-04 - BEP SEO CRITICAL: Fixed URL strategy mismatch. All language URLs now use subpath structure (/es/, /fr/) instead of query params (?lang=es) for canonical tags, hreflang tags, and structured data. Eliminates duplicate URLs (e.g., /es/clock vs /clock?lang=es), prevents conflicting canonicals, and improves Google indexing. Matches Firebase hosting rewrites and sitemap.xml structure.
+ * v1.7.0 - 2026-02-03 - BEP SEO: Updated EN page metadata to match new hero messaging ("Trading Clock", benefit-driven descriptions, "never trade blind").
+ * v1.6.0 - 2026-02-02 - BEP SEO FIX: Added BreadcrumbList and WebPage structured data injection for event pages.
+ *                       Addresses "Discovered - currently not indexed" GSC status by providing site hierarchy signals.
+ *                       Event pages now have 3-level breadcrumbs: Home → Economic Calendar → [Event Name].
+ * v1.5.0 - 2026-02-02 - BEP SEO SOFT-404 FIX: Added page-specific noscript fallback content for Privacy, Terms, About, Contact pages. Google was flagging /privacy as soft-404 because the noscript content was generic landing page copy. Now each prerendered page has unique, crawlable content that matches its purpose, eliminating soft-404 issues.
  * v1.4.0 - 2026-02-03 - BEP SEO ENHANCEMENT: Integrated dynamic sitemap generation. Now calls generate-sitemap.mjs at end of prerender to create sitemap.xml with all 166 URLs (7 base + 159 events × 3 languages) with proper hreflang tags. Ensures Google has complete URL list immediately after build.
  * v1.3.0 - 2026-02-02 - BEP SEO: Added event pages prerendering. Generates 159 event pages (53 events × 3 languages) from economicEventDescriptions.json. Total pages: 180 (21 static + 159 events).
  * v1.2.0 - 2026-01-27 - BEP ENHANCED: Full multi-language prerendering. Generates 21 static HTML files (7 pages × 3 languages). Loads i18n translations during build, injects localized titles/descriptions, updates canonical URLs and hreflang tags per language variant. Firebase rewrites handle /es/* and /fr/* subpaths. Enables non-JS crawlers to see localized content immediately.
@@ -62,23 +68,23 @@ function getLocalizedEventContent(event, lang = 'en') {
  */
 const pages = {
   '/': {
-    title: 'Time 2 Trade | Free Trading Clock + Economic Calendar',
-    description: 'Free economic calendar for forex and futures traders. Live session clock with today\'s events, impact/currency filters, favorites, notes, exports. Trusted Forex Factory source.',
+    title: 'Time 2 Trade | Trading Clock + Forex Factory Economic Calendar (NY Time)',
+    description: 'See every trading session and market-moving event at a glance. A visual 24-hour clock displays New York, London, and Asia sessions with real-time countdowns—plus a Forex Factory-powered calendar filtered by impact and currency.',
     path: 'index.html',
   },
   '/clock': {
-    title: 'Trading Clock | Live Market Sessions for Forex & Futures',
-    description: 'Free live trading clock for day traders. Real-time market sessions (NY, London, Asia), overlaps, countdowns, economic events, and timezone-aware insights.',
+    title: 'Trading Clock | Live NY, London, Asia Sessions with Countdowns',
+    description: 'Visual 24-hour trading clock for futures and forex day traders. See New York, London, and Asia sessions in real-time with countdowns to key transitions—never miss a session open again.',
     path: 'clock/index.html',
   },
   '/calendar': {
-    title: 'Free Economic Calendar | Forex Factory + Session Clock',
-    description: 'Free economic calendar for forex and futures traders. Forex Factory data with session clock context, impact/currency filters, favorites, notes, and exports.',
+    title: 'Economic Calendar | Forex Factory Events Filtered by Impact & Currency',
+    description: 'Forex Factory-powered economic calendar with fast filters for impact and currency. See scheduled releases that move price, add favorites and notes, and never trade blind into a high-impact release.',
     path: 'calendar/index.html',
   },
   '/about': {
     title: 'About Time 2 Trade | Trading Clock for Futures & Forex',
-    description: 'Time 2 Trade: a lightweight trading clock + economic calendar for futures and forex day traders. Visualize sessions, overlaps, and events with timezone-aware countdowns.',
+    description: 'About Time 2 Trade: a visual 24-hour trading clock displaying New York, London, and Asia sessions with real-time countdowns—plus a Forex Factory-powered economic calendar filtered by impact and currency.',
     path: 'about/index.html',
   },
   '/privacy': {
@@ -88,7 +94,7 @@ const pages = {
   },
   '/terms': {
     title: 'Terms & Conditions | Time 2 Trade',
-    description: 'Time 2 Trade Terms & Conditions, including acceptable use, disclaimers, and ad disclosures. Free trading intelligence platform for futures and forex day traders.',
+    description: 'Time 2 Trade Terms & Conditions, including acceptable use, disclaimers, and ad disclosures. Free trading timing workspace for futures and forex day traders.',
     path: 'terms/index.html',
   },
   '/contact': {
@@ -96,6 +102,248 @@ const pages = {
     description: 'Contact Time 2 Trade. Send a message for support, feedback, or questions. Prefer DM? Reach us on X.',
     path: 'contact/index.html',
   },
+};
+
+/**
+ * BEP SEO: Page-specific noscript fallback content
+ * Prevents soft-404 detection by Google - each page must have unique, relevant content
+ */
+const noscriptContent = {
+  '/': null, // Use default landing page content from index.html
+  '/clock': `
+        <main class="t2t-noscript" aria-label="Trading Clock">
+          <h1>Trading Clock | Live Market Sessions for Forex & Futures</h1>
+          <p>
+            Track global trading sessions in real-time with our free <strong>trading session clock</strong>.
+            See when New York, London, Tokyo, and Sydney markets are open with visual overlaps and countdowns.
+          </p>
+
+          <h2>Key Features</h2>
+          <ul>
+            <li><strong>Live session tracking:</strong> Real-time display of all major market sessions</li>
+            <li><strong>Session overlaps:</strong> Visualize high-volume overlap periods</li>
+            <li><strong>Customizable timezone:</strong> View everything in your local time</li>
+            <li><strong>Economic events:</strong> See upcoming releases directly on the clock</li>
+            <li><strong>Countdown timers:</strong> Know exactly when sessions open and close</li>
+          </ul>
+
+          <h2>Why Use a Trading Clock?</h2>
+          <p>
+            Different trading sessions have different characteristics. The London-New York overlap often sees
+            the highest volume and volatility. Our clock helps you time your trades with session awareness.
+          </p>
+
+          <a class="cta primary" href="/clock">Open Trading Clock</a>
+          <a class="cta secondary" href="/calendar">View Economic Calendar</a>
+
+          <p class="note">
+            JavaScript is required for the full interactive experience. Enable JavaScript and refresh.
+          </p>
+        </main>`,
+  '/calendar': `
+        <main class="t2t-noscript" aria-label="Economic Calendar">
+          <h1>Free Economic Calendar | Forex Factory Data + Trading Clock</h1>
+          <p>
+            Access a comprehensive <strong>economic events calendar</strong> powered by Forex Factory data.
+            Filter by impact level, currency, and timeframe to find the events that matter to your trading.
+          </p>
+
+          <h2>Calendar Features</h2>
+          <ul>
+            <li><strong>Forex Factory data:</strong> Trusted economic event source</li>
+            <li><strong>Impact filtering:</strong> Focus on high, medium, or low impact events</li>
+            <li><strong>Currency filters:</strong> Track USD, EUR, GBP, JPY, and more</li>
+            <li><strong>Personal notes:</strong> Add your own notes to any event</li>
+            <li><strong>Favorites:</strong> Mark and track events you follow</li>
+            <li><strong>Export options:</strong> Download events for your records</li>
+          </ul>
+
+          <h2>Plan Around Economic Releases</h2>
+          <p>
+            High-impact economic releases like NFP, FOMC decisions, and GDP reports can cause significant
+            market volatility. Use our calendar to plan entries, exits, or stay flat during major releases.
+          </p>
+
+          <a class="cta primary" href="/calendar">Open Economic Calendar</a>
+          <a class="cta secondary" href="/clock">View Trading Clock</a>
+
+          <p class="note">
+            JavaScript is required for the full interactive experience. Enable JavaScript and refresh.
+          </p>
+        </main>`,
+  '/about': `
+        <main class="t2t-noscript" aria-label="About Time 2 Trade">
+          <h1>About Time 2 Trade | Trading Clock for Futures & Forex</h1>
+          <p>
+            <strong>Time 2 Trade</strong> is a free, lightweight trading tool built for futures and forex day traders.
+            We combine a visual session clock with an economic events calendar — everything you need to know
+            when to trade and what's coming up.
+          </p>
+
+          <h2>Our Mission</h2>
+          <p>
+            We believe traders shouldn't have to bounce between tabs to know what session is open or when
+            the next Fed announcement drops. Time 2 Trade puts timing context front and center.
+          </p>
+
+          <h2>What We Offer</h2>
+          <ul>
+            <li><strong>Trading Clock:</strong> Visual display of global market sessions and overlaps</li>
+            <li><strong>Economic Calendar:</strong> Forex Factory-powered event data with filters</li>
+            <li><strong>Custom Events:</strong> Add your own trading reminders and routines</li>
+            <li><strong>Notifications:</strong> Get alerted before important events</li>
+            <li><strong>Cloud Sync:</strong> Your settings follow you across devices</li>
+          </ul>
+
+          <h2>Built for Traders, By Traders</h2>
+          <p>
+            This is not a signals service or broker. Time 2 Trade is purely for awareness and context — 
+            helping you make better timing decisions in your own trading strategy.
+          </p>
+
+          <a class="cta primary" href="/clock">Try the Trading Clock</a>
+          <a class="cta secondary" href="/calendar">View Economic Calendar</a>
+
+          <p class="note">
+            JavaScript is required for the full interactive experience. Enable JavaScript and refresh.
+          </p>
+        </main>`,
+  '/privacy': `
+        <main class="t2t-noscript" aria-label="Privacy Policy">
+          <h1>Privacy Policy | Time 2 Trade</h1>
+          <p>
+            <strong>Last Updated: February 2, 2026</strong>
+          </p>
+          <p>
+            This Privacy Policy explains how Time 2 Trade ("we", "us", "our") collects, uses, and protects
+            your personal information when you use our trading clock and economic calendar application.
+          </p>
+
+          <h2>Information We Collect</h2>
+          <ul>
+            <li><strong>Account Information:</strong> Email address when you sign up (optional)</li>
+            <li><strong>Usage Data:</strong> Pages visited, features used, session duration</li>
+            <li><strong>Preferences:</strong> Your timezone, theme, and calendar filter settings</li>
+            <li><strong>Device Information:</strong> Browser type, operating system, device type</li>
+            <li><strong>Conversion Data:</strong> Sign-ups and logins tracked via Meta Pixel for ad measurement</li>
+          </ul>
+
+          <h2>How We Use Your Information</h2>
+          <ul>
+            <li>To provide and improve our trading clock and calendar services</li>
+            <li>To sync your settings across devices when logged in</li>
+            <li>To analyze usage patterns and optimize performance</li>
+            <li>To display relevant advertisements through Google AdSense</li>
+            <li>To measure ad effectiveness via Meta Pixel conversion tracking</li>
+          </ul>
+
+          <h2>Third-Party Services</h2>
+          <p>We use the following third-party services:</p>
+          <ul>
+            <li><strong>Firebase:</strong> Authentication, database, and hosting</li>
+            <li><strong>Google Analytics:</strong> Usage analytics and insights</li>
+            <li><strong>Google AdSense:</strong> Advertising (with consent controls)</li>
+            <li><strong>Meta Pixel:</strong> Conversion tracking and ad measurement</li>
+          </ul>
+
+          <h2>Your Rights</h2>
+          <p>
+            You have the right to access, correct, or delete your personal data. You can manage ad 
+            personalization preferences and request data export or deletion by contacting us.
+          </p>
+
+          <h2>Contact Us</h2>
+          <p>
+            Questions about this Privacy Policy? Contact us at <a href="/contact">time2.trade/contact</a>
+            or reach out on X (Twitter).
+          </p>
+
+          <a class="cta primary" href="/clock">Return to Trading Clock</a>
+          <a class="cta secondary" href="/contact">Contact Us</a>
+        </main>`,
+  '/terms': `
+        <main class="t2t-noscript" aria-label="Terms and Conditions">
+          <h1>Terms & Conditions | Time 2 Trade</h1>
+          <p>
+            <strong>Last Updated: January 7, 2026</strong>
+          </p>
+          <p>
+            By accessing and using Time 2 Trade, you agree to these Terms & Conditions. Please read them
+            carefully before using our trading clock and economic calendar application.
+          </p>
+
+          <h2>Service Description</h2>
+          <p>
+            Time 2 Trade provides a free trading session clock and economic events calendar for informational
+            purposes only. We are <strong>not</strong> a broker, signals provider, or financial advisor.
+          </p>
+
+          <h2>Acceptable Use</h2>
+          <ul>
+            <li>Use the service for personal, non-commercial trading research</li>
+            <li>Do not attempt to scrape, reverse-engineer, or abuse our systems</li>
+            <li>Do not redistribute our data without permission</li>
+            <li>Respect other users and our community guidelines</li>
+          </ul>
+
+          <h2>Disclaimer</h2>
+          <p>
+            <strong>Trading involves substantial risk of loss.</strong> Time 2 Trade does not provide 
+            financial advice, trading signals, or investment recommendations. All trading decisions are
+            your own responsibility. Past performance does not guarantee future results.
+          </p>
+
+          <h2>Data Accuracy</h2>
+          <p>
+            Economic calendar data is sourced from third parties including Forex Factory. While we strive
+            for accuracy, we cannot guarantee the completeness or timeliness of all data. Always verify
+            important releases through official sources.
+          </p>
+
+          <h2>Advertising</h2>
+          <p>
+            Time 2 Trade displays advertisements through Google AdSense and tracks conversions via Meta Pixel
+            to support our free service. You can manage ad personalization in your settings or browser preferences.
+          </p>
+
+          <h2>Changes to Terms</h2>
+          <p>
+            We may update these terms from time to time. Continued use of the service after changes
+            constitutes acceptance of the new terms.
+          </p>
+
+          <a class="cta primary" href="/clock">Return to Trading Clock</a>
+          <a class="cta secondary" href="/contact">Contact Us</a>
+        </main>`,
+  '/contact': `
+        <main class="t2t-noscript" aria-label="Contact Time 2 Trade">
+          <h1>Contact | Time 2 Trade</h1>
+          <p>
+            Have questions, feedback, or need support? We'd love to hear from you.
+          </p>
+
+          <h2>Get in Touch</h2>
+          <ul>
+            <li><strong>Contact Form:</strong> Use our contact form (requires JavaScript)</li>
+            <li><strong>X (Twitter):</strong> DM us <a href="https://x.com/time2aborrar" target="_blank" rel="noopener">@time2aborrar</a></li>
+          </ul>
+
+          <h2>Common Questions</h2>
+          <ul>
+            <li><strong>Is Time 2 Trade free?</strong> Yes, our core features are completely free.</li>
+            <li><strong>Where does the calendar data come from?</strong> Forex Factory and other trusted sources.</li>
+            <li><strong>Can I use this on mobile?</strong> Yes, Time 2 Trade is fully responsive and PWA-installable.</li>
+            <li><strong>How do I report a bug?</strong> Use the contact form or DM us on X.</li>
+          </ul>
+
+          <h2>Response Time</h2>
+          <p>
+            We typically respond within 24-48 hours. For urgent issues, X (Twitter) DM is often fastest.
+          </p>
+
+          <a class="cta primary" href="/clock">Return to Trading Clock</a>
+          <a class="cta secondary" href="/calendar">View Economic Calendar</a>
+        </main>`,
 };
 
 /**
@@ -206,7 +454,7 @@ const upsertMetaTag = (html, { key, value, by = 'name' }) => {
 
 /**
  * Update hreflang tags for multi-language discovery
- * BEP SEO: Ensures crawlers can find all language variants
+ * BEP SEO: Ensures crawlers can find all language variants using subpath structure
  */
 function updateHreflangTags(html, route, currentLang) {
   // Build hreflang URLs for all supported languages
@@ -221,9 +469,9 @@ function updateHreflangTags(html, route, currentLang) {
   // x-default points to English
   hreflangTags.push(`<link rel="alternate" hreflang="x-default" href="${baseUrl}" />`);
   
-  // Language-specific hreflang tags
+  // Language-specific hreflang tags using subpath structure
   SUPPORTED_LANGUAGES.forEach((lang) => {
-    const href = lang === DEFAULT_LANGUAGE ? baseUrl : `${baseUrl}?lang=${lang}`;
+    const href = lang === DEFAULT_LANGUAGE ? baseUrl : `https://time2.trade/${lang}${route}`;
     hreflangTags.push(`<link rel="alternate" hreflang="${lang}" href="${href}" />`);
   });
   
@@ -244,12 +492,12 @@ async function generateHTML(route, meta, lang) {
   html = upsertMetaTag(html, { by: 'name', key: 'title', value: meta.title });
   html = upsertMetaTag(html, { by: 'name', key: 'description', value: meta.description });
 
-  // BEP SEO: Update canonical URL based on language
+  // BEP SEO: Update canonical URL based on language (subpath structure)
   let canonicalUrl;
   if (route === '/') {
-    canonicalUrl = lang === DEFAULT_LANGUAGE ? 'https://time2.trade/' : 'https://time2.trade/?lang=' + lang;
+    canonicalUrl = lang === DEFAULT_LANGUAGE ? 'https://time2.trade/' : `https://time2.trade/${lang}/`;
   } else {
-    canonicalUrl = lang === DEFAULT_LANGUAGE ? `https://time2.trade${route}` : `https://time2.trade${route}?lang=${lang}`;
+    canonicalUrl = lang === DEFAULT_LANGUAGE ? `https://time2.trade${route}` : `https://time2.trade/${lang}${route}`;
   }
   
   html = replaceMeta(
@@ -276,10 +524,130 @@ async function generateHTML(route, meta, lang) {
   // BEP SEO: Update html lang attribute
   html = html.replace(/<html[^>]*lang="[^"]*"/i, `<html lang="${lang}"`);
 
+  // BEP SEO SOFT-404 FIX: Replace noscript content with page-specific content
+  // This prevents Google from seeing duplicate generic content across all pages
+  const pageNoscript = noscriptContent[route];
+  if (pageNoscript) {
+    // Replace the entire noscript content
+    html = html.replace(
+      /<noscript>[\s\S]*?<\/noscript>/i,
+      `<noscript>${pageNoscript}\n      </noscript>`
+    );
+  }
+
   const ogImage = getOgImage();
   const withOg = applyOgImage(html, ogImage);
 
   return withOg;
+}
+
+/**
+ * Generate HTML for event pages with event-specific noscript content and structured data
+ * BEP SEO: Prevents soft-404 by providing unique, crawlable content for each event
+ * BEP SEO: Adds BreadcrumbList schema for site hierarchy signals to Google
+ */
+async function generateEventHTML(route, meta, lang, event, localizedContent) {
+  // Start with standard HTML generation
+  let html = await generateHTML(route, meta, lang);
+  
+  // Generate event-specific noscript content
+  const eventName = event.name || 'Economic Event';
+  const description = localizedContent.description || meta.description;
+  const tradingImplication = localizedContent.tradingImplication || '';
+  const currency = event.currency || 'USD';
+  const frequency = event.frequency || 'Monthly';
+  const eventId = event.id || event.docId;
+  
+  // BEP SEO: Generate BreadcrumbList and WebPage structured data for event pages
+  const siteUrl = 'https://time2.trade';
+  const eventUrl = lang === DEFAULT_LANGUAGE 
+    ? `${siteUrl}/events/${eventId}` 
+    : `${siteUrl}/${lang}/events/${eventId}`;
+  
+  const eventStructuredData = [
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": siteUrl
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Economic Calendar",
+          "item": `${siteUrl}/calendar`
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": eventName,
+          "item": eventUrl
+        }
+      ]
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": meta.title,
+      "url": eventUrl,
+      "description": description.substring(0, 160),
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "Time 2 Trade",
+        "url": siteUrl
+      },
+      "about": {
+        "@type": "Event",
+        "name": eventName,
+        "description": description
+      }
+    }
+  ];
+  
+  // Inject structured data into head
+  const structuredDataScript = `<script type="application/ld+json">${JSON.stringify(eventStructuredData, null, 2)}</script>`;
+  html = html.replace(/<\/head>/i, `    ${structuredDataScript}\n  </head>`);
+  
+  const eventNoscript = `
+        <main class="t2t-noscript" aria-label="${eventName} - Economic Event Guide">
+          <h1>${eventName} | Economic Event Guide</h1>
+          <p>
+            <strong>Currency:</strong> ${currency} | <strong>Frequency:</strong> ${frequency}
+          </p>
+          
+          <h2>What is ${eventName}?</h2>
+          <p>${description}</p>
+          
+          ${tradingImplication ? `
+          <h2>Trading Implications</h2>
+          <p>${tradingImplication}</p>
+          ` : ''}
+          
+          <h2>Track This Event</h2>
+          <p>
+            Use Time 2 Trade's economic calendar to track ${eventName} releases. Set notifications,
+            add personal notes, and see how this event fits into your trading session.
+          </p>
+
+          <a class="cta primary" href="/calendar">View Economic Calendar</a>
+          <a class="cta secondary" href="/clock">Open Trading Clock</a>
+
+          <p class="note">
+            JavaScript is required for the full interactive experience. Enable JavaScript and refresh.
+          </p>
+        </main>`;
+  
+  // Replace noscript content with event-specific content
+  html = html.replace(
+    /<noscript>[\s\S]*?<\/noscript>/i,
+    `<noscript>${eventNoscript}\n      </noscript>`
+  );
+  
+  return html;
 }
 
 async function prerender() {
@@ -292,6 +660,7 @@ async function prerender() {
   for (const lang of SUPPORTED_LANGUAGES) {
     const langLabel = lang === DEFAULT_LANGUAGE ? '(DEFAULT)' : '';
     console.log(`\n📍 Language: ${lang.toUpperCase()} ${langLabel}`);
+
     
     for (const [route, basePageMeta] of Object.entries(pages)) {
       try {
@@ -361,8 +730,8 @@ async function prerender() {
           path: `events/${eventId}/index.html`,
         };
         
-        // Generate HTML
-        const html = await generateHTML(route, meta, lang);
+        // Generate HTML with event-specific noscript content
+        const html = await generateEventHTML(route, meta, lang, event, localizedContent);
         
         // Determine output path based on language
         let outputPath;

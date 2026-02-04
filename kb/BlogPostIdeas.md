@@ -34,6 +34,6 @@ Pillar 4: Timezone + travel (underserved SEO niche)
 
 Pillar 5: Product-led, but not “salesy”
 
-“Session Clock + Economic Calendar (NY Time): A 60-Second Workflow”
+“Trading Clock + Economic Calendar (NY Time): A 60-Second Workflow”
 
 “How to Avoid Getting Surprised by News (Overlaying Events on Your Session Plan)”

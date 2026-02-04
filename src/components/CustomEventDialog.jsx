@@ -6,6 +6,7 @@
  * and smooth transitions while maintaining all v1 features (reminders, recurrence, timezone, impact).
  * 
  * Changelog:
+ * v2.2.0 - 2026-02-03 - BEP SAVE CONFIRMATION UX: Added checkmark icon to save button on success (with success.main color), button briefly disabled after save showing "✓ Saved", green success snackbar for clear confirmation. Improves confidence that event was saved correctly.
  * v2.1.1 - 2026-01-27 - BEP i18n migration COMPLETE: Replaced final 3 hardcoded strings (dialog title Edit/New, Hex Color label, Select Icon text) with t() calls. 100% i18n compliant for EN/ES/FR.
  * v2.1.0 - 2026-01-29 - BEP i18n migration: Added useTranslation hook, replaced 50+ hardcoded strings with t() calls for events namespace
  * v2.0.0 - 2026-01-23 - BEP refactor: Popover-based icon/color pickers, two-column desktop layout, smooth transitions, optimized viewport usage. All v1 features preserved.
@@ -149,6 +150,7 @@ export default function CustomEventDialog({
     const [initialForm, setInitialForm] = useState(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
+    const [showSaveSuccess, setShowSaveSuccess] = useState(false);
 
     // Popover anchors
     const [colorAnchor, setColorAnchor] = useState(null);
@@ -250,6 +252,15 @@ export default function CustomEventDialog({
         const hasChanges = JSON.stringify(form) !== JSON.stringify(initialForm);
         setHasUnsavedChanges(hasChanges);
     }, [form, initialForm, savedChanges]);
+
+    // BEP: Show save success state briefly then reset (improves UX by clearing checkmark after 2.5s)
+    useEffect(() => {
+        if (!showSaveSuccess) return;
+        const timer = window.setTimeout(() => {
+            setShowSaveSuccess(false);
+        }, 2500);
+        return () => window.clearTimeout(timer);
+    }, [showSaveSuccess]);
 
     const resetSavedState = () => {
         if (savedChanges) setSavedChanges(false);
@@ -455,10 +466,11 @@ export default function CustomEventDialog({
 
         onSave?.(savedData);
 
-        // If editing, show success message and keep modal open
+        // If editing, show success confirmation (checkmark + snackbar) and keep modal open
         // If creating new, modal will be closed by parent component
         if (isEditing) {
             setSavedChanges(true);
+            setShowSaveSuccess(true);
         }
     };
 
@@ -839,9 +851,18 @@ export default function CustomEventDialog({
                         variant="contained"
                         onClick={handleSubmit}
                         disabled={!form.title || !form.localDate || !form.localTime || (isEditing && savedChanges)}
-                        sx={{ borderRadius: 999, px: 3 }}
+                        startIcon={showSaveSuccess ? <CheckRoundedIcon /> : undefined}
+                        sx={{
+                            borderRadius: 999,
+                            px: 3,
+                            transition: 'all 0.3s ease-in-out',
+                            ...(showSaveSuccess && {
+                                bgcolor: theme.palette.success.main,
+                                color: theme.palette.success.contrastText,
+                            }),
+                        }}
                     >
-                        {isEditing ? (savedChanges ? t('events:dialog.actions.saveChanges.success') : t('events:dialog.actions.saveChanges.action')) : t('events:dialog.actions.addCustomEvent')}
+                        {isEditing ? (showSaveSuccess ? t('events:dialog.actions.saveChanges.success') : t('events:dialog.actions.saveChanges.action')) : t('events:dialog.actions.addCustomEvent')}
                     </Button>
                 </DialogActions>
             </Dialog>

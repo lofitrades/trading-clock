@@ -7,6 +7,7 @@
  * Provides useLanguage hook for components to access current language preference
  * 
  * Changelog:
+ * v1.3.0 - 2026-02-04 - BEP SEO CRITICAL: Migrated from query params (?lang=xx) to subpath URLs (/es/, /fr/) for language detection. Extracts language from pathname instead of search params. Aligns with Firebase hosting rewrites, prerender output, and sitemap structure. Eliminates duplicate URL issues and improves SEO crawlability.
  * v1.2.0 - 2026-01-27 - BEP SEO: Added URL query param (?lang=xx) detection for crawler-friendly language switching. Priority: URL param > localStorage > Firestore > browser. Supports hreflang SEO strategy.
  * v1.1.0 - 2026-01-27 - BEP PERFORMANCE: Updated for lazy-loaded i18n backend. Preload critical namespaces (common, pages) when loading language preference to prevent translation flicker. Ensures smooth UX on initial load.
  * v1.0.1 - 2026-01-27 - BUGFIX: Remove i18n from useEffect dependencies to prevent infinite update loops
@@ -24,27 +25,29 @@ import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from '../utils/seoMeta';
 const LanguageContext = createContext();
 
 /**
- * Get language from URL query parameter for SEO-friendly language switching
- * BEP SEO: Enables crawlers to discover language variants via ?lang=xx URLs
+ * Get language from URL pathname for SEO-friendly language switching
+ * BEP SEO: Enables crawlers to discover language variants via /es/, /fr/ subpaths
+ * Matches Firebase hosting rewrite structure and prerender output
  * @returns {string|null} Language code if valid, null otherwise
  */
 const getLanguageFromUrl = () => {
     if (typeof window === 'undefined') return null;
 
-    const params = new URLSearchParams(window.location.search);
-    const urlLang = params.get('lang');
+    // Extract language from pathname (e.g., /es/clock → es, /fr/about → fr)
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const firstPart = pathParts[0];
 
     // Validate against supported languages
-    if (urlLang && SUPPORTED_LANGUAGES.includes(urlLang)) {
-        return urlLang;
+    if (firstPart && SUPPORTED_LANGUAGES.includes(firstPart)) {
+        return firstPart;
     }
     return null;
 };
 
 /**
  * Provides language selection and persistence with lazy loading support
- * Priority order: URL param > localStorage > Firestore > browser detection
- * - URL param: Enables SEO hreflang URLs (?lang=es, ?lang=fr)
+ * Priority order: URL pathname (/es/, /fr/) > localStorage > Firestore > browser detection
+ * - URL pathname: Enables SEO hreflang URLs (/es/clock, /fr/about)
  * - localStorage: Works for guests and authenticated users
  * - Firestore: Syncs preference for authenticated users
  * - Preloads critical namespaces (common, pages) to prevent flicker
@@ -55,8 +58,8 @@ export function LanguageProvider({ children }) {
     const { user } = useAuth();
     const [isLoadingLanguage, setIsLoadingLanguage] = useState(true);
 
-    // Load language on mount (from URL, localStorage, then Firestore if authenticated)
-    // BEP SEO: URL param takes priority to support hreflang crawler discovery
+    // Load language on mount (from URL pathname, localStorage, then Firestore if authenticated)
+    // BEP SEO: URL pathname takes priority to support hreflang crawler discovery
     // BEP: Preload critical namespaces to prevent translation flicker
     // Only runs once on component mount - dependencies stable to prevent infinite loops
     useEffect(() => {

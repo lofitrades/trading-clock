@@ -6,6 +6,7 @@
  * and restrict server-managed collections.
  * 
  * Changelog:
+ * v1.3.0 - 2026-02-03 - Add rules for preferences subcollection (quiet hours).
  * v1.2.0 - 2026-01-23 - Add rules for deviceTokens and notificationStats for FCM.
  * v1.1.0 - 2026-01-23 - Add rules for unified reminders and notification triggers.
  * v1.0.0 - 2025-09-15 - Initial security rules.
@@ -74,6 +75,11 @@ service cloud.firestore {
 
       // Notifications subcollection - owners access their own notification history
       match /notifications/{notificationId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Preferences subcollection - owners manage their notification/app preferences
+      match /preferences/{prefId} {
         allow read, write: if isOwner(userId);
       }
     }

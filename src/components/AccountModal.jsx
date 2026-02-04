@@ -8,11 +8,16 @@
  * - Simple initials avatar (preserves Google account photos)
  * - Display name editing
  * - Password reset via email
+ * - Push notification management via NotificationPreferencesPanel
  * - Account deletion with confirmation
  * - Fully responsive (mobile → desktop)
  * - Self-contained with proper error handling
  * 
  * Changelog:
+ * v2.5.0 - 2026-02-03 - BEP REFACTOR: Extract notification UI to standalone NotificationPreferencesPanel.
+ *                       Now properly tracks device token registration state (not just browser permission).
+ * v2.4.0 - 2026-02-03 - BEP: Add Notifications section with permission status display, enable/disable
+ *                       push notifications, and device registration management.
  * v2.3.0 - 2026-01-28 - BEP THEME: Replaced hardcoded error color with theme.palette.error. Changed alpha('#d32f2f', 0.05) to alpha(theme.palette.error.main, 0.05) for dynamic theme adaptation in danger zone section. Now warning UI color adapts to light/dark modes.
  * v2.2.0 - 2026-01-24 - Phase 3 i18n migration: Account management strings (dialogs, form, actions - 42+ strings EN/ES/FR)
  * v2.1.4 - 2026-01-15 - Hide AccountModal when password reset flow is triggered to prevent stacking conflicts.
@@ -56,6 +61,7 @@ import { updateProfile, deleteUser, sendPasswordResetEmail } from 'firebase/auth
 import { doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import ConfirmModal from './ConfirmModal';
 import { getFriendlyErrorMessage } from '../utils/messages';
+import NotificationPreferencesPanel from './NotificationPreferencesPanel';
 
 export default function AccountModal({ open, onClose, user }) {
   const { t } = useTranslation(['dialogs', 'form', 'actions']);
@@ -339,6 +345,15 @@ export default function AccountModal({ open, onClose, user }) {
                   {t('dialogs:sendPasswordResetEmail')}
                 </Button>
               </Box>
+
+              <Divider />
+
+              {/* Notifications Section - BEP standalone component */}
+              <NotificationPreferencesPanel
+                user={user}
+                onMessage={setMessage}
+                onError={setError}
+              />
 
               {/* Messages */}
               {error && (

@@ -6,6 +6,7 @@
  * Mobile-first, fully responsive, with verification state management.
  * 
  * Changelog:
+ * v1.2.0 - 2026-02-02 - BEP i18n: Pass current language to magic link for language-aware auth flow. Users clicking magic links now land in their preferred language (ES/FR).
  * v1.1.4 - 2026-01-16 - Redirect social login success to /calendar for the new public clock route.
  * v1.1.3 - 2026-01-08 - Reverted to Firebase sendSignInLinkToEmail with custom SMTP; removed SendGrid Cloud Function dependency
  * v1.1.2 - 2025-12-22 - Redirect social login success to /app instead of root for post-auth landing.
@@ -19,6 +20,7 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Container,
@@ -57,6 +59,7 @@ const loginMeta = buildSeoMeta({
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
 
   const [email, setEmail] = useState('');
   const [isSignup, setIsSignup] = useState(false);
@@ -79,7 +82,13 @@ export default function LoginPage() {
     setSuccessMsg('');
 
     try {
-      const actionCodeSettings = getMagicLinkActionCodeSettings();
+      // BEP i18n: Pass current language to preserve user's preference in magic link
+      const preferredLanguage = localStorage.getItem('preferredLanguage') || i18n.language || 'en';
+      const actionCodeSettings = getMagicLinkActionCodeSettings('/calendar', preferredLanguage);
+
+      // BEP i18n: Set Firebase auth language so email is sent in user's preferred language
+      auth.languageCode = preferredLanguage;
+
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
       window.localStorage.setItem('emailForSignIn', email);
       window.localStorage.setItem('isNewUser', isSignup.toString());

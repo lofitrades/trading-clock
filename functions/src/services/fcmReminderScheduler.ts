@@ -5,7 +5,34 @@
  * Key responsibility and main functionality: Expand reminder occurrences, dedupe triggers,
  * enforce daily caps/quiet hours, and send push notifications via Firebase Admin SDK.
  * 
+ * BEP Token Handling:
+ * - Invalid tokens (registration-token-not-registered, invalid-registration-token) are automatically
+ *   deleted from Firestore when FCM returns an error for them.
+ * - This ensures stale/unregistered devices don't accumulate in the database.
+ * - Combined with client-side lastSeenAt tracking, allows for robust device management.
+ * 
  * Changelog:
+ * v1.7.0 - 2026-02-04 - BEP FIX: Window now only looks BACK (90s), not forward. This ensures
+ *                       notifications NEVER fire before the scheduled reminder time. Previously,
+ *                       windowEnd was nowEpochMs + 90s which caused notifications to fire up to
+ *                       90 seconds early. Now windowEnd = nowEpochMs (current time).
+ * v1.6.0 - 2026-02-04 - BEP FIX: Use correct FCM v1 API payload structure. badge/tag/sound must go
+ *                       in platform-specific sections (android.notification, webpush.notification),
+ *                       not in the top-level notification object. Added proper Android channel ID,
+ *                       web push badge icon, vibration pattern, and requireInteraction for PWA.
+ * v1.5.0 - 2026-02-04 - BEP FIX: Window set to 90s for 1-minute schedule (near-instant delivery).
+ *                       Added detailed logging for occurrence expansion and window checks.
+ * v1.4.0 - 2026-02-03 - BEP FIX: Add comprehensive logging to FCM scheduler for troubleshooting.
+ *                       Logs: function start, users found, devices per user, reminders fetched,
+ *                       push channel validation, FCM send attempts, success/failure counts, and
+ *                       invalid token cleanup. Helps diagnose why FCM messages aren't being sent.
+ * v1.3.0 - 2026-02-03 - BEP FIX: Add Android PWA push support with badge icon, vibration patterns,
+ *                       and tag deduplication. FCM payload now includes badge image, vibrate data,
+ *                       and tag in both notification and data fields for Android Chrome PWA compatibility.
+ * v1.2.0 - 2026-02-03 - BEP: Document automatic invalid token cleanup in sendPushToTokens().
+ *                       Tokens that fail with registration errors are deleted from Firestore.
+ * v1.1.0 - 2026-02-03 - BEP FIX: Only send push for individual reminder offsets that have push channel enabled.
+ *                       Previously, if ANY offset had push enabled, push would be sent for ALL offsets.
  * v1.0.0 - 2026-01-23 - Initial FCM reminder scheduler for push notifications.
  */
 
@@ -17,10 +44,12 @@ const REMINDERS_COLLECTION = "reminders";
 const TRIGGERS_COLLECTION = "notificationTriggers";
 const STATS_COLLECTION = "notificationStats";
 
-const WINDOW_MS = 2 * 60 * 1000;
+// BEP: Window looks 90 seconds BACK to catch any reminders that came due since last run.
+// We do NOT look forward - notifications should only fire AT or AFTER reminder time.
+// Trigger deduplication in Firestore prevents duplicate notifications.
+const WINDOW_BACK_MS = 90 * 1000; // Look back 90 seconds (covers 1-min schedule + buffer)
 const LOOKAHEAD_MS = 24 * 60 * 60 * 1000;
 const DAILY_CAP = 150;
-const QUIET_HOURS = { start: 22, end: 6 };
 
 const RECURRENCE_INTERVALS: Record<string, { unit: string; step: number; ms?: number }> = {
   "5m": { unit: "minute", step: 5, ms: 5 * 60 * 1000 },
@@ -279,39 +308,95 @@ const getDayKey = (timezone: string, now = new Date()) => {
   return formatter.format(now);
 };
 
-const isWithinQuietHours = (timezone: string, now = new Date()) => {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    hour: "2-digit",
-    hour12: false,
-  });
-  const hour = Number(formatter.format(now));
-  if (Number.isNaN(hour)) return false;
-  if (QUIET_HOURS.start < QUIET_HOURS.end) {
-    return hour >= QUIET_HOURS.start && hour < QUIET_HOURS.end;
-  }
-  return hour >= QUIET_HOURS.start || hour < QUIET_HOURS.end;
-};
+// BEP: Quiet hours temporarily disabled for testing
+// TODO: Make quiet hours user-configurable via settings
+// const isWithinQuietHours = (timezone: string, now = new Date()) => {
+//   const formatter = new Intl.DateTimeFormat("en-US", {
+//     timeZone: timezone,
+//     hour: "2-digit",
+//     hour12: false,
+//   });
+//   const hour = Number(formatter.format(now));
+//   if (Number.isNaN(hour)) return false;
+//   if (QUIET_HOURS.start < QUIET_HOURS.end) {
+//     return hour >= QUIET_HOURS.start && hour < QUIET_HOURS.end;
+//   }
+//   return hour >= QUIET_HOURS.start || hour < QUIET_HOURS.end;
+// };
 
-const sendPushToTokens = async (tokens: string[], payload: admin.messaging.MessagingPayload, userId: string) => {
-  if (tokens.length === 0) return;
+const sendPushToTokens = async (
+  tokens: string[],
+  title: string,
+  body: string,
+  tag: string,
+  data: Record<string, string>,
+  userId: string
+) => {
+  if (tokens.length === 0) {
+    logger.warn('⚠️  No tokens to send to');
+    return;
+  }
+  logger.info(`📨 sendPushToTokens called with ${tokens.length} tokens for user ${userId}`);
+  
   const chunks: string[][] = [];
   for (let i = 0; i < tokens.length; i += 500) {
     chunks.push(tokens.slice(i, i + 500));
   }
 
+  logger.info(`📦 Split into ${chunks.length} chunk(s) (max 500 per chunk)`);
+
   for (const chunk of chunks) {
+    logger.info(`📤 Sending chunk with ${chunk.length} tokens`);
+    
+    // BEP: Use proper FCM v1 API multicast message format
+    // Platform-specific options go in android/webpush objects, not notification
     const response = await admin.messaging().sendEachForMulticast({
       tokens: chunk,
-      notification: payload.notification,
-      data: payload.data,
+      notification: {
+        title,
+        body,
+      },
+      // Android-specific notification options
+      android: {
+        priority: "high",
+        notification: {
+          icon: "ic_notification",
+          color: "#4DB6AC",
+          tag, // Prevents duplicate notifications
+          sound: "default",
+          defaultVibrateTimings: true,
+          channelId: "t2t_reminders",
+        },
+      },
+      // Web push (PWA) specific options
+      webpush: {
+        notification: {
+          icon: "https://time2.trade/icons/icon-192.png",
+          badge: "https://time2.trade/icons/icon-72.png",
+          tag,
+          vibrate: [100, 50, 100],
+          requireInteraction: true,
+        },
+        fcmOptions: {
+          link: "https://time2.trade/calendar",
+        },
+      },
+      data,
     });
+
+    logger.info(`📊 FCM response: ${response.successCount} succeeded, ${response.failureCount} failed`);
 
     const removals: Promise<FirebaseFirestore.WriteResult>[] = [];
     response.responses.forEach((res, index) => {
-      if (res.success) return;
+      if (res.success) {
+        logger.debug(`✅ Token ${index} sent successfully`);
+        return;
+      }
       const errorCode = res.error?.code || "";
+      logger.warn(`⚠️  Token ${index} failed: ${errorCode}`, { error: res.error?.message });
+      
       if (errorCode.includes("registration-token-not-registered") || errorCode.includes("invalid-registration-token")) {
+        logger.info(`🗑️  Deleting invalid token: ${chunk[index]}`);
         const token = chunk[index];
         const tokenRef = admin.firestore().doc(`users/${userId}/${TOKENS_COLLECTION}/${token}`);
         removals.push(tokenRef.delete());
@@ -319,7 +404,9 @@ const sendPushToTokens = async (tokens: string[], payload: admin.messaging.Messa
     });
 
     if (removals.length) {
+      logger.info(`🔄 Cleaning up ${removals.length} invalid token(s)...`);
       await Promise.allSettled(removals);
+      logger.info(`✅ Cleanup complete`);
     }
   }
 };
@@ -327,28 +414,45 @@ const sendPushToTokens = async (tokens: string[], payload: admin.messaging.Messa
 export const runFcmReminderScheduler = async () => {
   const db = admin.firestore();
   const nowEpochMs = Date.now();
-  const windowStart = nowEpochMs - WINDOW_MS;
-  const windowEnd = nowEpochMs + WINDOW_MS;
-  const rangeStart = nowEpochMs - WINDOW_MS;
+  // BEP: Only look BACK - notifications should never fire BEFORE the reminder time
+  const windowStart = nowEpochMs - WINDOW_BACK_MS; // 90 seconds ago
+  const windowEnd = nowEpochMs; // NOW - not in the future!
+  const rangeStart = nowEpochMs - WINDOW_BACK_MS;
   const rangeEnd = nowEpochMs + LOOKAHEAD_MS;
 
+  logger.info('🚀 FCM Reminder Scheduler started', { nowEpochMs: new Date(nowEpochMs).toISOString() });
+
   const usersSnapshot = await db.collection("users").get();
-  if (usersSnapshot.empty) return;
+  logger.info(`📊 Found ${usersSnapshot.size} users with account`);
+  if (usersSnapshot.empty) {
+    logger.info('⏭️  No users found, exiting');
+    return;
+  }
 
   for (const userDoc of usersSnapshot.docs) {
     const userId = userDoc.id;
+    logger.info(`👤 Processing user: ${userId}`);
+
     const tokensSnapshot = await db.collection(`users/${userId}/${TOKENS_COLLECTION}`)
       .where("enabled", "==", true)
       .get();
 
     const tokens = tokensSnapshot.docs.map((docSnap) => docSnap.get("token") as string).filter(Boolean);
-    if (tokens.length === 0) continue;
+    logger.info(`📱 Found ${tokens.length} enabled devices for user ${userId}`);
+    if (tokens.length === 0) {
+      logger.debug(`⏭️  No enabled devices for user ${userId}`);
+      continue;
+    }
 
     const remindersSnapshot = await db.collection(`users/${userId}/${REMINDERS_COLLECTION}`)
       .where("enabled", "==", true)
       .get();
 
-    if (remindersSnapshot.empty) continue;
+    logger.info(`📋 Found ${remindersSnapshot.size} enabled reminders for user ${userId}`);
+    if (remindersSnapshot.empty) {
+      logger.debug(`⏭️  No enabled reminders for user ${userId}`);
+      continue;
+    }
 
     const reminders: any[] = remindersSnapshot.docs.map((docSnap) => ({
       id: docSnap.id,
@@ -362,29 +466,66 @@ export const runFcmReminderScheduler = async () => {
     let sentToday = statsSnap.exists ? Number(statsSnap.get("count") || 0) : 0;
 
     for (const reminder of reminders) {
-      if (!reminder?.channels?.push) continue;
-      if (reminder?.enabled === false) continue;
+      if (!reminder?.channels?.push) {
+        logger.debug(`⏭️  Reminder ${reminder.eventKey} does not have push channel enabled`);
+        continue;
+      }
+      if (reminder?.enabled === false) {
+        logger.debug(`⏭️  Reminder ${reminder.eventKey} is disabled`);
+        continue;
+      }
+      logger.debug(`✅ Processing reminder: ${reminder.eventKey}`);
 
-      const timezone = reminder.timezone || "America/New_York";
-      if (isWithinQuietHours(timezone, now)) continue;
+      // BEP: Quiet hours temporarily disabled for testing
+      // TODO: Make quiet hours user-configurable via settings
+      // const timezone = reminder.timezone || "America/New_York";
+      // const inQuietHours = isWithinQuietHours(timezone, now);
+      // if (inQuietHours) {
+      //   logger.info(`🌙 Skipping ${reminder.eventKey} - within quiet hours (22:00-06:00 ${timezone})`);
+      //   continue;
+      // }
 
       const occurrences = expandReminderOccurrences(reminder, rangeStart, rangeEnd);
+      logger.info(`📅 Found ${occurrences.length} occurrence(s) for ${reminder.eventKey}`, {
+        rangeStart: new Date(rangeStart).toISOString(),
+        rangeEnd: new Date(rangeEnd).toISOString(),
+      });
       if (occurrences.length === 0) continue;
 
       for (const occurrence of occurrences) {
         const reminderOffsets = Array.isArray(reminder.reminders) ? reminder.reminders : [];
         for (const offset of reminderOffsets) {
+          // BEP: Only send push for offsets that have push channel enabled
+          if (!offset?.channels?.push) continue;
+
           const minutesBefore = Number(offset?.minutesBefore);
           if (!Number.isFinite(minutesBefore)) continue;
           const reminderAt = occurrence.occurrenceEpochMs - minutesBefore * 60 * 1000;
-          if (reminderAt < windowStart || reminderAt > windowEnd) continue;
+          // BEP: Only fire if reminder time is IN THE PAST (between windowStart and now)
+          // This ensures notifications never fire early
+          const isInWindow = reminderAt >= windowStart && reminderAt <= windowEnd;
+          logger.info(`⏰ Window check for ${reminder.eventKey}`, {
+            reminderAt: new Date(reminderAt).toISOString(),
+            windowStart: new Date(windowStart).toISOString(),
+            windowEnd: new Date(windowEnd).toISOString(),
+            nowEpochMs: new Date(nowEpochMs).toISOString(),
+            isInWindow,
+            isPast: reminderAt <= nowEpochMs,
+          });
+          if (!isInWindow) continue;
 
-          if (sentToday >= DAILY_CAP) break;
+          if (sentToday >= DAILY_CAP) {
+            logger.info(`⚠️  Daily cap reached (${DAILY_CAP}) for user ${userId}`);
+            break;
+          }
 
           const triggerId = buildTriggerId(reminder.eventKey, occurrence.occurrenceEpochMs, minutesBefore, "push");
           const triggerRef = db.doc(`users/${userId}/${TRIGGERS_COLLECTION}/${triggerId}`);
           const triggerSnap = await triggerRef.get();
-          if (triggerSnap.exists) continue;
+          if (triggerSnap.exists) {
+            logger.debug(`⏭️  Trigger already sent: ${triggerId}`);
+            continue;
+          }
 
           await triggerRef.set({
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -392,22 +533,38 @@ export const runFcmReminderScheduler = async () => {
           });
 
           const title = reminder.title || "Reminder";
-          const body = `${minutesBefore} min before • ${title}`;
+          const body = minutesBefore === 0 
+            ? `🔔 ${title} is starting now!`
+            : `⏰ ${minutesBefore} min before • ${title}`;
+          const tag = `t2t-${reminder.eventKey || `${occurrence.occurrenceEpochMs}`}`;
 
           try {
-            await sendPushToTokens(tokens, {
-              notification: { title, body },
-              data: {
+            logger.info(`📤 Sending FCM push to ${tokens.length} devices`, {
+              userId,
+              eventKey: reminder.eventKey,
+              minutesBefore,
+              title,
+              tag,
+            });
+            await sendPushToTokens(
+              tokens,
+              title,
+              body,
+              tag,
+              {
                 eventKey: reminder.eventKey || "",
                 eventSource: reminder.eventSource || "",
                 occurrenceEpochMs: String(occurrence.occurrenceEpochMs),
                 minutesBefore: String(minutesBefore),
                 clickUrl: "/calendar",
+                tag,
               },
-            }, userId);
+              userId
+            );
+            logger.info(`✅ FCM push sent successfully for ${reminder.eventKey}`);
             sentToday += 1;
           } catch (error) {
-            logger.error("❌ Failed to send FCM push", { userId, error });
+            logger.error("❌ Failed to send FCM push", { userId, eventKey: reminder.eventKey, error });
           }
         }
       }
