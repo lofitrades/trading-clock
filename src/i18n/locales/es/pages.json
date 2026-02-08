@@ -82,7 +82,7 @@
           "Filtra por impacto y moneda (USD, EUR, etc.)",
           "Guarda favoritos y agrega notas de negociación (iniciado sesión)"
         ],
-        "note": "Una cuenta gratuita desbloquea el espacio de trabajo de calendario completo para que puedas guardar filtros, notas, favoritos y recordatorios en dispositivos."
+        "note": "Tu cuenta desbloquea el espacio de trabajo de calendario completo para que puedas guardar filtros, notas, favoritos y recordatorios en dispositivos."
       },
       {
         "id": "custom-events-notifications",
@@ -187,7 +187,7 @@
         },
         {
           "question": "¿Puedo agregar mis propios eventos personalizados?",
-          "answer": "Sí. Puedes crear eventos personalizados para ventanas de tiempo personales, rutinas o reglas. Guardar/sincronizar puede requerir una cuenta gratuita."
+          "answer": "Sí. Puedes crear eventos personalizados para ventanas de tiempo personales, rutinas o reglas. Guardar/sincronizar requiere tu cuenta."
         },
         {
           "question": "¿Puedo obtener notificaciones para eventos próximos?",
@@ -195,7 +195,7 @@
         },
         {
           "question": "¿Necesito una cuenta?",
-          "answer": "Puedes usar el reloj de sesiones de trading de inmediato. Una cuenta gratuita desbloquea el espacio de trabajo de calendario completo y guarda tus preferencias en dispositivos."
+          "answer": "Puedes usar el reloj de sesiones de trading de inmediato. Tu cuenta desbloquea el espacio de trabajo de calendario completo y guarda tus preferencias en dispositivos."
         },
         {
           "question": "¿Es esta una herramienta de señales?",

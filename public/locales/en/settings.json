@@ -112,8 +112,8 @@
   },
   "drawer": {
     "title": "Settings",
-    "subtitle": "Create a free account to unlock all features",
-    "unlockButton": "Create free account to unlock all settings"
+    "subtitle": "Create your account to unlock all features",
+    "unlockButton": "Create your account to unlock all settings"
   },
   "account": {
     "title": "Account",

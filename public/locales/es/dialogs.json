@@ -54,9 +54,9 @@
   "loggingOut": "Cerrando sesión...",
   "logout": "Cerrar sesión",
   "failedToLogout": "No se pudo cerrar sesión. Por favor, inténtalo de nuevo o recarga la página.",
-  "unlockProTitle": "Desbloquea funciones Pro★ gratis: $0",
-  "unlockProMessage": "Crea una cuenta gratuita para desbloquear el acceso completo a las funciones pro, incluida la capacidad de cambiar zonas horarias y acceder a la configuración premium.",
-  "createFreeAccount": "Crear cuenta gratuita",
+  "unlockProTitle": "Desbloquea funciones Pro★: $0",
+  "unlockProMessage": "Crea tu cuenta para desbloquear acceso completo a todas las funciones, incluida la capacidad de cambiar zonas horarias y acceder a toda la configuración.",
+  "createFreeAccount": "Crea tu cuenta",
   "enterPasswordToConfirm": "Ingresa la contraseña para confirmar",
   "incorrectPassword": "Contraseña incorrecta",
   "signingYouIn": "Iniciando sesión...",
@@ -114,6 +114,11 @@
   "roadmapGotItButton": "Entendido",
   "selectTimezoneTitle": "Seleccionar zona horaria",
   "closeDialogAriaLabel": "cerrar",
+  "sourceInfo": {
+    "title": "Fuente de Datos",
+    "description": "Este datos de trading utiliza <strong>información económica en tiempo real</strong> de Forex Factory, asegurando precisión y confiabilidad para tus decisiones de trading.",
+    "updateNote": "Los eventos se actualizan continuamente durante el día de trading para mantenerte informado de lanzamientos económicos importantes y noticias que mueven el mercado."
+  },
   "cookies": {
     "heading": "Usamos cookies",
     "description": "Las cookies esenciales mantienen Time 2 Trade funcionando. Los anuncios usan Google AdSense y Meta Pixel para medición. Los anuncios pueden permanecer sin personalización a menos que los permitas.",

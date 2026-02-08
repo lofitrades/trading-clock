@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // Firebase Storage Security Rules for Time 2 Trade
-// Last Updated: 2025-12-16
+// Last Updated: 2026-02-04
 
 service firebase.storage {
   match /b/{bucket}/o {
@@ -26,6 +26,18 @@ service firebase.storage {
       return request.resource.size < 5 * 1024 * 1024; // 5MB in bytes
     }
 
+    // Helper function to check if user has blog CMS role
+    // Note: Storage rules cannot query Firestore, so we check token claims only
+    function hasBlogCmsRole() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'author' ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.role == 'superadmin' ||
+        request.auth.token.superadmin == true ||
+        request.auth.token.admin == true
+      );
+    }
+
     // Profile Pictures - users can manage their own profile photos
     match /profilePictures/{userId} {
       // Allow read if authenticated (anyone can see profile pictures)
@@ -39,6 +51,62 @@ service firebase.storage {
       allow create, update: if isOwner(userId) 
                              && isImage() 
                              && isValidSize();
+    }
+
+    // ==================== BLOG ASSETS (v1.4.0+) ====================
+    
+    // Blog Cover Images - public read, CMS roles can write
+    // Structure: blog/cover/{postId}/{lang}/{filename}
+    match /blog/cover/{postId}/{lang}/{filename} {
+      // Public read for all blog cover images
+      allow read: if true;
+      
+      // CMS roles can upload/delete cover images
+      allow delete: if hasBlogCmsRole();
+      allow create, update: if hasBlogCmsRole()
+                             && isImage()
+                             && isValidSize();
+    }
+
+    // Blog Content Images - public read, CMS roles can write
+    // Structure: blog/content/{postId}/{lang}/{filename}
+    match /blog/content/{postId}/{lang}/{filename} {
+      // Public read for all blog content images
+      allow read: if true;
+      
+      // CMS roles can upload/delete content images
+      allow delete: if hasBlogCmsRole();
+      allow create, update: if hasBlogCmsRole()
+                             && isImage()
+                             && isValidSize();
+    }
+
+    // Blog Upload Images - temporary/general blog images from uploader
+    // Structure: blog-images/{filename}
+    // Used by BlogUploadDrawer for quick uploads before post creation
+    // Note: Access controlled at app level (AdminBlogPage requires CMS role)
+    match /blog-images/{filename} {
+      // Public read for blog images
+      allow read: if true;
+      
+      // Any authenticated user can upload (app-level RBAC enforces CMS role)
+      // TODO: Tighten once custom claims are verified working
+      allow delete: if isAuthenticated();
+      allow create, update: if isAuthenticated()
+                             && isImage()
+                             && isValidSize();
+    }
+
+    // Blog Rendered HTML - public read, Cloud Functions write only
+    // Structure: blog-render/{lang}/blog/{slug}/index.html
+    // Note: Actual write permissions handled by Cloud Functions service account
+    match /blog-render/{allPaths=**} {
+      // Public read for rendered blog HTML (served via HTTPS function)
+      allow read: if true;
+      
+      // Only Cloud Functions (service account) can write
+      // Service account bypasses rules, but explicit deny for client-side
+      allow write: if false;
     }
 
     // Deny all other paths by default

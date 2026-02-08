@@ -6,6 +6,9 @@
  * JBlanked and GPT sources enrich NFS data without overwriting core fields.
  *
  * Changelog:
+ * v1.5.0 - 2026-02-05 - Integrated activity logging for reschedules, cancellations, and sync completion.
+ * v1.4.0 - 2026-02-05 - BEP: Added stale event detection after sync - marks future events not seen for 3+ days as cancelled.
+ * v1.3.0 - 2026-02-05 - BEP: Two-phase matching for reschedule detection (±15 day identity match + ±5 min fallback), reschedule logging.
  * v1.2.0 - 2026-01-21 - BEP Refactor: Use Firestore auto IDs, pass originalName, enhanced fuzzy matching.
  * v1.1.0 - 2026-01-21 - Updated priority: NFS is now highest-priority source (rank 1).
  * v1.0.0 - 2025-12-11 - Added NFS weekly sync to canonical economic events model.
@@ -15,12 +18,20 @@ import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import {
   CanonicalEconomicEvent,
+  detectStaleEvents,
+  findByIdentityWindow,
   findExistingCanonicalEvent,
   getCanonicalEventsCollection,
   mergeProviderEvent,
   normalizeEventName,
 } from "../models/economicEvent";
 import {parseNfsDateToTimestamp} from "../utils/dateUtils";
+import {
+  logSyncCompleted,
+  logSyncFailed,
+  logEventReschedule,
+  logEventCancellation,
+} from "./activityLoggingService";
 
 interface NfsEconomicEvent {
   title?: string;
@@ -41,6 +52,7 @@ export async function syncWeekFromNfs(): Promise<void> {
     response = await fetch(url);
   } catch (error) {
     logger.error("❌ NFS fetch failed", {error});
+    await logSyncFailed("NFS", `Fetch error: ${error}`);
     return;
   }
 
@@ -48,6 +60,7 @@ export async function syncWeekFromNfs(): Promise<void> {
     const status = response.status;
     const statusText = response.statusText;
     logger.error("❌ NFS HTTP error", {status, statusText});
+    await logSyncFailed("NFS", `HTTP ${status}: ${statusText}`);
     return;
   }
 
@@ -56,6 +69,7 @@ export async function syncWeekFromNfs(): Promise<void> {
     payload = (await response.json()) as NfsEconomicEvent[];
   } catch (error) {
     logger.error("❌ Failed to parse NFS payload", {error});
+    await logSyncFailed("NFS", `JSON parse error: ${error}`);
     return;
   }
 
@@ -69,6 +83,7 @@ export async function syncWeekFromNfs(): Promise<void> {
   const mergedMap = new Map<string, CanonicalEconomicEvent>();
   let processed = 0;
   let createdOrUpdated = 0;
+  let rescheduledCount = 0;
 
   for (const raw of payload) {
     processed += 1;
@@ -83,11 +98,60 @@ export async function syncWeekFromNfs(): Promise<void> {
       const datetimeUtc = parseNfsDateToTimestamp(raw.date);
       const status: "scheduled" = "scheduled";
 
-      const existingMatch = await findExistingCanonicalEvent({
+      // ========== Two-Phase Matching for Reschedule Detection (v1.3.0) ==========
+
+      // Phase 1: Identity match (±15 days) - catches reschedules
+      let identityMatch = await findByIdentityWindow({
         normalizedName,
         currency,
         datetimeUtc,
+        windowDays: 15,
+        similarityThreshold: 0.85,
       });
+
+      let isReschedule = identityMatch?.isReschedule ?? false;
+
+      // Phase 2: Narrow datetime match (±5 min) - for new events with similar times
+      // Only if identity match didn't find anything
+      let existingMatch: {eventId: string; event: CanonicalEconomicEvent} | undefined;
+
+      if (identityMatch) {
+        existingMatch = {eventId: identityMatch.eventId, event: identityMatch.event};
+      } else {
+        const narrowMatch = await findExistingCanonicalEvent({
+          normalizedName,
+          currency,
+          datetimeUtc,
+        });
+        if (narrowMatch) {
+          existingMatch = narrowMatch;
+          isReschedule = false;
+        }
+      }
+
+      // ========== Reschedule Logging ==========
+      if (isReschedule && existingMatch) {
+        const oldDate = existingMatch.event.datetimeUtc.toDate();
+        const newDate = datetimeUtc.toDate();
+        const daysDiff = Math.round((newDate.getTime() - oldDate.getTime()) / (1000 * 60 * 60 * 24));
+        logger.info("📅 EVENT RESCHEDULED DETECTED", {
+          eventName: rawName,
+          currency,
+          oldDatetime: oldDate.toISOString(),
+          newDatetime: newDate.toISOString(),
+          daysDiff,
+        });
+
+        // Log reschedule activity
+        await logEventReschedule(
+          rawName,
+          oldDate.toISOString().split("T")[0],
+          newDate.toISOString().split("T")[0],
+          currency
+        );
+
+        rescheduledCount += 1;
+      }
 
       // Use Firestore auto ID if no match found, otherwise use existing event ID
       const eventId = existingMatch?.eventId ?? collection.doc().id;
@@ -95,22 +159,26 @@ export async function syncWeekFromNfs(): Promise<void> {
       const existingDoc = existingMatch?.event ??
         (await collection.doc(eventId).get()).data() as CanonicalEconomicEvent | undefined;
 
-      const merged = mergeProviderEvent(existingDoc, {
-        provider: "nfs",
-        eventId,
-        originalName: rawName,
-        normalizedName,
-        currency,
-        datetimeUtc,
-        impact: raw.impact ?? null,
-        category: null,
-        forecast: raw.forecast != null ? String(raw.forecast) : null,
-        previous: raw.previous != null ? String(raw.previous) : null,
-        actual: null,
-        status,
-        raw,
-        parsedExtras: {},
-      });
+      const merged = mergeProviderEvent(
+        existingDoc,
+        {
+          provider: "nfs",
+          eventId,
+          originalName: rawName,
+          normalizedName,
+          currency,
+          datetimeUtc,
+          impact: raw.impact ?? null,
+          category: null,
+          forecast: raw.forecast != null ? String(raw.forecast) : null,
+          previous: raw.previous != null ? String(raw.previous) : null,
+          actual: null,
+          status,
+          raw,
+          parsedExtras: {},
+        },
+        {isReschedule} // Pass reschedule flag to merge function
+      );
 
       // Validate merged event
       if (!merged.eventId) {
@@ -133,6 +201,7 @@ export async function syncWeekFromNfs(): Promise<void> {
           name: merged.name,
           normalizedName: merged.normalizedName,
           isNew: !existingDoc,
+          isReschedule,
         });
       }
     } catch (error) {
@@ -190,8 +259,46 @@ export async function syncWeekFromNfs(): Promise<void> {
       processed,
       written: entries.length,
       createdOrUpdated,
+      rescheduled: rescheduledCount,
       batchesWritten,
     });
+
+    // Log activity to dashboard
+    await logSyncCompleted(
+      "NFS",
+      processed,
+      createdOrUpdated - rescheduledCount,
+      createdOrUpdated,
+      rescheduledCount,
+      0 // Will be populated after stale detection
+    );
+
+    // ========== Phase 3: Stale Event Detection ==========
+    // After sync, check for future events that disappeared from feed
+    try {
+      const staleResult = await detectStaleEvents({staleDays: 3, dryRun: false});
+      if (staleResult.detected > 0) {
+        logger.warn("⚠️ STALE EVENTS DETECTED - Marked as cancelled", {
+          detected: staleResult.detected,
+          updated: staleResult.updated,
+          events: staleResult.events.slice(0, 5), // Log first 5 for brevity
+        });
+
+        // Log each cancelled event
+        for (const staleEvent of staleResult.events.slice(0, 10)) {
+          await logEventCancellation(
+            staleEvent.name,
+            staleEvent.currency || "N/A",
+            "Not seen in feed for 3+ days"
+          );
+        }
+      } else {
+        logger.info("✅ No stale events detected");
+      }
+    } catch (staleError) {
+      // Don't fail the sync if stale detection fails
+      logger.error("❌ Stale event detection failed (non-fatal)", {error: staleError});
+    }
   } catch (error) {
     logger.error("❌ Batch write failed", {
       error,

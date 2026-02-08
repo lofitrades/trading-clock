@@ -90,6 +90,13 @@
     "unknown": "Desconocido",
     "unknownDesc": "El nivel de impacto no se puede determinar"
   },
+  "status": {
+    "rescheduled": "Reprogramado",
+    "rescheduledFrom": "Reprogramado desde {{date}}",
+    "reinstated": "Reinstaurado",
+    "reinstatedTooltip": "Previamente cancelado, ahora reinstaurado",
+    "cancelled": "Cancelado"
+  },
   "tooltips": {
     "currencyAffects": "Los datos económicos afectan esta moneda",
     "eventImpactsCurrency": "Este evento impacta la valuación de {{currency}}",
@@ -247,4 +254,3 @@
     }
   }
 }
-

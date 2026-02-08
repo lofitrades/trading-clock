@@ -5,6 +5,7 @@
  * Supports multi-source economic calendar data (mql5, forex-factory, fxstreet)
  * 
  * Changelog:
+ * v2.11.0 - 2026-02-06 - BEP: Surface rescheduledFrom, originalDatetimeUtc, and status fields in canonical event DTOs for UI display.
  * v2.10.0 - 2026-01-22 - BEP FIX: getEventCurrencies now properly detects and adds CUS for custom events. N/A detection excludes custom events to prevent overlap. Both canonical and legacy paths updated.
  * v2.9.0 - 2026-01-22 - BEP: Add dynamic N/A/CUS currency detection and filtering. getEventCurrencies now supports includeSpecial option to detect events with unknown/null currency. Currency filter logic updated to handle ALL (global), N/A (unknown), and CUS (custom) special currency types.
  * v2.8.0 - 2026-01-21 - Add manual JBlanked Forex Factory range sync helper (since 2026-01-01).
@@ -500,6 +501,10 @@ export const getEventsByDateRange = async (startDate, endDate, filters = {}, opt
             strength: impact,
             quality: null,
             source: safeSourceKey || 'canonical',
+            // Reschedule/reinstate fields (v2.11.0 BEP)
+            status: event.status || 'scheduled',
+            rescheduledFrom: event.rescheduledFrom || null,
+            originalDatetimeUtc: event.originalDatetimeUtc || null,
             // PascalCase aliases for backward compatibility
             Name: displayName,
             Currency: event.currency,

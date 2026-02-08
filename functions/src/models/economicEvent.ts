@@ -6,6 +6,9 @@
  * and Firestore helpers to unify NFS weekly schedules with JBlanked actuals.
  *
  * Changelog:
+ * v1.5.0 - 2026-02-05 - BEP: Reinstate cancelled events when they reappear in NFS feed (handles reschedule → un-cancel).
+ * v1.4.0 - 2026-02-05 - BEP: Added detectStaleEvents() to mark cancelled future events not seen in NFS feed for 3+ days.
+ * v1.3.0 - 2026-02-05 - BEP: Event reschedule detection with ±15 day identity matching, originalDatetimeUtc/rescheduledFrom/lastSeenInFeed fields, findByIdentityWindow() function.
  * v1.2.1 - 2026-01-21 - BEP Refactor: Defensive source initialization for legacy canonical docs.
  * v1.2.0 - 2026-01-21 - BEP Refactor: Added Firestore auto IDs, normalizedName field, originalName per source, name priority picker, dual-mode backwards compatibility.
  * v1.1.0 - 2026-01-21 - Updated source priority: NFS (highest), JBlanked-FF, GPT, JBlanked-MT, JBlanked-FXStreet (lowest).
@@ -59,6 +62,13 @@ export interface CanonicalEconomicEvent {
   qualityScore?: number;
   createdAt: FirebaseFirestore.Timestamp;
   updatedAt: FirebaseFirestore.Timestamp;
+  // Reschedule detection fields (v1.3.0)
+  /** Original scheduled datetime when event was first created (never changes) */
+  originalDatetimeUtc?: FirebaseFirestore.Timestamp;
+  /** Previous datetime if event was rescheduled (tracks last known datetime before change) */
+  rescheduledFrom?: FirebaseFirestore.Timestamp;
+  /** Last time this event appeared in a source feed (for stale detection) */
+  lastSeenInFeed?: FirebaseFirestore.Timestamp;
 }
 
 // Priority order for picking values: lower index = higher priority
@@ -126,6 +136,10 @@ export function createEmptyCanonicalEvent(
     qualityScore: 0,
     createdAt: now,
     updatedAt: now,
+    // Reschedule detection fields - set originalDatetimeUtc on creation
+    originalDatetimeUtc: partial.datetimeUtc ?? now,
+    rescheduledFrom: undefined,
+    lastSeenInFeed: now,
     ...partial,
   };
 }
@@ -226,6 +240,10 @@ export function mergeProviderEvent(
       strength?: string | null;
       quality?: string | null;
     };
+  },
+  options?: {
+    /** Flag indicating this is a reschedule (date changed significantly) */
+    isReschedule?: boolean;
   }
 ): CanonicalEconomicEvent {
   const now = admin.firestore.Timestamp.now();
@@ -263,6 +281,35 @@ export function mergeProviderEvent(
     if (winnerPriority === -1 || (incomingPriority !== -1 && incomingPriority < winnerPriority)) {
       merged = {...merged, datetimeUtc: incoming.datetimeUtc, timezoneSource: incoming.provider};
     }
+  }
+
+  // ========== Reschedule Detection (v1.3.0) ==========
+  // Handle significant date changes (>5 min difference = reschedule)
+  if (options?.isReschedule && canonical) {
+    // Only track as reschedule if datetime actually changed significantly
+    if (driftMinutes > 5) {
+      merged = {
+        ...merged,
+        rescheduledFrom: canonical.datetimeUtc, // Store old datetime
+        datetimeUtc: incoming.datetimeUtc, // Update to new datetime
+        timezoneSource: incoming.provider,
+      };
+
+      // Preserve original datetime if not already set
+      if (!merged.originalDatetimeUtc) {
+        merged.originalDatetimeUtc = canonical.datetimeUtc;
+      }
+    }
+  }
+
+  // Track last seen in feed for stale detection
+  merged.lastSeenInFeed = now;
+
+  // If event was previously cancelled but now reappears in feed, reinstate it
+  // This handles the case where an event was marked stale but later rescheduled
+  if (merged.status === "cancelled" && incoming.status === "scheduled") {
+    merged.status = "scheduled";
+    console.info(`📢 EVENT REINSTATED from cancelled: ${incoming.originalName} (${incoming.currency})`);
   }
 
   // NormalizedName reconciliation (for backwards compatibility with old events)
@@ -364,4 +411,168 @@ export async function findExistingCanonicalEvent(params: {
   }
 
   return undefined;
+}
+
+/**
+ * Find existing canonical event by identity (currency + normalized name)
+ * within a wider time window (±15 days) for reschedule detection.
+ *
+ * Use case: NFP scheduled for Feb 7 gets rescheduled to Feb 12.
+ * Standard ±5 min window won't find it, but ±15 day identity match will.
+ *
+ * @param params.normalizedName - Normalized event name for fuzzy matching
+ * @param params.currency - Currency code (exact match required)
+ * @param params.datetimeUtc - New scheduled datetime from feed
+ * @param params.windowDays - Search window in days (default: 15)
+ * @param params.similarityThreshold - Name similarity threshold (default: 0.85)
+ * @returns Existing event if found with isReschedule flag, undefined otherwise
+ */
+export async function findByIdentityWindow(params: {
+  normalizedName: string;
+  currency: string | null;
+  datetimeUtc: Timestamp;
+  windowDays?: number;
+  similarityThreshold?: number;
+}): Promise<{eventId: string; event: CanonicalEconomicEvent; isReschedule: boolean} | undefined> {
+  const currency = params.currency ? params.currency.toUpperCase() : null;
+  if (!currency) return undefined;
+
+  const windowDays = params.windowDays ?? 15;
+  const similarityThreshold = params.similarityThreshold ?? 0.85;
+  const millis = params.datetimeUtc.toMillis();
+  const msPerDay = 24 * 60 * 60 * 1000;
+
+  // Search ±15 days from incoming datetime
+  const start = Timestamp.fromMillis(millis - windowDays * msPerDay);
+  const end = Timestamp.fromMillis(millis + windowDays * msPerDay);
+
+  const snapshot = await getCanonicalEventsCollection()
+    .where("currency", "==", currency)
+    .where("datetimeUtc", ">=", start)
+    .where("datetimeUtc", "<=", end)
+    .get();
+
+  let bestMatch: {
+    eventId: string;
+    event: CanonicalEconomicEvent;
+    score: number;
+    timeDiffMs: number;
+  } | undefined;
+
+  snapshot.forEach((doc) => {
+    const data = doc.data() as CanonicalEconomicEvent;
+    const matchAgainst = data.normalizedName || data.name;
+    const score = computeStringSimilarity(matchAgainst, params.normalizedName);
+    const timeDiffMs = Math.abs(data.datetimeUtc.toMillis() - millis);
+
+    // Only consider if name matches well enough
+    if (score >= similarityThreshold) {
+      // Prefer exact time match, then closest time match with highest score
+      if (!bestMatch ||
+          (score > bestMatch.score) ||
+          (score === bestMatch.score && timeDiffMs < bestMatch.timeDiffMs)) {
+        bestMatch = {eventId: doc.id, event: data, score, timeDiffMs};
+      }
+    }
+  });
+
+  if (bestMatch) {
+    // Determine if this is a reschedule (datetime differs by more than 5 minutes)
+    const isReschedule = bestMatch.timeDiffMs > 5 * 60 * 1000;
+    return {
+      eventId: bestMatch.eventId,
+      event: bestMatch.event,
+      isReschedule,
+    };
+  }
+
+  return undefined;
+}
+
+/**
+ * Detect and mark stale events that may have been cancelled.
+ *
+ * Stale event criteria:
+ * 1. Future event (datetimeUtc > now)
+ * 2. Has NFS source (was from Forex Factory feed)
+ * 3. lastSeenInFeed is older than staleDays (default: 3 days)
+ *
+ * @param options.staleDays - Days without being seen before considered stale (default: 3)
+ * @param options.dryRun - If true, only log without updating (default: false)
+ * @returns Object with counts of detected and updated stale events
+ */
+export async function detectStaleEvents(options?: {
+  staleDays?: number;
+  dryRun?: boolean;
+}): Promise<{detected: number; updated: number; events: Array<{eventId: string; name: string; currency: string | null; scheduledFor: string; lastSeen: string | null}>}> {
+  const staleDays = options?.staleDays ?? 3;
+  const dryRun = options?.dryRun ?? false;
+
+  const now = admin.firestore.Timestamp.now();
+  const staleThreshold = Timestamp.fromMillis(now.toMillis() - staleDays * 24 * 60 * 60 * 1000);
+
+  const collection = getCanonicalEventsCollection();
+
+  // Query: future events only
+  // Note: We filter for NFS source and stale lastSeenInFeed in memory
+  // because Firestore can't query nested map fields efficiently
+  const snapshot = await collection
+    .where("datetimeUtc", ">", now)
+    .get();
+
+  const staleEvents: Array<{
+    eventId: string;
+    name: string;
+    currency: string | null;
+    scheduledFor: string;
+    lastSeen: string | null;
+  }> = [];
+
+  const db = admin.firestore();
+  const batch = db.batch();
+  let batchCount = 0;
+
+  snapshot.forEach((doc) => {
+    const data = doc.data() as CanonicalEconomicEvent;
+
+    // Check if event has NFS source (came from Forex Factory)
+    const hasNfsSource = data.sources?.nfs !== undefined;
+    if (!hasNfsSource) return;
+
+    // Check if lastSeenInFeed is stale (or missing - treat as very stale)
+    const lastSeen = data.lastSeenInFeed;
+    const isStale = !lastSeen || lastSeen.toMillis() < staleThreshold.toMillis();
+    if (!isStale) return;
+
+    // This event is stale - likely cancelled
+    staleEvents.push({
+      eventId: doc.id,
+      name: data.name || data.normalizedName || "Unknown",
+      currency: data.currency,
+      scheduledFor: data.datetimeUtc.toDate().toISOString(),
+      lastSeen: lastSeen?.toDate().toISOString() ?? null,
+    });
+
+    // Mark as cancelled (unless dry run)
+    if (!dryRun) {
+      batch.update(doc.ref, {
+        status: "cancelled",
+        updatedAt: now,
+      });
+      batchCount++;
+    }
+  });
+
+  // Commit batch if we have updates
+  let updated = 0;
+  if (batchCount > 0 && !dryRun) {
+    await batch.commit();
+    updated = batchCount;
+  }
+
+  return {
+    detected: staleEvents.length,
+    updated,
+    events: staleEvents,
+  };
 }

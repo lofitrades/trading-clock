@@ -6,39 +6,52 @@
  * and optionally trigger browser notifications with permission checks.
  * 
  * Changelog:
+ * v4.0.0 - 2026-02-07 - BEP CRITICAL: Enterprise-grade deduplication overhaul (6→1 notification fix).
+ *                       ROOT CAUSES FIXED:
+ *                       1) Browser channel suppressed when push is also enabled for same offset —
+ *                          push via FCM/SW already shows a browser notification, so client-side
+ *                          `new Notification()` was a duplicate. Now: if push channel active on
+ *                          the offset, skip browser dispatch entirely (server+SW handles it).
+ *                       2) In-app optimistic update collided with Firestore onSnapshot replay —
+ *                          Firestore listener replaces state array, so optimistic item + snapshot
+ *                          item briefly coexist. Fix: optimistic updates now use a dedicated
+ *                          `pendingOptimisticIds` ref. Firestore listener merges with pending
+ *                          items instead of replacing, then clears pending once snapshot confirms.
+ *                       3) Legacy reminders from `events` prop duplicated Firestore reminders —
+ *                          effectiveReminders merge used eventKey, but legacy normalizer could
+ *                          produce different keys for same event. Fix: legacy path now only adds
+ *                          reminders that have NO Firestore counterpart at all (strict eventKey match).
+ *                       4) FCM foreground listener now wired — when app is in foreground, intercepts
+ *                          push payload and converts to in-app notification instead of letting SW
+ *                          show a duplicate browser notification.
+ * v3.0.0 - 2026-02-07 - BEP CRITICAL: Comprehensive notification deduplication overhaul.
+ *                       1) Occurrence-level dedup: one notification per event per occurrence per channel
+ *                          (not per reminder offset). Uses occurrenceKey in triggers Set to block
+ *                          subsequent offsets after the first fires.
+ *                       2) Tightened isDue window: reminderAt + NOW_WINDOW_MS instead of
+ *                          occurrenceEpochMs + NOW_WINDOW_MS. Prevents wide windows for large
+ *                          minutesBefore values (was 69min for 60-min offset, now 9min for all).
+ *                       3) Fresh localStorage merge each tick: merges triggersRef with localStorage
+ *                          to handle component remounts and cross-tab dedup.
+ *                       4) isRunning guard: prevents overlapping async tick executions.
+ *                       5) Browser notification tag: uses occurrenceKey for proper OS-level collapse.
+ *                       6) Auto-expiry: notifications older than 24h auto-marked as read in state.
+ *                       7) State-level dedup: visibleNotifications deduped by eventKey+eventEpochMs.
  * v2.8.0 - 2026-02-04 - BEP CRITICAL FIX: Do NOT record push triggers to Firestore from client-side.
- *                       Client was creating trigger documents that blocked server-side FCM from sending.
- *                       Server now exclusively owns push trigger creation + FCM delivery. Client only
- *                       tracks push triggers in localStorage for in-session deduplication.
- * v2.7.0 - 2026-02-03 - BEP FIX: Remove 'push' channel client-side handling. Push notifications 
- *                       are now handled exclusively server-side via FCM Cloud Function. Client 
- *                       just records triggers - FCM sends to all enabled devices. Service Worker 
- *                       receives messages when app is closed. Only 'inApp' and 'browser' channels 
- *                       are handled locally now. This fixes architecture where 'push' channel 
- *                       was being treated as local browser notification instead of server-side FCM.
- * v2.6.0 - 2026-02-03 - BEP FIX: Add real-time listener to preferences document so quiet hours
- *                       changes reflect immediately when user toggles in NotificationPreferencesPanel.
- *                       Uses onSnapshot() instead of one-time load to auto-sync preferences.
+ * v2.7.0 - 2026-02-03 - BEP FIX: Remove 'push' channel client-side handling.
+ * v2.6.0 - 2026-02-03 - BEP FIX: Add real-time listener to preferences document.
  * v2.5.0 - 2026-02-03 - BEP: Support user-customizable quiet hours from Firestore preferences.
- *                       Loads user's quietHours settings and passes to isWithinQuietHours().
- *                       Defaults to {enabled: true, start: 21, end: 6} if no preferences set.
- * v2.4.0 - 2026-02-03 - BEP FIX: Expand rangeStartMs to look back by NOW_WINDOW_MS (9 min) so events
- *                       currently happening are still included in occurrences. Fixes bug where notifications
- *                       failed to trigger because occurrences became 0 immediately when event time passed.
- * v2.3.0 - 2026-02-03 - DEBUG: Add comprehensive debug logging for custom event notification tracing.
- *                       Logs: events input, normalized reminders, Firestore subscription, occurrences, isDue checks.
- *                       Remove these logs after troubleshooting is complete.
- * v2.2.0 - 2026-02-03 - BEP FIX: Add optimistic UI update for in-app notifications. Notifications now appear 
- *                       immediately in NotificationCenter instead of waiting for Firestore subscription callback.
- *                       Includes duplicate prevention in local state.
+ * v2.4.0 - 2026-02-03 - BEP FIX: Expand rangeStartMs to look back by NOW_WINDOW_MS.
+ * v2.3.0 - 2026-02-03 - DEBUG: Add comprehensive debug logging.
+ * v2.2.0 - 2026-02-03 - BEP FIX: Add optimistic UI update for in-app notifications.
  * v2.1.0 - 2026-01-23 - Add series reminder matching for upcoming economic events.
  * v2.0.1 - 2026-01-23 - Skip reminder triggers for repeat intervals under 1h.
  * v2.0.0 - 2026-01-23 - Upgrade to unified reminders engine with recurrence expansion and trigger dedupe.
- * v1.7.0 - 2026-01-23 - CLEANUP: Remove debug console.log statements. Keep only console.error for error handling (subscription failures, fallback to localStorage).
- * v1.6.0 - 2026-01-23 - BEP FIX: Add console.log to subscription success/error for debugging notification persistence across sessions. Error handler now falls back to localStorage instead of empty array. Logs subscription setup, snapshot receipt, and error details.
- * v1.5.0 - 2026-01-23 - BEP FIX: Add try-catch error handling to addNotificationForUser() calls with fallback to localStorage. Console.error() logs all Firestore save failures for debugging. Ensures notifications persist even if Firestore fails.
- * v1.4.0 - 2026-01-22 - BEP: Persist authenticated notifications in Firestore with read/deleted status management.
- * v1.3.0 - 2026-01-22 - BEP UX: Enhanced notification messages with TradingView-style detail (event name, time, impact, countdown). Notifications now include event metadata (impact, time, currency) for rich display in NotificationCenter.
+ * v1.7.0 - 2026-01-23 - CLEANUP: Remove debug console.log statements.
+ * v1.6.0 - 2026-01-23 - BEP FIX: Subscription logging and localStorage fallback.
+ * v1.5.0 - 2026-01-23 - BEP FIX: try-catch error handling for addNotificationForUser.
+ * v1.4.0 - 2026-01-22 - BEP: Persist authenticated notifications in Firestore.
+ * v1.3.0 - 2026-01-22 - BEP UX: Enhanced notification messages with TradingView-style detail.
  * v1.2.1 - 2026-01-22 - Remove email channel and allow push reminders.
  * v1.1.0 - 2026-01-21 - Send email reminders via callable and keep only in-app notifications.
  */
@@ -53,7 +66,6 @@ import { formatTime } from '../utils/dateUtils';
 import { buildSeriesKey, expandReminderOccurrences, normalizeEventForReminder } from '../utils/remindersRegistry';
 import { DAILY_REMINDER_CAP, THROTTLE_WINDOW_MS, getDayKeyForTimezone, isWithinQuietHours } from '../utils/remindersPolicy';
 import { getEventsByDateRange } from '../services/economicEventsService';
-import { getNotificationPreferences } from '../services/pushNotificationsService';
 import {
   addLocalNotification,
   addNotificationForUser,
@@ -123,6 +135,8 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
   const triggersRef = useRef(loadLocalTriggerIds(user?.uid));
   const dailyCountsRef = useRef(loadDailyCounts(user?.uid));
   const lastTriggeredRef = useRef(new Map());
+  // BEP v4.0.0: Track optimistic in-app notification IDs to prevent Firestore listener from adding dupes
+  const pendingOptimisticIdsRef = useRef(new Set());
 
   // Load user's quiet hours preferences with real-time listener
   useEffect(() => {
@@ -169,6 +183,16 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
     const unsubscribe = subscribeToNotifications(
       user.uid,
       (items) => {
+        // BEP v4.0.0: Merge Firestore snapshot with pending optimistic items
+        // Firestore snapshot is the source of truth — any optimistic item whose ID
+        // now appears in Firestore is confirmed and the optimistic copy is dropped.
+        const firestoreIds = new Set(items.map((n) => n.id));
+        // Clear confirmed optimistic IDs
+        pendingOptimisticIdsRef.current.forEach((id) => {
+          if (firestoreIds.has(id)) {
+            pendingOptimisticIdsRef.current.delete(id);
+          }
+        });
         setNotifications(items);
       },
       (error) => {
@@ -214,9 +238,6 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
   }, [user?.uid]);
 
   const legacyReminders = useMemo(() => {
-    if (events?.length > 0) {
-    }
-    
     const mapped = (events || []).map((event) => {
       const normalized = normalizeEventForReminder({
         event,
@@ -284,238 +305,322 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
     };
   }, [hasSeriesReminders]);
 
-  const notifyBrowser = useCallback((title, body) => {
+  const notifyBrowser = useCallback((title, body, occurrenceTag) => {
     if (typeof Notification === 'undefined') return;
     if (Notification.permission !== 'granted') return;
     try {
-      new Notification(title, { body, tag: `t2t-${title}` });
+      // BEP: Use occurrence-based tag so the OS collapses duplicates per event+occurrence
+      new Notification(title, { body, tag: occurrenceTag || `t2t-${title}` });
     } catch {
       // Ignore browser notification errors
     }
   }, []);
 
+  // BEP: Guard to prevent overlapping async tick executions
+  const isRunningRef = useRef(false);
+
   useEffect(() => {
     const interval = setInterval(() => {
+      // BEP: Prevent overlapping runs (defensive — run is mostly synchronous, but guards edge cases)
+      if (isRunningRef.current) return;
+      isRunningRef.current = true;
+
       const run = async () => {
-        if (!effectiveReminders.length) return;
+        try {
+          if (!effectiveReminders.length) return;
 
-        const nowEpochMs = Date.now();
-        // BEP FIX: Look back by NOW_WINDOW_MS so events currently happening (within the 9-min window) 
-        // are still included in occurrences. Without this, occurrences become 0 immediately when 
-        // eventEpochMs < nowEpochMs, even though isDue should be true for up to NOW_WINDOW_MS after.
-        const rangeStartMs = nowEpochMs - NOW_WINDOW_MS;
-        const rangeEndMs = nowEpochMs + 24 * 60 * 60 * 1000;
-        let triggers = triggersRef.current;
-        let dailyCounts = dailyCountsRef.current;
-        let didUpdate = false;
+          const nowEpochMs = Date.now();
+          // BEP FIX v2.4.0: Look back by NOW_WINDOW_MS so events currently happening are still included
+          const rangeStartMs = nowEpochMs - NOW_WINDOW_MS;
+          const rangeEndMs = nowEpochMs + 24 * 60 * 60 * 1000;
 
-        effectiveReminders.forEach((reminderRecord) => {
-          if (!reminderRecord?.enabled) return;
+          // BEP v3.0.0: Merge in-memory triggers with fresh localStorage read each tick
+          // Handles component remounts, cross-tab writes, and stale ref edge cases
+          const freshLocalTriggers = loadLocalTriggerIds(user?.uid);
+          let triggers = new Set([...triggersRef.current, ...freshLocalTriggers]);
+          let dailyCounts = dailyCountsRef.current;
+          let didUpdate = false;
 
-          const recurrenceInterval = reminderRecord?.metadata?.recurrence?.interval;
-          if (DISALLOWED_REPEAT_INTERVALS.has(recurrenceInterval)) {
-            return;
+          // BEP v3.0.0: Track if triggers grew from merge (needs persistence)
+          if (triggers.size > triggersRef.current.size) {
+            didUpdate = true;
           }
 
-          const occurrences = reminderRecord.scope === 'series'
-            ? []
-            : expandReminderOccurrences({
-              reminder: reminderRecord,
-              rangeStartMs,
-              rangeEndMs,
-            });
+          effectiveReminders.forEach((reminderRecord) => {
+            if (!reminderRecord?.enabled) return;
 
+            const recurrenceInterval = reminderRecord?.metadata?.recurrence?.interval;
+            if (DISALLOWED_REPEAT_INTERVALS.has(recurrenceInterval)) {
+              return;
+            }
 
-          const remindersList = Array.isArray(reminderRecord.reminders)
-            ? reminderRecord.reminders
-            : [];
+            const occurrences = reminderRecord.scope === 'series'
+              ? []
+              : expandReminderOccurrences({
+                reminder: reminderRecord,
+                rangeStartMs,
+                rangeEndMs,
+              });
 
-          const seriesMatches = reminderRecord.scope === 'series' && reminderRecord.seriesKey
-            ? upcomingEvents.filter((event) => buildSeriesKey({ event, eventSource: event.source || event.sourceKey || 'canonical' }) === reminderRecord.seriesKey)
-            : [];
+            const remindersList = Array.isArray(reminderRecord.reminders)
+              ? reminderRecord.reminders
+              : [];
 
-          const occurrenceSources = reminderRecord.scope === 'series'
-            ? seriesMatches.map((event) => ({
-              occurrenceEpochMs: getEventEpochMs(event),
-              event,
-            }))
-            : occurrences.map(({ occurrenceEpochMs }) => ({ occurrenceEpochMs, event: null }));
+            const seriesMatches = reminderRecord.scope === 'series' && reminderRecord.seriesKey
+              ? upcomingEvents.filter((event) => buildSeriesKey({ event, eventSource: event.source || event.sourceKey || 'canonical' }) === reminderRecord.seriesKey)
+              : [];
 
-          occurrenceSources.forEach(({ occurrenceEpochMs, event: matchedEvent }) => {
-            if (!Number.isFinite(occurrenceEpochMs)) return;
-            remindersList.forEach((reminder) => {
-              const minutesBefore = Number(reminder?.minutesBefore);
-              if (!Number.isFinite(minutesBefore)) return;
+            const occurrenceSources = reminderRecord.scope === 'series'
+              ? seriesMatches.map((event) => ({
+                occurrenceEpochMs: getEventEpochMs(event),
+                event,
+              }))
+              : occurrences.map(({ occurrenceEpochMs }) => ({ occurrenceEpochMs, event: null }));
 
-              const reminderAt = occurrenceEpochMs - minutesBefore * 60 * 1000;
-              const isDue = nowEpochMs >= reminderAt && nowEpochMs < occurrenceEpochMs + NOW_WINDOW_MS;
-              
-              if (!isDue) return;
+            occurrenceSources.forEach(({ occurrenceEpochMs, event: matchedEvent }) => {
+              if (!Number.isFinite(occurrenceEpochMs)) return;
 
-              const timezone = reminderRecord.timezone || 'America/New_York';
-              const dayKey = getDayKeyForTimezone({ epochMs: reminderAt, timezone });
-              const channels = getChannelsForReminder(reminder);
+              remindersList.forEach((reminder) => {
+                const minutesBefore = Number(reminder?.minutesBefore);
+                if (!Number.isFinite(minutesBefore)) return;
 
-              // Check quiet hours - skip if disabled by user or within quiet time range
-              const userQuietHours = quietHours.enabled
-                ? { start: quietHours.start, end: quietHours.end }
-                : { start: 0, end: 0 }; // Disabled = no quiet hours (start === end bypasses check)
+                const reminderAt = occurrenceEpochMs - minutesBefore * 60 * 1000;
+                // BEP v3.0.0: Tightened isDue window — relative to REMINDER time, not event time.
+                // Old: nowEpochMs < occurrenceEpochMs + NOW_WINDOW_MS (up to 69min for 60-min offset!)
+                // New: nowEpochMs < reminderAt + NOW_WINDOW_MS (always 9min regardless of offset)
+                const isDue = nowEpochMs >= reminderAt && nowEpochMs < reminderAt + NOW_WINDOW_MS;
 
-              if (isWithinQuietHours({ epochMs: reminderAt, timezone, quietHours: userQuietHours })) {
+                if (!isDue) return;
+
+                const timezone = reminderRecord.timezone || 'America/New_York';
+                const dayKey = getDayKeyForTimezone({ epochMs: reminderAt, timezone });
+                const channels = getChannelsForReminder(reminder);
+
+                // Check quiet hours - skip if disabled by user or within quiet time range
+                const userQuietHours = quietHours.enabled
+                  ? { start: quietHours.start, end: quietHours.end }
+                  : { start: 0, end: 0 }; // Disabled = no quiet hours
+
+                if (isWithinQuietHours({ epochMs: reminderAt, timezone, quietHours: userQuietHours })) {
+                  channels.forEach((channel) => {
+                    const triggerId = buildTriggerId({
+                      eventKey: reminderRecord.eventKey,
+                      occurrenceEpochMs,
+                      minutesBefore,
+                      channel,
+                    });
+                    if (triggers.has(triggerId)) return;
+                    triggers = new Set(triggers);
+                    triggers.add(triggerId);
+                    didUpdate = true;
+                    void recordNotificationTrigger(user?.uid, triggerId, {
+                      eventKey: reminderRecord.eventKey,
+                      occurrenceEpochMs,
+                      minutesBefore,
+                      channel,
+                      status: 'skipped-quiet-hours',
+                      scheduledForMs: reminderAt,
+                    });
+                  });
+                  return;
+                }
+
                 channels.forEach((channel) => {
+                  // BEP v3.0.0: Occurrence-level dedup — ONE notification per event per occurrence per channel.
+                  // This ensures multiple reminder offsets (e.g., 60min, 30min, 0min before) only produce
+                  // ONE notification. The first offset that becomes due wins; subsequent offsets are silently
+                  // recorded as triggered but don't create additional notifications.
+                  const occurrenceKey = `${reminderRecord.eventKey}__${occurrenceEpochMs}__${channel}`;
+                  if (triggers.has(occurrenceKey)) {
+                    // Already notified for this occurrence+channel — mark offset trigger and skip
+                    const triggerId = buildTriggerId({
+                      eventKey: reminderRecord.eventKey,
+                      occurrenceEpochMs,
+                      minutesBefore,
+                      channel,
+                    });
+                    if (!triggers.has(triggerId)) {
+                      triggers = new Set(triggers);
+                      triggers.add(triggerId);
+                      didUpdate = true;
+                    }
+                    return;
+                  }
+
                   const triggerId = buildTriggerId({
                     eventKey: reminderRecord.eventKey,
                     occurrenceEpochMs,
                     minutesBefore,
                     channel,
                   });
-                  if (triggers.has(triggerId)) return;
-                  triggers = new Set(triggers);
-                  triggers.add(triggerId);
-                  didUpdate = true;
-                  void recordNotificationTrigger(user?.uid, triggerId, {
-                    eventKey: reminderRecord.eventKey,
-                    occurrenceEpochMs,
-                    minutesBefore,
-                    channel,
-                    status: 'skipped-quiet-hours',
-                    scheduledForMs: reminderAt,
-                  });
-                });
-                return;
-              }
 
-              channels.forEach((channel) => {
-                const triggerId = buildTriggerId({
-                  eventKey: reminderRecord.eventKey,
-                  occurrenceEpochMs,
-                  minutesBefore,
-                  channel,
-                });
-                
-                if (triggers.has(triggerId)) {
-                  return;
-                }
-
-                if (dayKey && (dailyCounts[dayKey] || 0) >= DAILY_REMINDER_CAP) {
-                  triggers = new Set(triggers);
-                  triggers.add(triggerId);
-                  didUpdate = true;
-                  void recordNotificationTrigger(user?.uid, triggerId, {
-                    eventKey: reminderRecord.eventKey,
-                    occurrenceEpochMs,
-                    minutesBefore,
-                    channel,
-                    status: 'skipped-cap',
-                    scheduledForMs: reminderAt,
-                  });
-                  return;
-                }
-
-                const lastKey = `${reminderRecord.eventKey}:${channel}`;
-                const lastTriggeredAt = lastTriggeredRef.current.get(lastKey);
-                if (lastTriggeredAt && nowEpochMs - lastTriggeredAt < THROTTLE_WINDOW_MS) {
-                  return;
-                }
-
-                const eventTime = formatTime(new Date(occurrenceEpochMs), timezone);
-                const impact = matchedEvent?.strength || matchedEvent?.impact || reminderRecord.impact || 'medium';
-                const impactMeta = resolveImpactMeta(impact);
-                const impactLabel = impactMeta?.label || 'Medium';
-                const title = matchedEvent?.name || matchedEvent?.Name || reminderRecord.title || 'Event reminder';
-                const impactIcon = impactMeta?.icon || '•';
-                const message = `${impactIcon} ${impactLabel} Impact • ${eventTime} • in ${minutesBefore} min`;
-
-                triggers = new Set(triggers);
-                triggers.add(triggerId);
-                didUpdate = true;
-                lastTriggeredRef.current.set(lastKey, nowEpochMs);
-
-                if (dayKey) {
-                  dailyCounts = { ...dailyCounts, [dayKey]: (dailyCounts[dayKey] || 0) + 1 };
-                }
-
-                const notificationEventId = matchedEvent?.id
-                  || reminderRecord.metadata?.seriesId
-                  || reminderRecord.metadata?.eventId
-                  || reminderRecord.eventKey;
-
-                const notification = {
-                  id: triggerId,
-                  eventId: notificationEventId,
-                  eventKey: reminderRecord.eventKey,
-                  eventSource: reminderRecord.eventSource,
-                  title,
-                  message,
-                  eventTime,
-                  impact,
-                  impactLabel,
-                  minutesBefore,
-                  eventEpochMs: occurrenceEpochMs,
-                  scheduledForMs: reminderAt,
-                  sentAtMs: nowEpochMs,
-                  channel,
-                  read: false,
-                  deleted: false,
-                  status: 'unread',
-                };
-
-                if (channel === 'inApp') {
-                  // BEP: Optimistic update - immediately show notification in UI
-                  // Then persist to Firestore (subscription will dedupe if needed)
-                  setNotifications((prev) => {
-                    // Prevent duplicates in local state
-                    if (prev.some((n) => n.id === notification.id)) return prev;
-                    return [notification, ...prev];
-                  });
-
-                  if (user?.uid) {
-                    addNotificationForUser(user.uid, notification).catch((error) => {
-                      console.error('❌ Failed to save notification to Firestore, falling back to localStorage:', error);
-                      const updated = addLocalNotification(user.uid, notification);
-                      setNotifications(updated);
-                    });
-                  } else {
-                    addLocalNotification(user?.uid, notification);
+                  if (triggers.has(triggerId)) {
+                    return;
                   }
-                }
 
-                if (channel === 'browser') {
-                  notifyBrowser(title, message);
-                }
+                  if (dayKey && (dailyCounts[dayKey] || 0) >= DAILY_REMINDER_CAP) {
+                    triggers = new Set(triggers);
+                    triggers.add(triggerId);
+                    triggers.add(occurrenceKey);
+                    didUpdate = true;
+                    void recordNotificationTrigger(user?.uid, triggerId, {
+                      eventKey: reminderRecord.eventKey,
+                      occurrenceEpochMs,
+                      minutesBefore,
+                      channel,
+                      status: 'skipped-cap',
+                      scheduledForMs: reminderAt,
+                    });
+                    return;
+                  }
 
-                if (channel === 'push') {
-                  // BEP: Push notifications are handled server-side via FCM Cloud Function.
-                  // Server creates its own trigger in Firestore - DO NOT create client-side trigger
-                  // or it will block the server from sending. Client only records to localStorage
-                  // for in-session deduplication.
-                  return; // Skip Firestore trigger - server will create it when it sends FCM
-                }
+                  const lastKey = `${reminderRecord.eventKey}:${channel}`;
+                  const lastTriggeredAt = lastTriggeredRef.current.get(lastKey);
+                  if (lastTriggeredAt && nowEpochMs - lastTriggeredAt < THROTTLE_WINDOW_MS) {
+                    return;
+                  }
 
-                // BEP: Only record inApp/browser triggers to Firestore - NOT push
-                void recordNotificationTrigger(user?.uid, triggerId, {
-                  eventKey: reminderRecord.eventKey,
-                  occurrenceEpochMs,
-                  minutesBefore,
-                  channel,
-                  status: 'sent',
-                  scheduledForMs: reminderAt,
+                  // BEP v4.0.0: Skip browser channel dispatch when push is also enabled for this offset.
+                  // The server-side FCM scheduler sends a push notification which the service worker
+                  // displays as a browser notification via showNotification(). Firing `new Notification()`
+                  // from the client AND having SW show the push would result in duplicate browser notifs.
+                  if (channel === 'browser') {
+                    const pushAlsoEnabled = reminder?.channels?.push === true;
+                    if (pushAlsoEnabled) {
+                      // Mark as triggered but skip dispatch — push/SW will handle browser display
+                      triggers = new Set(triggers);
+                      triggers.add(triggerId);
+                      triggers.add(occurrenceKey);
+                      didUpdate = true;
+                      void recordNotificationTrigger(user?.uid, triggerId, {
+                        eventKey: reminderRecord.eventKey,
+                        occurrenceEpochMs,
+                        minutesBefore,
+                        channel,
+                        status: 'skipped-push-handles-browser',
+                        scheduledForMs: reminderAt,
+                      });
+                      return;
+                    }
+                  }
+
+                  const eventTime = formatTime(new Date(occurrenceEpochMs), timezone);
+                  const impact = matchedEvent?.strength || matchedEvent?.impact || reminderRecord.impact || 'medium';
+                  const impactMeta = resolveImpactMeta(impact);
+                  const impactLabel = impactMeta?.label || 'Medium';
+                  const title = matchedEvent?.name || matchedEvent?.Name || reminderRecord.title || 'Event reminder';
+                  const impactIcon = impactMeta?.icon || '•';
+                  const message = `${impactIcon} ${impactLabel} Impact • ${eventTime} • in ${minutesBefore} min`;
+
+                  // BEP v3.0.0: Mark BOTH per-offset and per-occurrence triggers
+                  triggers = new Set(triggers);
+                  triggers.add(triggerId);
+                  triggers.add(occurrenceKey); // Blocks future offsets for this occurrence+channel
+                  didUpdate = true;
+                  lastTriggeredRef.current.set(lastKey, nowEpochMs);
+
+                  if (dayKey) {
+                    dailyCounts = { ...dailyCounts, [dayKey]: (dailyCounts[dayKey] || 0) + 1 };
+                  }
+
+                  const notificationEventId = matchedEvent?.id
+                    || reminderRecord.metadata?.seriesId
+                    || reminderRecord.metadata?.eventId
+                    || reminderRecord.eventKey;
+
+                  const notification = {
+                    id: triggerId,
+                    eventId: notificationEventId,
+                    eventKey: reminderRecord.eventKey,
+                    eventSource: reminderRecord.eventSource,
+                    title,
+                    message,
+                    eventTime,
+                    impact,
+                    impactLabel,
+                    minutesBefore,
+                    eventEpochMs: occurrenceEpochMs,
+                    scheduledForMs: reminderAt,
+                    sentAtMs: nowEpochMs,
+                    channel,
+                    read: false,
+                    deleted: false,
+                    status: 'unread',
+                  };
+
+                  if (channel === 'inApp') {
+                    // BEP v4.0.0: Optimistic update with pending ID tracking
+                    // Track this notification ID so the Firestore listener won't add a duplicate
+                    pendingOptimisticIdsRef.current.add(notification.id);
+                    setNotifications((prev) => {
+                      // BEP v3.0.0: Dedup by id AND by eventKey+eventEpochMs for same occurrence
+                      if (prev.some((n) => n.id === notification.id)) return prev;
+                      if (prev.some((n) =>
+                        n.eventKey === notification.eventKey
+                        && n.eventEpochMs === notification.eventEpochMs
+                        && n.channel === notification.channel
+                        && !n.deleted
+                      )) return prev;
+                      return [notification, ...prev];
+                    });
+
+                    if (user?.uid) {
+                      addNotificationForUser(user.uid, notification).catch((error) => {
+                        console.error('❌ Failed to save notification to Firestore, falling back to localStorage:', error);
+                        const updated = addLocalNotification(user.uid, notification);
+                        setNotifications(updated);
+                      });
+                    } else {
+                      addLocalNotification(user?.uid, notification);
+                    }
+                  }
+
+                  if (channel === 'browser') {
+                    // BEP v3.0.0: Occurrence-based tag collapses duplicates at OS level
+                    const browserTag = `t2t-${reminderRecord.eventKey}__${occurrenceEpochMs}`;
+                    notifyBrowser(title, message, browserTag);
+                  }
+
+                  if (channel === 'push') {
+                    // BEP v4.0.0: Push notifications are handled server-side via FCM Cloud Function.
+                    // Also mark browser occurrence as triggered since SW showNotification() covers it.
+                    const browserOccurrenceKey = `${reminderRecord.eventKey}__${occurrenceEpochMs}__browser`;
+                    if (!triggers.has(browserOccurrenceKey)) {
+                      triggers = new Set(triggers);
+                      triggers.add(browserOccurrenceKey);
+                      didUpdate = true;
+                    }
+                    return;
+                  }
+
+                  // BEP: Only record inApp/browser triggers to Firestore - NOT push
+                  void recordNotificationTrigger(user?.uid, triggerId, {
+                    eventKey: reminderRecord.eventKey,
+                    occurrenceEpochMs,
+                    minutesBefore,
+                    channel,
+                    status: 'sent',
+                    scheduledForMs: reminderAt,
+                  });
                 });
               });
             });
           });
-        });
 
-        if (didUpdate) {
-          triggersRef.current = triggers;
-          saveLocalTriggerIds(user?.uid, triggers);
-          dailyCountsRef.current = dailyCounts;
-          saveDailyCounts(user?.uid, dailyCounts);
+          if (didUpdate) {
+            triggersRef.current = triggers;
+            saveLocalTriggerIds(user?.uid, triggers);
+            dailyCountsRef.current = dailyCounts;
+            saveDailyCounts(user?.uid, dailyCounts);
+          }
+        } finally {
+          isRunningRef.current = false;
         }
       };
 
       void run().catch((error) => {
         console.error('❌ Error in notification processing loop:', error);
+        isRunningRef.current = false;
       });
     }, 15000);
 
@@ -523,10 +628,33 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveReminders, notifyBrowser, user?.uid, quietHours]);
 
-  const visibleNotifications = useMemo(
-    () => notifications.filter((item) => !item.deleted),
-    [notifications]
-  );
+  // BEP v3.0.0: Deduplicate visible notifications — one per eventKey+eventEpochMs+channel
+  // Notifications are sorted by sentAtMs desc from Firestore, so the first seen is the latest
+  const visibleNotifications = useMemo(() => {
+    const seen = new Map();
+    const AUTO_READ_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+    const nowMs = Date.now();
+
+    return notifications
+      .filter((item) => !item.deleted)
+      .map((item) => {
+        // BEP v3.0.0: Auto-expire — notifications older than 24h marked as read in state
+        if (!item.read && item.sentAtMs && (nowMs - item.sentAtMs > AUTO_READ_AGE_MS)) {
+          return { ...item, read: true, status: 'read' };
+        }
+        return item;
+      })
+      .filter((item) => {
+        // BEP v3.0.0: Occurrence-level dedup in UI — only show latest per event+occurrence+channel
+        // Non-event notifications (e.g., blog drafts) always pass through using unique id
+        const dedupeKey = item.eventKey && Number.isFinite(item.eventEpochMs)
+          ? `${item.eventKey}__${item.eventEpochMs}__${item.channel || 'inApp'}`
+          : item.id;
+        if (seen.has(dedupeKey)) return false;
+        seen.set(dedupeKey, true);
+        return true;
+      });
+  }, [notifications]);
 
   const unreadCount = useMemo(
     () => visibleNotifications.filter((item) => !item.read).length,

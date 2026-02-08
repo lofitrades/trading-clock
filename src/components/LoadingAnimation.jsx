@@ -5,9 +5,9 @@
  * Uses GSAP for smooth 60fps animations
  * 
  * Features:
- * - 4 rotating quarter-circle donuts (2 inner AM, 2 outer PM)
- * - Opacity pulsation for visual interest
- * - Scalable clock size via props
+ * - 5 rotating session donuts matching default clock arcs (2 inner AM, 3 outer PM)
+ * - Arc lengths proportional to actual session durations on 12-hour face
+ * - Colors and radii match SettingsContext default sessions
  * - Automatic cleanup on unmount
  * 
  * Used by:
@@ -15,6 +15,8 @@
  * - EventsTimeline2.jsx (drawer loading state)
  * 
  * Changelog:
+ * v1.3.1 - 2026-02-07 - Enhanced transparency: lowered arc opacity range (0.45–0.15) for softer, more translucent loading animation
+ * v1.3.0 - 2026-02-07 - Updated arcs to match default clock session sizes and colors (5 sessions: NY AM, London inner; NY PM, Market Closed, Asia outer) with correct radii (0.47/0.78), arc lengths, and brand colors from SettingsContext defaults
  * v1.2.0 - 2025-11-30 - Added smooth fade in/out transitions (500ms) with 300ms delay on completion to prevent abrupt jumps
  * v1.1.0 - 2025-11-30 - Removed clock hands (h,m,s), keeping only animated donuts for cleaner look
  * v1.0.0 - 2025-11-30 - Initial extraction from LoadingScreen.jsx for reusability
@@ -79,15 +81,19 @@ const LoadingAnimation = ({ clockSize = 375, isLoading = true }) => {
     const centerY = size / 2;
     const baseRadius = size / 2 - 5;
 
-    // Four donuts - two per arc (AM and PM circles)
-    // Each donut is 90 degrees (quarter circle) with offset phases to avoid overlap
+    // Five donuts matching default clock sessions (SettingsContext.jsx)
+    // AM sessions (startHour < 12) → inner circle (radius 0.47)
+    // PM sessions (startHour >= 12) → outer circle (radius 0.78)
+    // Arc lengths proportional to session durations on 12-hour clock face
+    // Phase offsets = session start position in degrees (12 o'clock = 0°)
     const donutConfigs = [
-      // AM circle (inner) - multicolor palette accents
-      { radius: 0.52, color: '#018786', speed: 1.5, phase: 0, lineWidth: 30, arcLength: Math.PI / 2 }, // Right Large (teal)
-      { radius: 0.52, color: '#FF6F91', speed: -1.8, phase: 180, lineWidth: 30, arcLength: Math.PI / 2 }, // Right Inner (pink)
-      // PM circle (outer) - multicolor palette anchors
-      { radius: 0.75, color: '#4E7DFF', speed: 1.2, phase: 90, lineWidth: 30, arcLength: Math.PI / 2 }, // Top Left (blue)
-      { radius: 0.75, color: '#FFA85C', speed: -1.4, phase: 270, lineWidth: 30, arcLength: Math.PI / 2 }, // Bottom Left (orange)
+      // AM circle (inner) — startHour < 12
+      { radius: 0.47, color: '#018786', speed: 1.5, phase: 210, lineWidth: 40, arcLength: (Math.PI * 2) / 3 },  // NY AM (07:00-11:00, 4h = 120°)
+      { radius: 0.47, color: '#FF6F91', speed: -1.8, phase: 60, lineWidth: 40, arcLength: Math.PI / 2 },         // London (02:00-05:00, 3h = 90°)
+      // PM circle (outer) — startHour >= 12
+      { radius: 0.78, color: '#FFA85C', speed: 1.2, phase: 45, lineWidth: 40, arcLength: (Math.PI * 5) / 12 },   // NY PM (13:30-16:00, 2.5h = 75°)
+      { radius: 0.78, color: '#8B6CFF', speed: -1.4, phase: 150, lineWidth: 40, arcLength: Math.PI / 6 },        // Market Closed (17:00-18:00, 1h = 30°)
+      { radius: 0.78, color: '#4E7DFF', speed: 1.6, phase: 240, lineWidth: 40, arcLength: (Math.PI * 2) / 3 },   // Asia (20:00-00:00, 4h = 120°)
     ];
 
     // Scale line width based on clock size
@@ -96,16 +102,16 @@ const LoadingAnimation = ({ clockSize = 375, isLoading = true }) => {
     // Initialize donuts animation states
     donutsRef.current = donutConfigs.map((config) => ({
       ...config,
-      currentOpacity: 0.8,
+      currentOpacity: 0.45,
       rotation: config.phase,
       lineWidth: Math.round(config.lineWidth * scaleFactor),
     }));
 
     // Animate each donut - each completes one full rotation in 1.5 seconds
     donutsRef.current.forEach((donut, index) => {
-      // Opacity pulsation
+      // Opacity pulsation — gentle transparency pulse for soft, airy feel
       gsap.to(donut, {
-        currentOpacity: 0.4,
+        currentOpacity: 0.15,
         duration: 1.5 + index * 0.2,
         repeat: -1,
         yoyo: true,
@@ -130,7 +136,7 @@ const LoadingAnimation = ({ clockSize = 375, isLoading = true }) => {
     const animate = () => {
       ctx.clearRect(0, 0, size, size);
 
-      // Draw animated donuts (2 per arc = 4 total)
+      // Draw animated session donuts (2 inner AM + 3 outer PM = 5 total)
       donutsRef.current.forEach((donut) => {
         const radius = baseRadius * donut.radius;
         const rotation = (donut.rotation * Math.PI) / 180;

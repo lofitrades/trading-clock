@@ -17,6 +17,7 @@
  * - Accessibility compliant
  * 
  * Changelog:
+ * v1.12.0 - 2026-02-06 - BEP: Display rescheduled/reinstated event indicators under event name. Reschedule badge (ScheduleIcon, color: secondary) shows when rescheduledFrom is set. Reinstate badge (RestoreIcon, color: info) shows when status is cancelled but has reappeared.
  * v1.11.0 - 2026-01-30 - BEP i18n migration: Added useTranslation hook, converted 8 column headers (COLUMNS), 5 impact labels (IMPACT_CONFIG), and associated strings to t() calls for calendar namespace
  * v1.10.2 - 2026-01-24 - Phase 2 prep: File header updated, scheduled for i18n migration (requires memoized column header component for t() integration)
  * v1.10.1 - 2026-01-16 - Default auth redirect to /calendar instead of /app for the public clock route.
@@ -91,6 +92,8 @@ import {
   Favorite as FavoriteIcon,
   NoteAltOutlined as NoteAltOutlinedIcon,
   NoteAlt as NoteAltIcon,
+  Schedule as ScheduleIcon,
+  Restore as RestoreIcon,
 } from '@mui/icons-material';
 import EventModal from './EventModal';
 import AuthModal2 from './AuthModal2';
@@ -1071,15 +1074,56 @@ export default function EventsTable({
                                   {column.id === 'currency' && <CurrencyCell currency={event.currency} isMobile={isMobile} />}
                                   {column.id === 'impact' && <ImpactCell strength={event.strength} isPast={isPast} />}
                                   {column.id === 'name' && (
-                                    <Typography
-                                      variant="body2"
-                                      fontWeight={500}
-                                      fontSize="0.8125rem"
-                                      lineHeight={1.3}
-                                      sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}
-                                    >
-                                      {event.Name}
-                                    </Typography>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                      <Typography
+                                        variant="body2"
+                                        fontWeight={500}
+                                        fontSize="0.8125rem"
+                                        lineHeight={1.3}
+                                        sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}
+                                      >
+                                        {event.Name}
+                                      </Typography>
+                                      {/* BEP v1.12.0: Reschedule/Reinstate badges */}
+                                      <Stack direction="row" spacing={0.5}>
+                                        {event.rescheduledFrom && (
+                                          <MuiTooltip
+                                            title={t('events:status.rescheduledFrom', { date: new Date(event.rescheduledFrom).toLocaleString() })}
+                                            arrow
+                                            placement="top"
+                                          >
+                                            <Chip
+                                              icon={<ScheduleIcon />}
+                                              label={t('events:status.rescheduled')}
+                                              size="small"
+                                              variant="outlined"
+                                              color="secondary"
+                                              sx={{
+                                                height: 18,
+                                                fontSize: '0.65rem',
+                                                fontWeight: 500,
+                                              }}
+                                            />
+                                          </MuiTooltip>
+                                        )}
+                                        {event.status === 'cancelled' && (
+                                          <MuiTooltip title={t('events:status.reinstatedTooltip')} arrow placement="top">
+                                            <Chip
+                                              icon={<RestoreIcon />}
+                                              label={t('events:status.reinstated')}
+                                              size="small"
+                                              variant="outlined"
+                                              color="info"
+                                              sx={{
+                                                height: 18,
+                                                fontSize: '0.65rem',
+                                                fontWeight: 500,
+                                              }}
+                                            />
+                                          </MuiTooltip>
+                                        )}
+                                      </Stack>
+                                    </Box>
                                   )}
                                   {shouldShowInlineSpeech && speechSummary && (
                                     <Typography

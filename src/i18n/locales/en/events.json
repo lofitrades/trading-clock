@@ -90,6 +90,13 @@
     "unknown": "Unknown",
     "unknownDesc": "Impact level cannot be determined"
   },
+  "status": {
+    "rescheduled": "Rescheduled",
+    "rescheduledFrom": "Rescheduled from {{date}}",
+    "reinstated": "Reinstated",
+    "reinstatedTooltip": "Previously cancelled, now reinstated",
+    "cancelled": "Cancelled"
+  },
   "tooltips": {
     "currencyAffects": "Economic data affects this currency",
     "eventImpactsCurrency": "This event impacts {{currency}} valuation",

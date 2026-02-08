@@ -6,6 +6,19 @@
  * and restrict server-managed collections.
  * 
  * Changelog:
+ * v1.13.0 - 2026-02-07 - BEP ENGAGEMENT PERMISSIONS FIX: Split viewCount and likeCount permissions.
+ *                       (1) viewCount: ANY user (auth + guest) can increment on published posts.
+ *                       (2) likeCount: ONLY authenticated users can update. Root cause: v1.12.0 rule
+ *                       required isAuthenticated() for both fields, blocking guests from incrementing
+ *                       view counts. Now guests can track page views while likes remain auth-only.
+ * v1.12.0 - 2026-02-07 - BEP: Add blogActivity subcollection rules (readHistory, likes). Allow auth users to update engagement fields (viewCount, likeCount) on blogPosts.
+ * v1.11.0 - 2026-02-05 - BEP: Allow all authenticated users to read systemActivityLog (client-side filtering per role)
+ * v1.9.0 - 2026-02-05 - Allow authenticated users to create activity logs (frontend logging). Superadmin write/update/delete.
+ * v1.8.0 - 2026-02-05 - Add rules for systemActivityLog collection (admin activity audit trail).
+ * v1.7.0 - 2026-02-05 - BEP: Allow public read on blogSlugIndex for unauthenticated users (needed for slug → postId lookup)
+ * v1.6.0 - 2026-02-06 - BEP: Fix isPublishedPost() to allow true public read for unauthenticated users
+ * v1.5.0 - 2026-02-04 - Add rules for blogAuthors and blogAuthorSlugIndex (Phase 5.B Blog Taxonomy)
+ * v1.4.0 - 2026-02-04 - Add rules for blogPosts and blogSlugIndex collections (Phase 1 Blog)
  * v1.3.0 - 2026-02-03 - Add rules for preferences subcollection (quiet hours).
  * v1.2.0 - 2026-01-23 - Add rules for deviceTokens and notificationStats for FCM.
  * v1.1.0 - 2026-01-23 - Add rules for unified reminders and notification triggers.
@@ -25,6 +38,21 @@ service cloud.firestore {
     // Helper function to check if user owns the document
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Helper function to check if user has blog CMS role (author, admin, superadmin)
+    function hasBlogCmsRole() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'author' ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.role == 'superadmin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['author', 'admin', 'superadmin']
+      );
+    }
+
+    // Helper function to check if blog post is published (works for unauthenticated users)
+    function isPublishedPost() {
+      return resource != null && resource.data.status == 'published';
     }
 
     // Users collection - authenticated users can read/write their own data
@@ -80,6 +108,13 @@ service cloud.firestore {
 
       // Preferences subcollection - owners manage their notification/app preferences
       match /preferences/{prefId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Blog Activity subcollection - read tracking and likes (v1.12.0)
+      // Structure: users/{uid}/blogActivity/readHistory  → { postIds: [...] }
+      //            users/{uid}/blogActivity/likes        → { postIds: [...] }
+      match /blogActivity/{docId} {
         allow read, write: if isOwner(userId);
       }
     }
@@ -158,6 +193,137 @@ service cloud.firestore {
       // Limit reads to admins with custom claim
       allow read: if request.auth != null && (request.auth.token.role == 'admin' || request.auth.token.role == 'superadmin' || request.auth.token.superadmin == true);
       allow update, delete: if false;
+    }
+
+    // ==================== BLOG COLLECTIONS (v1.4.0+) ====================
+    
+    // Blog Posts - Multi-language blog content
+    // Structure: /blogPosts/{postId}
+    // Public read for published posts only, CMS roles can read all + write
+    match /blogPosts/{postId} {
+      // Public can read published posts only
+      // CMS roles can read all posts (including drafts)
+      // For aggregation queries (blog stats), check auth token first, then fallback to user doc
+      allow read: if isPublishedPost() || (
+        isAuthenticated() && (
+          request.auth.token.role in ['author', 'admin', 'superadmin'] ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['author', 'admin', 'superadmin'])
+        )
+      );
+      
+      // Only CMS roles can create/update/delete
+      allow create: if hasBlogCmsRole() &&
+        // Validate required fields on create
+        request.resource.data.status in ['draft', 'published', 'unpublished'] &&
+        request.resource.data.createdAt is timestamp &&
+        request.resource.data.updatedAt is timestamp &&
+        request.resource.data.author.uid is string &&
+        request.resource.data.author.displayName is string &&
+        request.resource.data.category is string;
+      
+      allow update: if hasBlogCmsRole() &&
+        // Validate status transitions
+        request.resource.data.status in ['draft', 'published', 'unpublished'] &&
+        request.resource.data.updatedAt is timestamp;
+
+      // Engagement updates (viewCount, likeCount)
+      // View count: ANY user (auth + guest) can increment on published posts
+      // Like count: ONLY authenticated users can update (via separate like system)
+      // BEP: Guests increment viewCount to track all page visits, not just authenticated users
+      allow update: if isPublishedPost() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']) ||
+      (isAuthenticated() &&
+        isPublishedPost() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']));
+      
+      allow delete: if hasBlogCmsRole();
+    }
+
+    // Blog Slug Index - Uniqueness enforcement for slugs per language
+    // Structure: /blogSlugIndex/{lang_slug} → { postId: string }
+    // Example: /blogSlugIndex/en_trading-tips-2024 → { postId: "abc123" }
+    match /blogSlugIndex/{slugKey} {
+      // Public read needed for slug → postId lookup (getBlogPostBySlug)
+      // Actual post access is controlled by blogPosts rules
+      allow read: if true;
+      
+      // Create only if postId is provided
+      allow create: if hasBlogCmsRole() &&
+        request.resource.data.postId is string;
+      
+      // Update only if same postId (re-claim same slug)
+      allow update: if hasBlogCmsRole() &&
+        request.resource.data.postId is string;
+      
+      // Delete allowed for CMS roles (when post is deleted or slug changed)
+      allow delete: if hasBlogCmsRole();
+    }
+
+    // Blog Renders - Manifest of rendered HTML files per post (for cleanup)
+    // Structure: /blogRenders/{postId} → { paths: string[], renderedAt: timestamp }
+    // Only Cloud Functions can write (generates HTML), CMS roles can read for debug
+    match /blogRenders/{postId} {
+      allow read: if hasBlogCmsRole();
+      allow write: if false; // Only Cloud Functions can write
+    }
+
+    // Blog Authors - Author profiles for attribution and author pages (Phase 5.B)
+    // Structure: /blogAuthors/{authorId}
+    // Public read for author info, CMS roles can manage
+    match /blogAuthors/{authorId} {
+      // Public can read author profiles (shown on posts and author pages)
+      allow read: if true;
+      
+      // Only CMS roles can create/update/delete authors
+      allow create: if hasBlogCmsRole() &&
+        request.resource.data.slug is string &&
+        request.resource.data.displayName is string &&
+        request.resource.data.createdAt is timestamp;
+      
+      allow update: if hasBlogCmsRole() &&
+        request.resource.data.updatedAt is timestamp;
+      
+      allow delete: if hasBlogCmsRole();
+    }
+
+    // Blog Author Slug Index - Uniqueness enforcement for author slugs (Phase 5.B)
+    // Structure: /blogAuthorSlugIndex/{slug} → { authorId: string }
+    match /blogAuthorSlugIndex/{slug} {
+      // CMS roles can read/write slug index
+      allow read: if hasBlogCmsRole();
+      
+      allow create: if hasBlogCmsRole() &&
+        request.resource.data.authorId is string;
+      
+      allow update: if hasBlogCmsRole() &&
+        request.resource.data.authorId is string;
+      
+      allow delete: if hasBlogCmsRole();
+    }
+
+    // System Activity Log - Admin audit trail for events, syncs, etc.
+    // Structure: /systemActivityLog/{activityId} → { type, title, description, severity, createdAt, metadata, source }
+    // Backend (Cloud Functions) and Frontend (authenticated users) can write
+    match /systemActivityLog/{activityId} {
+      // All authenticated users can read activity logs (client-side filters activities per role)
+      // This allows AdminDashboardPage to fetch logs for role-based filtering
+      allow read: if isAuthenticated();
+
+      // Authenticated users can create (frontend logging)
+      allow create: if isAuthenticated() &&
+        request.resource.data.keys().hasAll(['type', 'title', 'description', 'createdAt']) &&
+        request.resource.data.type is string &&
+        request.resource.data.title is string &&
+        request.resource.data.description is string &&
+        (request.resource.data.severity == null || request.resource.data.severity is string) &&
+        (request.resource.data.source == null || request.resource.data.source is string);
+
+      // Only superadmin can update/delete activity logs
+      allow update, delete: if isAuthenticated() && (
+        request.auth.token.role == 'superadmin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin'
+      );
     }
 
     // Deny all other collections by default

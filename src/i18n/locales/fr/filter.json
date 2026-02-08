@@ -1,4 +1,5 @@
 {
+  "date": "Date",
   "labels": {
     "dateRange": "Plage de dates",
     "impacts": "Impacts",
@@ -21,7 +22,6 @@
   },
   "actions": {
     "reset": "Réinitialiser",
-    "selectAll": "Sélectionner tout",
     "clear": "Effacer",
     "addEvent": "Ajouter un événement personnalisé",
     "addEventTooltip": "Ajoutez un événement personnalisé à votre calendrier"

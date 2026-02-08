@@ -42,9 +42,13 @@ export default defineConfig({
     dedupe: [
       'react',
       'react-dom',
+      'react/jsx-runtime',
+      'react/jsx-dev-runtime',
       '@emotion/react',
       '@emotion/styled',
       '@emotion/cache',
+      '@mui/material',
+      '@mui/system',
     ],
   },
   build: {

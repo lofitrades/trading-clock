@@ -41,6 +41,16 @@
             "Données de profil OAuth (nom, e-mail, photo de profil) lorsque vous vous connectez avec Google ou Twitter",
             "Données du calendrier économique de l'API JBlanked (événements de marché publiquement disponibles)"
           ]
+        },
+        "blog": {
+          "title": "Blog et contenu public",
+          "items": [
+            "Les articles de blog sont publiquement disponibles et ne nécessitent pas d'authentification",
+            "La lecture des articles de blog ne collecte pas de données personnelles (pas de suivi des lecteurs)",
+            "Si vous créez un compte, vos données d'horloge et de calendrier sont stockées (l'accès au blog ne nécessite pas de compte)",
+            "Les pages du blog affichent des annonces Google AdSense (basées sur le contexte, pas personnalisées sauf si vous le permettez)",
+            "Le contenu du blog est indexé par les moteurs de recherche pour la découverte"
+          ]
         }
       }
     },
@@ -97,6 +107,16 @@
           "items": [
             "Google AdSense - peut collecter et utiliser les données pour la livraison d'annonces lorsque vous le permettez",
             "Gérez vos préférences d'annonces dans les Paramètres Google Ads : https://adssettings.google.com"
+          ]
+        },
+        "advertisingBlog": {
+          "title": "Publicité sur le blog",
+          "items": [
+            "Les pages du blog contiennent des annonces d'affichage Google AdSense et des annonces dans les articles pour générer des revenus",
+            "Les annonces sont placées après le contenu de l'article pour ne pas interrompre la lecture",
+            "Les annonces sont basées sur le contexte (liées aux actualités économiques et au trading) lorsqu'aucune donnée personnalisée n'est disponible",
+            "Des annonces non personnalisées sont affichées lorsque vous choisissez les cookies essentiels uniquement",
+            "La performance des annonces est surveillée pour assurer la conformité aux politiques Google AdSense"
           ]
         },
         "legal": {

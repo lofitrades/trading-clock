@@ -7,6 +7,7 @@
  * Uses same flag-icons library as event markers for visual consistency
  * 
  * Changelog:
+ * v1.4.0 - 2026-02-07 - BEP CRITICAL FIX: Replaced window.location.href navigation with SPA-native i18n.changeLanguage(). Previous approach caused full page reload and navigated to /es/clock which React Router couldn't match (404). Language subpaths are SEO-only (pre-rendered HTML); SPA manages language via i18n state. Prefix-stripping in main.jsx handles incoming language-prefixed URLs from shared links/bookmarks.
  * v1.3.0 - 2026-02-04 - BEP SEO CRITICAL: Migrated from query params to subpath URL navigation (/es/, /fr/). When user switches language, navigates to subpath URL (e.g., /clock → /es/clock) to match Firebase hosting rewrites and SEO structure. Maintains current route while changing language prefix. Eliminates duplicate URLs and improves crawlability.
  * v1.2.0 - 2026-01-27 - BEP UX: Enhanced loading state with "Changing..." text label + smaller spinner (16px) during language switch. Provides clear visual feedback for async operation. Updated translation key to common:language.selectLanguage for proper namespace organization.
  * v1.1.0 - 2026-01-27 - BEP PERFORMANCE: Updated for lazy-loaded i18n backend. Language switching now waits for new language resources to load (preload common+pages namespaces) before updating UI. Improved loading state with disabled menu items during switch. Ensures smooth UX with no translation flicker.
@@ -48,12 +49,14 @@ export default function LanguageSwitcher() {
     };
 
     /**
-     * BEP SEO: Handle language change with subpath URL navigation
-     * - Navigates to language-specific subpath (/es/, /fr/) or removes prefix for EN
+     * BEP: Handle language change via SPA-native i18n
+     * - Changes language via i18n.changeLanguage() (instant SPA re-render)
      * - Preloads critical namespaces (common, pages) before switching
-     * - Ensures no translation flicker on language change
-     * - Persist to localStorage + Firestore for all sessions
-     * - Matches Firebase hosting rewrites and SEO structure
+     * - Persists to localStorage + Firestore for all sessions
+     * - NO window.location.href — language subpaths (/es/, /fr/) are SEO-only
+     *   (pre-rendered HTML for crawlers). React Router routes are prefix-free
+     *   (/clock, /calendar, /blog/:slug). Full page reload would break routing.
+     * - Blog slug URL updates handled by BlogPostPage via navigate(replace)
      */
     const handleLanguageChange = async (code) => {
         try {
@@ -80,36 +83,10 @@ export default function LanguageSwitcher() {
                 );
             }
 
-            // BEP SEO: Navigate to subpath URL based on language
-            const currentPath = window.location.pathname;
-            const pathParts = currentPath.split('/').filter(Boolean);
-
-            // Remove existing language prefix if present
-            const supportedLangs = ['es', 'fr'];
-            if (supportedLangs.includes(pathParts[0])) {
-                pathParts.shift();
-            }
-
-            // Build new path with language prefix (except for English)
-            let newPath;
-            if (code === 'en') {
-                // English uses root paths
-                newPath = '/' + pathParts.join('/');
-            } else {
-                // Other languages use subpath prefix
-                newPath = `/${code}/` + pathParts.join('/');
-            }
-
-            // Preserve query params and hash if present
-            const search = window.location.search;
-            const hash = window.location.hash;
-
-            // Navigate to new URL
-            window.location.href = newPath + search + hash;
-
             handleClose();
         } catch (error) {
             console.error('Failed to change language:', error);
+        } finally {
             setIsLoading(false);
         }
     };

@@ -1,16 +1,15 @@
 /**
  * src/components/AuthModal2.jsx
  * 
- * Purpose: Benefits showcase authentication modal - "See what you get for free"
- * Conversion-optimized design emphasizing free platform value and features.
+ * Purpose: Lead-magnet authentication modal - clean single-column conversion form.
+ * Passwordless magic-link + Google OAuth. Focused, distraction-free design.
  * 
  * Features:
- * - Hero section highlighting free features and benefits
- * - Visual showcase of platform capabilities with icons
  * - Passwordless email link authentication (magic links)
- * - Social auth (Google, X/Twitter)
- * - Green gradient design (trust, growth, money themes)
+ * - Social auth (Google OAuth)
+ * - Single-column focused layout (maxWidth sm)
  * - Mobile-first responsive design
+ * - Rate-limited magic link sends (60s cooldown)
  * 
  * Z-Index Strategy (ABSOLUTE HIGHEST):
  * - Primary modal: root z-index 12001 (backdrop stays at -1 within modal to prevent flash)
@@ -18,6 +17,9 @@
  * - Ensures AuthModal2 renders above ALL UI including WelcomeModal (11000), EmailLinkHandler verification (9998-10000), drawers (1600), and AppBar (1400) on all breakpoints.
  * 
  * Changelog:
+ * v2.0.0 - 2026-02-06 - BEP CRO AUDIT: Fixed CloudSyncIcon crash (missing import in VerifyingModal). Fixed invalid variant="h7". Narrowed maxWidth md→sm for focused single-column. Removed forgot-password flow (meaningless in magic-link auth). Removed 100dvh mobile takeover. Cleaned dead code and stale header.
+ * v1.9.0 - 2026-02-06 - BEP CRO: Removed hero/benefits column (green background) to reduce cognitive load and focus user attention on signup form. Single-column clean white background design for maximum conversion. Removed unused icon imports (AccessTime, TrendingUp, Public, CloudSync) and list components.
+ * v1.8.0 - 2026-02-05 - ACTIVITY LOGGING: Log user_signup to systemActivityLog when new users register via Google OAuth. Includes email, userId, and source='google' for admin audit trail (Phase 6).
  * v1.7.0 - 2026-02-02 - BEP ANALYTICS: Track sign-ups (new users) and logins to Facebook Pixel. Also track auth modal view as Lead event for conversion optimization.
  * v1.6.0 - 2026-01-28 - BEP: Theme-aware colors. Replaced all hardcoded teal (#018786, #006665) with theme.palette.primary tokens. Uses alpha() for opacity. Now adapts to light/dark modes.
  * v1.5.1 - 2026-01-27 - Fixed hardcoded copy: Replaced all remaining hardcoded strings with i18n translations. Fixed legal_notice rendering (was showing [object Object]). Added forgot_password_link, firebase_attribution, and legal_and translations. All 3 languages (EN/ES/FR) now fully covered without hardcoded UI copy.
@@ -59,19 +61,12 @@ import {
   Stack,
   Link,
   IconButton,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
   useTheme,
   alpha,
 } from '@mui/material';
 import { BACKDROP_OVERLAY_SX } from '../constants/overlayStyles';
 import CloseIcon from '@mui/icons-material/Close';
 import GoogleIcon from '@mui/icons-material/Google';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import PublicIcon from '@mui/icons-material/Public';
 import CloudSyncIcon from '@mui/icons-material/CloudSync';
 import {
   sendSignInLinkToEmail,
@@ -83,8 +78,8 @@ import {
 import { auth } from '../firebase';
 import { getFriendlyErrorMessage, getSuccessMessage } from '../utils/messages';
 import { getMagicLinkActionCodeSettings } from '../utils/authLinkSettings';
-import ForgotPasswordModal from './ForgotPasswordModal';
 import { trackAuthModalView, trackSignUp, trackLogin } from '../services/facebookPixelService';
+import { logUserSignup } from '../services/activityLogger';
 
 const LOGO_SECONDARY_WHITE_TRANSPARENT = `${import.meta.env.BASE_URL}logos/png/Time2Trade_Logo_Main_Multicolor_Transparent_1080.png`;
 
@@ -242,7 +237,6 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
   const [isSignup, setIsSignup] = useState(initialMode === 'signup');
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [showForgotModal, setShowForgotModal] = useState(false);
   const [showEmailSentModal, setShowEmailSentModal] = useState(false);
   const [showVerifyingModal, setShowVerifyingModal] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
@@ -367,6 +361,8 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
         window.localStorage.setItem('isNewUser', 'true');
         // BEP ANALYTICS: Track new user sign-up
         trackSignUp(result.user.email, 'google');
+        // ADMIN AUDIT: Log user signup to activity log
+        await logUserSignup(result.user.uid, result.user.email, 'google');
       } else {
         // BEP ANALYTICS: Track returning user login
         trackLogin(result.user.email, 'google');
@@ -381,10 +377,6 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
     }
   };
 
-  if (showForgotModal) {
-    return <ForgotPasswordModal onClose={() => setShowForgotModal(false)} />;
-  }
-
   if (showEmailSentModal) {
     return <EmailSentModal email={email} onClose={() => { setShowEmailSentModal(false); onClose(); }} />;
   }
@@ -393,43 +385,11 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
     return <VerifyingModal onClose={() => setShowVerifyingModal(false)} />;
   }
 
-  // Benefits hydrated from i18n
-  const benefitsList = t('auth:modal.benefits', { returnObjects: true }) ?? [
-    {
-      icon: <AccessTimeIcon />,
-      primary: 'Trade the right window',
-      secondary: 'Know exactly when NY, London, and Asia are active, when overlaps hit, and when the next transition starts.'
-    },
-    {
-      icon: <TrendingUpIcon />,
-      primary: 'Avoid event whiplash',
-      secondary: 'See upcoming releases with impact and currency filters — so you\'re not entering a trade 2 minutes before a catalyst.'
-    },
-    {
-      icon: <PublicIcon />,
-      primary: 'Timezones stay correct',
-      secondary: 'Auto-detect or switch timezones instantly. Session windows, timestamps, and countdowns update automatically.'
-    },
-    {
-      icon: <CloudSyncIcon />,
-      primary: 'Keep your setup saved',
-      secondary: 'Sign in to sync preferences across devices. Stay a guest if you prefer — your local setup still works.'
-    },
-  ];
-
-  // Map icons to benefit objects for rendering
-  const benefits = [
-    { ...benefitsList[0], icon: <AccessTimeIcon /> },
-    { ...benefitsList[1], icon: <TrendingUpIcon /> },
-    { ...benefitsList[2], icon: <PublicIcon /> },
-    { ...benefitsList[3], icon: <CloudSyncIcon /> },
-  ].filter(Boolean);
-
   return (
     <Dialog
       open={open}
       onClose={forceOpen ? () => { } : onClose}
-      maxWidth="md"
+      maxWidth="sm"
       fullWidth
       sx={{ zIndex: 12001 }}
 
@@ -446,10 +406,7 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
         paper: {
           sx: {
             borderRadius: 3,
-            height: { xs: '100dvh', md: 'auto' },
-            justifyContent: 'flex-start',
-            // Modal paper rendered above all UI elements on all breakpoints
-            // xs/sm/md/lg/xl: above everything including verification modals (12003-12004)
+            maxHeight: { xs: '95dvh', md: 'auto' },
           }
         },
       }}
@@ -473,343 +430,249 @@ export default function AuthModal2({ open, onClose, initialMode = 'signup', forc
         </IconButton>
       )}
 
-      <DialogContent sx={{ p: 0 }}>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column-reverse', md: 'row' } }}>
-          {/* Left Side: Hero/Benefits */}
-          <Box
-            sx={{
-              flex: { xs: '0 0 auto', md: '0 0 45%' },
-              bgcolor: theme.palette.primary.main,
-              color: 'common.white',
-              p: { xs: 4, sm: 5 },
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden',
+      <DialogContent sx={{ p: { xs: 3, sm: 4 } }}>
+        <Box
+          sx={{
+            mb: 2.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.2,
+            justifyContent: { xs: 'flex-start', md: 'flex-start' },
+          }}
+        >
+          <img
+            src={LOGO_SECONDARY_WHITE_TRANSPARENT}
+            alt="Time 2 Trade"
+            style={{
+              width: '100%',
+              maxWidth: '52px',
+              height: 'auto',
+              flexShrink: 0,
             }}
-          >
-            <Box sx={{ position: 'relative', zIndex: 1 }}>
-              {/* Logo/Brand */}
+          />
+          <Typography variant="subtitle1" fontWeight="700" sx={{ color: 'text.primary' }}>
+            Time 2 Trade
+          </Typography>
+        </Box>
 
-              <Typography variant="h4" fontWeight="700" gutterBottom sx={{ mb: 0 }}>
-                {t('auth:modal.hero.heading')}
-              </Typography>
-
-              <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.7, fontSize: '1.05rem' }}>
-                {t('auth:modal.hero.subheading')}
-              </Typography>
-
-              <Typography variant="body2" sx={{ mb: 3, lineHeight: 1.6, fontSize: '0.95rem', opacity: 0.95 }}>
-                {t('auth:modal.hero.description')}
-              </Typography>
-              {/* Benefits List */}
-              <List sx={{ p: 0 }}>
-                {benefits.map((benefit, index) => (
-                  <ListItem
-                    key={index}
-                    sx={{
-                      px: 0,
-                      py: 1.5,
-                      alignItems: 'flex-start',
-                    }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 40, mt: 0.5 }}>
-                      <Box
-                        sx={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: '50%',
-                          bgcolor: 'rgba(255, 255, 255, 0.95)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: theme.palette.primary.main,
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                        }}
-                      >
-                        {benefit.icon}
-                      </Box>
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Typography variant="body1" fontWeight="600" sx={{ color: 'common.white', mb: 0.5 }}>
-                          {benefit.primary}
-                        </Typography>
-                      }
-                      secondary={
-                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.85)', lineHeight: 1.5 }}>
-                          {benefit.secondary}
-                        </Typography>
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </Box>
-          </Box>
-
-          {/* Right Side: Auth Form */}
-          <Box
-            sx={{
-              flex: 1,
-              p: { xs: 4, sm: 5 },
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            {/* Main content wrapper - grows to push footer down */}
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <Box
-                sx={{
-                  mb: { xs: 2.5, sm: 3 },
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.2,
-                  justifyContent: { xs: 'flex-start', md: 'flex-start' },
-                }}
-              >
-                <img
-                  src={LOGO_SECONDARY_WHITE_TRANSPARENT}
-                  alt="Time 2 Trade"
-                  style={{
-                    width: '100%',
-                    maxWidth: '52px',
-                    height: 'auto',
-                    flexShrink: 0,
-                  }}
-                />
-                <Typography variant="h7" fontWeight="700" sx={{ color: 'primary.text' }}>
-                  Time 2 Trade
-                </Typography>
-              </Box>
-              <Typography variant="h5" fontWeight="700" gutterBottom>
-                {isSignup ? t('auth:modal.form.title_signup') : t('auth:modal.form.title_signin')}
-              </Typography>
-              {/* Account Toggle */}
-              <Box sx={{ textAlign: 'left', mb: 3 }}>
-                <Typography variant="body2" color="text.secondary">
-                  {isSignup ? t('auth:modal.form.toggle_question_signup') : t('auth:modal.form.toggle_question_signin')}
-                  {' '}
-                  <Link
-                    component="button"
-                    type="button"
-                    variant="body2"
-                    onClick={() => {
-                      setIsSignup(!isSignup);
-                      setErrorMsg('');
-                      setSuccessMsg('');
-                    }}
-                    sx={{
-                      textDecoration: 'none',
-                      color: 'success.dark',
-                      fontWeight: 700,
-                      '&:hover': {
-                        textDecoration: 'underline',
-                      },
-                    }}
-                  >
-                    {isSignup ? t('auth:modal.form.toggle_link_signin') : t('auth:modal.form.toggle_link_signup')}
-                  </Link>
-                </Typography>
-              </Box>
-
-              {/* Social Login Buttons */}
-              <Stack spacing={1.5} sx={{ mb: 3 }}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  size="large"
-                  startIcon={<GoogleIcon />}
-                  onClick={() => handleSocialLogin('google')}
-                  sx={{
-                    borderColor: 'divider',
-                    color: 'text.primary',
-                    textTransform: 'none',
-                    py: 1.5,
-                    fontWeight: 600,
-                    '&:hover': {
-                      borderColor: 'primary.main',
-                      bgcolor: 'action.hover',
-                    },
-                  }}
-                >
-                  {t('auth:modal.form.google_button')}
-                </Button>
-              </Stack>
-
-              <Divider sx={{ my: 3 }}>
-                <Typography variant="body2" color="text.secondary">
-                  {t('auth:modal.form.divider')}
-                </Typography>
-              </Divider>
-
-              {/* Email Form */}
-              <Box component="form" onSubmit={handleSubmit}>
-                <Stack spacing={2.5}>
-                  <TextField
-                    type="email"
-                    label={t('auth:modal.form.email_label')}
-                    required
-                    fullWidth
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="email"
-                    placeholder={t('auth:modal.form.email_placeholder')}
-                    disabled={cooldownSeconds > 0}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                      }
-                    }}
-                  />
-
-                  {/* Cooldown Alert */}
-                  {cooldownSeconds > 0 && lastSentEmail && (
-                    <Alert severity="info" sx={{ borderRadius: 2 }}>
-                      <Typography variant="body2" fontWeight="600" gutterBottom>
-                        {t('auth:modal.feedback.cooldown_info', { email: lastSentEmail })}
-                      </Typography>
-                      <Typography variant="body2">
-                        {t('auth:modal.feedback.cooldown_resend', { seconds: cooldownSeconds })}
-                      </Typography>
-                    </Alert>
-                  )}
-
-                  {errorMsg && (
-                    <Alert
-                      severity="error"
-                      onClose={() => setErrorMsg('')}
-                      sx={{ borderRadius: 2 }}
-                    >
-                      {errorMsg}
-                    </Alert>
-                  )}
-                  {successMsg && (
-                    <Alert
-                      severity="success"
-                      onClose={() => setSuccessMsg('')}
-                      sx={{ borderRadius: 2 }}
-                    >
-                      {successMsg}
-                    </Alert>
-                  )}
-
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    size="large"
-                    disabled={cooldownSeconds > 0 || isSendingEmail}
-                    sx={{
-                      py: 1.75,
-                      textTransform: 'none',
-                      fontSize: '1rem',
-                      fontWeight: 700,
-                      borderRadius: 2,
-                      bgcolor: theme.palette.primary.main,
-                      boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.35)}`,
-                      '&:hover': {
-                        bgcolor: theme.palette.primary.dark,
-                        boxShadow: `0 6px 18px ${alpha(theme.palette.primary.main, 0.45)}`,
-                        transform: 'translateY(-1px)',
-                      },
-                      '&:disabled': {
-                        background: 'rgba(0, 0, 0, 0.12)',
-                        boxShadow: 'none',
-                      },
-                      transition: 'all 0.2s ease-in-out',
-                    }}
-                  >
-                    {isSendingEmail
-                      ? t('auth:modal.form.submit_button_sending')
-                      : cooldownSeconds > 0
-                        ? t('auth:modal.form.submit_button_resend', { seconds: cooldownSeconds })
-                        : isSignup ? t('auth:modal.form.submit_button_signup') : t('auth:modal.form.submit_button_signin')
-                    }
-                  </Button>
-
-                  {/* Legal Consent Notice */}
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: 'text.secondary',
-                      textAlign: 'left',
-                      lineHeight: 1.5,
-                      px: { xs: 1, sm: 2 },
-                      mt: 1,
-                    }}
-                  >
-                    {t('auth:modal.form.legal_notice')}
-                    {' '}
-                    <Link
-                      component={RouterLink}
-                      to="/terms"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{
-                        color: 'primary.main',
-                        textDecoration: 'underline',
-                        fontWeight: 600,
-                        '&:hover': {
-                          color: 'primary.dark',
-                        },
-                      }}
-                    >
-                      {t('auth:modal.form.legal_terms')}
-                    </Link>
-                    {' '}
-                    {t('auth:modal.form.legal_and')}
-                    {' '}
-                    <Link
-                      component={RouterLink}
-                      to="/privacy"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{
-                        color: 'primary.main',
-                        textDecoration: 'underline',
-                        fontWeight: 600,
-                        '&:hover': {
-                          color: 'primary.dark',
-                        },
-                      }}
-                    >
-                      {t('auth:modal.form.legal_privacy')}
-                    </Link>
-                  </Typography>
-                </Stack>
-              </Box>
-            </Box>
-
-            {/* Forgot Password Link - fixed to bottom */}
-            {!isSignup && (
-              <Box sx={{ textAlign: 'center', mt: { xs: 4, md: 0 } }}>
-                <Link
-                  component="button"
-                  type="button"
-                  variant="caption"
-                  onClick={() => setShowForgotModal(true)}
-                  sx={{
-                    textDecoration: 'none',
-                    color: 'text.secondary',
-                    '&:hover': {
-                      textDecoration: 'underline',
-                      color: 'primary.main',
-                    },
-                  }}
-                >
-                  {t('auth:modal.form.forgot_password_link')}
-                </Link>
-              </Box>
-            )}
-
-            <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', display: 'block', mt: 3 }}>
-              {t('auth:modal.form.firebase_attribution')}
+        {/* Value proposition — visible on signup only */}
+        {isSignup && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h5" fontWeight="700" gutterBottom sx={{ lineHeight: 1.3 }}>
+              {t('auth:modal.hero.heading')}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+              {t('auth:modal.hero.subheading')}
             </Typography>
           </Box>
+        )}
+
+        {/* Form title */}
+        {!isSignup && (
+          <Typography variant="h5" fontWeight="700" gutterBottom>
+            {t('auth:modal.form.title_signin')}
+          </Typography>
+        )}
+
+        {/* Account Toggle */}
+        <Box sx={{ textAlign: 'left', mb: 3 }}>
+          <Typography variant="body2" color="text.secondary">
+            {isSignup ? t('auth:modal.form.toggle_question_signup') : t('auth:modal.form.toggle_question_signin')}
+            {' '}
+            <Link
+              component="button"
+              type="button"
+              variant="body2"
+              onClick={() => {
+                setIsSignup(!isSignup);
+                setErrorMsg('');
+                setSuccessMsg('');
+              }}
+              sx={{
+                textDecoration: 'none',
+                color: 'success.dark',
+                fontWeight: 700,
+                '&:hover': {
+                  textDecoration: 'underline',
+                },
+              }}
+            >
+              {isSignup ? t('auth:modal.form.toggle_link_signin') : t('auth:modal.form.toggle_link_signup')}
+            </Link>
+          </Typography>
         </Box>
+
+        {/* Social Login Buttons */}
+        <Stack spacing={1.5} sx={{ mb: 3 }}>
+          <Button
+            variant="outlined"
+            fullWidth
+            size="large"
+            startIcon={<GoogleIcon />}
+            onClick={() => handleSocialLogin('google')}
+            sx={{
+              borderColor: 'divider',
+              color: 'text.primary',
+              textTransform: 'none',
+              py: 1.5,
+              fontWeight: 600,
+              '&:hover': {
+                borderColor: 'primary.main',
+                bgcolor: 'action.hover',
+              },
+            }}
+          >
+            {t('auth:modal.form.google_button')}
+          </Button>
+        </Stack>
+
+        <Divider sx={{ my: 3 }}>
+          <Typography variant="body2" color="text.secondary">
+            {t('auth:modal.form.divider')}
+          </Typography>
+        </Divider>
+
+        {/* Email Form */}
+        <Box component="form" onSubmit={handleSubmit}>
+          <Stack spacing={2.5}>
+            <TextField
+              type="email"
+              label={t('auth:modal.form.email_label')}
+              required
+              fullWidth
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              placeholder={t('auth:modal.form.email_placeholder')}
+              disabled={cooldownSeconds > 0}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                }
+              }}
+            />
+
+            {/* Cooldown Alert */}
+            {cooldownSeconds > 0 && lastSentEmail && (
+              <Alert severity="info" sx={{ borderRadius: 2 }}>
+                <Typography variant="body2" fontWeight="600" gutterBottom>
+                  {t('auth:modal.feedback.cooldown_info', { email: lastSentEmail })}
+                </Typography>
+                <Typography variant="body2">
+                  {t('auth:modal.feedback.cooldown_resend', { seconds: cooldownSeconds })}
+                </Typography>
+              </Alert>
+            )}
+
+            {errorMsg && (
+              <Alert
+                severity="error"
+                onClose={() => setErrorMsg('')}
+                sx={{ borderRadius: 2 }}
+              >
+                {errorMsg}
+              </Alert>
+            )}
+            {successMsg && (
+              <Alert
+                severity="success"
+                onClose={() => setSuccessMsg('')}
+                sx={{ borderRadius: 2 }}
+              >
+                {successMsg}
+              </Alert>
+            )}
+
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              fullWidth
+              size="large"
+              disabled={cooldownSeconds > 0 || isSendingEmail}
+              sx={{
+                py: 1.75,
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 700,
+                borderRadius: 2,
+                bgcolor: theme.palette.primary.main,
+                boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.35)}`,
+                '&:hover': {
+                  bgcolor: theme.palette.primary.dark,
+                  boxShadow: `0 6px 18px ${alpha(theme.palette.primary.main, 0.45)}`,
+                  transform: 'translateY(-1px)',
+                },
+                '&:disabled': {
+                  background: 'rgba(0, 0, 0, 0.12)',
+                  boxShadow: 'none',
+                },
+                transition: 'all 0.2s ease-in-out',
+              }}
+            >
+              {isSendingEmail
+                ? t('auth:modal.form.submit_button_sending')
+                : cooldownSeconds > 0
+                  ? t('auth:modal.form.submit_button_resend', { seconds: cooldownSeconds })
+                  : isSignup ? t('auth:modal.form.submit_button_signup') : t('auth:modal.form.submit_button_signin')
+              }
+            </Button>
+
+            {/* Legal Consent Notice */}
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'text.secondary',
+                textAlign: 'left',
+                lineHeight: 1.5,
+                px: { xs: 1, sm: 2 },
+                mt: 1,
+              }}
+            >
+              {t('auth:modal.form.legal_notice')}
+              {' '}
+              <Link
+                component={RouterLink}
+                to="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  color: 'primary.main',
+                  textDecoration: 'underline',
+                  fontWeight: 600,
+                  '&:hover': {
+                    color: 'primary.dark',
+                  },
+                }}
+              >
+                {t('auth:modal.form.legal_terms')}
+              </Link>
+              {' '}
+              {t('auth:modal.form.legal_and')}
+              {' '}
+              <Link
+                component={RouterLink}
+                to="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  color: 'primary.main',
+                  textDecoration: 'underline',
+                  fontWeight: 600,
+                  '&:hover': {
+                    color: 'primary.dark',
+                  },
+                }}
+              >
+                {t('auth:modal.form.legal_privacy')}
+              </Link>
+            </Typography>
+          </Stack>
+        </Box>
+
+        <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', display: 'block', mt: 3 }}>
+          {t('auth:modal.form.firebase_attribution')}
+        </Typography>
       </DialogContent>
     </Dialog>
   );

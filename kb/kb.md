@@ -1,7 +1,7 @@
 # Time 2 Trade - Developer Knowledge Base
 
 **Last Updated:** February 4, 2026  
-**Version:** 4.0.75  
+**Version:** 4.0.77  
 **Maintainer:** Lofi Trades Development Team
 
 ---
@@ -2262,6 +2262,92 @@ whyDidYouRender(React, {
 ---
 
 ## 📝 Change Log
+
+### Version 4.4.0 - February 7, 2026
+**Calendar 2.0 Migration: Route Swap & Filter Sync**
+
+#### 🎯 Major Changes
+- **MIGRATION COMPLETE**: Calendar2Page (fast table + clock sidebar) became primary `/calendar` route. `/calendar2` route removed.
+- **Filter Sync**: Calendar2Page now initializes filters from `SettingsContext` on mount and syncs bidirectionally (read + write back).
+- **Overlay Sync**: ClockPanelPaper receives synced filters via `overlayEventFilters` derived state for real-time updates.
+- **CustomEventDialog**: Added "Add Event" button to PublicLayout nav, wired to Calendar2Page with auth check on save.
+- **Dead Files Removed**: CalendarPage.jsx, CalendarEmbed.jsx, CalendarEmbedLayout.jsx, CalendarGridLayout.jsx deleted (git rm -f).
+
+#### ✅ SEO Impact
+- **ZERO IMPACT**: Prerender shell, meta tags, structured data, canonical, hreflang, and sitemap entries unchanged.
+- All SEO metadata preserved across `/calendar`, `/es/calendar`, `/fr/calendar`.
+
+#### 📁 Files Modified
+- `src/routes/AppRoutes.jsx` (v2.1.0): Removed CalendarPage import, swapped `/calendar` to Calendar2Page, removed `/calendar2`.
+- `src/pages/Calendar2Page.jsx` (v2.0.0): Added filter sync from SettingsContext, overlayEventFilters for ClockPanelPaper, CustomEventDialog.
+- `pages/calendar.page.jsx` (v1.4.0): Updated module import to Calendar2Page, SEO unchanged.
+
+#### 📁 Files Deleted
+- `src/components/CalendarPage.jsx`
+- `src/components/CalendarEmbed.jsx`
+- `src/components/CalendarEmbedLayout.jsx`
+- `src/components/CalendarGridLayout.jsx`
+
+#### 🧪 Testing
+- `/calendar` renders Calendar2Page (verified ✓)
+- `/calendar2` returns 404 (verified ✓)
+- Filter changes sync across `/clock` ↔ `/calendar` (verified ✓)
+- ClockPanelPaper reflects current filters (verified ✓)
+- Build succeeds, prerendered pages generated, sitemaps updated (verified ✓)
+
+---
+
+### Version 4.0.78 - February 6, 2026
+**GPT Actions: Blog CMS Draft Creation (Manual in ChatGPT)**
+
+#### 🤖 GPT Actions - Blog CMS Integration
+- **NEW**: Secure HTTPS endpoints for Custom GPT Actions to (1) list existing blog slugs and (2) create blog draft posts in Firestore with transaction-safe slug claiming.
+- **Auth**: API key stored as a Cloud Functions secret (`T2T_GPT_ACTIONS_API_KEY`).
+- **Logging**: Draft creation logs `blog_created` to `systemActivityLog` (backend source).
+
+#### 📁 Files Created
+- `functions/src/services/gptBlogActionsService.ts` (v1.0.0): GPT Actions handlers (slug listing + draft creation).
+
+#### 📁 Files Updated
+- `functions/src/index.ts` (v1.10.0): Export GPT Actions endpoints.
+
+### Version 4.0.79 - February 6, 2026
+**GPT Actions: Blog Draft Notifications (CMS Roles Only)**
+
+#### 🔔 Notifications
+- **NEW**: When GPT Actions creates a new blog draft, send **in-app + push** notifications to users with roles `superadmin`, `admin`, or `author`.
+- **In-app**: Writes to `users/{uid}/notifications` with a click-through link to the editor.
+- **Push**: Sends FCM web/pwa push to enabled tokens under `users/{uid}/deviceTokens` with invalid-token cleanup.
+
+#### 📁 Files Created
+- `functions/src/services/blogDraftNotificationsService.ts` (v1.0.0): Notification fanout + FCM sender.
+
+#### 📁 Files Updated
+- `functions/src/services/gptBlogActionsService.ts`: Call notifier after draft creation.
+- `src/components/NotificationCenter.jsx`: Supports link-based notifications and translated titles.
+- `src/i18n/locales/{en,es,fr}/notification.json`: Added blog draft notification strings.
+
+### Version 4.0.77 - February 4, 2026
+**Phase 5.B Blog: Related Posts Admin Preview**
+
+#### 📝 Blog CMS - Related Posts Preview Panel
+- **NEW**: `RelatedPostsPreview.jsx` admin component with full scoring visualization.
+- **Scoring Display**: Shows category (3pts), events (2pts/match), currencies (2pts/match), tags (1pt/match), keywords (0.5pt/match), recency bonus (max 3pts).
+- **Score Breakdown Tooltip**: Hover over score to see detailed breakdown with match arrays.
+- **Manual Selection**: Toggle related posts with checkboxes, manually selected posts appear first.
+- **Display Count Slider**: Configurable 1-6 related posts to show on published page.
+- **Quick Actions**: "Select Top N", "Clear All", "Refresh Suggestions" buttons.
+- **Visual Indicators**: Score color coding (green ≥8, yellow ≥5, blue ≥2), progress bars.
+- **Translation Warning**: Posts without current language translation show warning chip.
+- **Integrated into AdminBlogEditorPage sidebar** after taxonomy section.
+
+#### 📁 Files Created
+- `src/components/admin/RelatedPostsPreview.jsx` (v1.0.0): Admin related posts preview component.
+
+#### 📁 Files Updated
+- `src/services/blogService.js` (v1.0.1): Added `getRelatedPostsPreview()` function returning candidates with detailed score breakdown.
+- `src/pages/AdminBlogEditorPage.jsx` (v2.1.0): Integrated RelatedPostsPreview panel.
+- `src/i18n/locales/{en,es,fr}/admin.json`: Added `taxonomy` and `relatedPosts` translation sections.
 
 ### Version 4.0.76 - February 3, 2026
 **BEP FIX: Custom Event Notifications Audit + Debug Logging**

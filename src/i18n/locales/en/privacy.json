@@ -41,6 +41,16 @@
             "OAuth profile data (name, email, profile photo) when you sign in with Google or Twitter",
             "Economic calendar data from JBlanked API (publicly available market events)"
           ]
+        },
+        "blog": {
+          "title": "Blog and public content",
+          "items": [
+            "Blog articles are publicly available and do not require authentication",
+            "Reading blog posts does not collect personal data (no tracking of blog readers)",
+            "If you create an account, your clock and calendar data is stored (blog access requires no account)",
+            "Blog pages display Google AdSense ads (context-based, not personalized unless you allow cookies)",
+            "Blog content is indexed by search engines for discoverability"
+          ]
         }
       }
     },
@@ -97,6 +107,16 @@
           "items": [
             "Google AdSense - may collect and use data for ad delivery when you allow personalized ads",
             "Manage ad preferences at Google Ad Settings: https://adssettings.google.com"
+          ]
+        },
+        "advertisingBlog": {
+          "title": "Blog advertising",
+          "items": [
+            "Blog pages contain Google AdSense display ads and in-article ads for revenue",
+            "Ads are placed after blog post content to avoid disrupting reading experience",
+            "Ads are context-based (related to economic news and trading) when no personalized data is available",
+            "Non-personalized ads are shown when you choose essential-only cookies",
+            "Ad performance is monitored to ensure compliance with Google AdSense policies"
           ]
         },
         "legal": {

@@ -6,30 +6,32 @@
  * and provide quick actions to mark as read or clear.
  * 
  * Changelog:
+ * v1.1.0  - 2026-02-07 - BEP: Defense-in-depth dedup in visibleNotifications. Deduplicates
+ *                        by eventKey+eventEpochMs+channel to guarantee one notification per
+ *                        event per occurrence in the UI, even if upstream has edge cases.
  * v1.0.21 - 2026-01-29 - BEP THEME-AWARE: Replaced hardcoded #fff with background.paper and
- *                        rgba shadow colors with theme-aware values. Badge border and menu
- *                        backgrounds now adapt to light/dark mode. Fully AA accessible.
- * v1.0.20 - 2026-01-24 - Phase 2 i18n migration: Add notification namespace (7 strings EN/ES/FR). Replaced hardcoded "Notifications", "No reminders yet", "Clear all" with t() calls.
- * v1.0.19 - 2026-01-22 - BEP UI CONSISTENCY: Increase bell icon glyph size on xs/sm to visually match add icon and avatar sizing across all pages, including /clock.
- * v1.0.18 - 2026-01-22 - BEP UI CONSISTENCY: Increase bell icon glyph size on xs/sm so it visually matches add icon and avatar sizing in MobileHeader.
- * v1.0.17 - 2026-01-22 - BEP UI CONSISTENCY: Change bell icon background from transparent to white (#fff) to match add icon appearance on /clock page. Both icons now have identical white backgrounds with divider border for consistent mobile header UI.
- * v1.0.16 - 2026-01-22 - BEP BUGFIX: Add defensive anchorEl validation to prevent MUI warnings about invalid anchor elements.
- * v1.0.15 - 2026-01-22 - BEP UI: Increase top margin to 1.5 for better AppBar spacing.
- * v1.0.14 - 2026-01-22 - BEP UI: Match container display flex to UserAvatar for consistent vertical alignment.
- * v1.0.13 - 2026-01-22 - BEP UI: Match Menu structure exactly to UserAvatar Popover (slotProps.paper, elevation, Box wrapper).
- * v1.0.12 - 2026-01-22 - BEP UI: Match notification menu container styling/positioning to UserAvatar popover.
- * v1.0.11 - 2026-01-22 - BEP UI: Align bell icon color and border with AppBar nav + filter chips.
- * v1.0.10 - 2026-01-22 - BEP UI: Match bell button styling with UserAvatar (outlined, size, hover).
- * v1.0.9 - 2026-01-22 - BEP FIX: Only react to closeSignal changes to prevent immediate re-close.
- * v1.0.8 - 2026-01-22 - BEP UX: Add open/close coordination hooks for AppBar menu stacking.
- * v1.0.7 - 2026-01-22 - BEP UX: Add unread visual emphasis and ignore deleted notifications for cleaner state handling.
- * v1.0.6 - 2026-01-22 - BEP AUTH GATE: Non-authenticated users clicking notification bell now see AuthModal2 instead of notifications menu. Gated feature encourages conversion while showing notification count as teaser.
- * v1.0.5 - 2026-01-22 - BEP: Remove box shadow from notification bell button for cleaner UI.
- * v1.0.4 - 2026-01-22 - BEP UX: Enhanced notification display with TradingView-style rich details (impact chip, event time, countdown). Shows event metadata in notification items for quick scanning.
- * v1.0.3 - 2026-01-22 - BEP UX: Removed redundant "Mark all read" button (already called on menu open). Added EventModal integration: clicking notification opens EventModal for the associated custom event. Improved user flow for reminder-to-event navigation.
- * v1.0.2 - 2026-01-22 - BEP BADGE POSITIONING FIX: Moved badge outside IconButton, changed parent from inline-flex to inline-block, aligned badge styling with ClockEventsOverlay pattern (18px size, borderRadius 50%, boxShadow 0.35 opacity, pointerEvents none). Ensures badge aligns cleanly to top-right of bell icon across md+ and xs/sm breakpoints. Fixes misalignment caused by inline-flex layout and dimension mismatch.
- * v1.0.1 - 2026-01-22 - BEP: Improve bell icon styling, raise menu z-index above AppBar, and guard anchorEl validity to prevent MUI popover warnings.
- * v1.0.0 - 2026-01-21 - Initial implementation for custom event notifications.
+ *                        rgba shadow colors with theme-aware values.
+ * v1.0.20 - 2026-01-24 - Phase 2 i18n migration: Add notification namespace.
+ * v1.0.19 - 2026-01-22 - BEP UI CONSISTENCY: Increase bell icon glyph size.
+ * v1.0.18 - 2026-01-22 - BEP UI CONSISTENCY: Increase bell icon glyph size on xs/sm.
+ * v1.0.17 - 2026-01-22 - BEP UI CONSISTENCY: Change bell icon background.
+ * v1.0.16 - 2026-01-22 - BEP BUGFIX: Add defensive anchorEl validation.
+ * v1.0.15 - 2026-01-22 - BEP UI: Increase top margin.
+ * v1.0.14 - 2026-01-22 - BEP UI: Match container display flex.
+ * v1.0.13 - 2026-01-22 - BEP UI: Match Menu structure to UserAvatar.
+ * v1.0.12 - 2026-01-22 - BEP UI: Match notification menu styling.
+ * v1.0.11 - 2026-01-22 - BEP UI: Align bell icon color.
+ * v1.0.10 - 2026-01-22 - BEP UI: Match bell button styling.
+ * v1.0.9  - 2026-01-22 - BEP FIX: Only react to closeSignal changes.
+ * v1.0.8  - 2026-01-22 - BEP UX: Add open/close coordination hooks.
+ * v1.0.7  - 2026-01-22 - BEP UX: Add unread visual emphasis.
+ * v1.0.6  - 2026-01-22 - BEP AUTH GATE: Non-authenticated users see AuthModal2.
+ * v1.0.5  - 2026-01-22 - BEP: Remove box shadow from notification bell.
+ * v1.0.4  - 2026-01-22 - BEP UX: Enhanced notification display.
+ * v1.0.3  - 2026-01-22 - BEP UX: Added EventModal integration.
+ * v1.0.2  - 2026-01-22 - BEP BADGE POSITIONING FIX.
+ * v1.0.1  - 2026-01-22 - BEP: Improve bell icon styling.
+ * v1.0.0  - 2026-01-21 - Initial implementation.
  */
 
 import PropTypes from 'prop-types';
@@ -74,7 +76,20 @@ export default function NotificationCenter({
     const [showAuthModal, setShowAuthModal] = useState(false);
     const lastCloseSignalRef = useRef(closeSignal || 0);
     const visibleNotifications = useMemo(
-        () => notifications.filter((item) => !item.deleted),
+        () => {
+            // BEP v1.1.0: Defense-in-depth dedup — one notification per event+occurrence+channel
+            const seen = new Map();
+            return notifications
+                .filter((item) => !item.deleted)
+                .filter((item) => {
+                    const dedupeKey = item.eventKey && Number.isFinite(item.eventEpochMs)
+                        ? `${item.eventKey}__${item.eventEpochMs}__${item.channel || 'inApp'}`
+                        : item.id;
+                    if (seen.has(dedupeKey)) return false;
+                    seen.set(dedupeKey, true);
+                    return true;
+                });
+        },
         [notifications]
     );
     const anchorNode = anchorRef.current;
@@ -111,6 +126,17 @@ export default function NotificationCenter({
         if (event) {
             setSelectedEvent(event);
             handleClose();
+        }
+
+        // BEP: Non-event notifications can carry a link (e.g., blog draft created)
+        const href = notification?.href;
+        if (!event && href && typeof window !== 'undefined') {
+            try {
+                window.open(String(href), '_blank', 'noopener,noreferrer');
+                handleClose();
+            } catch {
+                // Ignore window.open failures
+            }
         }
         onMarkRead?.(notification.id);
     };
@@ -235,6 +261,12 @@ export default function NotificationCenter({
 
                         {visibleNotifications.slice(0, 8).map((item) => {
                             const impactMeta = item.impact ? resolveImpactMeta(item.impact) : null;
+                            const titleText = item.titleKey
+                                ? t(item.titleKey, item.titleParams || {})
+                                : item.title;
+                            const messageText = item.messageKey
+                                ? t(item.messageKey, item.messageParams || {})
+                                : item.message;
                             return (
                                 <MenuItem
                                     key={item.id}
@@ -252,7 +284,7 @@ export default function NotificationCenter({
                                     <Stack spacing={0.75} sx={{ width: '100%' }}>
                                         <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
                                             <Typography variant="body2" sx={{ fontWeight: item.read ? 600 : 700, flex: 1, minWidth: 0 }}>
-                                                {item.title}
+                                                {titleText}
                                             </Typography>
                                             {impactMeta && (
                                                 <Chip
@@ -269,6 +301,21 @@ export default function NotificationCenter({
                                                 />
                                             )}
                                         </Stack>
+                                        {messageText ? (
+                                            <Typography
+                                                variant="caption"
+                                                color="text.secondary"
+                                                sx={{
+                                                    fontWeight: 500,
+                                                    display: '-webkit-box',
+                                                    WebkitLineClamp: 2,
+                                                    WebkitBoxOrient: 'vertical',
+                                                    overflow: 'hidden',
+                                                }}
+                                            >
+                                                {messageText}
+                                            </Typography>
+                                        ) : null}
                                         <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flexWrap: 'wrap' }}>
                                             {item.eventTime && (
                                                 <Stack direction="row" spacing={0.5} alignItems="center">
@@ -326,7 +373,12 @@ NotificationCenter.propTypes = {
         id: PropTypes.string.isRequired,
         eventId: PropTypes.string,
         title: PropTypes.string,
+        titleKey: PropTypes.string,
+        titleParams: PropTypes.object,
         message: PropTypes.string,
+        messageKey: PropTypes.string,
+        messageParams: PropTypes.object,
+        href: PropTypes.string,
         eventTime: PropTypes.string,
         impact: PropTypes.string,
         impactLabel: PropTypes.string,

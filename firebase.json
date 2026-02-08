@@ -3,6 +3,10 @@
     "path": "firebase.json",
     "purpose": "Firebase Hosting and Functions configuration for Time 2 Trade frontend/backend deployment.",
     "changelog": [
+      "v1.12.0 - 2026-02-05 - BEP SEO FIX: Added explicit Content-Type headers for all sitemap files (sitemap-pages.xml, sitemap-events.xml, sitemap-blog.xml). Browsers were displaying plain text instead of XML because static files lacked Content-Type: application/xml header. Cloud Functions already set headers correctly, but static hosting needed explicit config.",
+      "v1.11.0 - 2026-02-05 - BEP SEO SOCIAL: Fixed blog post sharing. /blog/* now routes to serveBlogHtml Cloud Function for pre-rendered HTML with OG meta tags. Social media crawlers (WhatsApp, Facebook, Twitter) will now see post-specific thumbnails, titles, and descriptions.",
+      "v1.10.0 - 2026-02-04 - BEP SITEMAP: Added dynamic sitemap rewrites. /sitemap.xml → serveSitemapIndex, /sitemap-blog.xml → serveSitemapBlog. Static sitemap-pages.xml and sitemap-events.xml served directly. Enables auto-update of blog sitemap on publish.",
+      "v1.9.0 - 2026-02-04 - BEP BLOG: Added /blog{,/**} and /{lang}/blog{,/**} rewrites for blog SPA routing. Pre-rendered HTML is served via Cloud Function for SEO.",
       "v1.8.0 - 2026-02-02 - BEP SEO REDIRECT FIX: Added explicit /index.html rewrites for all pages and language variants to prevent 301 redirects. With cleanUrls: true, Firebase was redirecting /page/index.html → /page. Now all direct file requests return 200 OK. Covers 21 rewrites: 7 EN pages + 7 ES pages + 7 FR pages. Added /events pattern rewrites for all 3 languages to fallback to /calendar when event static files don't exist (proper SPA behavior). Eliminates redirect waste and improves crawl efficiency.",
       "v1.7.0 - 2026-02-02 - BEP SEO CRITICAL: Added trailingSlash: false and cleanUrls: true to eliminate 301 redirects. Google Search Console was reporting 'Page with redirect' errors for /about and other pages because Firebase was auto-redirecting /about → /about/. cleanUrls allows serving /about/index.html at /about without redirects. trailingSlash: false prevents enforcing trailing slashes. Also added explicit EN rewrites for /clock, /calendar, /about, /privacy, /terms, /contact to match ES/FR patterns. Fixes Google indexing issues.",
       "v1.6.0 - 2026-01-30 - BEP SEO FIX: Reverted rewrites to simple '**' catch-all pattern. Firebase Hosting serves exact-match static files (ads.txt, robots.txt, sitemap.xml) BEFORE processing rewrites per official priority order. The negation pattern was unnecessary and non-standard. Static files in dist/ are automatically served at step 3, rewrites only apply when files don't exist (step 4). This follows Firebase Hosting BEP and ensures ads.txt is crawlable by Google AdSense.",
@@ -24,6 +28,15 @@
       "**/node_modules/**"
     ],
     "rewrites": [
+      {
+        "__comment": "Dynamic sitemaps - served by Cloud Functions",
+        "source": "/sitemap.xml",
+        "function": "serveSitemapIndex"
+      },
+      {
+        "source": "/sitemap-blog.xml",
+        "function": "serveSitemapBlog"
+      },
       {
         "source": "/index.html",
         "destination": "/index.html"
@@ -201,6 +214,19 @@
         "destination": "/fr/index.html"
       },
       {
+        "__comment": "Blog routes - serve SPA for client-side routing. Pre-rendered HTML for bots handled via Cloud Function with bot detection.",
+        "source": "/blog{,/**}",
+        "function": "serveBlogHtml"
+      },
+      {
+        "source": "/es/blog{,/**}",
+        "function": "serveBlogHtml"
+      },
+      {
+        "source": "/fr/blog{,/**}",
+        "function": "serveBlogHtml"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
@@ -233,7 +259,59 @@
         "headers": [
           {
             "key": "Content-Type",
-            "value": "application/xml"
+            "value": "application/xml; charset=utf-8"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400"
+          }
+        ]
+      },
+      {
+        "source": "sitemap-pages.xml",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/xml; charset=utf-8"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400"
+          }
+        ]
+      },
+      {
+        "source": "sitemap-events.xml",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/xml; charset=utf-8"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400"
+          }
+        ]
+      },
+      {
+        "source": "sitemap-blog.xml",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/xml; charset=utf-8"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=3600"
+          }
+        ]
+      },
+      {
+        "source": "sitemap.xsl",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/xslt+xml; charset=utf-8"
           },
           {
             "key": "Cache-Control",

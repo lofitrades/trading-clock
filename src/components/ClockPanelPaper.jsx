@@ -12,6 +12,50 @@
  * - Lazy-loaded ClockEventsOverlay for performance
  *
  * Changelog:
+ * v2.3.0 - 2026-02-08 - BEP LANDING CHROME: Hide title, subtitle, add-event button, and divider on
+ *                        landing page (/) in addition to /clock page. Date, digital time, clock canvas,
+ *                        and timezone button remain visible on all breakpoints. New hideHeaderChrome
+ *                        boolean decouples header visibility from /clock-specific flex-fill sizing.
+ * v2.2.0 - 2026-02-07 - BEP PARALLEL RENDER: Clock canvas + hands now render immediately behind the
+ *                        LoadingAnimation overlay. Previous ternary blocked canvas mount until sizing
+ *                        completed. Now both paint in parallel — canvas draws arcs/hands while the
+ *                        loading overlay sits on top (z-index 2, circular bg match). Overlay unmounts
+ *                        once workspaceHasSize flips true (~2 rAF frames). Zero layout shift, faster
+ *                        perceived load. Event markers still load independently (no blocking).
+ * v2.1.0 - 2026-02-07 - BEP LOADING ANIMATION: Re-integrated LoadingAnimation inside hand-clock-wrapper
+ *                        while !workspaceHasSize. Shows rotating donut animation inside the clock panel
+ *                        during initial sizing, replacing empty null render. Does NOT wait for event
+ *                        markers to load — animation clears as soon as clock canvas is ready. Applies
+ *                        to all pages (/clock, /calendar) via single source of truth in ClockPanelPaper.
+ * v2.0.0 - 2026-02-07 - BEP LOADING STATE PASS-THROUGH: Added onLoadingStateChange prop to accept
+ *                        loading state callback from parent (ClockPage, Calendar2Page). Passes it
+ *                        through to ClockEventsOverlay so loading state can disable filters on both
+ *                        pages. Improves UX by preventing filter changes during event data load.
+ * v1.8.0 - 2026-02-07 - BEP FLEX-CHAIN FIX: Fixed clock staying tiny because outer clock Box used
+ *                        flex-row (default) + alignItems:center, which shrank container ref to content
+ *                        height instead of filling parent. On /clock: outer Box switches to
+ *                        flexDirection:column so flex:1 on container ref controls height. Removed
+ *                        belowClockChrome subtraction (timezone/session are Stack siblings, outside ref).
+ *                        Container ref now reports true available height. Clock = min(width, height).
+ * v1.7.0 - 2026-02-07 - BEP CONTAINER-MEASURED SIZING: Replaced hardcoded viewport overhead with
+ *                        actual container measurement. On /clock, outer Box gets flex:1+minHeight:0 to fill
+ *                        available space from ClockPage Paper. computeBaseSize reads containerRef height AND
+ *                        width via getBoundingClientRect, uses min(h,w) for clock size. Container ref Box
+ *                        drops aspectRatio on /clock (rectangular fill) — only inner .hand-clock-wrapper
+ *                        maintains 1:1 square. Zero scroll on desktop/tablet; natural on very small screens.
+ *                        /calendar sidebar completely unaffected (440px cap + original overhead preserved).
+ * v1.6.0 - 2026-02-07 - BEP VIEWPORT-FILL: Replaced naive height budget with page-aware overhead.
+ * v1.5.1 - 2026-02-07 - BEP DEV HOTFIX: Memoized isClockPage computation with useMemo and added fallback for
+ *                        useLocation hook to prevent dependency array size changes during hot reload.
+ *                        Fixes React warning: "The final argument passed to useEffect changed size between renders"
+ * v1.5.0 - 2026-02-07 - BEP CONTAINER-AWARE SIZING: On /clock page, removed hardcoded 440px cap and
+ *                        breakpoint maxWidth constraints (xs:420, sm:520, md:560). Clock now fills
+ *                        available Paper container width while maintaining 1:1 aspect ratio via
+ *                        aspectRatio CSS + container measurement. On /calendar, existing caps preserved
+ *                        to keep clock compact in sidebar. Zero CSS breakage — conditional on isClockPage.
+ * v1.4.0 - 2026-02-07 - BEP PAGE-AWARE: Added useLocation hook to detect /clock page. When pathname is '/clock', conditionally hide title, subtitle, add-icon button, and divider. Date/time display remains visible. Eliminates redundant header elements on /clock since ClockPage has its own title, filters, and add-event row. Single source of truth for header content.
+ * v1.3.0 - 2026-02-07 - BEP NESTING REDUCTION: Removed outer Paper wrapper. ClockPanelPaper now returns Box content directly, relying on MainLayout.jsx Paper container. Eliminates unnecessary Paper nesting, simplifies component hierarchy, and lets MainLayout own all container styling (border, padding, border-radius). Maintains internal flex layout and content spacing.
+ * v1.2.2 - 2026-02-07 - BEP CSS FIX: Import App.css for .clock-event-flag marker badge styles. Previously only CalendarEmbed, LandingPage, and App.jsx imported this CSS, causing missing flag badge positioning when ClockPanelPaper was used standalone (e.g., Calendar2Page). Self-contained dependency ensures markers render correctly on any page.
  * v1.2.0 - 2026-01-29 - BEP THEME AWARE: Fixed timezone button to use clockPaperTextColor instead of handColor. Button now adapts dynamically to both light/dark theme modes and session-based backgrounds. Ensures consistent text color adaptation across button text and hover states, matching the paper background context rather than canvas hand visibility.
  * v1.1.0 - 2026-01-28 - BEP THEME: Replaced hardcoded colors with theme tokens. Changed '#ffffff' to theme.palette.background.paper, '#F6F9FB' to theme.palette.background.default, '#0F172A' to theme.palette.text.primary. All clock surface, hand, and text colors now adapt to light/dark theme modes dynamically.
  * v1.0.9 - 2026-01-29 - BEP CONSISTENCY: Fixed font color to match Economic Calendar. Changed clockPaperTextColor to use theme.palette.text.primary when backgroundBasedOnSession is false (instead of hardcoded '#0F172A'). Now Trading Clock panel text color matches CalendarEmbed's text color exactly, ensuring consistent font UI across /calendar page.
@@ -32,13 +76,13 @@
 
 import { Suspense, lazy, memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import {
     Box,
     Button,
     Divider,
     IconButton,
-    Paper,
     Stack,
     Tooltip,
     Typography,
@@ -49,12 +93,15 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 
 import ClockCanvas from './ClockCanvas';
 import ClockHandsOverlay from './ClockHandsOverlay';
-import LoadingAnimation from './LoadingAnimation';
 import SessionLabel from './SessionLabel';
+import LoadingAnimation from './LoadingAnimation';
 
 import { useClock } from '../hooks/useClock';
 import { useClockVisibilitySnap } from '../hooks/useClockVisibilitySnap';
 import { isColorDark } from '../utils/clockUtils';
+
+// BEP: Import shared marker styles (.clock-event-flag positioning/sizing for ClockEventsOverlay badges)
+import '../App.css';
 
 const ClockEventsOverlay = lazy(() => import('./ClockEventsOverlay'));
 
@@ -83,10 +130,15 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
     onOpenTimezone,
     onOpenEvent,
     onOpenAddEvent,
+    onLoadingStateChange,
 }) {
     const { t, i18n } = useTranslation(['calendar', 'common']);
     const theme = useTheme();
     const isXs = useMediaQuery(theme.breakpoints.only('xs'));
+    const { pathname } = useLocation() || {};
+    const isClockPage = useMemo(() => pathname === '/clock', [pathname]);
+    // BEP v2.3.0: Hide title/subtitle/add-button/divider on both /clock and landing (/)
+    const hideHeaderChrome = useMemo(() => pathname === '/clock' || pathname === '/', [pathname]);
     const { currentTime, activeSession, nextSession, timeToEnd, timeToStart } = useClock(clockTimezone, sessions, timeEngine);
     const handAnglesRef = useRef({ hour: 0, minute: 0, second: 0 });
     useClockVisibilitySnap({ handAnglesRef, currentTime, resumeToken: timeEngine?.resumeToken });
@@ -96,38 +148,69 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
     const [workspaceHasSize, setWorkspaceHasSize] = useState(false);
     const [shouldRenderEventsOverlay, setShouldRenderEventsOverlay] = useState(false);
 
-    // Compute clock size based on container width
+    // BEP v1.7.0: Compute clock size from actual container dimensions (not viewport - overhead).
     useEffect(() => {
         const computeBaseSize = () => {
-            const vw = typeof window !== 'undefined' ? window.innerWidth : 1024;
-            const vh = typeof window !== 'undefined' ? window.innerHeight : 768;
+            const rect = workspaceClockContainerRef.current?.getBoundingClientRect?.();
 
-            const settingsButtonHeight = 48;
-            const totalRatio = 1;
-            const availableHeight = vh - settingsButtonHeight - 10;
-            let next = Math.floor((availableHeight / totalRatio) * 1);
-            next = Math.max(180, next);
+            if (isClockPage) {
+                // ── /clock page: container-measured sizing ──
+                // The container fills remaining Paper height via flex:1.
+                // Measure actual width and height, use min(w, h) for 1:1 clock.
+                const cw = rect?.width || 0;
+                const ch = rect?.height || 0;
 
-            const containerWidth = workspaceClockContainerRef.current?.getBoundingClientRect?.().width || 0;
-            const viewportGutter = vw < 600 ? 32 : 96;
-            const baseWidthBudget = containerWidth > 0 ? containerWidth : (vw - viewportGutter);
-            const labelSafeInset = isXs ? 20 : 8;
-            const widthBudget = Math.max(180, Math.floor(baseWidthBudget - labelSafeInset));
+                if (cw < 10 || ch < 10) {
+                    // Container not laid out yet — skip until next frame
+                    return;
+                }
 
-            next = Math.min(next, widthBudget, 440);
-            if (isXs) {
-                next = Math.max(180, next - 8);
+                // Subtract small insets for session-label breathing room
+                const labelInset = isXs ? 20 : 8;
+                const usableWidth = Math.floor(cw - labelInset);
+                // Container ref is INSIDE the flex:1 Box, ABOVE timezone+session (Stack siblings).
+                // So rect.height already excludes them — no subtraction needed.
+                const usableHeight = Math.floor(ch);
+
+                let next = Math.max(180, Math.min(usableWidth, usableHeight));
+                if (isXs) next = Math.max(180, next - 8);
+
+                setWorkspaceClockSize((prev) => (prev === next ? prev : next));
+                setWorkspaceHasSize(true);
+            } else {
+                // ── /calendar sidebar: original viewport-based sizing with 440px cap ──
+                const vw = typeof window !== 'undefined' ? window.innerWidth : 1024;
+                const vh = typeof window !== 'undefined' ? window.innerHeight : 768;
+
+                const overhead = 58;
+                let next = Math.max(180, Math.floor(vh - overhead));
+
+                const containerWidth = rect?.width || 0;
+                const viewportGutter = vw < 600 ? 32 : 96;
+                const baseWidthBudget = containerWidth > 0 ? containerWidth : (vw - viewportGutter);
+                const labelSafeInset = isXs ? 20 : 8;
+                const widthBudget = Math.max(180, Math.floor(baseWidthBudget - labelSafeInset));
+
+                next = Math.min(next, widthBudget, 440);
+                if (isXs) next = Math.max(180, next - 8);
+
+                setWorkspaceClockSize((prev) => (prev === next ? prev : next));
+                setWorkspaceHasSize(true);
             }
-
-            setWorkspaceClockSize((prev) => (prev === next ? prev : next));
-            setWorkspaceHasSize(true);
         };
 
-        computeBaseSize();
+        // Run after layout paint so container has dimensions
+        // Use double-rAF to ensure flex layout is settled before measuring
+        const raf = requestAnimationFrame(() => {
+            requestAnimationFrame(computeBaseSize);
+        });
         const onResize = () => window.requestAnimationFrame(computeBaseSize);
         window.addEventListener('resize', onResize);
-        return () => window.removeEventListener('resize', onResize);
-    }, [isXs]);
+        return () => {
+            cancelAnimationFrame(raf);
+            window.removeEventListener('resize', onResize);
+        };
+    }, [isXs, isClockPage]);
 
     // Deferred events overlay loading
     useEffect(() => {
@@ -214,59 +297,59 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
     const shouldShowSessionLabel = Boolean(showSessionLabel && workspaceHasSize);
 
     return (
-        <Paper
-            elevation={0}
+        <Box
             sx={{
                 position: 'relative',
-                borderRadius: 3,
-                border: '1px solid',
-                borderColor: alpha('#3c4d63', 0.12),
-                bgcolor: clockPaperBg,
-                color: clockPaperTextColor,
-                p: { xs: 1.25, sm: 1.5, md: 1.75 },
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 1.25,
-                // CRITICAL: Overflow containment for flex children
+                // BEP: Content styling (Paper container now in MainLayout)
+                color: clockPaperTextColor,
                 minWidth: 0,
                 maxWidth: '100%',
                 width: '100%',
                 overflow: 'hidden',
                 boxSizing: 'border-box',
+                // BEP v1.7.0: On /clock, fill available Paper height from flex parent
+                ...(isClockPage && { flex: 1, minHeight: 0 }),
             }}
         >
             {/* Header section */}
             <Stack spacing={0.75} sx={{ mb: 0.5, position: 'relative', minWidth: 0, maxWidth: '100%' }}>
-                <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.2 }}>
-                    {t('calendar:clock.title')}
-                </Typography>
-                <Tooltip title={t('calendar:tooltip.addReminder')} placement="left">
-                    <IconButton
-                        size="medium"
-                        onClick={onOpenAddEvent}
-                        sx={{
-                            position: 'absolute',
-                            top: -2,
-                            right: 0,
-                            color: alpha(clockPaperTextColor, 0.9),
-                            p: 0.75,
-                            border: '1.5px solid',
-                            borderColor: alpha(clockPaperTextColor, 0.2),
-                            borderRadius: '50%',
-                            '&:hover': {
-                                borderColor: alpha(clockPaperTextColor, 0.4),
-                                bgcolor: alpha(clockPaperTextColor, 0.08),
-                            },
-                        }}
-                        aria-label={t('calendar:aria.addReminder')}
-                    >
-                        <AddRoundedIcon fontSize="medium" />
-                    </IconButton>
-                </Tooltip>
-                <Typography variant="body2" sx={{ color: alpha(clockPaperTextColor, 0.72) }}>
-                    {t('calendar:clock.subtitle')}
-                </Typography>
-                <Divider sx={{ borderColor: alpha('#3c4d63', 0.12) }} />
+                {!hideHeaderChrome && (
+                    <>
+                        <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.2 }}>
+                            {t('calendar:clock.title')}
+                        </Typography>
+                        <Tooltip title={t('calendar:tooltip.addReminder')} placement="left">
+                            <IconButton
+                                size="medium"
+                                onClick={onOpenAddEvent}
+                                sx={{
+                                    position: 'absolute',
+                                    top: -2,
+                                    right: 0,
+                                    color: alpha(clockPaperTextColor, 0.9),
+                                    p: 0.75,
+                                    border: '1.5px solid',
+                                    borderColor: alpha(clockPaperTextColor, 0.2),
+                                    borderRadius: '50%',
+                                    '&:hover': {
+                                        borderColor: alpha(clockPaperTextColor, 0.4),
+                                        bgcolor: alpha(clockPaperTextColor, 0.08),
+                                    },
+                                }}
+                                aria-label={t('calendar:aria.addReminder')}
+                            >
+                                <AddRoundedIcon fontSize="medium" />
+                            </IconButton>
+                        </Tooltip>
+                        <Typography variant="body2" sx={{ color: alpha(clockPaperTextColor, 0.72) }}>
+                            {t('calendar:clock.subtitle')}
+                        </Typography>
+                        <Divider sx={{ borderColor: alpha('#3c4d63', 0.12) }} />
+                    </>
+                )}
                 <Stack
                     direction="row"
                     alignItems="center"
@@ -325,28 +408,38 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
                     maxWidth: '100%',
                     minWidth: 0,
                     overflow: 'visible',
+                    // BEP v1.7.0: On /clock, fill remaining height after header
+                    ...(isClockPage && { flex: 1, minHeight: 0 }),
                 }}
             >
                 {showHandClock ? (
                     <Box
                         sx={{
                             width: '100%',
-                            maxWidth: { xs: 420, sm: 520, md: 560 },
+                            // BEP v1.8.0: On /clock, column flex so flex:1 on container ref fills height.
+                            // On /calendar sidebar, row flex + breakpoint caps keep clock compact.
+                            maxWidth: isClockPage ? '100%' : { xs: 420, sm: 520, md: 560 },
                             mx: 'auto',
                             display: 'flex',
+                            flexDirection: isClockPage ? 'column' : 'row',
                             justifyContent: 'center',
                             alignItems: 'center',
                             p: 0,
                             boxSizing: 'border-box',
                             minWidth: 0,
-                            overflow: 'hidden',
+                            overflow: 'visible',
+                            ...(isClockPage && { flex: 1, minHeight: 0 }),
                         }}
                     >
                         <Box
                             ref={workspaceClockContainerRef}
                             sx={{
                                 width: '100%',
-                                aspectRatio: '1 / 1',
+                                // BEP v1.8.0: On /clock, container fills column height via flex:1.
+                                // computeBaseSize reads actual rect.height + rect.width.
+                                // On /calendar, aspectRatio keeps container square.
+                                ...(!isClockPage && { aspectRatio: '1 / 1' }),
+                                ...(isClockPage && { flex: 1, minHeight: 0 }),
                                 display: 'flex',
                                 justifyContent: 'center',
                                 alignItems: 'center',
@@ -368,7 +461,47 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
                                     overflow: 'visible',
                                 }}
                             >
-                                {workspaceHasSize ? null : (
+                                {/* BEP v2.2.0: Always render clock canvas so arcs + hands paint in
+                                    parallel behind the loading animation. LoadingAnimation overlays
+                                    on top and fades out once workspaceHasSize is true. */}
+                                <ClockCanvas
+                                    size={workspaceClockSize}
+                                    time={currentTime}
+                                    sessions={sessions}
+                                    handColor={handColor}
+                                    clockStyle={clockStyle}
+                                    showSessionNamesInCanvas={showSessionNamesInCanvas}
+                                    showPastSessionsGray={showPastSessionsGray}
+                                    showClockNumbers={showClockNumbers}
+                                    showClockHands={showClockHands}
+                                    activeSession={activeSession}
+                                    backgroundBasedOnSession={backgroundBasedOnSession}
+                                    renderHandsInCanvas={false}
+                                    handAnglesRef={handAnglesRef}
+                                />
+                                <ClockHandsOverlay
+                                    size={workspaceClockSize}
+                                    handAnglesRef={handAnglesRef}
+                                    handColor={handColor}
+                                    time={currentTime}
+                                    showSecondsHand={showClockHands}
+                                />
+                                {showEventsOnCanvas && shouldRenderEventsOverlay ? (
+                                    <Suspense fallback={null}>
+                                        <ClockEventsOverlay
+                                            size={workspaceClockSize}
+                                            timezone={clockTimezone}
+                                            eventFilters={eventFilters}
+                                            newsSource={newsSource}
+                                            onEventClick={onOpenEvent || undefined}
+                                            onLoadingStateChange={onLoadingStateChange}
+                                            suppressTooltipAutoscroll
+                                        />
+                                    </Suspense>
+                                ) : null}
+
+                                {/* Loading overlay — sits on top of canvas, fades out when ready */}
+                                {!workspaceHasSize && (
                                     <Box
                                         sx={{
                                             position: 'absolute',
@@ -376,55 +509,14 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            bgcolor: 'rgba(255,255,255,0.6)',
+                                            zIndex: 2,
+                                            bgcolor: 'background.paper',
                                             borderRadius: '50%',
                                         }}
                                     >
-                                        <LoadingAnimation
-                                            clockSize={Math.min(workspaceClockSize, 220)}
-                                            isLoading
-                                        />
+                                        <LoadingAnimation clockSize={Math.min(workspaceClockSize, 200)} isLoading />
                                     </Box>
                                 )}
-
-                                {workspaceHasSize ? (
-                                    <>
-                                        <ClockCanvas
-                                            size={workspaceClockSize}
-                                            time={currentTime}
-                                            sessions={sessions}
-                                            handColor={handColor}
-                                            clockStyle={clockStyle}
-                                            showSessionNamesInCanvas={showSessionNamesInCanvas}
-                                            showPastSessionsGray={showPastSessionsGray}
-                                            showClockNumbers={showClockNumbers}
-                                            showClockHands={showClockHands}
-                                            activeSession={activeSession}
-                                            backgroundBasedOnSession={backgroundBasedOnSession}
-                                            renderHandsInCanvas={false}
-                                            handAnglesRef={handAnglesRef}
-                                        />
-                                        <ClockHandsOverlay
-                                            size={workspaceClockSize}
-                                            handAnglesRef={handAnglesRef}
-                                            handColor={handColor}
-                                            time={currentTime}
-                                            showSecondsHand={showClockHands}
-                                        />
-                                        {showEventsOnCanvas && shouldRenderEventsOverlay ? (
-                                            <Suspense fallback={null}>
-                                                <ClockEventsOverlay
-                                                    size={workspaceClockSize}
-                                                    timezone={clockTimezone}
-                                                    eventFilters={eventFilters}
-                                                    newsSource={newsSource}
-                                                    onEventClick={onOpenEvent || undefined}
-                                                    suppressTooltipAutoscroll
-                                                />
-                                            </Suspense>
-                                        ) : null}
-                                    </>
-                                ) : null}
                             </Box>
                         </Box>
                     </Box>
@@ -478,7 +570,7 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
                 ) : null}
             </Stack>
 
-        </Paper>
+        </Box>
     );
 });
 
@@ -505,6 +597,7 @@ ClockPanelPaper.propTypes = {
     onOpenTimezone: PropTypes.func,
     onOpenEvent: PropTypes.func,
     onOpenAddEvent: PropTypes.func,
+    onLoadingStateChange: PropTypes.func,
 };
 
 ClockPanelPaper.displayName = 'ClockPanelPaper';

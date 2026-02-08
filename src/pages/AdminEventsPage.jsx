@@ -6,6 +6,8 @@
  * BEP: Full timezone support - admin sees/edits events in their selected timezone
  * 
  * Changelog:
+ * v1.4.0 - 2026-02-05 - BEP: Allow admin role to manage events (was superadmin-only).
+ * v1.3.0 - 2026-02-05 - ACTIVITY LOGGING: Log canonical_event_updated to systemActivityLog when admin edits event fields. Tracks field names, event name, and admin userId for audit trail (Phase 8.0).
  * v1.2.0 - 2026-02-02 - BEP TIMEZONE: Display/edit in admin's timezone. System converts to UTC on save.
  * v1.1.0 - 2026-02-02 - BEP: Added validation, datetimeUtc recalculation, timezone info
  * v1.0.0 - 2026-02-02 - Initial implementation with BEP standards
@@ -32,6 +34,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { logAppEvent } from '../utils/analytics';
+import { logCanonicalEventUpdated } from '../services/activityLogger';
 
 const AdminEventsPage = () => {
     const { t } = useTranslation('admin');
@@ -52,10 +55,10 @@ const AdminEventsPage = () => {
             return;
         }
 
-        // Currently superadmin only (TODO: expand to admin role)
-        if (userProfile?.role !== 'superadmin') {
+        // Currently admin and superadmin (TODO: expand to other roles as needed)
+        if (userProfile?.role !== 'superadmin' && userProfile?.role !== 'admin') {
             navigate('/', { replace: true });
-            setError(t('superadminOnly'));
+            setError(t('adminOrSuperadminOnly'));
             return;
         }
 
@@ -63,8 +66,6 @@ const AdminEventsPage = () => {
         const refreshToken = async () => {
             try {
                 await user.getIdToken(true); // Force refresh
-                const tokenResult = await user.getIdTokenResult();
-                // Debug: Token refreshed with custom claims
             } catch (err) {
                 console.error('Failed to refresh token:', err);
             }
@@ -143,6 +144,10 @@ const AdminEventsPage = () => {
                 )
             );
 
+            // ADMIN AUDIT: Log canonical event update
+            const fieldsChanged = Object.keys(updates);
+            await logCanonicalEventUpdated(eventId, originalEvent?.name || eventId, fieldsChanged, user.uid);
+
             // Log analytics event
             logAppEvent('admin_event_update', {
                 eventId,
@@ -172,8 +177,8 @@ const AdminEventsPage = () => {
         setSnackbar({ ...snackbar, open: false });
     }, [snackbar]);
 
-    // Show access denied if not superadmin
-    if (!user || userProfile?.role !== 'superadmin') {
+    // Show access denied if not admin/superadmin
+    if (!user || (userProfile?.role !== 'superadmin' && userProfile?.role !== 'admin')) {
         return (
             <Container maxWidth="lg" sx={{ py: 4 }}>
                 <Alert severity="error">

@@ -27,6 +27,7 @@
  * ✅ Notes: buildEventIdentity (composite key)
  *
  * Changelog:
+ * v1.2.8 - 2026-02-06 - BEP CRITICAL FIX: Rescheduled events now preserve favorites/notes/reminders. When an event is rescheduled, datetimeUtc changes but composite key now uses originalDatetimeUtc (immutable original time) to ensure key stability. Favorites/notes/reminders stay attached across reschedules with activity audit trails.
  * v1.2.7 - 2026-02-03 - BEP FIX: Prioritize raw event ID (id/eventId) over composite key for custom events. 
  *                       Prevents duplicate reminder documents when custom events are saved with/without date fields.
  *                       Custom events (isCustom=true) and events with explicit IDs (seriesId, docId) now consistently
@@ -171,8 +172,12 @@ export const buildEventIdentity = (event = {}) => {
   // BEP: Use unified matching key with name + currency + time (matching reminders engine)
   // This ensures same-event detection across reminders, favorites, and notes
   const currencyKey = normalizeKey(event.currency || event.Currency);
-  const dateSource = event.time || event.date || event.Date || event.dateTime || event.datetime || event.date_time;
-  const parsedDate = dateSource ? new Date(dateSource) : null;
+  
+  // BEP v1.2.8 CRITICAL FIX: For rescheduled events, use originalDatetimeUtc to preserve composite key
+  // When an event is rescheduled, datetimeUtc changes but favorites/notes/reminders should stay attached.
+  // Use originalDatetimeUtc (the time when event was first created) to ensure composite key remains stable.
+  const dateForKey = event.originalDatetimeUtc || event.time || event.date || event.Date || event.dateTime || event.datetime || event.date_time;
+  const parsedDate = dateForKey ? new Date(dateForKey) : null;
   const dateKey = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.getTime() : null;
   
   // BEP FIX: For custom events (isCustom=true) or events with explicit IDs (seriesId, docId),

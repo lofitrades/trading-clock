@@ -6,6 +6,13 @@
  * Automatically creates user documents with role and subscription on account creation.
  * 
  * Changelog:
+ * v2.5.0 - 2026-02-07 - BEP CRITICAL: Wired initFcmForegroundListener() to show push notifications
+ *                       when the app is in the foreground. FCM's onMessage fires instead of SW's
+ *                       onBackgroundMessage when the app is open — without this listener, foreground
+ *                       pushes are silently dropped. Uses ServiceWorkerRegistration.showNotification()
+ *                       with the same tag/options as the SW background handler for OS-level dedup.
+ *                       Combined with v4.0.0 browser channel suppression (when push is enabled),
+ *                       ensures exactly 1 push + 1 in-app notification regardless of app state.
  * v2.4.0 - 2026-02-03 - BEP FIX: Mobile PWA token refresh - add 2s delay before attempting
  *                       FCM token refresh on mobile PWAs to ensure service worker is ready.
  * v2.3.0 - 2026-02-03 - BEP: Use refreshFcmTokenForUser on every app load to keep tokens fresh.
@@ -25,7 +32,7 @@ import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/fires
 import { USER_ROLES, SUBSCRIPTION_PLANS, SUBSCRIPTION_STATUS, PLAN_FEATURES } from '../types/userTypes';
 import WelcomeModal from '../components/WelcomeModal';
 import { createUserProfileSafely, updateLastLoginSafely } from '../utils/userProfileUtils';
-import { refreshFcmTokenForUser } from '../services/pushNotificationsService';
+import { refreshFcmTokenForUser, initFcmForegroundListener } from '../services/pushNotificationsService';
 
 const defaultAuthContext = {
   user: null,
@@ -235,6 +242,63 @@ export const AuthProvider = ({ children }) => {
       // Desktop: Attempt immediately
       attemptRefresh();
     }
+  }, [user?.uid]);
+
+  // BEP v4.1.0: Wire FCM foreground listener to SHOW push notifications when app is open.
+  // When the app is in the foreground, FCM's onMessage fires (NOT the SW onBackgroundMessage).
+  // Without this listener, foreground push messages are silently dropped. We explicitly call
+  // ServiceWorkerRegistration.showNotification() to display the push notification with the
+  // same tag/options as the SW background handler. The tag ensures OS-level dedup — if the
+  // same notification somehow arrives via both paths, only one is shown.
+  // The client-side browser channel is already suppressed when push is enabled (v4.0.0),
+  // so the only visible notifications are: 1 push + 1 in-app (correct behavior).
+  useEffect(() => {
+    if (!user?.uid) return undefined;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return undefined;
+
+    let cleanup = () => { };
+
+    initFcmForegroundListener((payload) => {
+      // BEP: Show push notification via SW registration even when app is in foreground.
+      // Mirrors the exact same notification options from public/sw.js onBackgroundMessage.
+      const notification = payload?.notification || {};
+      const data = payload?.data || {};
+      const title = notification.title || data.title || 'Reminder';
+      const body = notification.body || data.body || '';
+      const tag = notification.tag || data.tag || `t2t-${data.eventKey || 'reminder'}`;
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready
+          .then((registration) => {
+            registration.showNotification(title, {
+              body,
+              icon: '/icons/icon-192.png',
+              badge: '/icons/icon-192.png',
+              tag,
+              vibrate: [200],
+              data,
+              requireInteraction: false,
+              dir: 'auto',
+            });
+          })
+          .catch(() => {
+            // SW not ready — fall back to basic Notification API
+            try {
+              new Notification(title, { body, tag, icon: '/icons/icon-192.png' });
+            } catch {
+              // Notification API unavailable
+            }
+          });
+      }
+    })
+      .then((unsub) => {
+        cleanup = unsub;
+      })
+      .catch(() => {
+        // FCM not available — no-op
+      });
+
+    return () => cleanup();
   }, [user?.uid]);
 
   /**

@@ -9,6 +9,8 @@
  * and md+ (sticky AppBar). All content fully internationalized (EN/ES/FR).
  * 
  * Changelog:
+ * v1.5.0 - 2026-02-02 - BEP VIEWPORT FIX: Replaced 100vh with var(--t2t-vv-height, 100dvh) for xs/sm
+ *                       height calc to prevent content overflow behind bottom AppBar on non-PWA mobile browsers.
  * v1.4.0 - 2026-01-29 - BEP THEME-AWARE: Replaced all hardcoded hex colors with MUI theme tokens.
  *                       bgcolor: #f9fafb → background.default, color: #0f172a → text.primary,
  *                       color: #475569 → text.secondary. Warning box uses theme warning palette.
@@ -18,7 +20,7 @@
  * Includes Clock, Calendar, and Settings navigation buttons. Uses i18n t() keys from common:navigation namespace.
  * AppBar now visible on md+ with navigation chrome, MobileHeader on xs/sm.
  * v1.2.0 - 2026-01-28 - BEP RESPONSIVE LAYOUT: Added proper scrollable container with height constraints.
- * xs/sm: calc(100vh - 48px - var(--t2t-bottom-nav-height, 64px)) for fixed mobile header + bottom nav.
+ * xs/sm: calc(var(--t2t-vv-height, 100dvh) - 48px - var(--t2t-bottom-nav-height, 64px)) for fixed mobile header + bottom nav.
  * md+: calc(100vh - 72px) for sticky AppBar. Content overflowY auto for vertical scrolling. Matches PublicLayout + CalendarEmbed pattern.
  * v1.1.0 - 2026-01-28 - Refactored to use PublicLayout + full i18n coverage (0% hardcoded copy)
  * v1.0.1 - 2026-01-16 - Updated CTA link to /clock.
@@ -61,7 +63,7 @@ function TermsPageContent() {
         <Box
             sx={{
                 width: '100%',
-                height: { xs: 'calc(100vh - 48px - var(--t2t-bottom-nav-height, 64px))', md: 'calc(100vh - 72px)' },
+                height: { xs: 'calc(var(--t2t-vv-height, 100dvh) - 48px - var(--t2t-bottom-nav-height, 64px))', md: 'calc(100vh - 72px)' },
                 overflowY: 'auto',
                 overflowX: 'hidden',
                 bgcolor: 'background.default',
@@ -368,7 +370,7 @@ export default function TermsPage() {
 
     return (
         <PublicLayout navItems={navItems}>
-            <Box component="main" sx={{ bgcolor: 'background.default', color: 'text.primary', minHeight: '100vh' }}>
+            <Box component="main" sx={{ bgcolor: 'background.default', color: 'text.primary', minHeight: 'var(--t2t-vv-height, 100dvh)' }}>
                 <TermsPageContent />
             </Box>
         </PublicLayout>

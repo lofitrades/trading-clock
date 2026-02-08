@@ -6,6 +6,8 @@
  * values based on user preference.
  *
  * Changelog:
+ * v1.6.0 - 2026-02-06 - BEP: Surface rescheduledFrom, originalDatetimeUtc in DTO for UI reschedule/reinstate indicators.
+ * v1.5.0 - 2026-02-05 - BEP: Filter out cancelled events from calendar display (status !== 'cancelled').
  * v1.4.0 - 2026-01-22 - Added N/A/CUS currency filter support with normalized comparison.
  * v1.3.0 - 2026-01-21 - BEP Refactor: Add normalizedName to DTO, backwards compatibility for old events.
  * v1.2.0 - 2026-01-16 - Include GPT fallback sources, expose time labels, and surface GPT-only placeholders.
@@ -36,6 +38,8 @@ import { db } from '../firebase';
  * @property {string|null} previous
  * @property {string|null} sourceKey
  * @property {string|null} timeLabel
+ * @property {Date|null} rescheduledFrom - Previous datetime if event was rescheduled
+ * @property {Date|null} originalDatetimeUtc - Original scheduled datetime (never changes)
  */
 
 const CANONICAL_EVENTS_ROOT = 'economicEvents';
@@ -106,6 +110,8 @@ export async function fetchCanonicalEconomicEvents({ from, to, currencies = [], 
         if (!hasNfsSource && !hasGptSource) return null;
 
         const dt = data.datetimeUtc?.toDate ? data.datetimeUtc.toDate() : null;
+        const rescheduledFromDt = data.rescheduledFrom?.toDate ? data.rescheduledFrom.toDate() : null;
+        const originalDt = data.originalDatetimeUtc?.toDate ? data.originalDatetimeUtc.toDate() : null;
         const picked = pickValuesForUser(data, preferredSource);
         const timeLabel = data?.sources?.gpt?.raw?.TimeLabel || null;
         return {
@@ -121,9 +127,14 @@ export async function fetchCanonicalEconomicEvents({ from, to, currencies = [], 
           previous: picked.previous,
           sourceKey: picked.sourceKey,
           timeLabel,
+          // Reschedule/reinstate fields (v1.6.0)
+          rescheduledFrom: rescheduledFromDt,
+          originalDatetimeUtc: originalDt,
         };
       })
-      .filter(Boolean);
+      .filter(Boolean)
+      // BEP: Exclude cancelled events from calendar display (v1.5.0)
+      .filter((d) => d.status !== 'cancelled');
 
     // BEP: Apply client-side currency filter with special currency support (ALL, N/A, CUS)
     const filteredDocs = currencies?.length > 0

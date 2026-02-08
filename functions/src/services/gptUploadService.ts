@@ -6,6 +6,11 @@
  * Priority: NFS > JBlanked-FF > JBlanked-MT > JBlanked-FXStreet > GPT
  *
  * Changelog:
+ * v1.6.0 - 2026-02-06 - BEP CRITICAL FIX: Rescheduled/reinstated events now bypass isPreferredSourcePresent skip. Previously, GPT reschedules were detected but never written because NFS source was present. Now schedule changes (datetime, status) are always applied.
+ * v1.5.0 - 2026-02-06 - BEP: Track and return rescheduled/reinstated event counts in response (for admin activity logging).
+ * v1.4.0 - 2026-02-06 - BUGFIX: Filter undefined values before Firestore batch write to prevent "undefined is not a valid Firestore value" error on rescheduledFrom field.
+ * v1.3.0 - 2026-02-05 - BEP: Added two-phase identity matching (±15 days) for reschedule detection.
+ *                       Reinstates cancelled events when they reappear. Matches NFS sync logic.
  * v1.2.0 - 2026-01-21 - BEP Refactor: Use Firestore auto IDs, pass originalName, remove computeEventId.
  * v1.1.0 - 2026-01-21 - Updated PREFERRED_SOURCES to match new priority order.
  * v1.0.0 - 2026-01-16 - Initial GPT uploader with canonical merge logic.
@@ -15,6 +20,7 @@ import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import {
   CanonicalEconomicEvent,
+  findByIdentityWindow,
   findExistingCanonicalEvent,
   getCanonicalEventsCollection,
   mergeProviderEvent,
@@ -84,6 +90,8 @@ export async function uploadGptEventsBatch(events: GptUploadEventInput[]) {
   let merged = 0;
   let skipped = 0;
   let errors = 0;
+  let rescheduled = 0;
+  let reinstated = 0;
 
   for (const event of events) {
     processed += 1;
@@ -115,15 +123,56 @@ export async function uploadGptEventsBatch(events: GptUploadEventInput[]) {
       const impact = toStringOrNull(event?.impact);
       const category = toStringOrNull(event?.category);
 
-      const existingMatch = currency
-        ? await findExistingCanonicalEvent({
+      // ========== Two-Phase Matching for Reschedule Detection (v1.3.0) ==========
+      // Phase 1: Identity match (±15 days) - catches rescheduled/reinstated events
+      let identityMatch = currency
+        ? await findByIdentityWindow({
             normalizedName,
             currency,
             datetimeUtc,
+            windowDays: 15,
+            similarityThreshold: 0.85,
           })
         : undefined;
 
-      if (existingMatch && isPreferredSourcePresent(existingMatch.event)) {
+      let isReschedule = identityMatch?.isReschedule ?? false;
+
+      // Phase 2: Narrow datetime match (±5 min) - for new events
+      let existingMatch: {eventId: string; event: CanonicalEconomicEvent} | undefined;
+
+      if (identityMatch) {
+        existingMatch = {eventId: identityMatch.eventId, event: identityMatch.event};
+        // Log reschedule/reinstatement detection
+        if (isReschedule) {
+          logger.info(`📅 GPT: Reschedule detected for ${name} (${currency})`, {
+            oldDate: identityMatch.event.datetimeUtc?.toDate?.()?.toISOString(),
+            newDate: datetimeUtc.toDate().toISOString(),
+          });
+          rescheduled += 1;
+        }
+        if (identityMatch.event.status === "cancelled") {
+          logger.info(`📢 GPT: Reinstating cancelled event ${name} (${currency})`);
+          reinstated += 1;
+        }
+      } else if (currency) {
+        const narrowMatch = await findExistingCanonicalEvent({
+          normalizedName,
+          currency,
+          datetimeUtc,
+        });
+        if (narrowMatch) {
+          existingMatch = narrowMatch;
+          isReschedule = false;
+        }
+      }
+
+      // BEP v1.6.0: Allow reschedule/reinstate to update even when preferred sources present
+      // Reschedules change the datetime, reinstates change the status - both are schedule changes
+      // Only skip normal merges where GPT would overwrite higher-priority source data
+      const isCancelledReinstate = existingMatch?.event?.status === "cancelled";
+      const shouldForceUpdate = isReschedule || isCancelledReinstate;
+
+      if (existingMatch && isPreferredSourcePresent(existingMatch.event) && !shouldForceUpdate) {
         skipped += 1;
         continue;
       }
@@ -134,7 +183,7 @@ export async function uploadGptEventsBatch(events: GptUploadEventInput[]) {
       const existingDoc = existingMatch?.event ||
         (await collection.doc(eventId).get()).data() as CanonicalEconomicEvent | undefined;
 
-      if (existingDoc && isPreferredSourcePresent(existingDoc)) {
+      if (existingDoc && isPreferredSourcePresent(existingDoc) && !shouldForceUpdate) {
         skipped += 1;
         continue;
       }
@@ -158,7 +207,7 @@ export async function uploadGptEventsBatch(events: GptUploadEventInput[]) {
           strength: toStringOrNull(parsed.strength),
           quality: toStringOrNull(parsed.quality),
         },
-      });
+      }, {isReschedule});
 
       mergedMap.set(eventId, mergedEvent);
       if (existingDoc) {
@@ -178,7 +227,11 @@ export async function uploadGptEventsBatch(events: GptUploadEventInput[]) {
     const batch = db.batch();
     const slice = entries.slice(i, i + batchSize);
     for (const [eventId, canonical] of slice) {
-      batch.set(collection.doc(eventId), canonical, { merge: true });
+      // Clean undefined values before writing (Firestore doesn't allow undefined)
+      const cleanedCanonical = Object.fromEntries(
+        Object.entries(canonical).filter(([, v]) => v !== undefined)
+      ) as typeof canonical;
+      batch.set(collection.doc(eventId), cleanedCanonical, { merge: true });
     }
     await batch.commit();
   }
@@ -189,5 +242,7 @@ export async function uploadGptEventsBatch(events: GptUploadEventInput[]) {
     merged,
     skipped,
     errors,
+    rescheduled,
+    reinstated,
   };
 }

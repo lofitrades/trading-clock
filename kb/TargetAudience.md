@@ -1,5 +1,20 @@
+<!--
+kb/TargetAudience.md
+
+Purpose: Internal audience specification for Time 2 Trade. Defines user segments, personas, JTBD, and content strategy implications.
+Used by: Developers, product builders, and Custom GPT blog generator as a knowledge source.
+
+Changelog:
+v1.1.0 - 2026-02-04 - BEP: Added file header, product URLs, blog content guidance, and GPT-optimized formatting.
+v1.0.0 - 2025-09-15 - Initial audience specification.
+-->
+
 # TargetAudience.md
 Time 2 Trade (Trading Clock + Economic Events)
+
+**Product URL:** https://time2.trade  
+**Blog URL:** https://time2.trade/blog  
+**Calendar URL:** https://time2.trade/calendar
 
 ## 0) Purpose of this document
 This file is for **developers and product builders** working on Time 2 Trade. It defines:
@@ -251,4 +266,37 @@ Users will judge the product by:
 
 If we claim reliability, we must:
 - Handle DST transitions cleanly
-- Validate session schedule logic wit
+- Validate session schedule logic with edge cases
+
+---
+
+## 12) Blog content strategy (for GPT content generation)
+
+### Content that resonates with our audience
+| Topic Type | Audience Fit | Examples |
+|------------|--------------|----------|
+| **Event previews** | News Avoiders, Prop Traders | "CPI Preview: What Day Traders Need to Know" |
+| **Session timing** | ICT/TTrades Students, Futures Traders | "London-NY Overlap: The Most Volatile Hours" |
+| **Educational** | Students, Beginners | "What is NFP and Why Does It Move Markets?" |
+| **Market analysis** | All segments | "Fed Decision Recap: Key Takeaways for Traders" |
+
+### Content tone guidelines
+- **Do:** Inform, educate, provide awareness
+- **Don't:** Predict direction, give signals, promise profits
+- **Voice:** Knowledgeable mentor, not guru or salesman
+
+### Keywords that matter to our audience
+- Session names: "New York session", "London open", "Asia session", "Tokyo session"
+- Events: "CPI", "NFP", "FOMC", "Fed decision", "economic calendar"
+- Concepts: "session overlap", "high-impact news", "trading hours", "market timing"
+- Methodologies: "ICT", "killzones", "TTrades", "prop trading"
+
+### What NOT to write about
+- Specific trade setups ("buy at X, sell at Y")
+- Crypto content (unless directly affecting USD/forex)
+- Broker comparisons or affiliate content
+- Get-rich-quick narratives
+
+---
+
+**End of Document**

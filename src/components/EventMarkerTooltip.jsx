@@ -5,6 +5,7 @@
  * Follows Material Design v7 best practices with proper spacing, typography hierarchy, and Airbnb-inspired design.
  *
  * Changelog:
+ * v1.1.33 - 2026-02-02 - BEP: Add reschedule/reinstate Chip badges next to event name in tooltip. Uses events:status i18n keys for EN/ES/FR.
  * v1.1.32 - 2026-01-29 - BEP i18n: Relative time labels ("In 2h 30m", "5m ago") now fully language-aware using events:relativeTime translations. Supports EN/ES/FR with proper preposition and time unit translations.
  * v1.1.31 - 2026-01-29 - BEP i18n: Footer event count and All Day/Tentative labels now fully language-aware. Event count uses plural-aware translations ("1 event" vs "N events") with full i18n support for EN/ES/FR. All hardcoded text now localized.
  * v1.1.30 - 2026-01-29 - BEP i18n: Date and time now fully language-aware and timezone-aware. Uses toLocaleDateString and toLocaleTimeString with i18n language detection (EN/ES/FR) and IANA timezone support.
@@ -53,6 +54,8 @@ import PublicIcon from '@mui/icons-material/Public';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
 import NoteAltRoundedIcon from '@mui/icons-material/NoteAltRounded';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import RestoreIcon from '@mui/icons-material/Restore';
 import { getCustomEventIconComponent, resolveCustomEventColor } from '../utils/customEventStyle';
 
 /**
@@ -679,6 +682,39 @@ function EventMarkerTooltip({ events = [], timezone = 'UTC', nowEpochMs = Date.n
                             >
                                 {evt.name || evt.Name || 'Unnamed event'}
                             </Typography>
+                            {/* BEP v1.1.33: Reschedule/Reinstate badges */}
+                            {evt.rescheduledFrom && (
+                                <Chip
+                                    icon={<ScheduleIcon sx={{ fontSize: '0.75rem' }} />}
+                                    label={t('events:status.rescheduled')}
+                                    size="small"
+                                    variant="outlined"
+                                    color="secondary"
+                                    sx={{
+                                        height: 16,
+                                        fontSize: '0.6rem',
+                                        fontWeight: 600,
+                                        '& .MuiChip-icon': { ml: 0.25 },
+                                        '& .MuiChip-label': { px: 0.5 },
+                                    }}
+                                />
+                            )}
+                            {evt.status === 'cancelled' && (
+                                <Chip
+                                    icon={<RestoreIcon sx={{ fontSize: '0.75rem' }} />}
+                                    label={t('events:status.reinstated')}
+                                    size="small"
+                                    variant="outlined"
+                                    color="info"
+                                    sx={{
+                                        height: 16,
+                                        fontSize: '0.6rem',
+                                        fontWeight: 600,
+                                        '& .MuiChip-icon': { ml: 0.25 },
+                                        '& .MuiChip-label': { px: 0.5 },
+                                    }}
+                                />
+                            )}
                         </Box>
 
                         {/* Event Details Row */}

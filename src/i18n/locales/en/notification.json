@@ -5,5 +5,7 @@
   "clearAll": "Clear all",
   "in": "in",
   "min": "min",
-  "bullet": "•"
+  "bullet": "•",
+  "blogDraftCreatedTitle": "New blog draft: {{slug}}",
+  "blogDraftCreatedMessage": "A new draft was created."
 }

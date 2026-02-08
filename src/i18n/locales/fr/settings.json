@@ -110,8 +110,8 @@
   },
   "drawer": {
     "title": "Paramètres",
-    "subtitle": "Créez un compte gratuit pour débloquer toutes les fonctionnalités",
-    "unlockButton": "Créer un compte gratuit pour débloquer tous les paramètres"
+    "subtitle": "Créez votre compte pour déverrouiller toutes les fonctionnalités",
+    "unlockButton": "Créer votre compte pour déverrouiller tous les paramètres"
   },
   "account": {
     "title": "Compte",

@@ -6,6 +6,13 @@
 * Includes responsive preview table with matching results, expandable source comparison, and pagination.
 * 
 * Changelog:
+* v1.12.0 - 2026-02-06 - BEP: Log reschedule and reinstate events as separate activities (EVENT_RESCHEDULED, EVENT_REINSTATED) so they appear in admin dashboard. Extract rescheduled/reinstated counts from Cloud Function response.
+* v1.11.0 - 2026-02-06 - BEP: Auto-validate JSON format when file is selected/dropped. Improves UX by running validation immediately without requiring separate click.
+* v1.10.0 - 2026-02-05 - BEP: Fixed INTERNAL error on upload - Added batch error handling with console logging, improved response validation, wrapped activity logging in try-catch to prevent upload failure if logging fails.
+* v1.9.0 - 2026-02-05 - ACTIVITY LOGGING: Log gpt_upload to systemActivityLog when superadmins upload GPT-generated events. Tracks event count and event names for admin audit trail (Phase 7).
+* v1.8.0 - 2026-02-05 - BEP: Updated client-side matching to use ±15 day identity window (matches backend).
+*                       Preview now correctly shows "Matched" for rescheduled events instead of "New".
+*                       Added isReschedule flag to match results for UI indication.
 * v1.7.0 - 2026-01-29 - BEP THEME-AWARE: Replaced hardcoded #fff and rgba colors with theme tokens.
 *                       Table background uses background.paper, row highlights use alpha() with palette colors.
 *                       Fully AA accessible with proper contrast in light/dark modes.
@@ -24,7 +31,7 @@
 * v1.0.0 - 2026-01-16 - Initial implementation with RBAC gating and batch uploader.
 */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import {
@@ -53,11 +60,12 @@ import {
     useTheme,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { UploadFile as UploadFileIcon, Clear as ClearIcon, CloudUpload as CloudUploadIcon, NewReleases as NewReleasesIcon, MergeType as MergeTypeIcon, ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
+import { UploadFile as UploadFileIcon, Clear as ClearIcon, CloudUpload as CloudUploadIcon, NewReleases as NewReleasesIcon, MergeType as MergeTypeIcon, ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon, Schedule as ScheduleIcon, Restore as RestoreIcon } from '@mui/icons-material';
 import { httpsCallable } from 'firebase/functions';
 import { functions, db } from '../firebase';
 import { collection, query, where, getDocs, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
+import { logGptUpload, logGptReschedules, logGptReinstate } from '../services/activityLogger';
 
 const MAX_BATCH_SIZE = 200;
 
@@ -126,36 +134,92 @@ const computeStringSimilarity = (a = '', b = '') => {
     return union === 0 ? 0 : intersection / union;
 };
 
-// Find existing canonical event match (client-side approximation)
+// Find existing canonical event match using two-phase matching (same as backend v1.3.0)
+// Phase 1: Identity match (±15 days) - catches rescheduled events
+// Phase 2: Narrow datetime match (±5 min) - fallback for exact time matches
 const findExistingEventMatch = async (incomingEvent) => {
     const { name, currency, datetimeUtc } = incomingEvent;
     if (!currency || !datetimeUtc) return null;
+
+    const eventDate = new Date(datetimeUtc);
+    const eventsCollection = collection(db, 'economicEvents', 'events', 'events');
+
     try {
-        const windowMinutes = 5;
-        const similarityThreshold = 0.8;
-        const eventDate = new Date(datetimeUtc);
-        const startDate = new Date(eventDate.getTime() - windowMinutes * 60 * 1000);
-        const endDate = new Date(eventDate.getTime() + windowMinutes * 60 * 1000);
-        const eventsCollection = collection(db, 'economicEvents', 'events', 'events');
-        const q = query(
+        // ========== Phase 1: Identity Match (±15 days) ==========
+        const windowDays = 15;
+        const identitySimilarityThreshold = 0.85;
+        const startDate = new Date(eventDate.getTime() - windowDays * 24 * 60 * 60 * 1000);
+        const endDate = new Date(eventDate.getTime() + windowDays * 24 * 60 * 60 * 1000);
+
+        const identityQuery = query(
             eventsCollection,
             where('currency', '==', currency.toUpperCase()),
             where('datetimeUtc', '>=', Timestamp.fromDate(startDate)),
             where('datetimeUtc', '<=', Timestamp.fromDate(endDate))
         );
-        const snapshot = await getDocs(q);
-        let bestMatch = null;
-        let bestScore = 0;
-        snapshot.forEach((doc) => {
+
+        const identitySnapshot = await getDocs(identityQuery);
+        let bestIdentityMatch = null;
+        let bestIdentityScore = 0;
+
+        identitySnapshot.forEach((doc) => {
             const data = doc.data();
             const score = computeStringSimilarity(data.name, name);
-            if (score > bestScore) {
-                bestScore = score;
-                bestMatch = { docId: doc.id, event: data, score };
+            if (score > bestIdentityScore) {
+                bestIdentityScore = score;
+                bestIdentityMatch = { docId: doc.id, event: data, score };
             }
         });
-        if (bestMatch && bestScore >= similarityThreshold) {
-            return bestMatch;
+
+        if (bestIdentityMatch && bestIdentityScore >= identitySimilarityThreshold) {
+            // Check if this is a reschedule (datetime differs by more than 5 min)
+            const matchedDatetimeMs = bestIdentityMatch.event.datetimeUtc?.toDate?.()?.getTime() || 0;
+            const incomingDatetimeMs = eventDate.getTime();
+            const driftMinutes = Math.abs(matchedDatetimeMs - incomingDatetimeMs) / (1000 * 60);
+            const isReschedule = driftMinutes > 5;
+            const isCancelled = bestIdentityMatch.event.status === 'cancelled';
+
+            return {
+                ...bestIdentityMatch,
+                isReschedule,
+                isCancelled,
+                driftMinutes: Math.round(driftMinutes),
+            };
+        }
+
+        // ========== Phase 2: Narrow Datetime Match (±5 min) ==========
+        const narrowWindowMinutes = 5;
+        const narrowSimilarityThreshold = 0.8;
+        const narrowStartDate = new Date(eventDate.getTime() - narrowWindowMinutes * 60 * 1000);
+        const narrowEndDate = new Date(eventDate.getTime() + narrowWindowMinutes * 60 * 1000);
+
+        const narrowQuery = query(
+            eventsCollection,
+            where('currency', '==', currency.toUpperCase()),
+            where('datetimeUtc', '>=', Timestamp.fromDate(narrowStartDate)),
+            where('datetimeUtc', '<=', Timestamp.fromDate(narrowEndDate))
+        );
+
+        const narrowSnapshot = await getDocs(narrowQuery);
+        let bestNarrowMatch = null;
+        let bestNarrowScore = 0;
+
+        narrowSnapshot.forEach((doc) => {
+            const data = doc.data();
+            const score = computeStringSimilarity(data.name, name);
+            if (score > bestNarrowScore) {
+                bestNarrowScore = score;
+                bestNarrowMatch = { docId: doc.id, event: data, score };
+            }
+        });
+
+        if (bestNarrowMatch && bestNarrowScore >= narrowSimilarityThreshold) {
+            return {
+                ...bestNarrowMatch,
+                isReschedule: false,
+                isCancelled: bestNarrowMatch.event.status === 'cancelled',
+                driftMinutes: 0,
+            };
         }
     } catch (err) {
         console.warn('Event matching error:', err);
@@ -688,15 +752,21 @@ const EventsPreviewTable = ({ events, fields, selectedIndices, onSelectionChange
                                                         />
                                                     </Tooltip>
                                                 ) : isMatched ? (
-                                                    <Tooltip title={`${t('admin:clickToCompare')} • ${matchResult.matchedEventName || 'Unknown'} (${matchResult.similarity?.toFixed(2) || 'N/A'}% ${t('admin:similar')})`}>
+                                                    <Tooltip title={
+                                                        matchResult.isCancelled
+                                                            ? `Will reinstate cancelled event: ${matchResult.matchedEventName || 'Unknown'}`
+                                                            : matchResult.isReschedule
+                                                                ? `Reschedule detected (${matchResult.driftMinutes} min drift): ${matchResult.matchedEventName || 'Unknown'}`
+                                                                : `${t('admin:clickToCompare')} • ${matchResult.matchedEventName || 'Unknown'} (${(matchResult.similarity * 100)?.toFixed(0) || 'N/A'}% ${t('admin:similar')})`
+                                                    }>
                                                         <Box
                                                             onClick={() => handleToggleExpanded(actualEventIndex, matchResult)}
                                                             sx={{ display: 'flex', alignItems: 'center', gap: 0.5, cursor: 'pointer' }}
                                                         >
                                                             <Chip
-                                                                icon={<MergeTypeIcon />}
-                                                                label={t('admin:matched')}
-                                                                color="warning"
+                                                                icon={matchResult.isCancelled ? <RestoreIcon /> : matchResult.isReschedule ? <ScheduleIcon /> : <MergeTypeIcon />}
+                                                                label={matchResult.isCancelled ? 'Reinstate' : matchResult.isReschedule ? 'Reschedule' : t('admin:matched')}
+                                                                color={matchResult.isCancelled ? 'info' : matchResult.isReschedule ? 'secondary' : 'warning'}
                                                                 variant="outlined"
                                                                 size="small"
                                                                 sx={{ fontWeight: 700 }}
@@ -883,6 +953,108 @@ export default function FFTTUploader() {
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
 
+    // Perform validation on file content (extracted for reuse in auto-validate)
+    const performValidation = useCallback(
+        async (file) => {
+            if (!file) {
+                setError(t('validation:selectFileFirst'));
+                return;
+            }
+
+            try {
+                const fileContent = await file.text();
+                const parsed = JSON.parse(fileContent);
+                const events = normalizePayload(parsed);
+
+                if (!events) {
+                    setError(t('validation:jsonMustBeArrayOrEvents'));
+                    setValidatedEvents([]);
+                    setSelectedEventIndices([]);
+                    setMatchingResults({});
+                    return;
+                }
+
+                const issues = [];
+                const validEvents = [];
+                events.forEach((evt, index) => {
+                    const errs = validateEvent(evt, t);
+                    if (errs.length > 0) {
+                        issues.push({ index, errors: errs, name: evt?.name || t('common:labels.unknown') });
+                    } else {
+                        validEvents.push(evt);
+                    }
+                });
+
+                setValidationErrors(issues);
+                setValidatedEvents(validEvents);
+                setSelectedEventIndices([]);
+                setMatchingResults({});
+
+                // Perform event matching for validated events
+                const matchResults = {};
+                let newCount = 0;
+                let matchedCount = 0;
+                let rescheduleCount = 0;
+                let reinstateCount = 0;
+
+                for (let i = 0; i < validEvents.length; i++) {
+                    try {
+                        const match = await findExistingEventMatch(validEvents[i]);
+                        if (match) {
+                            matchedCount++;
+                            if (match.isReschedule) rescheduleCount++;
+                            if (match.isCancelled) reinstateCount++;
+                            matchResults[i] = {
+                                status: 'matched',
+                                matchedEventId: match.docId,
+                                matchedEventName: match.event.name,
+                                similarity: match.score,
+                                isReschedule: match.isReschedule,
+                                isCancelled: match.isCancelled,
+                                driftMinutes: match.driftMinutes,
+                            };
+                        } else {
+                            newCount++;
+                            matchResults[i] = {
+                                status: 'new',
+                            };
+                        }
+                    } catch (matchErr) {
+                        console.warn(`Matching error for event ${i}:`, matchErr);
+                        matchResults[i] = {
+                            status: 'new',
+                        };
+                        newCount++;
+                    }
+                }
+
+                setMatchingResults(matchResults);
+
+                if (issues.length === 0) {
+                    const extraInfo = [];
+                    if (rescheduleCount > 0) extraInfo.push(`${rescheduleCount} reschedule(s)`);
+                    if (reinstateCount > 0) extraInfo.push(`${reinstateCount} reinstate(s)`);
+                    const extraMsg = extraInfo.length > 0 ? ` (${extraInfo.join(', ')})` : '';
+                    setResult({
+                        type: 'success',
+                        message: t('admin:validatedEventsReady', { count: events.length, newCount, matchedCount }) + extraMsg,
+                    });
+                } else {
+                    setResult({
+                        type: 'warning',
+                        message: t('admin:validatedWithErrors', { errorCount: issues.length, validCount: validEvents.length, newCount, matchedCount }),
+                    });
+                }
+            } catch {
+                setError(t('validation:failedToValidateJson'));
+                setValidatedEvents([]);
+                setSelectedEventIndices([]);
+                setMatchingResults({});
+            }
+        },
+        [t]
+    );
+
     const handleFileSelect = (event) => {
         const file = event.target.files?.[0] || null;
         setSelectedFile(file);
@@ -893,6 +1065,11 @@ export default function FFTTUploader() {
         setError(null);
         setResult(null);
         setProgress(0);
+
+        // Auto-validate if file is selected
+        if (file) {
+            performValidation(file);
+        }
     };
 
     const handleClear = () => {
@@ -907,90 +1084,8 @@ export default function FFTTUploader() {
     };
 
     const handleValidate = async () => {
-        if (!selectedFile) {
-            setError(t('validation:selectFileFirst'));
-            return;
-        }
-
-        try {
-            const fileContent = await selectedFile.text();
-            const parsed = JSON.parse(fileContent);
-            const events = normalizePayload(parsed);
-
-            if (!events) {
-                setError(t('validation:jsonMustBeArrayOrEvents'));
-                setValidatedEvents([]);
-                setSelectedEventIndices([]);
-                setMatchingResults({});
-                return;
-            }
-
-            const issues = [];
-            const validEvents = [];
-            events.forEach((evt, index) => {
-                const errs = validateEvent(evt, t);
-                if (errs.length > 0) {
-                    issues.push({ index, errors: errs, name: evt?.name || t('common:labels.unknown') });
-                } else {
-                    validEvents.push(evt);
-                }
-            });
-
-            setValidationErrors(issues);
-            setValidatedEvents(validEvents);
-            setSelectedEventIndices([]);
-            setMatchingResults({});
-
-            // Perform event matching for validated events
-            const matchResults = {};
-            let newCount = 0;
-            let matchedCount = 0;
-
-            for (let i = 0; i < validEvents.length; i++) {
-                try {
-                    const match = await findExistingEventMatch(validEvents[i]);
-                    if (match) {
-                        matchedCount++;
-                        matchResults[i] = {
-                            status: 'matched',
-                            matchedEventId: match.docId,
-                            matchedEventName: match.event.name,
-                            similarity: match.score,
-                        };
-                    } else {
-                        newCount++;
-                        matchResults[i] = {
-                            status: 'new',
-                        };
-                    }
-                } catch (matchErr) {
-                    console.warn(`Matching error for event ${i}:`, matchErr);
-                    matchResults[i] = {
-                        status: 'new',
-                    };
-                    newCount++;
-                }
-            }
-
-            setMatchingResults(matchResults);
-
-            if (issues.length === 0) {
-                setResult({
-                    type: 'success',
-                    message: t('admin:validatedEventsReady', { count: events.length, newCount, matchedCount }),
-                });
-            } else {
-                setResult({
-                    type: 'warning',
-                    message: t('admin:validatedWithErrors', { errorCount: issues.length, validCount: validEvents.length, newCount, matchedCount }),
-                });
-            }
-        } catch (err) {
-            setError(t('validation:failedToValidateJson'));
-            setValidatedEvents([]);
-            setSelectedEventIndices([]);
-            setMatchingResults({});
-        }
+        // Manually trigger validation (reuse performValidation helper)
+        await performValidation(selectedFile);
     };
 
     const handleUpload = async () => {
@@ -1043,15 +1138,31 @@ export default function FFTTUploader() {
             let merged = 0;
             let skipped = 0;
             let errors = 0;
+            let rescheduled = 0;
+            let reinstated = 0;
 
             for (let i = 0; i < batches.length; i += 1) {
                 const batch = batches[i];
-                const response = await uploadGptEvents({ events: batch });
-                const data = response?.data || {};
-                created += data.created || 0;
-                merged += data.merged || 0;
-                skipped += data.skipped || 0;
-                errors += data.errors || 0;
+                try {
+                    const response = await uploadGptEvents({ events: batch });
+                    const data = response?.data;
+                    if (!data) {
+                        throw new Error(t('admin:invalidResponseFromServer'));
+                    }
+                    created += data.created || 0;
+                    merged += data.merged || 0;
+                    skipped += data.skipped || 0;
+                    errors += data.errors || 0;
+                    rescheduled += data.rescheduled || 0;
+                    reinstated += data.reinstated || 0;
+                } catch (batchErr) {
+                    console.error(`Batch ${i + 1} upload error:`, batchErr);
+                    errors += batch.length;
+                    if (i === 0) {
+                        // If first batch fails, throw error immediately
+                        throw new Error(batchErr?.message || t('admin:batchUploadFailed'));
+                    }
+                }
                 setProgress(Math.round(((i + 1) / batches.length) * 100));
             }
 
@@ -1061,7 +1172,33 @@ export default function FFTTUploader() {
             });
             setValidatedEvents([]);
             setSelectedEventIndices([]);
+
+            // ADMIN AUDIT: Log GPT upload to activity log
+            const totalEvents = created + merged;
+            if (totalEvents > 0) {
+                const uploadedEventNames = selectedEventsToUpload
+                    .slice(0, 5)
+                    .map(evt => evt.name)
+                    .filter(Boolean);
+                try {
+                    await logGptUpload(uploadedEventNames, totalEvents, 'GPT');
+
+                    // Log reschedules if any detected
+                    if (rescheduled > 0) {
+                        await logGptReschedules(rescheduled, uploadedEventNames);
+                    }
+
+                    // Log reinstates if any detected
+                    if (reinstated > 0) {
+                        await logGptReinstate(reinstated, uploadedEventNames);
+                    }
+                } catch (logErr) {
+                    console.warn('Failed to log GPT upload activity:', logErr);
+                    // Don't fail the upload if activity logging fails
+                }
+            }
         } catch (err) {
+            console.error('Upload error:', err);
             setError(err?.message || t('admin:uploadFailed'));
         } finally {
             setUploading(false);

@@ -21,6 +21,7 @@
  * ✅ All three services (reminders, favorites, notes) use identical matching
  * 
  * Changelog:
+ * v1.2.1 - 2026-02-06 - BEP CRITICAL FIX: Rescheduled events now preserve user reminders. Uses updated buildEventIdentity() from favoritesService which uses originalDatetimeUtc for stable composite keys. Reminders stay attached to events after reschedules.
  * v1.2.0 - 2026-01-23 - Enforce max reminders per event for unified reminder normalization.
  * v1.1.0 - 2026-01-23 - Add series key helpers for non-custom reminder matching.
  * v1.0.0 - 2026-01-23 - Unified reminder normalization and recurrence expansion utilities.

@@ -5,6 +5,7 @@
  * Supplies clock visibility, styling, timezone, news source, and economic events overlay controls to the app.
  * 
  * Changelog:
+ * v1.8.0 - 2026-02-08 - BEP PERSISTENCE FIX: Added datePreset field to eventFilters schema with full persistence (localStorage + Firestore). Ensures date filter selection persists consistently like currencies/impacts. datePreset ('today'|'tomorrow'|'thisWeek'|'nextWeek'|'thisMonth') stored in eventFilters alongside startDate/endDate for synchronized updates. ClockEventsFilters now reads datePreset from eventFilters context instead of local state. Migration: Existing users without datePreset fallback to 'today'. Firestore schema: settings.eventFilters.datePreset (string). Load on init/auth change, update via updateEventFilters().
  * v1.7.0 - 2026-01-28 - BEP PHASE 3.3: Added themeMode to settings schema with Firestore persistence. themeMode ('light'|'dark'|'system') now syncs across authenticated user devices via Firestore. Guests use localStorage. ThemeContext still handles real-time theme switching; SettingsContext stores preference. Firestore schema: settings.themeMode (string). Load on auth state change, update via updateThemeMode(), reset in resetSettings().
  * v1.6.1 - 2026-01-17 - ENHANCED LOGOUT: Improved resetSettings to ensure complete user preference cleanup. Fixed showSessionLabel default to false (not true) for consistency. Added try-catch around Firestore reset to prevent logout failures if reset fails. Added detailed step-by-step comments explaining the reset flow. Follows BEP enterprise logout patterns.
  * v1.6.0 - 2026-01-14 - CRITICAL FIX: Replaced one-time getDoc with real-time onSnapshot listener for authenticated users. Settings now sync in real-time across all open tabs/pages. Added save-lock mechanism (isSavingRef) to prevent listener from overwriting local changes during active saves. Refactored settings application into reusable applyFirestoreSettings callback. Enterprise-grade cross-session consistency following Firebase best practices.
@@ -162,6 +163,7 @@ export function SettingsProvider({ children }) {
 
   // Event filters state (includes all filter fields for full persistence)
   const [eventFilters, setEventFilters] = useState({
+    datePreset: 'today',
     startDate: null,
     endDate: null,
     impacts: [],
@@ -220,6 +222,7 @@ export function SettingsProvider({ children }) {
         try {
           const parsed = JSON.parse(savedEventFilters);
           setEventFilters({
+            datePreset: parsed.datePreset || 'today',
             startDate: parsed.startDate ? new Date(parsed.startDate) : null,
             endDate: parsed.endDate ? new Date(parsed.endDate) : null,
             impacts: parsed.impacts || [],
@@ -273,6 +276,7 @@ export function SettingsProvider({ children }) {
     if (s.eventFilters) {
       const filters = s.eventFilters;
       setEventFilters({
+        datePreset: filters.datePreset || 'today',
         startDate: filters.startDate?.toDate ? filters.startDate.toDate() : (filters.startDate ? new Date(filters.startDate) : null),
         endDate: filters.endDate?.toDate ? filters.endDate.toDate() : (filters.endDate ? new Date(filters.endDate) : null),
         impacts: filters.impacts || [],
@@ -547,24 +551,36 @@ export function SettingsProvider({ children }) {
    * to maintain filter consistency across sessions and page refreshes.
    */
   const updateEventFilters = (newFilters) => {
+    // Merge new filters with existing filters (preserve fields not being updated)
+    const mergedFilters = {
+      ...eventFilters,
+      ...newFilters,
+    };
+
     // Ensure Date objects for internal state
     const normalizedFilters = {
-      startDate: newFilters.startDate instanceof Date ? newFilters.startDate : (newFilters.startDate ? new Date(newFilters.startDate) : null),
-      endDate: newFilters.endDate instanceof Date ? newFilters.endDate : (newFilters.endDate ? new Date(newFilters.endDate) : null),
-      impacts: newFilters.impacts || [],
-      eventTypes: newFilters.eventTypes || [],
-      currencies: newFilters.currencies || [],
-      favoritesOnly: Boolean(newFilters.favoritesOnly),
-      searchQuery: newFilters.searchQuery || '',
+      datePreset: mergedFilters.datePreset || 'today',
+      startDate: mergedFilters.startDate instanceof Date ? mergedFilters.startDate : (mergedFilters.startDate ? new Date(mergedFilters.startDate) : null),
+      endDate: mergedFilters.endDate instanceof Date ? mergedFilters.endDate : (mergedFilters.endDate ? new Date(mergedFilters.endDate) : null),
+      impacts: mergedFilters.impacts || [],
+      eventTypes: mergedFilters.eventTypes || [],
+      currencies: mergedFilters.currencies || [],
+      favoritesOnly: Boolean(mergedFilters.favoritesOnly),
+      searchQuery: mergedFilters.searchQuery || '',
     };
 
     setEventFilters(normalizedFilters);
 
     // Serialize dates for localStorage (ISO string format)
     const serializedFilters = {
-      ...normalizedFilters,
+      datePreset: normalizedFilters.datePreset,
       startDate: normalizedFilters.startDate?.toISOString() || null,
       endDate: normalizedFilters.endDate?.toISOString() || null,
+      impacts: normalizedFilters.impacts,
+      eventTypes: normalizedFilters.eventTypes,
+      currencies: normalizedFilters.currencies,
+      favoritesOnly: normalizedFilters.favoritesOnly,
+      searchQuery: normalizedFilters.searchQuery,
     };
 
     localStorage.setItem('eventFilters', JSON.stringify(serializedFilters));
@@ -572,6 +588,7 @@ export function SettingsProvider({ children }) {
     if (user) {
       // For Firestore, use Timestamp for dates (primitives for other fields)
       const firestoreFilters = {
+        datePreset: normalizedFilters.datePreset,
         startDate: normalizedFilters.startDate ? Timestamp.fromDate(normalizedFilters.startDate) : null,
         endDate: normalizedFilters.endDate ? Timestamp.fromDate(normalizedFilters.endDate) : null,
         impacts: normalizedFilters.impacts,

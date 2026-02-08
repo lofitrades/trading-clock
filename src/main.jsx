@@ -5,6 +5,7 @@
  * Bootstraps React with providers and routing. Includes ThemeContextProvider for dynamic theme switching.
  * 
  * Changelog:
+ * v5.2.0 - 2026-02-07 - BEP SEO ROUTING FIX: Added early language prefix stripping before React mounts. Detects /es/ or /fr/ URL prefix from shared links/bookmarks/crawl, persists language to localStorage, strips prefix via history.replaceState. Ensures React Router can match prefix-free routes (/clock, /blog/:slug). Without this, language-prefixed URLs would hit the 404 catch-all.
  * v5.1.0 - 2026-02-02 - BEP ANALYTICS: Integrated Facebook Pixel for conversion tracking. Initialized on app startup.
  * v5.0.1 - 2026-01-28 - BEP FIX: Cache root instance to prevent duplicate createRoot() calls during HMR.
  *                       Stores root on container element to reuse across hot reloads.
@@ -43,6 +44,23 @@ import i18n from './i18n/config.js';
 import AppRoutes from './routes/AppRoutes';
 import { setupViewportCssVars, scheduleNonCriticalAssets } from './app/clientEffects';
 import { registerServiceWorker } from './registerServiceWorker';
+
+// BEP SEO: Detect language from URL prefix and normalize for SPA routing.
+// Firebase serves pre-rendered HTML at /es/clock, /fr/about etc. for crawlers.
+// LanguageContext reads language from localStorage (set here on first visit).
+// React Router only has prefix-free routes (/clock, /calendar, /blog/:slug).
+// Strip the prefix via replaceState so React Router can match routes correctly.
+// Without this, /es/clock would fall through to the 404 catch-all route.
+(() => {
+  const LANG_PREFIXES = ['es', 'fr'];
+  const pathSegments = window.location.pathname.split('/').filter(Boolean);
+  if (LANG_PREFIXES.includes(pathSegments[0])) {
+    // Persist detected language before stripping prefix
+    localStorage.setItem('preferredLanguage', pathSegments[0]);
+    const strippedPath = '/' + pathSegments.slice(1).join('/') || '/';
+    window.history.replaceState(null, '', strippedPath + window.location.search + window.location.hash);
+  }
+})();
 
 // Remove SEO fallback immediately (before React renders)
 const seoFallback = document.getElementById('seo-fallback');

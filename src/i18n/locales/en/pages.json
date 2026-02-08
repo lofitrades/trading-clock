@@ -82,7 +82,7 @@
           "Filter by impact and currency (USD, EUR, etc.)",
           "Save favorites and add trading notes (signed-in)"
         ],
-        "note": "A free account unlocks the full calendar workspace so you can save filters, notes, favorites, and reminders across devices."
+        "note": "Your account unlocks the full calendar workspace so you can save filters, notes, favorites, and reminders across devices."
       },
       {
         "id": "custom-events-notifications",
@@ -187,7 +187,7 @@
         },
         {
           "question": "Can I add my own custom events?",
-          "answer": "Yes. You can create custom events for personal timing windows, routines, or rules. Saving/sync may require a free account."
+          "answer": "Yes. You can create custom events for personal timing windows, routines, or rules. Saving/sync requires your account."
         },
         {
           "question": "Can I get notifications for upcoming events?",
@@ -195,7 +195,7 @@
         },
         {
           "question": "Do I need an account?",
-          "answer": "You can use the session clock right away. A free account unlocks the full calendar workspace and saves your preferences across devices."
+          "answer": "You can use the session clock right away. Your account unlocks the full calendar workspace and saves your preferences across devices."
         },
         {
           "question": "Is this a signal tool?",

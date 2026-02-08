@@ -1,8 +1,8 @@
 /**
- * src/hooks/useAppBarNavItems.js
+ * src/hooks/useAppBarNavItems.jsx
  * 
  * Purpose: Centralized hook that returns standardized AppBar navigation items with full i18n support.
- * Ensures consistent nav structure across all pages (Clock, Calendar, About).
+ * Ensures consistent nav structure across all pages (Clock, Calendar, Blog, About).
  * All labels use translation keys from common.json namespace.
  * 
  * Usage:
@@ -13,6 +13,7 @@
  * });
  * 
  * Changelog:
+ * v1.1.0 - 2026-02-06 - Added Blog nav item (to:/blog) between Calendar and About so AppBar shows Blog on all breakpoints and for all user states.
  * v1.0.0 - 2026-01-27 - PHASE 4 BEP STANDARDIZATION: Created centralized hook for AppBar nav items.
  * All navigation items use i18n keys from common:navigation namespace. Items include:
  * Clock (to:/clock), Calendar (to:/calendar), About (to:/about), Contact (onClick), 
@@ -30,6 +31,7 @@ import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
 import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
+import InsightsIcon from '@mui/icons-material/Insights';
 
 export default function useAppBarNavItems({ onOpenAuth, onOpenSettings, onOpenContact }) {
   const { t } = useTranslation(['common']);
@@ -50,6 +52,14 @@ export default function useAppBarNavItems({ onOpenAuth, onOpenSettings, onOpenCo
       to: '/calendar',
       icon: <CalendarMonthRoundedIcon fontSize="small" />,
       ariaLabel: t('common:navigation.calendar'),
+    },
+    {
+      id: 'blog',
+      label: t('common:navigation.blog'),
+      shortLabel: t('common:navigation.blog'),
+      to: '/blog',
+      icon: <InsightsIcon fontSize="small" />,
+      ariaLabel: t('common:navigation.blog'),
     },
     {
       id: 'about',

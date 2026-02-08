@@ -6,6 +6,9 @@
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
  * Changelog:
+ * v2.7.29 - 2026-02-07 - BUGFIX: Fixed infinite update loop in ClockEventsOverlay by memoizing handleOverlayLoadingStateChange with useCallback. Previously, onLoadingStateChange prop was created inline (showHandClock ? setOverlayLoading : undefined), causing new function reference every render. ClockEventsOverlay's useEffect watched this prop, which re-fired on every render, calling setState inside the effect → infinite loop. Now callback is stable and only depends on showHandClock (boolean), preventing the loop.
+ * v2.7.28 - 2026-02-07 - BEP FILTER MIGRATION: Replaced EventsFilters3 with ClockEventsFilters component on /clock page. ClockEventsFilters provides simplified UI (favorites, currencies, impacts only - no date/search filters) optimized for real-time clock use case. Both md+ and xs/sm instances now use ClockEventsFilters, synced via handleFiltersChange callback to SettingsContext for cross-page persistence with /calendar page. Removed EventsFilters3 import, cleaned up unused onApply/loading/newsSource/defaultPreset props.
+ * v2.7.27 - 2026-02-06 - BEP LAYOUT FIX: Moved xs/sm EventsFilters3 from position:fixed at bottom (above AppBar) to inline static flow above the clock canvas. Removes z-index:1401 fixed overlay that was interfering with other pages (/calendar2 MainLayout). Reduced xs/sm bottom padding from 112px to 16px since fixed compensation no longer needed. Filters now flow naturally in the document and scroll with content.
  * v2.7.26 - 2026-01-28 - BEP FILTER CHIP PARITY: Updated both 'Add reminder' buttons to match inactive filter chip styling. Default state now uses bgcolor: background.paper (light/white) with borderColor: divider (subtle gray) instead of primary tint. Hover state adds primary tint: alpha(primary.main, 0.08) background with alpha(primary.main, 0.5) border. Matches inactive chip pattern exactly for visual consistency across app. Works in both light and dark modes.
  * v2.7.25 - 2026-01-28 - BEP NORMAL HOVER: Removed inverted hover effect from both 'Add reminder' buttons. Changed hover state from bgcolor: background.paper (inverted) to alpha(primary.main, 0.12) (progressive disclosure). Border on hover now increases alpha from 0.5 to 0.7 for consistency. Keeps normal MUI button interaction pattern: subtle default (0.08), more prominent on hover (0.12), even stronger on active (0.16).
  * v2.7.24 - 2026-01-28 - BEP THEME-AWARE ADD BUTTONS: Updated both 'Add reminder' buttons (xs-sm and md+ breakpoints) from hardcoded bgcolor: '#fff' to theme-aware alpha(theme.palette.primary.main, 0.08) with inverted hover states. Border color now uses alpha(primary.main, 0.5), hover transitions to background.paper. Added focus-visible and active states for full accessibility. Ensures buttons are visible in both light and dark modes.
@@ -174,7 +177,7 @@ const ClockEventsOverlay = lazy(() => import('./components/ClockEventsOverlay'))
 const ContactModal = lazy(() => import('./components/ContactModal'));
 const EventModal = lazy(() => import('./components/EventModal'));
 const EventNotesDialog = lazy(() => import('./components/EventNotesDialog'));
-const EventsFilters3 = lazy(() => import('./components/EventsFilters3'));
+const ClockEventsFilters = lazy(() => import('./components/ClockEventsFilters'));
 const TimezoneModal = lazy(() => import('./components/TimezoneModal'));
 const CustomEventDialog = lazy(() => import('./components/CustomEventDialog'));
 
@@ -392,18 +395,19 @@ export default function App() {
     setAuthModalOpen(true);
   }, []);
 
+  // Memoize overlay loading handler to prevent infinite loop in ClockEventsOverlay
+  const handleOverlayLoadingStateChange = useCallback((isLoading) => {
+    setOverlayLoading(isLoading);
+  }, []);
+
   const openContactModal = useCallback(() => {
     setSettingsOpen(false);
     setContactModalOpen(true);
   }, []);
   const closeContactModal = useCallback(() => setContactModalOpen(false), []);
 
-  // EventsFilters3 handlers - persist filter changes to SettingsContext (Firestore/localStorage)
+  // ClockEventsFilters handler — persist partial filter changes to SettingsContext (Firestore/localStorage)
   const handleFiltersChange = useCallback((nextFilters) => {
-    updateEventFilters(nextFilters);
-  }, [updateEventFilters]);
-
-  const handleApplyFilters = useCallback((nextFilters) => {
     updateEventFilters(nextFilters);
   }, [updateEventFilters]);
 
@@ -809,13 +813,13 @@ export default function App() {
           justifyContent: 'center',
           alignItems: 'center',
           flex: 1,
-          pb: { xs: 'calc(8 * 8px + 48px)', sm: 'calc(8 * 8px + 48px)', md: contentPaddingBottom },
+          pb: { xs: 2, sm: 2, md: contentPaddingBottom },
           width: '100%',
           boxSizing: 'border-box',
         }}
       >
         {/* Header Section: On md+: Title (left) + Filters (center, flex-grow) + Add button (right) in same row
-            On xs-sm: Title + Add button stacked, filters fixed at bottom */}
+            On xs-sm: Title + Add button stacked, filters inline above clock */}
         <Box
           sx={{
             width: '100%',
@@ -971,20 +975,7 @@ export default function App() {
             }}
           >
             <Suspense fallback={null}>
-              <EventsFilters3
-                filters={eventFilters}
-                onFiltersChange={handleFiltersChange}
-                onApply={handleApplyFilters}
-                loading={overlayLoading}
-                timezone={selectedTimezone}
-                newsSource={newsSource}
-                defaultPreset="today"
-                showDateFilter={false}
-                showSearchFilter={false}
-                centerFilters={true}
-                textColor={effectiveTextColor}
-                hasCustomEvents={hasCustomEvents}
-              />
+              <ClockEventsFilters onChange={handleFiltersChange} />
             </Suspense>
           </Box>
 
@@ -1060,6 +1051,22 @@ export default function App() {
               gap: { xs: 1.25, sm: 1.5 },
             }}
           >
+            {/* EventsFilters3 - filter controls inline above clock on xs/sm */}
+            <Suspense fallback={null}>
+              <Box
+                sx={{
+                  display: { xs: 'flex', md: 'none' },
+                  width: '100%',
+                  maxWidth: { xs: '100%', lg: 560 },
+                  justifyContent: 'center',
+                  px: { xs: 0.5, sm: 0.75 },
+                  boxSizing: 'border-box',
+                }}
+              >
+                <ClockEventsFilters onChange={handleFiltersChange} />
+              </Box>
+            </Suspense>
+
             {showHandClock && (
               <Box
                 className="hand-clock"
@@ -1103,7 +1110,7 @@ export default function App() {
                           eventFilters={eventFilters}
                           newsSource={newsSource}
                           onEventClick={handleEventFromClockClick}
-                          onLoadingStateChange={showHandClock ? setOverlayLoading : undefined}
+                          onLoadingStateChange={showHandClock ? handleOverlayLoadingStateChange : undefined}
                         />
                       </Suspense>
                     ) : null}
@@ -1150,47 +1157,6 @@ export default function App() {
                 </Typography>
               </Box>
             )}
-
-            {/* EventsFilters3 - filter controls fixed at bottom on xs/sm (above mobile AppBar), shown above clock on md+ */}
-            <Suspense fallback={null}>
-              <Box
-                sx={{
-                  display: { xs: 'flex', md: 'none' },
-                  position: { xs: 'fixed', md: 'static' },
-                  left: { xs: '50%', md: 'auto' },
-                  transform: { xs: 'translateX(-50%)', md: 'none' },
-                  bottom: { xs: MOBILE_BOTTOM_APPBAR_HEIGHT_PX, md: 'auto' },
-                  width: { xs: '100%', md: 'auto' },
-                  maxWidth: { xs: '100vw', md: '100%', lg: 560 },
-                  zIndex: 1401,
-                  px: { xs: 1, sm: 1.25, md: 0 },
-                  py: { xs: 0.5, sm: 0.75, md: 0 },
-                  borderTop: { xs: 'none', md: 'none' },
-                  borderColor: { xs: 'transparent', md: 'transparent' },
-                  bgcolor: { xs: 'transparent', md: 'transparent' },
-                  backdropFilter: { xs: 'none', md: 'none' },
-                  boxShadow: { xs: 'none', md: 'none' },
-                  boxSizing: 'border-box',
-                  justifyContent: { xs: 'center', md: 'flex-start' },
-                  mb: { md: 1.25 },
-                }}
-              >
-                <EventsFilters3
-                  filters={eventFilters}
-                  onFiltersChange={handleFiltersChange}
-                  onApply={handleApplyFilters}
-                  loading={overlayLoading}
-                  timezone={selectedTimezone}
-                  newsSource={newsSource}
-                  defaultPreset="today"
-                  showDateFilter={false}
-                  showSearchFilter={false}
-                  centerFilters={true}
-                  textColor={effectiveTextColor}
-                  hasCustomEvents={hasCustomEvents}
-                />
-              </Box>
-            </Suspense>
 
             {sessionLabelActive && !renderSkeleton && (
               <SessionLabel

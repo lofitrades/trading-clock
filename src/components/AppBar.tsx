@@ -5,6 +5,7 @@
  * Renders a sticky sub-header on md+ and an Airbnb-style bottom navigation on xs/sm.
  * 
  * Changelog:
+ * v1.5.6 - 2026-02-06 - Added Blog nav handling so Blog items render between Calendar and About across desktop AppBar and mobile bottom nav for all users (auth and guests). Aligns with useAppBarNavItems hook addition.
  * v1.5.5 - 2026-01-28 - BEP: Removed ThemeToggle button from AppBar. Theme switching deferred to SettingsSidebar2 Settings tab only. Simplifies AppBar navigation chrome. Users access theme toggle via Settings gear button → General tab → Appearance section.
  * v1.5.4 - 2026-01-28 - BEP PHASE 3.4: Added ThemeToggle button to AppBar right-stack (between nav items and NotificationCenter). Quick theme cycling: light → dark → system → light. Icon adapts to current theme (LightModeIcon for light, DarkModeIcon for dark/system). Tooltip shows current mode. Circular icon-only button with hover effect. Available on all breakpoints for all users (auth and guests). Uses useThemeMode().toggleTheme() from ThemeContext for real-time switching.
  * v1.5.3 - 2026-01-28 - BEP THEME-AWARE: Updated Paper bgcolor from hardcoded 'rgba(255,255,255,0.94)' to 'alpha(theme.palette.background.paper, 0.94)' for light/dark mode support. Updated boxShadow to be theme-aware: dark mode uses deeper shadow 'rgba(0,0,0,0.3)', light mode uses subtle shadow 'rgba(15,23,42,0.06)'. Mobile BottomNavigation Paper also updated to use theme palette. Entire AppBar now respects user's light/dark theme preference with proper contrast and accessibility.
@@ -174,14 +175,15 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
   const [notificationCloseSignal, setNotificationCloseSignal] = useState(0);
   const [avatarCloseSignal, setAvatarCloseSignal] = useState(0);
 
-  // Build processed items: remove 'contact', handle 'about' and 'roadmap', then reorder to: Clock, Calendar, Roadmap, About, Settings/Unlock
+  // Build processed items: remove 'contact', handle 'about' and 'roadmap', then reorder to: Clock, Calendar, Blog, About, Settings/Unlock
   const processedItems = useMemo(() => {
     // Filter out contact items but keep about items
     const filtered = items.filter((item) => item.id !== 'contact');
 
-    // Extract Clock, Calendar, and About items to maintain their order at the start
+    // Extract Clock, Calendar, Blog, and About items to maintain their order at the start
     const clockItem = filtered.find((item) => item.id === 'clock');
     const calendarItem = filtered.find((item) => item.id === 'calendar');
+    const blogItem = filtered.find((item) => item.id === 'blog');
     const aboutItem = filtered.find((item) => item.id === 'about');
     const settingsItem = filtered.find((item) => item.id === 'settings');
 
@@ -190,6 +192,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
     const otherItems = filtered.filter((item) => 
       item.id !== 'calendar' && 
       item.id !== 'clock' && 
+      item.id !== 'blog' &&
       item.id !== 'about' && 
       item.id !== 'settings' &&
       item.id !== 'signin'
@@ -204,7 +207,10 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
     // Add Calendar second
     if (calendarItem) ordered.push(calendarItem);
 
-    // Add About item (third) if present
+    // Add Blog third
+    if (blogItem) ordered.push(blogItem);
+
+    // Add About item (fourth) if present
     if (aboutItem) ordered.push(aboutItem);
 
     // Add any remaining items (excluding settings and signin which we handle below)
@@ -310,9 +316,7 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
             borderColor: 'divider',
             bgcolor: alpha(theme.palette.background.paper, 0.94),
             backdropFilter: 'blur(10px)',
-            boxShadow: theme.palette.mode === 'dark'
-              ? '0 10px 26px rgba(0,0,0,0.3)'
-              : '0 10px 26px rgba(15,23,42,0.06)',
+            boxShadow: 'none',
             overflow: 'hidden',
             maxHeight: 72,
             zIndex: theme.zIndex.appBar,

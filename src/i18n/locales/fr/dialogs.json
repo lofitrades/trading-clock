@@ -54,9 +54,9 @@
   "loggingOut": "Déconnexion en cours...",
   "logout": "Se déconnecter",
   "failedToLogout": "Impossible de se déconnecter. Veuillez réessayer ou actualiser la page.",
-  "unlockProTitle": "Déverrouiller les fonctionnalités Pro★ gratuitement: $0",
-  "unlockProMessage": "Créez un compte gratuit pour accéder à toutes les fonctionnalités pro, y compris la possibilité de changer les fuseaux horaires et d'accéder aux paramètres premium.",
-  "createFreeAccount": "Créer un compte gratuit",
+  "unlockProTitle": "Déverrouiller les fonctionnalités Pro★: $0",
+  "unlockProMessage": "Créez votre compte pour déverrouiller un accès complet à toutes les fonctionnalités, y compris la possibilité de changer les fuseaux horaires et d'accéder à tous les paramètres.",
+  "createFreeAccount": "Créez votre compte",
   "enterPasswordToConfirm": "Entrez le mot de passe pour confirmer",
   "incorrectPassword": "Mot de passe incorrect",
   "signingYouIn": "Connexion en cours...",
@@ -114,6 +114,11 @@
   "roadmapGotItButton": "D'accord",
   "selectTimezoneTitle": "Sélectionner le fuseau horaire",
   "closeDialogAriaLabel": "fermer",
+  "sourceInfo": {
+    "title": "Source de Données",
+    "description": "Ces données de trading utilisent des <strong>informations économiques en temps réel</strong> de Forex Factory, garantissant la précision et la fiabilité pour vos décisions de trading.",
+    "updateNote": "Les événements sont mis à jour en continu tout au long de la journée de trading pour vous tenir informé des publications économiques importantes et des nouvelles qui font bouger le marché."
+  },
   "cookies": {
     "heading": "Nous utilisons des cookies",
     "description": "Les cookies essentiels permettent à Time 2 Trade de fonctionner. Les publicités utilisent Google AdSense et Meta Pixel pour la mesure. Les publicités peuvent rester non personnalisées à moins que vous les autorisiez.",

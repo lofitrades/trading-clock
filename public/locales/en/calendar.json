@@ -1,5 +1,6 @@
 {
   "title": "Economic Calendar",
+  "subtitle": "Forex Factory-powered calendar with NY time-first clarity",
   "filter": "Filter Events",
   "search": "Search Events",
   "sort": "Sort by",
@@ -111,4 +112,3 @@
     }
   }
 }
-

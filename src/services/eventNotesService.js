@@ -20,6 +20,7 @@
  * ✅ Notes: buildEventIdentity (composite key)
  * 
  * Changelog:
+ * v1.1.4 - 2026-02-06 - BEP CRITICAL FIX: Rescheduled events now preserve user notes. Uses updated buildEventIdentity() from favoritesService which uses originalDatetimeUtc for stable composite keys. Notes stay attached to events after reschedules with full audit trail.
  * v1.1.3 - 2026-01-23 - Fix: Encode eventId when looking up in noteSummaries for proper matching.
  * v1.1.2 - 2026-01-23 - Fix: Encode eventKeys with slashes for safe Firestore document IDs.
  * v1.1.1 - 2026-01-23 - BEP FIX: Added isEventHasNotes with strict composite matching (name+currency+time). Prevents NFP USD notes from showing on NFP GBP.

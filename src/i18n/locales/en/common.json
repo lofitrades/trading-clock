@@ -59,6 +59,7 @@
     "home": "Home",
     "clock": "Trading Clock",
     "calendar": "Calendar",
+    "blog": "Insights",
     "about": "About",
     "privacy": "Privacy",
     "terms": "Terms",
@@ -66,7 +67,8 @@
     "settings": "Settings",
     "roadmap": "Roadmap",
     "unlock": "Unlock",
-    "unlockAllFeatures": "Unlock free"
+    "unlockAllFeatures": "Unlock all features",
+    "admin": "Admin"
   },
   "language": {
     "changingLanguage": "Changing...",

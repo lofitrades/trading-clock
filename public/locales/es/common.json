@@ -59,6 +59,7 @@
     "home": "Inicio",
     "clock": "Reloj de Trading",
     "calendar": "Calendario",
+    "blog": "Insights",
     "about": "Acerca de",
     "privacy": "Privacidad",
     "terms": "Términos",
@@ -66,7 +67,8 @@
     "settings": "Configuración",
     "roadmap": "Hoja de Ruta",
     "unlock": "Desbloquear",
-    "unlockAllFeatures": "Desbloquear gratis"
+    "unlockAllFeatures": "Desbloquea todas las funciones",
+    "admin": "Admin"
   },
   "language": {
     "changingLanguage": "Cambiando...",

@@ -1,4 +1,5 @@
 {
+  "date": "Fecha",
   "labels": {
     "dateRange": "Rango de fechas",
     "impacts": "Impactos",
@@ -21,7 +22,6 @@
   },
   "actions": {
     "reset": "Restablecer",
-    "selectAll": "Seleccionar todas",
     "clear": "Limpiar",
     "addEvent": "Agregar evento",
     "addEventTooltip": "Agrega un evento a tu calendario"

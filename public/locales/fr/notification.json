@@ -5,5 +5,7 @@
   "clearAll": "Tout effacer",
   "in": "en",
   "min": "min",
-  "bullet": "•"
+  "bullet": "•",
+  "blogDraftCreatedTitle": "Nouveau brouillon de blog : {{slug}}",
+  "blogDraftCreatedMessage": "Un nouveau brouillon a été créé."
 }

@@ -5,5 +5,7 @@
   "clearAll": "Borrar todo",
   "in": "en",
   "min": "min",
-  "bullet": "•"
+  "bullet": "•",
+  "blogDraftCreatedTitle": "Nuevo borrador de blog: {{slug}}",
+  "blogDraftCreatedMessage": "Se creó un nuevo borrador."
 }

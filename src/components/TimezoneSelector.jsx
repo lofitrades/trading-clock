@@ -4,6 +4,7 @@
  * Purpose: Asynchronous timezone selector with read-only collapsed display and dedicated search field.
  * Key responsibility: Persist user timezone selection to Firestore via SettingsContext while gating guest edits.
  * 
+ * v1.6.0 - 2026-02-07 - BEP i18n: Replaced hardcoded 'en-US' Intl locale with dynamic locale derived from i18n.language. Timezone list now rebuilds on language change with locale-aware DateTimeFormat and localeCompare sorting. Ensures correct formatting when user switches between EN/ES/FR.
  * v1.5.3 - 2026-01-27 - BEP: Added compact prop for seamless integration in merged Language & Timezone section. When compact=true, renders only Autocomplete without Paper wrapper/header, allowing parent flexbox to control layout. Enables clean side-by-side display in SettingsSidebar2 General tab.
  * v1.5.2 - 2026-01-27 - BEP: Fixed "t is not defined" ReferenceError in SearchablePopper by adding useTranslation hook call to ensure context is available when MUI renders the slot component.
  * v1.5.1 - 2026-01-24 - BEP: Phase 2 i18n fix - Created timezone.json namespace (EN/ES/FR) with all 7 strings (label, description, search.placeholder, search.ariaLabel, loadingPlaceholder, selectPlaceholder, selectAriaLabel). Added timezone imports to i18n config.js. Fixed "t is not defined" ReferenceError in SearchablePopper by ensuring all translated strings passed as props.
@@ -119,9 +120,15 @@ SearchablePopper.propTypes = {
 };
 
 export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChange, onRequestSignUp, children, compact = false }) {
-  const { t } = useTranslation(['timezone', 'common', 'actions']);
+  const { t, i18n } = useTranslation(['timezone', 'common', 'actions']);
   const { user } = useAuth();
   const { selectedTimezone, updateSelectedTimezone } = useSettings();
+
+  // BEP i18n: Map i18n language to Intl-compatible locale for DateTimeFormat & sorting
+  const currentLocale = useMemo(() => {
+    const localeMap = { en: 'en-US', es: 'es-ES', fr: 'fr-FR' };
+    return localeMap[i18n.language] || i18n.language || 'en-US';
+  }, [i18n.language]);
   const [showUnlock, setShowUnlock] = useState(false);
   const [timezones, setTimezones] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -153,7 +160,7 @@ export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChan
           const readableTz = tz.replace(/_/g, ' ');
           let offset = '';
           try {
-            const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'shortOffset' });
+            const fmt = new Intl.DateTimeFormat(currentLocale, { timeZone: tz, timeZoneName: 'shortOffset' });
             const parts = fmt.formatToParts(now);
             const tzPart = parts.find((p) => p.type === 'timeZoneName');
             offset = tzPart ? tzPart.value.replace(/UTC|GMT/, '').trim() : '';
@@ -169,7 +176,7 @@ export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChan
           };
         });
 
-        list.sort((a, b) => a.sortKey - b.sortKey || a.timezone.localeCompare(b.timezone));
+        list.sort((a, b) => a.sortKey - b.sortKey || a.timezone.localeCompare(b.timezone, currentLocale));
         if (active) {
           setTimezones(list);
         }
@@ -182,7 +189,7 @@ export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChan
     return () => {
       active = false;
     };
-  }, []);
+  }, [currentLocale]);
 
   const filterOptions = useCallback(
     (opts) => {

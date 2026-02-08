@@ -8,6 +8,7 @@
  * consistent z-index stacking (Popover: 1300, Modals: 10001+), and semantic button structure.
  * 
  * Changelog:
+ * v1.3.0 - 2026-02-07 - BEP ADMIN MENU: Added "Admin Dashboard" as first menu option for admin/author/superadmin users. Links to /admin page with primary color (fontWeight: 600, color: primary.main) for visual distinction. Conditional render via useAuth hasRole check. Menu order: Admin Dashboard (admins only) → My Account → Log out.
  * v1.2.2 - 2026-01-29 - BEP i18n: Removed remaining hardcoded user menu labels and fallback name.
  * v1.2.1 - 2026-01-27 - BEP UI CONSISTENCY: Match add/bell icon sizing exactly - Changed IconButton padding from p: 0.5 to p: 0 (eliminates extra visual size). Fixed fallback Avatar size from 40px to 36px on md+ breakpoint. Added border: '1px solid' with divider color to match add icon styling. UserAvatar now perfectly aligns with add and bell circles in MobileHeader without appearing larger.
  * v1.2.0 - 2026-01-27 - BEP SIZING: Added sx prop support for flexible sizing control from parent components. Container Box now spreads sx prop for consistent sizing across MobileHeader action icons. Updated PropTypes and defaultProps. Enables MobileHeader to enforce consistent circular sizing (32px xs/sm, 36px md+) for all action icons.
@@ -34,19 +35,29 @@
 import { useEffect, useRef, useState, Suspense, lazy, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Box, Avatar, IconButton, Popover, Button } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import { useAuth } from '../contexts/AuthContext';
 
 const AccountModal = lazy(() => import('./AccountModal'));
 const LogoutModal = lazy(() => import('./LogoutModal'));
 
 const UserAvatar = ({ user, onLogout, onOpen, closeSignal, sx }) => {
     const { t } = useTranslation(['a11y', 'settings', 'common']);
+    const navigate = useNavigate();
+    const location = useLocation();
+    const { hasRole } = useAuth();
     // User avatar menu state
     const [userMenuAnchor, setUserMenuAnchor] = useState(null);
     const [showAccountModal, setShowAccountModal] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const lastCloseSignalRef = useRef(closeSignal || 0);
+
+    // Check if user is admin or author
+    const isAdminOrAuthor = hasRole(['admin', 'author', 'superadmin']);
+    // Check if currently on /admin page
+    const isOnAdminPage = location.pathname.startsWith('/admin');
 
     // Handle popover open
     const handleUserMenuOpen = useCallback((event) => {
@@ -74,6 +85,12 @@ const UserAvatar = ({ user, onLogout, onOpen, closeSignal, sx }) => {
         handleUserMenuClose();
     }, [handleUserMenuClose]);
 
+
+    // Handle admin dashboard navigation
+    const handleAdminDashboard = useCallback(() => {
+        navigate('/admin');
+        handleUserMenuClose();
+    }, [navigate, handleUserMenuClose]);
     // Handle "Log out" click - open logout modal and close menu
     const handleLogoutClick = useCallback(() => {
         setShowLogoutModal(true);
@@ -183,6 +200,35 @@ const UserAvatar = ({ user, onLogout, onOpen, closeSignal, sx }) => {
                             flexDirection: 'column',
                         }}
                     >
+                        {/* Admin Dashboard Button - only for admin/author/superadmin roles */}
+                        {isAdminOrAuthor && (
+                            <Button
+                                role="menuitem"
+                                fullWidth
+                                onClick={handleAdminDashboard}
+                                sx={{
+                                    justifyContent: 'flex-start',
+                                    textTransform: 'none',
+                                    py: 1.25,
+                                    px: 2,
+                                    color: isOnAdminPage ? 'primary.main' : 'text.primary',
+                                    fontWeight: isOnAdminPage ? 600 : 500,
+                                    fontSize: { xs: '0.875rem', md: '0.95rem' },
+                                    transition: 'background-color 0.15s ease-in-out',
+                                    '&:hover': {
+                                        bgcolor: 'action.hover',
+                                    },
+                                    '&:focus-visible': {
+                                        outline: '2px solid',
+                                        outlineColor: 'primary.main',
+                                        outlineOffset: -2,
+                                    },
+                                }}
+                            >
+                                {t('common:navigation.adminDashboard', 'Admin Dashboard')}
+                            </Button>
+                        )}
+
                         {/* My Account Button */}
                         <Button
                             role="menuitem"

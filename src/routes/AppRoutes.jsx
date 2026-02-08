@@ -12,6 +12,15 @@
  * - Premium Routes: Require specific subscription plans
  * 
  * Changelog:
+ * v2.1.0 - 2026-02-07 - MIGRATION: Calendar2Page became primary /calendar route. Removed /calendar2 route.
+ * v2.0.0 - 2026-02-05 - BEP: Added /admin dashboard with stats overview, quick actions, activity feed.
+ * v1.9.0 - 2026-02-04 - BEP Blog Phase 5.C: Added /blog/category/:category and /blog/tag/:tagSlug routes
+ * v1.8.0 - 2026-02-05 - BEP Blog Phase 6: Added /admin/blog/authors route for author management
+ *                       (admin/superadmin only - not editors)
+ * v1.7.0 - 2026-02-04 - BEP Blog Phase 5.B: Added combined event+currency taxonomy route 
+ *                       (/blog/event/:eventKey/:currency) for filtering by both event AND currency
+ * v1.6.0 - 2026-02-04 - BEP Blog Phase 5.B: Added blog taxonomy routes (/blog/event/:eventKey, 
+ *                       /blog/currency/:currency, /blog/author/:authorSlug)
  * v1.5.0 - 2026-02-04 - BEP SEO: Added note about language subpath handling. Firebase hosting rewrites handle /es/* and /fr/* paths by serving appropriate static files, while LanguageContext extracts language from pathname for runtime detection. No React Router changes needed - subpath routing is transparent to the SPA.
  * v1.4.0 - 2026-02-03 - BEP: Add PushPermissionHandler to prompt PWA users for notification permission
  *                       when they have push reminders enabled. Shows friendly modal on mobile PWA reload.
@@ -19,6 +28,7 @@
  * v1.2.2 - 2026-02-02 - Added /admin/descriptions route for event descriptions management (superadmin only).
  * v1.2.1 - 2026-02-02 - Added /admin/events route for event management (superadmin only).
  * v1.2.0 - 2026-01-16 - Added /clock public route for the trading clock UI and retained /app as noindex app shell.
+ * v1.2.0 - 2026-02-05 - BEP: Moved /fft2t → /admin/fft2t (admin routing structure).
  * v1.1.8 - 2026-01-16 - Added /fft2t superadmin route for GPT event uploader.
  * v1.1.7 - 2026-01-09 - Added /contact route using ContactPage component.
  * v1.1.6 - 2026-01-07 - Added /privacy route using shared PrivacyPage component.
@@ -52,7 +62,6 @@ const LoginPage = lazy(() => import('../components/LoginPage'));
 const UploadDescriptions = lazy(() => import('../components/UploadDescriptions'));
 const ExportEvents = lazy(() => import('../components/ExportEvents'));
 const FFTTUploader = lazy(() => import('../components/FFTTUploader'));
-const CalendarPage = lazy(() => import('../components/CalendarPage'));
 const PrivacyPage = lazy(() => import('../components/PrivacyPage'));
 const TermsPage = lazy(() => import('../components/TermsPage'));
 const ContactPage = lazy(() => import('../components/ContactPage'));
@@ -60,6 +69,24 @@ const AdminEventsPage = lazy(() => import('../pages/AdminEventsPage'));
 const PushPermissionModal = lazy(() => import('../components/PushPermissionModal'));
 const AdminDescriptionsPage = lazy(() => import('../pages/AdminDescriptionsPage'));
 const EventPage = lazy(() => import('../components/EventPage'));
+// Blog CMS pages (Phase 2)
+const AdminBlogPage = lazy(() => import('../pages/AdminBlogPage'));
+const AdminBlogEditorPage = lazy(() => import('../pages/AdminBlogEditorPage'));
+const AdminBlogAuthorsPage = lazy(() => import('../pages/AdminBlogAuthorsPage'));
+// Blog public pages (Phase 3)
+const BlogListPage = lazy(() => import('../pages/BlogListPage'));
+const BlogPostPage = lazy(() => import('../pages/BlogPostPage'));
+// Blog taxonomy pages (Phase 5.B/5.C)
+const BlogEventHubPage = lazy(() => import('../pages/BlogEventHubPage'));
+const BlogCurrencyHubPage = lazy(() => import('../pages/BlogCurrencyHubPage'));
+const BlogEventCurrencyHubPage = lazy(() => import('../pages/BlogEventCurrencyHubPage'));
+const BlogAuthorPage = lazy(() => import('../pages/BlogAuthorPage'));
+const BlogCategoryHubPage = lazy(() => import('../pages/BlogCategoryHubPage'));
+const BlogTagHubPage = lazy(() => import('../pages/BlogTagHubPage'));
+// Calendar 2.0 (fast table layout)
+const Calendar2Page = lazy(() => import('../pages/Calendar2Page'));
+// Admin Dashboard
+const AdminDashboardPage = lazy(() => import('../pages/AdminDashboardPage'));
 
 /**
  * Loading Component
@@ -239,12 +266,12 @@ export default function AppRoutes() {
             }
           />
 
-          {/* Calendar Page - Public */}
+          {/* Calendar Page - Primary /calendar route with two-column layout */}
           <Route
             path="/calendar"
             element={
               <PublicRoute>
-                <CalendarPage />
+                <Calendar2Page />
               </PublicRoute>
             }
           />
@@ -255,6 +282,75 @@ export default function AppRoutes() {
             element={
               <PublicRoute>
                 <EventPage />
+              </PublicRoute>
+            }
+          />
+
+          {/* Blog Pages - Public (Phase 3) */}
+          <Route
+            path="/blog"
+            element={
+              <PublicRoute>
+                <BlogListPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/blog/:slug"
+            element={
+              <PublicRoute>
+                <BlogPostPage />
+              </PublicRoute>
+            }
+          />
+
+          {/* Blog Taxonomy Pages - Public (Phase 5.B) */}
+          {/* Combined event+currency route must come BEFORE single event route */}
+          <Route
+            path="/blog/event/:eventKey/:currency"
+            element={
+              <PublicRoute>
+                <BlogEventCurrencyHubPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/blog/event/:eventKey"
+            element={
+              <PublicRoute>
+                <BlogEventHubPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/blog/currency/:currency"
+            element={
+              <PublicRoute>
+                <BlogCurrencyHubPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/blog/author/:authorSlug"
+            element={
+              <PublicRoute>
+                <BlogAuthorPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/blog/category/:category"
+            element={
+              <PublicRoute>
+                <BlogCategoryHubPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/blog/tag/:tagSlug"
+            element={
+              <PublicRoute>
+                <BlogTagHubPage />
               </PublicRoute>
             }
           />
@@ -271,21 +367,71 @@ export default function AppRoutes() {
 
           {/* ==================== ADMIN ROUTES ==================== */}
 
-          {/* Admin Event Management - Superadmin only */}
+          {/* Admin Dashboard - Central admin hub */}
+          <Route
+            path="/admin"
+            element={
+              <PrivateRoute roles={['superadmin', 'admin', 'author']} redirectTo="/login">
+                <AdminDashboardPage />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Admin Blog CMS - List all posts */}
+          <Route
+            path="/admin/blog"
+            element={
+              <PrivateRoute roles={['superadmin', 'admin', 'author']} redirectTo="/login">
+                <AdminBlogPage />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Admin Blog CMS - Create new post */}
+          <Route
+            path="/admin/blog/new"
+            element={
+              <PrivateRoute roles={['superadmin', 'admin', 'author']} redirectTo="/login">
+                <AdminBlogEditorPage />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Admin Blog CMS - Edit existing post */}
+          <Route
+            path="/admin/blog/edit/:postId"
+            element={
+              <PrivateRoute roles={['superadmin', 'admin', 'author']} redirectTo="/login">
+                <AdminBlogEditorPage />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Admin Blog CMS - Manage authors (admin/superadmin only, not editors) */}
+          <Route
+            path="/admin/blog/authors"
+            element={
+              <PrivateRoute roles={['superadmin', 'admin']} redirectTo="/login">
+                <AdminBlogAuthorsPage />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Admin Event Management - Admin and Superadmin */}
           <Route
             path="/admin/events"
             element={
-              <PrivateRoute roles={['superadmin']} redirectTo="/login">
+              <PrivateRoute roles={['superadmin', 'admin']} redirectTo="/login">
                 <AdminEventsPage />
               </PrivateRoute>
             }
           />
 
-          {/* Admin Descriptions Management - Superadmin only */}
+          {/* Admin Descriptions Management - Admin and Superadmin */}
           <Route
             path="/admin/descriptions"
             element={
-              <PrivateRoute roles={['superadmin']} redirectTo="/login">
+              <PrivateRoute roles={['superadmin', 'admin']} redirectTo="/login">
                 <AdminDescriptionsPage />
               </PrivateRoute>
             }
@@ -293,7 +439,7 @@ export default function AppRoutes() {
 
           {/* Upload Economic Event Descriptions - Admin only */}
           <Route
-            path="/upload-desc"
+            path="/admin/upload-desc"
             element={
               <PrivateRoute roles={['admin', 'superadmin']}>
                 <UploadDescriptions />
@@ -303,7 +449,7 @@ export default function AppRoutes() {
 
           {/* Export Events - Admin only */}
           <Route
-            path="/export"
+            path="/admin/export"
             element={
               <PrivateRoute roles={['admin', 'superadmin']}>
                 <ExportEvents />
@@ -313,7 +459,7 @@ export default function AppRoutes() {
 
           {/* FF-T2T GPT Uploader - Superadmin only */}
           <Route
-            path="/fft2t"
+            path="/admin/fft2t"
             element={
               <PrivateRoute roles={['superadmin']} redirectTo="/login">
                 <FFTTUploader />

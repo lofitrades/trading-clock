@@ -110,8 +110,8 @@
   },
   "drawer": {
     "title": "Configuración",
-    "subtitle": "Crea una cuenta gratuita para desbloquear todas las funciones",
-    "unlockButton": "Crear cuenta gratuita para desbloquear toda la configuración"
+    "subtitle": "Crea tu cuenta para desbloquear todas las funciones",
+    "unlockButton": "Crear tu cuenta para desbloquear toda la configuración"
   },
   "account": {
     "title": "Cuenta",

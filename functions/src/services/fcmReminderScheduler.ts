@@ -12,27 +12,35 @@
  * - Combined with client-side lastSeenAt tracking, allows for robust device management.
  * 
  * Changelog:
- * v1.7.0 - 2026-02-04 - BEP FIX: Window now only looks BACK (90s), not forward. This ensures
- *                       notifications NEVER fire before the scheduled reminder time. Previously,
- *                       windowEnd was nowEpochMs + 90s which caused notifications to fire up to
- *                       90 seconds early. Now windowEnd = nowEpochMs (current time).
- * v1.6.0 - 2026-02-04 - BEP FIX: Use correct FCM v1 API payload structure. badge/tag/sound must go
- *                       in platform-specific sections (android.notification, webpush.notification),
- *                       not in the top-level notification object. Added proper Android channel ID,
- *                       web push badge icon, vibration pattern, and requireInteraction for PWA.
- * v1.5.0 - 2026-02-04 - BEP FIX: Window set to 90s for 1-minute schedule (near-instant delivery).
- *                       Added detailed logging for occurrence expansion and window checks.
- * v1.4.0 - 2026-02-03 - BEP FIX: Add comprehensive logging to FCM scheduler for troubleshooting.
- *                       Logs: function start, users found, devices per user, reminders fetched,
- *                       push channel validation, FCM send attempts, success/failure counts, and
- *                       invalid token cleanup. Helps diagnose why FCM messages aren't being sent.
- * v1.3.0 - 2026-02-03 - BEP FIX: Add Android PWA push support with badge icon, vibration patterns,
- *                       and tag deduplication. FCM payload now includes badge image, vibrate data,
- *                       and tag in both notification and data fields for Android Chrome PWA compatibility.
- * v1.2.0 - 2026-02-03 - BEP: Document automatic invalid token cleanup in sendPushToTokens().
- *                       Tokens that fail with registration errors are deleted from Firestore.
- * v1.1.0 - 2026-02-03 - BEP FIX: Only send push for individual reminder offsets that have push channel enabled.
- *                       Previously, if ANY offset had push enabled, push would be sent for ALL offsets.
+ * v3.1.0 - 2026-02-07 - BEP: Stale device token expiration (30 days). Tokens with
+ *                       lastSeenAt older than 30 days are pruned inline during scheduler
+ *                       execution. Reduces wasted FCM sends to dead devices, eliminates
+ *                       unnecessary Firestore reads on subsequent runs, and keeps the
+ *                       deviceTokens subcollection lean. lastSeenAt is already updated
+ *                       on every app load via refreshFcmTokenForUser() in AuthContext.
+ * v3.0.0 - 2026-02-07 - BEP CRITICAL: Enterprise notification delivery overhaul.
+ *                       1) Widened lookback window from 90s to 300s (5 min) to handle Cloud
+ *                          Scheduler jitter, Pub/Sub latency, and cold starts. Trigger dedup
+ *                          prevents double-sends so wider window is safe.
+ *                       2) Parallelized user processing with Promise.allSettled() + concurrency
+ *                          limiter (5 users at a time) instead of sequential for-of loop.
+ *                          Reduces total execution time from O(n*reads) to O(n/5*reads).
+ *                       3) Function timeout increased from 60s to 120s to accommodate wider
+ *                          window + parallel processing for growing user base.
+ * v2.0.0 - 2026-02-07 - BEP CRITICAL: Comprehensive deduplication overhaul.
+ *                       1) Occurrence-level dedup: one push per event per occurrence per user.
+ *                          Uses occurrenceTrigger doc to block subsequent offsets after first fires.
+ *                       2) Encode trigger IDs with encodeFirestoreDocId() to safely handle
+ *                          eventKeys containing slashes (prevents subcollection path errors).
+ *                       3) Tightened isDue window: reminderAt + WINDOW_BACK_MS instead of
+ *                          occurrenceEpochMs + window. Consistent with client-side v3.0.0.
+ * v1.7.0 - 2026-02-04 - BEP FIX: Window now only looks BACK (90s), not forward.
+ * v1.6.0 - 2026-02-04 - BEP FIX: Use correct FCM v1 API payload structure.
+ * v1.5.0 - 2026-02-04 - BEP FIX: Window set to 90s for 1-minute schedule.
+ * v1.4.0 - 2026-02-03 - BEP FIX: Add comprehensive logging to FCM scheduler.
+ * v1.3.0 - 2026-02-03 - BEP FIX: Add Android PWA push support.
+ * v1.2.0 - 2026-02-03 - BEP: Document automatic invalid token cleanup.
+ * v1.1.0 - 2026-02-03 - BEP FIX: Only send push for individual reminder offsets that have push enabled.
  * v1.0.0 - 2026-01-23 - Initial FCM reminder scheduler for push notifications.
  */
 
@@ -44,12 +52,40 @@ const REMINDERS_COLLECTION = "reminders";
 const TRIGGERS_COLLECTION = "notificationTriggers";
 const STATS_COLLECTION = "notificationStats";
 
-// BEP: Window looks 90 seconds BACK to catch any reminders that came due since last run.
-// We do NOT look forward - notifications should only fire AT or AFTER reminder time.
-// Trigger deduplication in Firestore prevents duplicate notifications.
-const WINDOW_BACK_MS = 90 * 1000; // Look back 90 seconds (covers 1-min schedule + buffer)
+// BEP v3.0.0: Window looks 5 minutes BACK to handle Cloud Scheduler jitter, Pub/Sub
+// delivery latency, and cold starts. Previous 90s was too tight — reminders could be
+// missed entirely if the function ran late. Trigger deduplication in Firestore prevents
+// duplicate notifications even with the wider window.
+const WINDOW_BACK_MS = 300 * 1000; // 5 minutes (handles jitter + cold starts)
 const LOOKAHEAD_MS = 24 * 60 * 60 * 1000;
 const DAILY_CAP = 150;
+// BEP v3.0.0: Concurrency limit for parallel user processing
+const USER_CONCURRENCY = 5;
+// BEP v3.1.0: Stale device token expiration — tokens not seen in 30 days are pruned.
+// Firebase recommends cleaning tokens inactive for 30+ days to avoid wasted FCM sends
+// and unnecessary Firestore reads. lastSeenAt is updated on every app load via
+// refreshFcmTokenForUser() in AuthContext.
+const STALE_TOKEN_DAYS = 30;
+const STALE_TOKEN_MS = STALE_TOKEN_DAYS * 24 * 60 * 60 * 1000;
+
+/**
+ * BEP v2.0.0: Encode trigger/doc IDs for safe Firestore document paths.
+ * Firestore document IDs cannot contain forward slashes — eventKeys built from
+ * composite keys (source:name:time) are safe, but eventKeys containing `/`
+ * would create subcollections instead of documents, breaking trigger dedup.
+ * Uses Base64url encoding (RFC 4648 §5) for safe, reversible encoding.
+ */
+const encodeFirestoreDocId = (id: string): string => {
+  if (!id) return id;
+  // Only encode if the ID contains characters unsafe for Firestore doc IDs
+  if (!id.includes("/")) return id;
+  try {
+    const encoded = Buffer.from(id, "utf-8").toString("base64url");
+    return encoded;
+  } catch {
+    return encodeURIComponent(id);
+  }
+};
 
 const RECURRENCE_INTERVALS: Record<string, { unit: string; step: number; ms?: number }> = {
   "5m": { unit: "minute", step: 5, ms: 5 * 60 * 1000 },
@@ -414,13 +450,13 @@ const sendPushToTokens = async (
 export const runFcmReminderScheduler = async () => {
   const db = admin.firestore();
   const nowEpochMs = Date.now();
-  // BEP: Only look BACK - notifications should never fire BEFORE the reminder time
-  const windowStart = nowEpochMs - WINDOW_BACK_MS; // 90 seconds ago
+  // BEP v3.0.0: 5-minute lookback — safe due to trigger dedup, handles scheduler jitter
+  const windowStart = nowEpochMs - WINDOW_BACK_MS;
   const windowEnd = nowEpochMs; // NOW - not in the future!
   const rangeStart = nowEpochMs - WINDOW_BACK_MS;
   const rangeEnd = nowEpochMs + LOOKAHEAD_MS;
 
-  logger.info('🚀 FCM Reminder Scheduler started', { nowEpochMs: new Date(nowEpochMs).toISOString() });
+  logger.info('🚀 FCM Reminder Scheduler started', { nowEpochMs: new Date(nowEpochMs).toISOString(), windowBackMs: WINDOW_BACK_MS });
 
   const usersSnapshot = await db.collection("users").get();
   logger.info(`📊 Found ${usersSnapshot.size} users with account`);
@@ -429,7 +465,11 @@ export const runFcmReminderScheduler = async () => {
     return;
   }
 
-  for (const userDoc of usersSnapshot.docs) {
+  // BEP v3.0.0: Process users in parallel batches for faster execution
+  // Uses concurrency limiter to avoid overwhelming Firestore with too many parallel reads
+  const userDocs = usersSnapshot.docs;
+  
+  const processUser = async (userDoc: FirebaseFirestore.QueryDocumentSnapshot) => {
     const userId = userDoc.id;
     logger.info(`👤 Processing user: ${userId}`);
 
@@ -437,11 +477,37 @@ export const runFcmReminderScheduler = async () => {
       .where("enabled", "==", true)
       .get();
 
-    const tokens = tokensSnapshot.docs.map((docSnap) => docSnap.get("token") as string).filter(Boolean);
-    logger.info(`📱 Found ${tokens.length} enabled devices for user ${userId}`);
+    // BEP v3.1.0: Prune stale device tokens (inactive > 30 days) inline.
+    // Avoids wasted FCM sends to dead devices and reduces future Firestore reads.
+    // lastSeenAt is updated on every app load, so stale = user stopped using that device.
+    const staleThreshold = nowEpochMs - STALE_TOKEN_MS;
+    const staleRemovals: Promise<FirebaseFirestore.WriteResult>[] = [];
+    const freshTokenDocs = tokensSnapshot.docs.filter((docSnap) => {
+      const lastSeenAt = docSnap.get("lastSeenAt");
+      // If lastSeenAt is missing, keep the token (may be newly created)
+      if (!lastSeenAt) return true;
+      const lastSeenMs = typeof lastSeenAt.toMillis === "function"
+        ? lastSeenAt.toMillis()
+        : new Date(lastSeenAt).getTime();
+      if (Number.isNaN(lastSeenMs)) return true;
+      if (lastSeenMs < staleThreshold) {
+        logger.info(`🗑️  Pruning stale device token for user ${userId} (last seen: ${new Date(lastSeenMs).toISOString()})`);
+        staleRemovals.push(docSnap.ref.delete());
+        return false;
+      }
+      return true;
+    });
+
+    if (staleRemovals.length > 0) {
+      await Promise.allSettled(staleRemovals);
+      logger.info(`✅ Pruned ${staleRemovals.length} stale device(s) for user ${userId}`);
+    }
+
+    const tokens = freshTokenDocs.map((docSnap) => docSnap.get("token") as string).filter(Boolean);
+    logger.info(`📱 Found ${tokens.length} active devices for user ${userId}`);
     if (tokens.length === 0) {
-      logger.debug(`⏭️  No enabled devices for user ${userId}`);
-      continue;
+      logger.debug(`⏭️  No active devices for user ${userId}`);
+      return;
     }
 
     const remindersSnapshot = await db.collection(`users/${userId}/${REMINDERS_COLLECTION}`)
@@ -451,7 +517,7 @@ export const runFcmReminderScheduler = async () => {
     logger.info(`📋 Found ${remindersSnapshot.size} enabled reminders for user ${userId}`);
     if (remindersSnapshot.empty) {
       logger.debug(`⏭️  No enabled reminders for user ${userId}`);
-      continue;
+      return;
     }
 
     const reminders: any[] = remindersSnapshot.docs.map((docSnap) => ({
@@ -476,15 +542,6 @@ export const runFcmReminderScheduler = async () => {
       }
       logger.debug(`✅ Processing reminder: ${reminder.eventKey}`);
 
-      // BEP: Quiet hours temporarily disabled for testing
-      // TODO: Make quiet hours user-configurable via settings
-      // const timezone = reminder.timezone || "America/New_York";
-      // const inQuietHours = isWithinQuietHours(timezone, now);
-      // if (inQuietHours) {
-      //   logger.info(`🌙 Skipping ${reminder.eventKey} - within quiet hours (22:00-06:00 ${timezone})`);
-      //   continue;
-      // }
-
       const occurrences = expandReminderOccurrences(reminder, rangeStart, rangeEnd);
       logger.info(`📅 Found ${occurrences.length} occurrence(s) for ${reminder.eventKey}`, {
         rangeStart: new Date(rangeStart).toISOString(),
@@ -493,16 +550,30 @@ export const runFcmReminderScheduler = async () => {
       if (occurrences.length === 0) continue;
 
       for (const occurrence of occurrences) {
+        // BEP v2.0.0: Occurrence-level dedup — ONE push per event per occurrence per user.
+        // Check if ANY offset has already sent a push for this occurrence.
+        const occurrenceTriggerId = `${reminder.eventKey}__${occurrence.occurrenceEpochMs}__push`;
+        const encodedOccurrenceId = encodeFirestoreDocId(occurrenceTriggerId);
+        const occurrenceTriggerRef = db.doc(`users/${userId}/${TRIGGERS_COLLECTION}/${encodedOccurrenceId}`);
+        const occurrenceTriggerSnap = await occurrenceTriggerRef.get();
+        if (occurrenceTriggerSnap.exists) {
+          logger.debug(`⏭️  Already sent push for occurrence: ${occurrenceTriggerId}`);
+          continue;
+        }
+
         const reminderOffsets = Array.isArray(reminder.reminders) ? reminder.reminders : [];
+        let pushSentForOccurrence = false;
+
         for (const offset of reminderOffsets) {
+          if (pushSentForOccurrence) break; // BEP v2.0.0: Only one push per occurrence
+
           // BEP: Only send push for offsets that have push channel enabled
           if (!offset?.channels?.push) continue;
 
           const minutesBefore = Number(offset?.minutesBefore);
           if (!Number.isFinite(minutesBefore)) continue;
           const reminderAt = occurrence.occurrenceEpochMs - minutesBefore * 60 * 1000;
-          // BEP: Only fire if reminder time is IN THE PAST (between windowStart and now)
-          // This ensures notifications never fire early
+          // BEP v2.0.0: Only fire if reminder time is IN THE PAST (between windowStart and now)
           const isInWindow = reminderAt >= windowStart && reminderAt <= windowEnd;
           logger.info(`⏰ Window check for ${reminder.eventKey}`, {
             reminderAt: new Date(reminderAt).toISOString(),
@@ -519,15 +590,22 @@ export const runFcmReminderScheduler = async () => {
             break;
           }
 
+          // BEP v2.0.0: Encode triggerId for safe Firestore doc paths
           const triggerId = buildTriggerId(reminder.eventKey, occurrence.occurrenceEpochMs, minutesBefore, "push");
-          const triggerRef = db.doc(`users/${userId}/${TRIGGERS_COLLECTION}/${triggerId}`);
+          const encodedTriggerId = encodeFirestoreDocId(triggerId);
+          const triggerRef = db.doc(`users/${userId}/${TRIGGERS_COLLECTION}/${encodedTriggerId}`);
           const triggerSnap = await triggerRef.get();
           if (triggerSnap.exists) {
             logger.debug(`⏭️  Trigger already sent: ${triggerId}`);
             continue;
           }
 
+          // BEP v2.0.0: Record BOTH per-offset and per-occurrence triggers
           await triggerRef.set({
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          await occurrenceTriggerRef.set({
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           });
@@ -563,6 +641,7 @@ export const runFcmReminderScheduler = async () => {
             );
             logger.info(`✅ FCM push sent successfully for ${reminder.eventKey}`);
             sentToday += 1;
+            pushSentForOccurrence = true; // BEP v2.0.0: Block further offsets for this occurrence
           } catch (error) {
             logger.error("❌ Failed to send FCM push", { userId, eventKey: reminder.eventKey, error });
           }
@@ -576,5 +655,19 @@ export const runFcmReminderScheduler = async () => {
       count: sentToday,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
+  };
+
+  // BEP v3.0.0: Process users in parallel batches (USER_CONCURRENCY at a time)
+  // This dramatically reduces total execution time compared to sequential processing
+  for (let i = 0; i < userDocs.length; i += USER_CONCURRENCY) {
+    const batch = userDocs.slice(i, i + USER_CONCURRENCY);
+    const results = await Promise.allSettled(batch.map((userDoc) => processUser(userDoc)));
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        logger.error(`❌ Failed to process user ${batch[index].id}:`, { error: String(result.reason) });
+      }
+    });
   }
+
+  logger.info('✅ FCM Reminder Scheduler complete');
 };

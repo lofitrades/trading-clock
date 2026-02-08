@@ -41,6 +41,16 @@
             "Datos del perfil OAuth (nombre, correo electrónico, foto de perfil) cuando inicia sesión con Google o Twitter",
             "Datos del calendario económico de la API de JBlanked (eventos de mercado disponibles públicamente)"
           ]
+        },
+        "blog": {
+          "title": "Blog y contenido público",
+          "items": [
+            "Los artículos del blog están disponibles públicamente y no requieren autenticación",
+            "La lectura de artículos del blog no recopila datos personales (sin seguimiento de lectores)",
+            "Si crea una cuenta, sus datos de reloj y calendario se almacenan (el acceso al blog no requiere cuenta)",
+            "Las páginas del blog muestran anuncios de Google AdSense (basados en contexto, no personalizados a menos que permita cookies)",
+            "El contenido del blog se indexa en motores de búsqueda para facilitar su descubrimiento"
+          ]
         }
       }
     },
@@ -97,6 +107,16 @@
           "items": [
             "Google AdSense - puede recopilar y utilizar datos para entregar anuncios cuando lo permitas",
             "Administra preferencias de anuncios en Configuración de Anuncios de Google: https://adssettings.google.com"
+          ]
+        },
+        "advertisingBlog": {
+          "title": "Publicidad en el blog",
+          "items": [
+            "Las páginas del blog contienen anuncios de visualización de Google AdSense y anuncios en artículos para generar ingresos",
+            "Los anuncios se colocan después del contenido del artículo para no interrumpir la lectura",
+            "Los anuncios se basan en el contexto (relacionados con noticias económicas y operaciones) cuando no hay datos personalizados disponibles",
+            "Se muestran anuncios no personalizados cuando elige cookies solo esenciales",
+            "El rendimiento de los anuncios se monitorea para garantizar el cumplimiento de las políticas de Google AdSense"
           ]
         },
         "legal": {

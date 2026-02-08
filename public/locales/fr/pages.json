@@ -86,7 +86,7 @@
           "Filtre par impact et devise (USD, EUR, etc.)",
           "Enregistre les favoris et ajoute des notes de trading (connecté)"
         ],
-        "note": "Un compte gratuit déverrouille l'espace de travail de calendrier complet pour que tu puisses enregistrer des filtres, des notes, des favoris et des rappels sur les appareils."
+        "note": "Votre compte déverrouille l'espace de travail de calendrier complet pour que vous puissiez enregistrer des filtres, des notes, des favoris et des rappels sur les appareils."
       },
       {
         "id": "custom-events-notifications",
@@ -191,7 +191,7 @@
         },
         {
           "question": "Puis-je ajouter mes propres événements personnalisés ?",
-          "answer": "Oui. Tu peux créer des événements personnalisés pour les fenêtres de temps personnelles, les routines ou les règles. Enregistrer/synchroniser peut nécessiter un compte gratuit."
+          "answer": "Oui. Vous pouvez créer des événements personnalisés pour des fenêtres de temps personnelles, des routines ou des règles. L'enregistrement/la synchronisation nécessite votre compte."
         },
         {
           "question": "Puis-je obtenir des notifications pour les événements à venir ?",
@@ -199,7 +199,7 @@
         },
         {
           "question": "Ai-je besoin d'un compte ?",
-          "answer": "Tu peux utiliser l'horloge de sessions de trading tout de suite. Un compte gratuit déverrouille l'espace de travail de calendrier complet et enregistre tes préférences sur les appareils."
+          "answer": "Vous pouvez utiliser l'horloge des sessions de trading immédiatement. Votre compte déverrouille l'espace de travail de calendrier complet et enregistre vos préférences sur les appareils."
         },
         {
           "question": "Est-ce un outil de signaux ?",

@@ -54,9 +54,9 @@
   "loggingOut": "Logging out...",
   "logout": "Log out",
   "failedToLogout": "Failed to log out. Please try again or refresh the page.",
-  "unlockProTitle": "Unlock Pro★ Features for free: $0",
-  "unlockProMessage": "Create a free account to unlock full access to the pro features, including changing timezones and accessing premium settings.",
-  "createFreeAccount": "Create Free Account",
+  "unlockProTitle": "Unlock Pro★ Features: $0",
+  "unlockProMessage": "Create your account to unlock full access to all features, including changing timezones and accessing all settings.",
+  "createFreeAccount": "Create Your Account",
   "enterPasswordToConfirm": "Enter Password to Confirm",
   "incorrectPassword": "Incorrect password",
   "signingYouIn": "Signing you in...",
@@ -114,6 +114,11 @@
   "roadmapGotItButton": "Got it",
   "selectTimezoneTitle": "Select Timezone",
   "closeDialogAriaLabel": "close",
+  "sourceInfo": {
+    "title": "Data Source",
+    "description": "This trading data uses <strong>real-time economic information</strong> from Forex Factory, ensuring accuracy and reliability for your trading decisions.",
+    "updateNote": "Events are updated continuously throughout the trading day to keep you informed of important economic releases and market-moving news."
+  },
   "cookies": {
     "heading": "We use cookies",
     "description": "Essential cookies keep Time 2 Trade running. Ads use Google AdSense and Meta Pixel for measurement. Ads can stay non-personalized unless you allow them.",

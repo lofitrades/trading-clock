@@ -17,6 +17,7 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v2.9.0 - 2026-02-06 - BEP: Add reschedule/reinstate Chip badges in modal header after event title. Uses events:status i18n keys for EN/ES/FR with proper timezone-aware date formatting in tooltip.
  * v2.8.0 - 2026-02-04 - BEP MOBILE RESPONSIVENESS FIX: Fixed EventModal to be fully viewport height aware on mobile devices. DialogContent now has flex:1, minHeight:0, overflowY:auto with minimal scrollbar styling (6px, rgba(60,77,99,0.32)). DialogActions now has flexShrink:0 to stick to bottom. Paper has display:flex, flexDirection:column, height:100vh for full viewport coverage. Footer now correctly positions above mobile navbar instead of below it. Applied minimal scrollbar styling matching LandingPage pattern. Matches BEP patterns from AuthModal2 and SettingsSidebar2.
  * v2.7.3 - 2026-02-04 - BEP SEO CRITICAL: Updated event page link to use subpath URLs (/es/events/..., /fr/events/...) instead of query params. Aligns with Firebase hosting rewrites and SEO structure.
  * v2.7.2 - 2026-02-03 - BEP EVENT PAGE LANGUAGE FIX: Added i18n language parameter to event page URL. Now opens /events/{id}?lang=es for Spanish, ?lang=fr for French, no param for English.
@@ -119,6 +120,8 @@ import Favorite from '@mui/icons-material/Favorite';
 import NoteAltOutlined from '@mui/icons-material/NoteAltOutlined';
 import NoteAlt from '@mui/icons-material/NoteAlt';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import RestoreIcon from '@mui/icons-material/Restore';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { getEventDescription } from '../services/economicEventsService';
 import { doc, getDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
@@ -1334,7 +1337,67 @@ function EventModal({
             {currentEvent.Name || t('events:event')}
           </Typography>
 
-          {/* Date and Time */}
+          {/* BEP v2.9.0: Reschedule/Reinstate badges */}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              mb: 1,
+            }}
+          >
+            {currentEvent.rescheduledFrom && (
+              <MuiTooltip
+                title={t('events:status.rescheduledFrom', { date: new Date(currentEvent.rescheduledFrom).toLocaleString(i18n.language === 'es' ? 'es-ES' : i18n.language === 'fr' ? 'fr-FR' : 'en-US') })}
+                arrow
+                placement="bottom"
+              >
+                <Chip
+                  icon={<ScheduleIcon />}
+                  label={t('events:status.rescheduled')}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    height: 24,
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                    color: 'primary.contrastText',
+                    '& .MuiChip-icon': {
+                      color: 'primary.contrastText',
+                      fontSize: '1rem',
+                    },
+                  }}
+                />
+              </MuiTooltip>
+            )}
+            {currentEvent.status === 'cancelled' && (
+              <MuiTooltip
+                title={t('events:status.reinstatedTooltip')}
+                arrow
+                placement="bottom"
+              >
+                <Chip
+                  icon={<RestoreIcon />}
+                  label={t('events:status.reinstated')}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    height: 24,
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                    color: 'primary.contrastText',
+                    '& .MuiChip-icon': {
+                      color: 'primary.contrastText',
+                      fontSize: '1rem',
+                    },
+                  }}
+                />
+              </MuiTooltip>
+            )}
+          </Box>
           <Box
             sx={{
               display: 'flex',

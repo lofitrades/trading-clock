@@ -2,16 +2,18 @@
  * pages/calendar.page.jsx
  *
  * Purpose: SEO-forward /calendar route that prerenders semantic copy then hydrates the
- * interactive CalendarPage (EventsFilters3 + day-grouped table) on the client.
+ * interactive Calendar2Page (fast table + clock sidebar) on the client.
  *
  * Changelog:
+ * v1.4.0 - 2026-02-07 - MIGRATION: Updated to hydrate Calendar2Page. Prerender shell, meta tags,
+ *                       structured data, and SEO metadata unchanged. Module import updated.
  * v1.3.0 - 2026-02-02 - BEP SEO FIX: Added BreadcrumbList schema to help Google understand site
  *                       hierarchy and prioritize crawling. Addresses "Discovered - currently not indexed" GSC status.
  * v1.2.0 - 2026-01-22 - BEP SEO/copy refresh: align with "Trading Clock + Economic Calendar (NY Time)",
  *                       emphasize Forex Factory-powered events, custom events + notifications, remove "exports" from primary claims,
  *                       improve FAQ for trust + non-advice positioning, and add /clock + /calendar CTA parity.
  * v1.1.1 - 2026-01-16 - Updated calendar CTAs to point to /clock.
- * v1.1.0 - 2026-01-11 - Prefetch CalendarPage module to reduce TTI and reuse a shared loader for hydration.
+ * v1.1.0 - 2026-01-11 - Prefetch Calendar2Page module to reduce TTI and reuse a shared loader for hydration.
  * v1.0.2 - 2026-01-07 - Added sticky back-to-top control for the prerendered calendar route fallback.
  * v1.0.1 - 2026-01-07 - Added dynamic copyright year to prerendered calendar content.
  * v1.0.0 - 2026-01-06 - Added calendar route with structured data and client-loaded calendar workspace.
@@ -23,7 +25,7 @@ let calendarPageModulePromise;
 
 const loadCalendarPageModule = () => {
     if (!calendarPageModulePromise) {
-        calendarPageModulePromise = import('../src/components/CalendarPage');
+        calendarPageModulePromise = import('../src/pages/Calendar2Page');
     }
     return calendarPageModulePromise;
 };

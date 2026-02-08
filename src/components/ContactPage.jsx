@@ -5,6 +5,9 @@
  * Key responsibility and main functionality: Render the contact form in standalone or embedded contexts, validate inputs, and submit to Firestore with success feedback.
  * 
  * Changelog:
+ * v1.5.0 - 2026-02-02 - BEP VIEWPORT FIX: Replaced 100vh with var(--t2t-vv-height, 100dvh) for xs/sm
+ *                       minHeight and md height on non-embedded page to prevent content overflow behind
+ *                       bottom AppBar on non-PWA mobile browsers. Matches PublicLayout, Calendar2Page, TermsPage, PrivacyPage pattern.
  * v1.4.0 - 2026-01-27 - Full i18n integration: Replaced all hardcoded strings with t() calls from contact namespace (EN/ES/FR). Added useTranslation hook. SEO meta now generated from i18n translations.
  * v1.3.6 - 2026-01-13 - PostMessage ready signal in embed mode so ContactModal keeps progress until form is ready.
  * v1.3.5 - 2026-01-13 - Skip SEO render in embed mode to slim iframe payload.
@@ -393,9 +396,9 @@ export default function ContactPage() {
             sx={{
                 bgcolor: isEmbedded ? 'background.default' : '#f9fafb',
                 color: '#0f172a',
-                minHeight: isEmbedded ? '100dvh' : '100vh',
+                minHeight: isEmbedded ? '100dvh' : { xs: 'var(--t2t-vv-height, 100dvh)', sm: 'var(--t2t-vv-height, 100dvh)', md: '100vh' },
                 // Desktop: use a viewport-fit layout (no page scroll)
-                height: isEmbedded ? '100dvh' : { md: 'var(--t2t-vv-height, 100dvh)' },
+                height: isEmbedded ? '100dvh' : { xs: 'var(--t2t-vv-height, 100dvh)', sm: 'var(--t2t-vv-height, 100dvh)', md: 'var(--t2t-vv-height, 100dvh)' },
                 overflowY: isEmbedded ? 'hidden' : { xs: 'auto', md: 'hidden' },
                 display: isEmbedded ? 'flex' : { md: 'flex' },
                 flexDirection: isEmbedded ? 'column' : { md: 'column' },

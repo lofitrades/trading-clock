@@ -8,17 +8,19 @@
  * Responsive vertical scrolling with proper height constraints per BEP standards.
  * 
  * Changelog:
+ * v2.4.0 - 2026-02-02 - BEP VIEWPORT FIX: Replaced 100vh with var(--t2t-vv-height, 100dvh) for xs/sm
+ *                       height calc to prevent content overflow behind bottom AppBar on non-PWA mobile browsers.
  * v2.3.0 - 2026-01-29 - BEP THEME-AWARE: Replaced all hardcoded hex colors with MUI theme tokens.
  *                       bgcolor: #f9fafb → background.default, color: #0f172a → text.primary,
  *                       color: #475569 → text.secondary, bgcolor: white → background.paper.
  *                       Fully AA accessible with proper contrast in light/dark modes.
  * v2.2.1 - 2026-01-28 - RESPONSIVE LAYOUT & GRID FIX: Added scrollable Box container with proper height constraints.
- * xs/sm: calc(100vh - 48px - var(--t2t-bottom-nav-height, 64px)), md+: calc(100vh - 72px). Replaced deprecated Grid summary cards with Box layout.
+ * xs/sm: calc(var(--t2t-vv-height, 100dvh) - 48px - var(--t2t-bottom-nav-height, 64px)), md+: calc(100vh - 72px). Replaced deprecated Grid summary cards with Box layout.
  * Fixed i18n header display: page.subtitle for overline, page.title for heading, page.lastUpdated for date. Removed Grid import.
  * v2.2.0 - 2026-01-28 - FULL I18N MIGRATION: 100% client-facing copy moved to i18n translation keys.
  * Created privacy.json for EN/ES/FR with all sections, subsections, and legal content fully translated.
  * PrivacyPageContent now renders from i18n t() calls instead of hardcoded sections array.
- * Responsive scrollable layout: xs/sm calc(100vh - 48px - var(--t2t-bottom-nav-height, 64px)), md+ calc(100vh - 72px).
+ * Responsive scrollable layout: xs/sm calc(var(--t2t-vv-height, 100dvh) - 48px - var(--t2t-bottom-nav-height, 64px)), md+ calc(100vh - 72px).
  * v2.1.0 - 2026-01-28 - APPBAR INTEGRATION: Added PublicLayout wrapper with navItems prop.
  * Sticky AppBar on md+ with Clock, Calendar, Settings navigation. MobileHeader on xs/sm.
  * v2.0.1 - 2026-01-16 - Updated CTA link to /clock.
@@ -57,7 +59,7 @@ function PrivacyPageContent() {
             sx={{
                 bgcolor: 'background.default',
                 color: 'text.primary',
-                height: { xs: 'calc(100vh - 48px - var(--t2t-bottom-nav-height, 64px))', md: 'calc(100vh - 72px)' },
+                height: { xs: 'calc(var(--t2t-vv-height, 100dvh) - 48px - var(--t2t-bottom-nav-height, 64px))', md: 'calc(100vh - 72px)' },
                 overflowY: 'auto',
             }}
         >

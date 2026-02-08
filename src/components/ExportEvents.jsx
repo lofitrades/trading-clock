@@ -3,8 +3,10 @@
  * 
  * Purpose: Superadmin-only page for exporting canonical economic events from Firestore.
  * Exports unified multi-source events with all fields (NFS, JBlanked, GPT) in enterprise JSON format.
- * Requires superadmin RBAC role.
+ * RBAC: Superadmin only - restricted endpoint for data export governance.
  * 
+ * Changelog:
+ * v2.2.0 - 2026-02-05 - ACTIVITY LOGGING: Log events_exported to systemActivityLog when superadmin exports canonical events. Tracks event count and superadmin userId for audit trail (Phase 8.0).
  * v2.1.1 - 2026-01-29 - BEP i18n: Removed remaining hardcoded export copy and standardized error messaging.
  * v2.1.0 - 2026-01-24 - BEP: Phase 3c i18n migration - Added useTranslation hook with admin namespace.
  *                       Replaced 19 hardcoded strings with t() calls across access control, export UI, results display.
@@ -43,6 +45,7 @@ import {
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { logEventsExported } from '../services/activityLogger';
 
 const CANONICAL_EVENTS_ROOT = 'economicEvents';
 const CANONICAL_EVENTS_CONTAINER = 'events';
@@ -222,6 +225,9 @@ export default function ExportEvents() {
         timestamp: new Date().toISOString(),
         collectionPath: `${CANONICAL_EVENTS_ROOT}/${CANONICAL_EVENTS_CONTAINER}/${CANONICAL_EVENTS_CONTAINER}`,
       });
+
+      // ADMIN AUDIT: Log events export
+      await logEventsExported(eventCount, userProfile?.uid || 'unknown');
     } catch (err) {
       console.error('❌ Export failed:', err);
       setError(t('admin:exportFailedDefault'));

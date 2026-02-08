@@ -4,7 +4,8 @@
     "sessions": "Sesiones",
     "about": "Acerca de"
   },
-  "general": {    "appearance": {
+  "general": {
+    "appearance": {
       "title": "Apariencia",
       "description": "Personaliza cómo se ve Time 2 Trade",
       "themeMode": "Tema",
@@ -12,7 +13,8 @@
       "dark": "Oscuro",
       "system": "Sistema",
       "systemDescription": "Sigue la configuración de tu dispositivo"
-    },    "languageAndTimezone": {
+    },
+    "languageAndTimezone": {
       "title": "Idioma y Zona Horaria",
       "language": {
         "label": "Idioma",
@@ -110,8 +112,8 @@
   },
   "drawer": {
     "title": "Configuración",
-    "subtitle": "Crea una cuenta gratuita para desbloquear todas las funciones",
-    "unlockButton": "Crear cuenta gratuita para desbloquear toda la configuración"
+    "subtitle": "Crea tu cuenta para desbloquear todas las funciones",
+    "unlockButton": "Crear tu cuenta para desbloquear toda la configuración"
   },
   "account": {
     "title": "Cuenta",

@@ -1,57 +1,112 @@
 # robots.txt for Time 2 Trade
 # https://time2.trade
 # 
-# SEO Policy: Allow search indexing, block AI training crawlers
-# BEP Strategy: Allow /events/ and /clock pages, block admin/legacy routes
-# Managed by: GitHub Copilot + Cloudflare Bot Controls
+# SEO Policy: Allow search indexing + AI web browsing, block AI training scrapers
+# BEP Strategy: Allow public content for discovery, block admin/legacy routes
+# Updated: 2026-02-05
 
-# Allow general web crawlers (Google, Bing, etc.)
+# =============================================================================
+# DEFAULT RULE: Allow all standard web crawlers
+# =============================================================================
 User-agent: *
 Allow: /
 
-# Explicitly allow trading app and event pages (required for proper crawling)
+# Explicitly allow key content paths
+Allow: /blog
 Allow: /events/
 Allow: /clock
 Allow: /calendar
 
-# Block static assets that shouldn't be indexed (saves crawl budget)
+# Block static assets (saves crawl budget)
 Disallow: /*.ico$
 Disallow: /favicon.ico
 Disallow: /faviconDark.ico
 
-# Block legacy app routes
+# Block legacy/admin routes
+Disallow: /app/
+Disallow: /admin/
+Disallow: /login
+
+# =============================================================================
+# AI WEB BROWSING BOTS: Full access to public content
+# These bots power user-facing search/chat features and cite sources
+# =============================================================================
+
+# ChatGPT-User (OpenAI) - Real-time web browsing for ChatGPT users
+User-agent: ChatGPT-User
+Allow: /
+
+# OAI-SearchBot (OpenAI) - SearchGPT and ChatGPT search features
+User-agent: OAI-SearchBot
+Allow: /
+
+# ClaudeBot (Anthropic) - Claude web browsing feature
+User-agent: ClaudeBot
+Allow: /
+
+# PerplexityBot - Perplexity AI search (cites sources with links)
+User-agent: PerplexityBot
+Allow: /
+
+# Twitterbot - X/Grok and Twitter card previews
+User-agent: Twitterbot
+Allow: /
+
+# =============================================================================
+# AI TRAINING/SCRAPING BOTS: Limited or blocked access
+# These bots scrape content for model training without user-facing attribution
+# =============================================================================
+
+# GPTBot (OpenAI) - Dual purpose: training + browsing backbone
+# Allow blog for discoverability, block app-specific content
+User-agent: GPTBot
+Allow: /blog
+Allow: /sitemap*.xml
+Allow: /robots.txt
+Allow: /llms.txt
+Disallow: /clock
+Disallow: /calendar
+Disallow: /events/
+Disallow: /admin/
 Disallow: /app/
 
-# Block admin and auth routes
-Disallow: /upload-desc
-Disallow: /export
-Disallow: /login
-Disallow: /fft2t
-
-# Block AI training bots explicitly (privacy + IP protection)
-User-agent: Amazonbot
-Disallow: /
-
-User-agent: Applebot-Extended
-Disallow: /
-
-User-agent: Bytespider
-Disallow: /
-
-User-agent: CCBot
-Disallow: /
-
-User-agent: ClaudeBot
-Disallow: /
-
+# Google-Extended - Google AI training only (not search)
 User-agent: Google-Extended
 Disallow: /
 
-User-agent: GPTBot
+# Applebot-Extended - Apple AI training
+User-agent: Applebot-Extended
 Disallow: /
 
+# meta-externalagent - Meta AI training
 User-agent: meta-externalagent
 Disallow: /
 
-# Sitemap location (generated dynamically with 166 URLs: 7 base + 159 events)
+# CCBot - Common Crawl (used for AI training datasets)
+User-agent: CCBot
+Disallow: /
+
+# Bytespider - ByteDance/TikTok AI scraper
+User-agent: Bytespider
+Disallow: /
+
+# Amazonbot - Amazon AI training
+User-agent: Amazonbot
+Disallow: /
+
+# cohere-ai - Cohere training crawler
+User-agent: cohere-ai
+Disallow: /
+
+# anthropic-ai - Anthropic training crawler (different from ClaudeBot browsing)
+User-agent: anthropic-ai
+Disallow: /
+
+# Diffbot - AI data extraction
+User-agent: Diffbot
+Disallow: /
+
+# =============================================================================
+# SITEMAP LOCATION
+# =============================================================================
 Sitemap: https://time2.trade/sitemap.xml

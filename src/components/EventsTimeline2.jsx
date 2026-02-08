@@ -7,6 +7,7 @@
  * for past events in the selected timezone.
  *
  * Changelog:
+ * v3.10.0 - 2026-02-06 - BEP: Display rescheduled/reinstated event indicators. Reschedule badge (ScheduleIcon) shows when rescheduledFrom is set with tooltip showing old date. Reinstate badge (RestoreIcon) shows when event status is cancelled but has been reappeared.
  * v3.9.0 - 2026-01-28 - BEP THEME: Replaced 15+ hardcoded colors with theme tokens throughout component. Changed #f5f5f5 to theme.palette.action.hover, #9e9e9e/#757575 gray to theme.palette.text.disabled, #424242/#616161 dark text to theme.palette.text.secondary, #e0e0e0/#d6d6d6 disabled backgrounds to alpha(theme.palette.text.disabled), #b0b0b0 divider to theme.palette.divider, alpha('#000') to alpha(theme.palette.text.primary), rgba(25,118,210) to theme.palette.info.main. All colors now adapt to light/dark theme modes dynamically.
  * v3.8.5 - 2026-01-16 - Display all-day/tentative time labels for GPT placeholder events.
  * v3.8.4 - 2025-12-18 - Centralize impact colors (low impact yellow #F2C94C, unknown taupe #C7B8A4) to avoid collisions with session and NOW colors across timeline badges.
@@ -94,6 +95,8 @@ import FavoriteBorderOutlinedIcon from '@mui/icons-material/FavoriteBorderOutlin
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import NoteAltOutlinedIcon from '@mui/icons-material/NoteAltOutlined';
 import NoteAltIcon from '@mui/icons-material/NoteAlt';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import RestoreIcon from '@mui/icons-material/Restore';
 import { hasEventDescriptionEntry } from '../services/economicEventsService';
 import EventModal from './EventModal';
 import { formatTime } from '../utils/dateUtils';
@@ -1337,6 +1340,45 @@ const EventCard = memo(({
                   color: 'text.secondary',
                 }}
               />
+            )}
+
+            {/* BEP v3.10.0: Reschedule/Reinstate badges */}
+            {event.rescheduledFrom && (
+              <MuiTooltip
+                title={t('events:status.rescheduledFrom', { date: new Date(event.rescheduledFrom).toLocaleString() })}
+                arrow
+                placement="top"
+              >
+                <Chip
+                  icon={<ScheduleIcon />}
+                  label={t('events:status.rescheduled')}
+                  size="small"
+                  variant="outlined"
+                  color="secondary"
+                  sx={{
+                    height: 22,
+                    fontSize: { xs: '0.65rem', sm: '0.7rem' },
+                    fontWeight: 500,
+                  }}
+                />
+              </MuiTooltip>
+            )}
+
+            {event.status === 'cancelled' && (
+              <MuiTooltip title={t('events:status.reinstatedTooltip')} arrow placement="top">
+                <Chip
+                  icon={<RestoreIcon />}
+                  label={t('events:status.reinstated')}
+                  size="small"
+                  variant="outlined"
+                  color="info"
+                  sx={{
+                    height: 22,
+                    fontSize: { xs: '0.65rem', sm: '0.7rem' },
+                    fontWeight: 500,
+                  }}
+                />
+              </MuiTooltip>
             )}
           </Box>
 

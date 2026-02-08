@@ -14,6 +14,7 @@
  * - BEP i18n: Detects and applies language from magic link URL parameter
  * 
  * Changelog:
+ * v2.2.0 - 2026-02-05 - ACTIVITY LOGGING: Log user_signup to systemActivityLog when new users register via magic link. Includes email, userId, and source='magic_link' for admin audit trail (Phase 6).
  * v2.1.1 - 2026-02-04 - BEP SEO CRITICAL: Updated language detection to use pathname subpaths (/es/, /fr/) instead of query params. Magic links land on subpath URLs, language extracted from pathname before auth.
  * v2.1.0 - 2026-02-02 - BEP ANALYTICS: Track magic link sign-ups and logins to Facebook Pixel based on isNewUser flag.
  * v2.0.0 - 2026-02-02 - BEP i18n: Detect ?lang= parameter from magic link URL and apply language before auth UI renders. Resend link also preserves current language. Improves UX for ES/FR users.
@@ -39,6 +40,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AuthModal2 from './AuthModal2';
 import { createUserProfileSafely } from '../utils/userProfileUtils';
 import { trackSignUp, trackLogin } from '../services/facebookPixelService';
+import { logUserSignup } from '../services/activityLogger';
 
 export default function EmailLinkHandler() {
   const { t, i18n } = useTranslation(['dialogs', 'states', 'actions']);
@@ -145,6 +147,8 @@ export default function EmailLinkHandler() {
       // BEP ANALYTICS: Track sign-up or login based on isNewUser flag
       if (newUser) {
         trackSignUp(result.user.email, 'email');
+        // ADMIN AUDIT: Log user signup to activity log
+        await logUserSignup(result.user.uid, result.user.email, 'magic_link');
       } else {
         trackLogin(result.user.email, 'email');
       }

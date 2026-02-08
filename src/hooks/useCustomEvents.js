@@ -3,9 +3,10 @@
  * 
  * Purpose: Auth-aware hook for user custom reminder events with realtime range subscriptions.
  * Key responsibility and main functionality: Stream custom events for a date range, and expose
- * create/update/delete helpers with BEP schema handling.
+ * create/update/delete helpers with BEP schema handling, plus activity logging for CRUD ops.
  * 
  * Changelog:
+ * v1.1.0 - 2026-02-05 - Added activity logging for event_created, event_updated, event_deleted actions
  * v1.0.0 - 2026-01-21 - Initial implementation for custom reminder events.
  */
 
@@ -17,6 +18,11 @@ import {
   subscribeToCustomEventsByRange,
   updateCustomEvent,
 } from '../services/customEventsService';
+import {
+  logEventCreated,
+  logEventDeleted,
+  logEventUpdated,
+} from '../services/activityLogger';
 
 export const useCustomEvents = ({ startDate, endDate } = {}) => {
   const { user } = useAuth();
@@ -67,6 +73,15 @@ export const useCustomEvents = ({ startDate, endDate } = {}) => {
     if (!user) return { success: false, requiresAuth: true };
     try {
       const id = await addCustomEvent(user.uid, payload);
+      
+      // Log activity: custom event created
+      await logEventCreated(
+        payload.title || 'Untitled',
+        payload.currency || 'USD',
+        payload.localDate || new Date().toISOString().split('T')[0],
+        user.uid
+      );
+      
       return { success: true, id };
     } catch (err) {
       const message = err?.message || 'Failed to add custom event.';
@@ -81,6 +96,14 @@ export const useCustomEvents = ({ startDate, endDate } = {}) => {
     if (!user) return { success: false, requiresAuth: true };
     try {
       await updateCustomEvent(user.uid, eventId, payload);
+      
+      // Log activity: custom event updated
+      await logEventUpdated(
+        payload.title || 'Untitled',
+        payload.currency || 'USD',
+        user.uid
+      );
+      
       return { success: true };
     } catch (err) {
       const message = err?.message || 'Failed to update custom event.';
@@ -95,6 +118,14 @@ export const useCustomEvents = ({ startDate, endDate } = {}) => {
     if (!user) return { success: false, requiresAuth: true };
     try {
       await deleteCustomEvent(user.uid, eventId);
+      
+      // Log activity: custom event deleted
+      await logEventDeleted(
+        'Custom Event',
+        'USD',
+        user.uid
+      );
+      
       return { success: true };
     } catch (err) {
       const message = err?.message || 'Failed to delete custom event.';

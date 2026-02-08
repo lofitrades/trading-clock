@@ -24,8 +24,8 @@
         "Time 2 Trade is a web-based application providing trading session visualization and economic calendar tools",
         "Core features: Market session clock, economic event calendar, timezone management, user preferences synchronization",
         "Data sources: Economic events from JBlanked API (MQL5/Forex Factory equivalent data)",
-        "Free access: All features are available with free account creation",
-        "No premium tiers: We do not charge subscription fees for service access"
+        "Complete access: All features are available with account creation",
+        "No subscription fees: We do not charge for service access"
       ]
     },
     "accounts": {

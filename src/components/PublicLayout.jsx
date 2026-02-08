@@ -12,6 +12,8 @@
  * - Add reminder button visible on all pages for both auth and non-auth users
  * 
  * Changelog:
+ * v1.0.53 - 2026-02-08 - BEP CRITICAL FIX: Fixed content overflowing behind bottom AppBar on mobile browsers (non-PWA). Root cause: maxHeight on main content used 100vh which on mobile Chrome/Safari includes the browser address bar and device navigation bar height — the visual viewport is shorter. Fix: Changed maxHeight from calc(100vh - ...) to calc(var(--t2t-vv-height, 100dvh) - ...) to use the visual viewport height set by clientEffects.js. This ensures the clock Paper and calendar content fit exactly within the visible screen on all mobile browsers. Fallback to 100dvh (dynamic viewport height) if the CSS variable is not set.
+ * v1.0.52 - 2026-02-06 - BEP LAYOUT FIX: Changed main content justifyContent from 'center' to 'flex-start'. Content now anchors to top and scrolls naturally instead of vertically centering (which left dead space at bottom on xs/sm between MainLayout and bottom AppBar).
  * v1.0.51 - 2026-01-28 - BEP THEME-AWARE: Updated bgcolor from hardcoded '#F9F9F9' to 'theme.palette.background.default' for light/dark mode support. Light mode: #F9F9F9 (unchanged), Dark mode: #121212 (Material Design 3). Entire PublicLayout shell now respects user's light/dark theme preference with proper contrast and accessibility. Added useTheme hook import and call.
  * v1.0.50 - 2026-01-22 - BEP BUGFIX: Fixed critical issue where clock content was clipped on mobile after auth redirect. The maxHeight calculation for xs/sm was only subtracting bottom nav height (64px) but not the fixed MobileHeader height (~48px). Content was being hidden due to overflow:hidden + incorrect maxHeight. Now subtracts both: 'calc(100vh - var(--t2t-bottom-nav-height, 64px) - 48px)' for xs/sm. This ensures ClockCanvas and all main content renders correctly after authentication redirect to /clock.
  * v1.0.49 - 2026-01-22 - BEP: Add onOpenAddReminder prop to pass through to MobileHeader. Enables add reminder functionality on all pages with auth gating for non-auth users.
@@ -76,6 +78,7 @@ import PropTypes from 'prop-types';
 import { Box, useTheme } from '@mui/material';
 import DashboardAppBar from './AppBar';
 import MobileHeader from './MobileHeader';
+import AdminButton from './AdminButton';
 import { useAuth } from '../contexts/AuthContext';
 import useCustomEvents from '../hooks/useCustomEvents';
 import useCustomEventNotifications from '../hooks/useCustomEventNotifications';
@@ -182,42 +185,53 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                         flex: 1,
                         display: 'flex',
                         flexDirection: 'column',
-                        justifyContent: 'center',
+                        justifyContent: 'flex-start',
                         alignItems: 'center',
                         minHeight: 0,
                         overflow: 'hidden',
-                        pt: { xs: 'var(--t2t-mobile-header-height, 48px)', sm: 'var(--t2t-mobile-header-height, 48px)', md: 0 },
+                        pt: { xs: 'var(--t2t-mobile-header-height, 52px)', md: 0 },
                         // BEP: Mobile header height is dynamic via CSS custom property set in MobileHeader
                         // Fallback to 48px if custom property unavailable
                         // Desktop: no top padding (AppBar mb handles gap)
-                        // Constrain height so inner content can scroll without hiding behind nav
-                        // CRITICAL: maxHeight must subtract BOTH top header AND bottom nav on xs/sm
+                        // Constrain height so inner content can scroll without hiding behind fixed bottom nav
+                        // NOTE: Only subtract bottom nav. The header clearance is already handled by pt above,
+                        // so subtracting it from maxHeight would double-count it and create a gap.
+                        // CRITICAL FIX (v1.0.53): Use var(--t2t-vv-height, 100dvh) instead of 100vh.
+                        // On mobile browsers (Chrome, Safari) 100vh includes the address bar and device
+                        // navigation bar height — the visual viewport is shorter. Using the visual viewport
+                        // CSS variable (set by clientEffects.js) ensures the content area fits exactly
+                        // within the visible screen, preventing the clock Paper from overflowing behind
+                        // the fixed bottom AppBar on non-PWA mobile browsers.
                         maxHeight: {
-                            xs: 'calc(100vh - var(--t2t-bottom-nav-height, 64px) - var(--t2t-mobile-header-height, 48px))',
-                            sm: 'calc(100vh - var(--t2t-bottom-nav-height, 64px) - var(--t2t-mobile-header-height, 48px))',
+                            xs: 'calc(var(--t2t-vv-height, 100dvh) - var(--t2t-bottom-nav-height, 64px))',
+                            sm: 'calc(var(--t2t-vv-height, 100dvh) - var(--t2t-bottom-nav-height, 64px))',
                             md: '100%', // md+ has sticky top AppBar, flex handles layout
                         },
                     }}
                 >
                     {/* CENTERING PATTERN (ENTERPRISE): 
                     Main Box uses flex layout with justifyContent:center + alignItems:center for centering.
-                    Content Box gets width:100% + maxWidth:1560 + px:responsive to stay constrained and centered.
-                    Children fill the content Box using flex: 1.
+                    Content Box gets width:100% + maxWidth:1560 to stay constrained and centered.
+                    MainLayout handles all internal padding/gap via its own Paper and sx props.
                     This prevents double flex/width conflicts and works consistently on all breakpoints. */}
                     <Box
                         sx={{
                             width: '100%',
                             maxWidth: 1560,
-                            px: { xs: 2, sm: 2.75, md: 3.5 },
                             display: 'flex',
                             flexDirection: 'column',
                             minHeight: 0,
                             flex: 1,
+                            overflowY: 'auto',
+                            overflowX: 'hidden',
                         }}
                     >
                         {children}
                     </Box>
                 </Box>
+
+                {/* Admin Button - Fixed floating button for admin/author users, hidden on /admin page */}
+                <AdminButton />
             </Box>
         </>
     );
@@ -247,6 +261,7 @@ PublicLayout.propTypes = {
     onMarkRead: PropTypes.func,
     onMarkAllRead: PropTypes.func,
     onClearAll: PropTypes.func,
+    mobileHeaderAction: PropTypes.node,
     onOpenAddReminder: PropTypes.func,
 };
 

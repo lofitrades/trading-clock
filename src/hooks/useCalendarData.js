@@ -12,6 +12,7 @@
  * 4. Firestore (150-300ms) - authoritative source
  * 
  * Changelog:
+ * v1.6.0 - 2026-02-06 - BEP: Changed default date preset from 'thisWeek' to 'today' for non-auth users and filter reset. Provides more focused initial view.
  * v1.5.0 - 2026-02-02 - BEP: Removed Zustand real-time subscription (timezone conversion complexity). Data refreshes on page reload/remount for accurate display.
  * v1.4.0 - 2026-02-02 - BEP REALTIME: Added Zustand subscription for real-time admin edits. Calendar now merges adapter results with live Zustand updates. Admin edits propagate instantly without page refresh.
  * v1.3.0 - 2026-01-29 - BEP PHASE 2.6: Migrate to eventsStorageAdapter + Zustand subscriptions. Replaced direct Firestore calls with adaptive storage. Added selective Zustand subscription for real-time updates without re-fetching. Expected: 75% faster initial load, 80% fewer re-renders, 60% less memory.
@@ -166,7 +167,7 @@ const ensureDate = (value) => {
   return value instanceof Date ? value : new Date(value);
 };
 
-export function useCalendarData({ defaultPreset = 'thisWeek' } = {}) {
+export function useCalendarData({ defaultPreset = 'today' } = {}) {
   const { user } = useAuth();
   const { selectedTimezone, eventFilters, newsSource, updateEventFilters, updateNewsSource } = useSettingsSafe();
   const { isFavorite, toggleFavorite, favoritesLoading, isFavoritePending } = useFavorites();

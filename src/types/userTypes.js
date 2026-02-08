@@ -5,6 +5,8 @@
  * Provides centralized configuration for RBAC and subscription-based access control.
  * 
  * Changelog:
+ * v1.2.0 - 2026-02-05 - Renamed EDITOR → AUTHOR for semantic clarity (blog author vs system editor)
+ * v1.1.0 - 2026-02-04 - Added EDITOR role for blog CMS access (Phase 1 Blog implementation)
  * v1.0.0 - 2025-11-30 - Initial implementation
  */
 
@@ -14,6 +16,7 @@
  */
 export const USER_ROLES = {
   USER: 'user',           // Default role - basic access
+  EDITOR: 'editor',       // Editor role - blog CMS access (create/edit/publish posts)
   ADMIN: 'admin',         // Administrator - manage users, settings, content
   SUPERADMIN: 'superadmin', // Super Administrator - full system access
 };

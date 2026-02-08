@@ -6,6 +6,7 @@
  * Priority: NFS > JBlanked-FF > GPT > JBlanked-MT > JBlanked-FXStreet
  *
  * Changelog:
+ * v1.4.0 - 2026-02-05 - Integrated activity logging for sync completion and failures.
  * v1.3.2 - 2026-01-21 - BEP Refactor: Normalize JBlanked currency prefix for matching.
  * v1.3.1 - 2026-01-21 - BEP Refactor: Add fallback matching window for JBlanked actuals.
  * v1.3.0 - 2026-01-21 - BEP Refactor: Pass originalName to preserve source-specific event names.
@@ -25,6 +26,10 @@ import {
   normalizeEventName,
 } from "../models/economicEvent";
 import {parseJblankedDateToTimestamp} from "../utils/dateUtils";
+import {
+  logSyncCompleted,
+  logSyncFailed,
+} from "./activityLoggingService";
 
 const PROVIDER_PATH_MAP: Record<"jblanked-ff" | "jblanked-mt" | "jblanked-fxstreet", string> = {
   "jblanked-ff": "forex-factory",
@@ -113,6 +118,7 @@ export async function syncTodayActualsFromJblankedProvider(
   const apiKey = getApiKey();
   if (!apiKey) {
     logger.error("❌ Missing JBlanked API key (JBLANKED_API_KEY)");
+    await logSyncFailed("JBlanked", "Missing API key - cannot authenticate");
     return;
   }
 
@@ -121,6 +127,7 @@ export async function syncTodayActualsFromJblankedProvider(
     payload = await fetchProviderPayload(provider, apiKey);
   } catch (error) {
     logger.error("❌ Failed to fetch JBlanked provider", {provider, error});
+    await logSyncFailed("JBlanked", `Fetch error: ${error instanceof Error ? error.message : String(error)}`);
     return;
   }
 
@@ -234,6 +241,16 @@ export async function syncTodayActualsFromJblankedProvider(
     mergedIntoExisting,
     skippedMissingBase,
   });
+
+  // Log sync completion
+  await logSyncCompleted(
+    `JBlanked (${provider})`,
+    processed,
+    0,
+    mergedIntoExisting,
+    0,
+    0
+  );
 }
 
 export async function syncTodayActualsFromJblankedAllConfigured(): Promise<void> {

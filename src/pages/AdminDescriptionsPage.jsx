@@ -6,6 +6,8 @@
  * BEP: Full CRUD operations with validation and changelog tracking
  *
  * Changelog:
+ * v1.2.0 - 2026-02-05 - BEP: Allow admin role to manage descriptions (was superadmin-only).
+ * v1.1.0 - 2026-02-05 - ACTIVITY LOGGING: Log event_description_created/updated/deleted to systemActivityLog for all description CRUD operations. Tracks field changes and admin userId for audit trail (Phase 8.0).
  * v1.0.0 - 2026-02-02 - Initial implementation with BEP standards
  */
 
@@ -44,6 +46,7 @@ import {
 } from '../services/adminDescriptionsService';
 import { useAuth } from '../contexts/AuthContext';
 import { logAppEvent } from '../utils/analytics';
+import { logEventDescriptionCreated, logEventDescriptionUpdated, logEventDescriptionDeleted } from '../services/activityLogger';
 
 const AdminDescriptionsPage = () => {
     const { t } = useTranslation('admin');
@@ -72,9 +75,9 @@ const AdminDescriptionsPage = () => {
             return;
         }
 
-        if (userProfile?.role !== 'superadmin') {
+        if (userProfile?.role !== 'superadmin' && userProfile?.role !== 'admin') {
             navigate('/', { replace: true });
-            setError(t('superadminOnly'));
+            setError(t('adminOrSuperadminOnly'));
             return;
         }
     }, [user, userProfile?.role, navigate, t]);
@@ -214,6 +217,10 @@ const AdminDescriptionsPage = () => {
                 descriptionId: id,
                 fields: Object.keys(updates),
             }).catch(err => console.warn('Analytics error:', err));
+
+            // ADMIN AUDIT: Log description update
+            const eventName = originalData?.name || id;
+            await logEventDescriptionUpdated(id, eventName, Object.keys(updates), user.uid);
         } catch (err) {
             console.error('Error updating description:', err);
             setSnackbar({
@@ -243,6 +250,9 @@ const AdminDescriptionsPage = () => {
             logAppEvent('admin_description_create', {
                 descriptionName: descriptionData.name,
             }).catch(err => console.warn('Analytics error:', err));
+
+            // ADMIN AUDIT: Log description creation
+            await logEventDescriptionCreated(newDescription.id, descriptionData.name, user.uid);
         } catch (err) {
             console.error('Error creating description:', err);
             setSnackbar({
@@ -270,6 +280,10 @@ const AdminDescriptionsPage = () => {
             logAppEvent('admin_description_delete', {
                 descriptionId: id,
             }).catch(err => console.warn('Analytics error:', err));
+
+            // ADMIN AUDIT: Log description deletion - find name from deleted item
+            const deletedItem = descriptions.find(d => d.id === id);
+            await logEventDescriptionDeleted(id, deletedItem?.name || id, user.uid);
         } catch (err) {
             console.error('Error deleting description:', err);
             setSnackbar({
@@ -278,7 +292,7 @@ const AdminDescriptionsPage = () => {
                 severity: 'error',
             });
         }
-    }, [t]);
+    }, [t, descriptions, user?.uid]);
 
     // Handle open create dialog
     const handleOpenCreateDialog = useCallback(() => {
@@ -298,7 +312,7 @@ const AdminDescriptionsPage = () => {
     }, []);
 
     // RBAC check
-    if (!user || userProfile?.role !== 'superadmin') {
+    if (!user || (userProfile?.role !== 'superadmin' && userProfile?.role !== 'admin')) {
         return (
             <Container maxWidth="lg" sx={{ py: 4 }}>
                 <Alert severity="error">
