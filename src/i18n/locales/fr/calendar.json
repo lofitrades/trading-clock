@@ -80,6 +80,7 @@
     "removeFavorite": "Retirer des favoris",
     "addToFavorites": "Ajouter aux favoris",
     "customEvent": "Événement personnalisé",
+    "customEventLabel": "MON ÉVÉNEMENT",
     "unknown": "Inconnu",
     "global": "Global",
     "allDay": "Toute la journée",
@@ -110,6 +111,15 @@
       "forecast": "PRÉ",
       "previous": "PRC"
     }
+  },
+  "impact": {
+    "high": { "label": "Élevé" },
+    "medium": { "label": "Moyen" },
+    "low": { "label": "Faible" },
+    "myEvents": { "label": "Mes Événements" },
+    "notLoaded": { "label": "Non Chargé" },
+    "nonEconomic": { "label": "Non-Économique" },
+    "unknown": { "label": "Inconnu" }
   }
 }
 

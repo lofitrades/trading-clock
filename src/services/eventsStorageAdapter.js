@@ -13,6 +13,11 @@
  * - All results: Update IndexedDB + Zustand store for future hits
  *
  * Changelog:
+ * v1.1.0 - 2026-02-09 - BEP MULTI-FILTER: Accept currencies[] and impacts[] arrays instead of
+ *                        single currency/impact. Apply all filter values in client-side filtering.
+ *                        Cache key now includes sorted arrays for proper deduplication.
+ *                        Fetch from Firestore uses date range only (no server-side filter),
+ *                        then client-side filter for full multi-select support.
  * v1.0.0 - 2026-01-29 - BEP PHASE 2.5: Initial storage adapter with layered caching strategy
  */
 
@@ -43,12 +48,19 @@ export const fetchEventsWithAdaptiveStorage = async (
   options = {}
 ) => {
   const {
+    // BEP v1.1.0: Accept both array and single-value forms for backwards compatibility
+    currencies,
     currency,
+    impacts,
     impact,
     source,
     enrich = false,
     skipCache = false,
   } = options;
+
+  // BEP v1.1.0: Normalize to arrays for consistent handling
+  const currencyList = currencies || (currency ? [currency] : []);
+  const impactList = impacts || (impact ? [impact] : []);
 
   const store = useEventsStore.getState();
 
@@ -65,17 +77,42 @@ export const fetchEventsWithAdaptiveStorage = async (
       ? endDate.toISOString().split('T')[0]
       : endDate;
 
-  // Build query cache key
+  // BEP v1.1.0: Cache key includes sorted arrays for proper deduplication
   const cacheKey = skipCache
     ? null
     : JSON.stringify({
         type: 'adaptive',
         startStr,
         endStr,
-        currency,
-        impact,
+        currencies: [...currencyList].sort(),
+        impacts: [...impactList].sort(),
         source,
       });
+
+  // ========================================================================
+  // BEP v1.1.0: Client-side multi-filter helper
+  // Applied after each cache layer to support full multi-select filtering
+  // ========================================================================
+  const applyClientFilters = (events) => {
+    let filtered = events;
+    if (currencyList.length > 0) {
+      const set = new Set(currencyList.map((c) => String(c).toUpperCase().trim()));
+      filtered = filtered.filter((e) => {
+        const cur = (e.currency || e.Currency || '').toUpperCase().trim();
+        // Always include global events (no currency)
+        if (!cur || cur === 'ALL' || cur === 'GLOBAL') return true;
+        return set.has(cur);
+      });
+    }
+    if (impactList.length > 0) {
+      const set = new Set(impactList.map((i) => String(i).toLowerCase().trim()));
+      filtered = filtered.filter((e) => {
+        const imp = (e.impact || e.strength || e.Strength || '').toLowerCase().trim();
+        return set.has(imp);
+      });
+    }
+    return filtered;
+  };
 
   // ========================================================================
   // LAYER 1: Zustand Query Cache (fastest, 5-min TTL)
@@ -94,28 +131,21 @@ export const fetchEventsWithAdaptiveStorage = async (
   try {
     // ========================================================================
     // LAYER 2: IndexedDB (fast, no serialization, O(log N) queries)
+    // BEP v1.1.0: Fetch full date range from IDB, then apply multi-filters client-side
     // ========================================================================
     if (eventsDB.isSupported()) {
       try {
         const idbEvents = await eventsDB.getEventsByDateRange(startStr, endStr);
 
-        // Apply filters
-        let filtered = idbEvents;
-        if (currency) {
-          filtered = filtered.filter((e) => e.currency === currency);
-        }
-        if (impact) {
-          filtered = filtered.filter((e) => e.impact === impact);
-        }
-        if (source) {
-          filtered = filtered.filter((e) => e.sources?.canonical === source);
-        }
+        if (idbEvents.length > 0) {
+          // BEP v1.1.0: Apply all filters client-side for full multi-select support
+          const filtered = applyClientFilters(idbEvents);
 
-        if (filtered.length > 0) {
-          // Cache found! Update Zustand store
-          store.addEvents?.(idbEvents, { source: 'indexeddb' });
-
-          return filtered;
+          if (filtered.length > 0) {
+            // Cache found! Update Zustand store
+            store.addEvents?.(idbEvents, { source: 'indexeddb' });
+            return filtered;
+          }
         }
       } catch (error) {
         console.warn('IndexedDB fetch failed, falling back to Firestore:', error);
@@ -125,24 +155,19 @@ export const fetchEventsWithAdaptiveStorage = async (
 
     // ========================================================================
     // LAYER 3: Query Batcher (merges overlapping Firestore requests)
+    // BEP v1.1.0: Fetch full date range, client-side filter for multi-select
     // ========================================================================
     const batchResults = await queryBatcher.fetch({
       startDate: new Date(startStr),
       endDate: new Date(endStr),
-      currency,
-      impact,
+      currencies: currencyList,
+      impacts: impactList,
       source,
       enrich,
     });
 
-    // Apply additional filtering
-    let filtered = batchResults;
-    if (currency) {
-      filtered = filtered.filter((e) => e.currency === currency);
-    }
-    if (impact) {
-      filtered = filtered.filter((e) => e.impact === impact);
-    }
+    // BEP v1.1.0: Apply client-side multi-filters
+    const filtered = applyClientFilters(batchResults);
 
     // ========================================================================
     // LAYER 4: Write to IndexedDB for next time (persistent cache)
@@ -158,10 +183,19 @@ export const fetchEventsWithAdaptiveStorage = async (
 
     // ========================================================================
     // LAYER 5: Update Zustand store (single source of truth)
+    // BEP v1.1.0: Store full (unfiltered) results for broader cache coverage,
+    // then cache the filtered IDs for this specific query
     // ========================================================================
     if (store.addEvents && batchResults.length > 0) {
       store.addEvents(batchResults, { source: 'firestore' });
-      store.invalidateQueryCache?.();
+    }
+    // Cache filtered result IDs for this exact query key
+    if (cacheKey && filtered.length > 0) {
+      const filteredIds = filtered.map((e) => e.id).filter(Boolean);
+      store.queryCache.set(cacheKey, {
+        ids: filteredIds,
+        timestamp: Date.now(),
+      });
     }
 
     return filtered;
@@ -192,10 +226,15 @@ export const useEventsAdapter = (startDate, endDate, options = {}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Memoize options to avoid complex dependency expressions
+  // BEP v1.1.0: Stable serialization that handles both arrays and single values
   const optionsKey = useMemo(
-    () => JSON.stringify(options),
-    [options]
+    () => JSON.stringify({
+      currencies: options.currencies || (options.currency ? [options.currency] : []),
+      impacts: options.impacts || (options.impact ? [options.impact] : []),
+      source: options.source,
+      enrich: options.enrich,
+    }),
+    [options.currencies, options.currency, options.impacts, options.impact, options.source, options.enrich]
   );
 
   // Refetch function for manual updates

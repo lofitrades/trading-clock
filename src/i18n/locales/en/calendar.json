@@ -1,10 +1,9 @@
 {
   "title": "Economic Calendar",
-  "subtitle": "Forex Factory-powered calendar with NY time-first clarity",
+  "subtitle": "Forex Factory-powered with NY time-first clarity",
   "filter": "Filter Events",
   "search": "Search Events",
   "sort": "Sort by",
-  "impact": "Impact",
   "currency": "Currency",
   "source": "Source",
   "date": "Date",
@@ -80,6 +79,7 @@
     "removeFavorite": "Remove favorite",
     "addToFavorites": "Add to favorites",
     "customEvent": "Custom event",
+    "customEventLabel": "MY EVENT",
     "unknown": "Unknown",
     "global": "Global",
     "allDay": "All Day",
@@ -110,6 +110,15 @@
       "forecast": "FOR",
       "previous": "PRV"
     }
+  },
+  "impact": {
+    "high": { "label": "High" },
+    "medium": { "label": "Medium" },
+    "low": { "label": "Low" },
+    "myEvents": { "label": "My Events" },
+    "notLoaded": { "label": "Not Loaded" },
+    "nonEconomic": { "label": "Non-Economic" },
+    "unknown": { "label": "Unknown" }
   }
 }
 

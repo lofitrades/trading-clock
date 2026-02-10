@@ -38,6 +38,7 @@
     "moderateData": "Impacto medio",
     "weakData": "Impacto bajo",
     "dataNotLoaded": "Datos no cargados",
-    "nonEconomic": "No económico"
+    "nonEconomic": "No económico",
+    "myEvents": "Mis Eventos"
   }
 }

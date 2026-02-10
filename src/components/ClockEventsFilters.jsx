@@ -10,6 +10,10 @@
  * BEP: Mobile-first, responsive, compact layout.
  *
  * Changelog:
+ * v2.3.0 - 2026-02-09 - BEP DEFAULT PRESET: Changed default datePreset fallback from 'today'
+ *                        to 'thisWeek' for consistency with useCalendarData and to provide broader
+ *                        market context. When user hasn't persisted a date preference, calendar
+ *                        defaults to 7-day view instead of 1-day view.
  * v2.2.0 - 2026-02-08 - BEP PERSISTENCE FIX: Moved datePreset from local state to
  *                        eventFilters in SettingsContext. Now reads datePreset from
  *                        eventFilters (SettingsContext) instead of useState, ensuring
@@ -72,6 +76,7 @@ const IMPACT_OPTIONS = [
     { value: 'Strong Data', labelKey: 'filter:impacts.strongData' },
     { value: 'Moderate Data', labelKey: 'filter:impacts.moderateData' },
     { value: 'Weak Data', labelKey: 'filter:impacts.weakData' },
+    { value: 'My Events', labelKey: 'filter:impacts.myEvents' },
     { value: 'Data Not Loaded', labelKey: 'filter:impacts.dataNotLoaded' },
     { value: 'Non-Economic', labelKey: 'filter:impacts.nonEconomic' },
 ];
@@ -80,6 +85,7 @@ const IMPACT_COLORS = {
     'Strong Data': '#d32f2f',
     'Moderate Data': '#f57c00',
     'Weak Data': '#F2C94C',
+    'My Events': '#42a5f5',
     'Data Not Loaded': '#C7B8A4',
     'Non-Economic': '#9e9e9e',
 };
@@ -212,7 +218,7 @@ export default function ClockEventsFilters({
     const selectedCurrencies = eventFilters?.currencies || [];
     const selectedImpacts = eventFilters?.impacts || [];
     const favoritesOnly = eventFilters?.favoritesOnly ?? false;
-    const datePreset = eventFilters?.datePreset || 'today';
+    const datePreset = eventFilters?.datePreset || 'thisWeek';
 
     // ─── Local state (UI-only concepts) ───
     const [availableCurrencies, setAvailableCurrencies] = useState([]);
@@ -391,7 +397,7 @@ export default function ClockEventsFilters({
             <ClearableSelect
                 value={selectedImpacts}
                 onChange={handleImpactChange}
-                label={t('calendar:impact')}
+                label={t('filter:labels.impacts')}
                 sx={{ minWidth: { xs: 110, sm: 160 }, flex: 1 }}
                 disabled={disabled}
                 multiple
@@ -402,7 +408,7 @@ export default function ClockEventsFilters({
                                 key={impact}
                                 label={t(
                                     IMPACT_OPTIONS.find(o => o.value === impact)
-                                        ?.labelKey || 'calendar:impact',
+                                        ?.labelKey || 'filter:impacts.strongData',
                                     impact
                                 )}
                                 size="small"

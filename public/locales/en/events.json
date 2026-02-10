@@ -33,6 +33,7 @@
     "repeatLabel": "Repeat",
     "impactLabel": "Impact",
     "showOnClock": "Show on Clock",
+    "showOnCalendar": "Show on Calendar",
     "noRepeat": "Does not repeat",
     "everyDay": "Every day",
     "everyWeek": "Every week",
@@ -48,6 +49,8 @@
       "appearance": "Appearance",
       "visibleOnClock": "Visible on clock",
       "hiddenFromClock": "Hidden from clock",
+      "visibleOnCalendar": "Visible on calendar",
+      "hiddenFromCalendar": "Hidden from calendar",
       "notes": "Notes",
       "timezone": "Timezone"
     },
@@ -87,6 +90,8 @@
     "dataNotLoadedDesc": "Impact level data is still loading",
     "nonEconomic": "Non-Economic",
     "nonEconomicDesc": "This event is not classified as economic data",
+    "myEvents": "My Events",
+    "myEventsDesc": "Personal custom event created by you",
     "unknown": "Unknown",
     "unknownDesc": "Impact level cannot be determined"
   },
@@ -173,6 +178,7 @@
           "hour1": "Every 1 hour",
           "hour4": "Every 4 hours",
           "day1": "Every day",
+          "weekdays": "Every weekday (M-F)",
           "week1": "Every week",
           "month1": "Every month",
           "quarter1": "Every quarter",
@@ -215,6 +221,10 @@
         "showOnClock": {
           "label": "Show on clock",
           "description": "Display this event on your trading clock"
+        },
+        "showOnCalendar": {
+          "label": "Show on calendar",
+          "description": "Display this event in your economic calendar table"
         }
       }
     },

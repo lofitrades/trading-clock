@@ -76,6 +76,7 @@ export const getImpactColors = (isDark) => ({
   high: isDark ? '#ef5350' : '#d32f2f',       // Red
   medium: isDark ? '#ff9800' : '#f57c00',     // Orange
   low: isDark ? '#FFD54F' : '#F2C94C',        // Yellow
+  myEvents: isDark ? '#64b5f6' : '#42a5f5',   // Blue — custom events
   nonEconomic: isDark ? '#bdbdbd' : '#9e9e9e',
   unknown: isDark ? '#C7B8A4' : '#C7B8A4',    // Taupe (constant)
 });
@@ -100,6 +101,7 @@ export const lightCssVars = {
   '--t2t-impact-high': '#d32f2f',
   '--t2t-impact-medium': '#f57c00',
   '--t2t-impact-low': '#F2C94C',
+  '--t2t-impact-my-events': '#42a5f5',
   '--t2t-impact-non-economic': '#9e9e9e',
 };
 
@@ -123,6 +125,7 @@ export const darkCssVars = {
   '--t2t-impact-high': '#ef5350',
   '--t2t-impact-medium': '#ff9800',
   '--t2t-impact-low': '#FFD54F',
+  '--t2t-impact-my-events': '#64b5f6',
   '--t2t-impact-non-economic': '#bdbdbd',
 };
 

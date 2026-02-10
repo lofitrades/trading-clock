@@ -8,6 +8,9 @@
  * Note: Context and hook are exported from themeContextUtils.js to avoid React Fast Refresh issues.
  *
  * Changelog:
+ * v1.1.0 - 2026-02-14 - BEP: Default themeMode to 'light' for first-time guests (was 'system').
+ *                       Ensures light theme on first impression; authenticated users get 'system'
+ *                       via Firestore settings sync from SettingsContext.
  * v1.0.1 - 2026-01-28 - Refactored to separate provider from context/hook for React Fast Refresh compatibility
  * v1.0.0 - 2026-01-28 - Initial implementation with three-way toggle (light/dark/system), 
  *                       system preference detection, localStorage persistence, and useThemeMode hook.
@@ -23,7 +26,10 @@ import { ThemeContext } from './themeContextUtils';
  */
 export function ThemeContextProvider({ children }) {
     // Theme mode: 'light' | 'dark' | 'system'
-    const [themeMode, setThemeModeState] = useState('system');
+    // Default to 'light' so first-time guests always see light theme (BEP first impression)
+    // Returning visitors get their saved preference from localStorage on mount
+    // Authenticated users get Firestore preference via SettingsContext global sync
+    const [themeMode, setThemeModeState] = useState('light');
 
     // Resolved theme: 'light' | 'dark' (computed from mode + system pref)
     const [resolvedTheme, setResolvedTheme] = useState('light');

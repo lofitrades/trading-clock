@@ -17,6 +17,7 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v2.10.0 - 2026-02-10 - BEP: Added showOnCalendar visibility Chip alongside showOnClock in custom event modal.
  * v2.9.0 - 2026-02-06 - BEP: Add reschedule/reinstate Chip badges in modal header after event title. Uses events:status i18n keys for EN/ES/FR with proper timezone-aware date formatting in tooltip.
  * v2.8.0 - 2026-02-04 - BEP MOBILE RESPONSIVENESS FIX: Fixed EventModal to be fully viewport height aware on mobile devices. DialogContent now has flex:1, minHeight:0, overflowY:auto with minimal scrollbar styling (6px, rgba(60,77,99,0.32)). DialogActions now has flexShrink:0 to stick to bottom. Paper has display:flex, flexDirection:column, height:100vh for full viewport coverage. Footer now correctly positions above mobile navbar instead of below it. Applied minimal scrollbar styling matching LandingPage pattern. Matches BEP patterns from AuthModal2 and SettingsSidebar2.
  * v2.7.3 - 2026-02-04 - BEP SEO CRITICAL: Updated event page link to use subpath URLs (/es/events/..., /fr/events/...) instead of query params. Aligns with Firebase hosting rewrites and SEO structure.
@@ -58,6 +59,8 @@
  * v1.10.3 - 2026-01-17 - BUGFIX: Set Dialog z-index to 12001 to appear on top of fullscreen mode (matches AuthModal2 hierarchy)
  * v1.10.2 - 2026-01-16 - Display all-day/tentative time labels when provided.
  * v1.10.1 - 2025-12-18 - Centralize impact color sourcing: low = yellow (#F2C94C), unknown = taupe (#C7B8A4) to avoid session color conflicts across modal chips.
+ * v1.10.2 - 2026-02-08 - BEP NAVIGATION FIX: Wrapped setInterval countdown tick in startTransition
+ *                       to prevent blocking React Router v7 navigation transitions.
  * v1.10.0 - 2025-12-18 - Centralize impact color sourcing and set low impact to taupe (#C7B8A4) to avoid session color conflicts across modal chips.
  * v1.9.1 - 2025-12-15 - REFACTOR: Replaced hardcoded NOW/NEXT calculations with global timezone-aware eventTimeEngine utilities (NOW_WINDOW_MS, getEventEpochMs, getNowEpochMs, computeNowNextState)
  * v1.9.0 - 2025-12-15 - Feature: Added countdown timer to NEXT badge with live updates; Added favorite and notes action buttons in header with full functionality, loading states, and mobile-first design
@@ -78,7 +81,7 @@
  * v1.0.0 - 2025-11-30 - Initial implementation with enterprise best practices
  */
 
-import React, { useMemo, useState, useEffect, memo } from 'react';
+import React, { useMemo, useState, useEffect, memo, startTransition } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import {
@@ -208,6 +211,11 @@ const IMPACT_CONFIG = {
     labelKey: 'events:impacts.nonEconomic',
     descriptionKey: 'events:impacts.nonEconomicDesc'
   },
+  'my-events': {
+    icon: '★',
+    labelKey: 'events:impacts.myEvents',
+    descriptionKey: 'events:impacts.myEventsDesc'
+  },
   unknown: {
     icon: '?',
     labelKey: 'events:impacts.unknown',
@@ -263,6 +271,7 @@ const normalizeCustomImpact = (value) => {
   if (['medium', 'moderate', '2'].includes(normalized)) return 'moderate';
   if (['low', 'weak', '1'].includes(normalized)) return 'weak';
   if (['non-economic', 'none', '0'].includes(normalized)) return 'non-economic';
+  if (['my-events', 'my events'].includes(normalized)) return 'my-events';
   return normalized;
 };
 
@@ -752,9 +761,13 @@ function EventModal({
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
 
   // Update countdown every second for NEXT badge
+  // BEP: Wrap in startTransition so this low-priority tick doesn't block
+  // React Router v7 navigation transitions (which also use startTransition).
   useEffect(() => {
     if (!open || !event) return undefined;
-    const id = setInterval(() => setCountdownNow(Date.now()), 1000);
+    const id = setInterval(() => {
+      startTransition(() => setCountdownNow(Date.now()));
+    }, 1000);
     return () => clearInterval(id);
   }, [open, event]);
 
@@ -1596,8 +1609,8 @@ function EventModal({
                     {customImpactValue && customImpactValue !== 'unknown' && (
                       <ImpactBadge
                         impact={customImpactValue}
-                        label={t(`events:impacts.${customImpactValue === 'strong' ? 'highImpact' : customImpactValue === 'moderate' ? 'mediumImpact' : customImpactValue === 'weak' ? 'lowImpact' : 'unknown'}`)}
-                        description={t(`events:impacts.${customImpactValue === 'strong' ? 'highImpactDesc' : customImpactValue === 'moderate' ? 'mediumImpactDesc' : customImpactValue === 'weak' ? 'lowImpactDesc' : 'unknownDesc'}`)}
+                        label={t(getImpactConfig(customImpactValue).labelKey)}
+                        description={t(getImpactConfig(customImpactValue).descriptionKey)}
                       />
                     )}
                     {/* Custom Event Type Chip */}
@@ -1711,17 +1724,25 @@ function EventModal({
                     />
                   </Box>
 
-                  {/* Show on Clock */}
+                  {/* Show on Clock / Calendar */}
                   <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: 'text.secondary' }}>
                       {t('common:visibility')}
                     </Typography>
-                    <Chip
-                      label={currentEvent.showOnClock !== false ? t('events:modal.custom.visibleOnClock') : t('events:modal.custom.hiddenFromClock')}
-                      size="small"
-                      color={currentEvent.showOnClock !== false ? 'success' : 'default'}
-                      sx={{ fontWeight: 600 }}
-                    />
+                    <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                      <Chip
+                        label={currentEvent.showOnClock !== false ? t('events:modal.custom.visibleOnClock') : t('events:modal.custom.hiddenFromClock')}
+                        size="small"
+                        color={currentEvent.showOnClock !== false ? 'success' : 'default'}
+                        sx={{ fontWeight: 600 }}
+                      />
+                      <Chip
+                        label={currentEvent.showOnCalendar !== false ? t('events:modal.custom.visibleOnCalendar') : t('events:modal.custom.hiddenFromCalendar')}
+                        size="small"
+                        color={currentEvent.showOnCalendar !== false ? 'success' : 'default'}
+                        sx={{ fontWeight: 600 }}
+                      />
+                    </Stack>
                   </Box>
 
                   {/* Reminders */}

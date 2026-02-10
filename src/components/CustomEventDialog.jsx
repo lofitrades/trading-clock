@@ -6,7 +6,8 @@
  * and smooth transitions while maintaining all v1 features (reminders, recurrence, timezone, impact).
  * 
  * Changelog:
- * v2.2.0 - 2026-02-03 - BEP SAVE CONFIRMATION UX: Added checkmark icon to save button on success (with success.main color), button briefly disabled after save showing "✓ Saved", green success snackbar for clear confirmation. Improves confidence that event was saved correctly.
+ * v2.4.0 - 2026-02-10 - BEP: Added showOnCalendar toggle (default: true) to Appearance section. Follows showOnClock pattern.
+ * v2.3.0 - 2026-02-09 - BEP ACCESSIBILITY: Impact dropdown menu items now render as circular badge chips with background color and contrast-aware text color. Icons (including My Events star ★) now visible in both light and dark themes. Uses isColorDark() for WCAG AA compliant text contrast on all impact levels.
  * v2.1.1 - 2026-01-27 - BEP i18n migration COMPLETE: Replaced final 3 hardcoded strings (dialog title Edit/New, Hex Color label, Select Icon text) with t() calls. 100% i18n compliant for EN/ES/FR.
  * v2.1.0 - 2026-01-29 - BEP i18n migration: Added useTranslation hook, replaced 50+ hardcoded strings with t() calls for events namespace
  * v2.0.0 - 2026-01-23 - BEP refactor: Popover-based icon/color pickers, two-column desktop layout, smooth transitions, optimized viewport usage. All v1 features preserved.
@@ -96,6 +97,7 @@ const RECURRENCE_OPTIONS = [
     { value: '1h', labelKey: 'events:dialog.schedule.recurrence.options.hour1' },
     { value: '4h', labelKey: 'events:dialog.schedule.recurrence.options.hour4' },
     { value: '1D', labelKey: 'events:dialog.schedule.recurrence.options.day1' },
+    { value: '1WD', labelKey: 'events:dialog.schedule.recurrence.options.weekdays' },
     { value: '1W', labelKey: 'events:dialog.schedule.recurrence.options.week1' },
     { value: '1M', labelKey: 'events:dialog.schedule.recurrence.options.month1' },
     { value: '1Q', labelKey: 'events:dialog.schedule.recurrence.options.quarter1' },
@@ -126,8 +128,9 @@ const getDefaultForm = (timezone, customColor, customIcon) => ({
     timezone,
     customColor: customColor || DEFAULT_CUSTOM_EVENT_COLOR,
     customIcon: customIcon || DEFAULT_CUSTOM_EVENT_ICON,
-    impact: 'non-economic',
+    impact: 'my-events',
     showOnClock: true,
+    showOnCalendar: true,
     recurrence: getDefaultRecurrence(timezone),
     reminders: [],
 });
@@ -217,8 +220,9 @@ export default function CustomEventDialog({
                 timezone,
                 customColor: event.customColor || theme.palette.primary.main,
                 customIcon: event.customIcon || DEFAULT_CUSTOM_EVENT_ICON,
-                impact: event.impact || 'non-economic',
+                impact: event.impact || 'my-events',
                 showOnClock: event.showOnClock !== false,
+                showOnCalendar: event.showOnCalendar !== false,
                 recurrence,
                 reminders: sanitizedReminders,
             });
@@ -230,8 +234,9 @@ export default function CustomEventDialog({
                 timezone,
                 customColor: event.customColor || theme.palette.primary.main,
                 customIcon: event.customIcon || DEFAULT_CUSTOM_EVENT_ICON,
-                impact: event.impact || 'non-economic',
+                impact: event.impact || 'my-events',
                 showOnClock: event.showOnClock !== false,
+                showOnCalendar: event.showOnCalendar !== false,
                 recurrence,
                 reminders: sanitizedReminders,
             });
@@ -551,7 +556,23 @@ export default function CustomEventDialog({
                                             {IMPACT_LEVELS.filter((level) => level.key !== 'unknown' && level.key !== 'not-loaded').map((level) => (
                                                 <MenuItem key={level.key} value={level.key}>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                        <Box component="span" sx={{ fontWeight: 800, fontFamily: 'monospace', color: level.color }}>
+                                                        <Box
+                                                            component="span"
+                                                            sx={{
+                                                                width: 28,
+                                                                height: 28,
+                                                                borderRadius: '50%',
+                                                                bgcolor: level.color,
+                                                                color: isColorDark(level.color) ? '#fff' : '#1f1f1f',
+                                                                fontWeight: 800,
+                                                                fontFamily: 'monospace',
+                                                                fontSize: '0.75rem',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                flexShrink: 0,
+                                                            }}
+                                                        >
                                                             {level.icon}
                                                         </Box>
                                                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -796,6 +817,20 @@ export default function CustomEventDialog({
                                         <SwitchComponent
                                             checked={form.showOnClock}
                                             onChange={handleToggle('showOnClock')}
+                                        />
+                                    </Box>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1.5 }}>
+                                        <Box>
+                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                {t('events:dialog.appearance.fields.showOnCalendar.label')}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                {t('events:dialog.appearance.fields.showOnCalendar.description')}
+                                            </Typography>
+                                        </Box>
+                                        <SwitchComponent
+                                            checked={form.showOnCalendar}
+                                            onChange={handleToggle('showOnCalendar')}
                                         />
                                     </Box>
                                 </Box>
@@ -1089,6 +1124,7 @@ CustomEventDialog.propTypes = {
         date: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.instanceOf(Date)]),
         reminders: PropTypes.arrayOf(PropTypes.object),
         showOnClock: PropTypes.bool,
+        showOnCalendar: PropTypes.bool,
         customColor: PropTypes.string,
         customIcon: PropTypes.string,
         impact: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

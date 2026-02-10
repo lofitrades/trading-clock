@@ -8,13 +8,22 @@
  * 
  * BEP Notification Architecture:
  * - In-App: No permission needed, always works when app is open
- * - Browser: Needs Notification.permission, works when tab is open
- * - Push: Needs Notification.permission + FCM token, works even when app is closed
+ * - Browser: Needs Notification.permission, works when tab is open (non-PWA only)
+ * - Push: Needs Notification.permission + FCM token, works even when app is closed (PWA only)
  * 
  * Both Browser and Push channels require the same browser permission, so we prompt
  * if either is enabled on any reminder AND permission hasn't been granted yet.
  * 
+ * Universal: Prompts on ALL platforms (desktop, mobile, PWA) when conditions are met.
+ * New user flow: Listens for t2t:welcome-complete event to prompt after WelcomeModal closes.
+ * New device: Detected automatically — any device with permission='default' and active reminders.
+ * 
  * Changelog:
+ * v2.0.0 - 2026-02-09 - BEP UNIVERSAL: Removed mobile/PWA gate — prompts on all platforms
+ *                       (desktop Chrome, mobile Safari, PWA, etc.). Added welcome-complete
+ *                       event listener for post-signup flow (new users get default reminders,
+ *                       then see permission prompt after dismissing WelcomeModal). New-device
+ *                       detection is automatic (permission='default' + active reminders).
  * v1.1.0 - 2026-02-03 - BEP: Check for BOTH browser and push channels (not just push).
  *                       Both require Notification.permission. Renamed internal helpers.
  * v1.0.1 - 2026-02-03 - Fixed race condition with sessionStorage dismissal check.
@@ -24,7 +33,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { subscribeToReminders } from '../services/remindersService';
-import { requestFcmTokenForUser, getAllDeviceTokens } from '../services/pushNotificationsService';
+import { requestFcmTokenForUser } from '../services/pushNotificationsService';
 
 /**
  * Check if any reminder has browser OR push channel enabled
@@ -45,42 +54,9 @@ const hasPermissionRequiredReminders = (reminders = []) => {
 };
 
 /**
- * Check if running as installed PWA
- * @returns {boolean}
- */
-const isPWA = () => {
-  if (typeof window === 'undefined') return false;
-  return (
-    window.matchMedia?.('(display-mode: standalone)')?.matches ||
-    window.navigator?.standalone === true
-  );
-};
-
-/**
- * Check if running on mobile device
- * @returns {boolean}
- */
-const isMobile = () => {
-  if (typeof navigator === 'undefined') return false;
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-};
-
-/**
- * Check if user has any enabled device tokens for push notifications
- * @param {string} userId - User ID
- * @returns {Promise<boolean>}
- */
-const hasEnabledDeviceToken = async (userId) => {
-  try {
-    const devices = await getAllDeviceTokens(userId);
-    return devices.some((d) => d.enabled);
-  } catch {
-    return false;
-  }
-};
-
-/**
- * Hook to manage notification permission prompting for users with browser/push reminders
+ * Hook to manage notification permission prompting for users with browser/push reminders.
+ * BEP v2.0.0: Universal — prompts on ALL platforms (desktop, mobile, PWA).
+ * Also listens for t2t:welcome-complete event to trigger post-signup prompt.
  * @returns {Object} - { shouldShowModal, dismissModal, requestPermission, isRequesting }
  */
 export const usePushPermissionPrompt = () => {
@@ -90,75 +66,102 @@ export const usePushPermissionPrompt = () => {
   const [hasChecked, setHasChecked] = useState(false);
   const checkTimeoutRef = useRef(null);
 
-  // Check if we should show the permission prompt
+  /**
+   * Core check: subscribe to reminders and show modal if conditions are met.
+   * Extracted so both the initial check and the welcome-complete listener can call it.
+   */
+  const performCheck = useCallback((userId) => {
+    if (!userId) return;
+
+    // Already dismissed this session
+    try {
+      if (sessionStorage.getItem('t2t_push_prompt_dismissed') === 'true') return;
+    } catch { /* Ignore */ }
+
+    // Notification API not available
+    if (typeof Notification === 'undefined') return;
+
+    // Already granted or denied — don't prompt
+    if (Notification.permission === 'granted' || Notification.permission === 'denied') return;
+
+    // Permission is 'default' — check if user has browser/push reminders
+    const unsubscribe = subscribeToReminders(
+      userId,
+      (reminders) => {
+        if (hasPermissionRequiredReminders(reminders)) {
+          setShouldShowModal(true);
+        }
+        setHasChecked(true);
+        unsubscribe();
+      },
+      (error) => {
+        console.warn('[usePushPermissionPrompt] Error checking reminders:', error);
+        setHasChecked(true);
+        unsubscribe();
+      }
+    );
+  }, []);
+
+  // Initial check on mount (after 3s delay to let app initialize)
   useEffect(() => {
-    // Only run once per session
     if (hasChecked) return;
     if (!user?.uid) return;
 
-    // Check if already dismissed this session (prevent race condition)
+    // Check if already dismissed this session
     try {
       if (sessionStorage.getItem('t2t_push_prompt_dismissed') === 'true') {
         setHasChecked(true);
         return;
       }
-    } catch {
-      // Ignore storage errors
-    }
+    } catch { /* Ignore */ }
 
-    // Only prompt on PWA or mobile web
-    const shouldPrompt = isPWA() || isMobile();
-    if (!shouldPrompt) {
-      setHasChecked(true);
-      return;
-    }
+    // BEP v2.0.0: Universal — no mobile/PWA gate. All platforms are prompted.
 
-    // Check notification permission status
+    // Notification API checks
     if (typeof Notification === 'undefined') {
       setHasChecked(true);
       return;
     }
 
-    // Already granted - no need to prompt (but ensure device is registered for push)
     if (Notification.permission === 'granted') {
-      // Auto-register this device for push if not already
-      // This is handled by NotificationPreferencesPanel, so just skip prompt
       setHasChecked(true);
       return;
     }
 
-    // Already denied - don't annoy the user
     if (Notification.permission === 'denied') {
       setHasChecked(true);
       return;
     }
 
-    // Permission is 'default' - check if user has browser/push reminders
-    // Add delay to let the app fully initialize and avoid blocking initial render
+    // Delay to let app fully initialize and avoid blocking initial render
     checkTimeoutRef.current = setTimeout(() => {
-      const unsubscribe = subscribeToReminders(
-        user.uid,
-        (reminders) => {
-          if (hasPermissionRequiredReminders(reminders)) {
-            setShouldShowModal(true);
-          }
-          setHasChecked(true);
-          unsubscribe();
-        },
-        (error) => {
-          console.warn('[useNotificationPermissionPrompt] Error checking reminders:', error);
-          setHasChecked(true);
-          unsubscribe();
-        }
-      );
-    }, 3000); // Wait 3s after load to check
+      performCheck(user.uid);
+    }, 3000);
 
     return () => {
       if (checkTimeoutRef.current) {
         clearTimeout(checkTimeoutRef.current);
       }
     };
-  }, [user?.uid, hasChecked]);
+  }, [user?.uid, hasChecked, performCheck]);
+
+  // BEP v2.0.0: Listen for welcome-complete event to trigger post-signup prompt.
+  // When a new user dismisses WelcomeModal, AuthContext dispatches t2t:welcome-complete.
+  // This gives time for default custom events + reminders to be created in Firestore,
+  // then we re-check for permission-requiring reminders and show the prompt.
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const handleWelcomeComplete = () => {
+      // Small delay to ensure Firestore writes for default custom events have settled
+      setTimeout(() => {
+        performCheck(user.uid);
+      }, 2000);
+    };
+
+    window.addEventListener('t2t:welcome-complete', handleWelcomeComplete);
+    return () => window.removeEventListener('t2t:welcome-complete', handleWelcomeComplete);
+  }, [user?.uid, performCheck]);
 
   // Dismiss the modal
   const dismissModal = useCallback(() => {

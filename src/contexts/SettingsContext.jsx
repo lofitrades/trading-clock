@@ -5,6 +5,14 @@
  * Supplies clock visibility, styling, timezone, news source, and economic events overlay controls to the app.
  * 
  * Changelog:
+ * v1.10.0 - 2026-02-09 - BEP DEFAULT PRESET: Changed eventFilters.datePreset default from 'today' to 'thisWeek'
+ *                        for consistency with Calendar2Page v3.0.0 and broader market context on first load.
+ *                        Updated fallback in useState initialization, localStorage load, Firestore load, and
+ *                        useSettingsSafe fallback. Non-authenticated users now default to 7-day calendar view.
+ * v1.9.0 - 2026-02-14 - BEP GUEST THEME: Default themeMode to 'light' for first-time guests (was 'system').
+ *                       Added global sync effect to propagate themeMode changes to ThemeContext,
+ *                       replacing the SettingsSidebar2-only sync that required the sidebar to be open.
+ *                       After signup, Firestore default 'system' syncs to ThemeContext immediately.
  * v1.8.0 - 2026-02-08 - BEP PERSISTENCE FIX: Added datePreset field to eventFilters schema with full persistence (localStorage + Firestore). Ensures date filter selection persists consistently like currencies/impacts. datePreset ('today'|'tomorrow'|'thisWeek'|'nextWeek'|'thisMonth') stored in eventFilters alongside startDate/endDate for synchronized updates. ClockEventsFilters now reads datePreset from eventFilters context instead of local state. Migration: Existing users without datePreset fallback to 'today'. Firestore schema: settings.eventFilters.datePreset (string). Load on init/auth change, update via updateEventFilters().
  * v1.7.0 - 2026-01-28 - BEP PHASE 3.3: Added themeMode to settings schema with Firestore persistence. themeMode ('light'|'dark'|'system') now syncs across authenticated user devices via Firestore. Guests use localStorage. ThemeContext still handles real-time theme switching; SettingsContext stores preference. Firestore schema: settings.themeMode (string). Load on auth state change, update via updateThemeMode(), reset in resetSettings().
  * v1.6.1 - 2026-01-17 - ENHANCED LOGOUT: Improved resetSettings to ensure complete user preference cleanup. Fixed showSessionLabel default to false (not true) for consistency. Added try-catch around Firestore reset to prevent logout failures if reset fails. Added detailed step-by-step comments explaining the reset flow. Follows BEP enterprise logout patterns.
@@ -34,6 +42,7 @@ import { db } from '../firebase';
 import { doc, setDoc, onSnapshot, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { USER_ROLES, SUBSCRIPTION_PLANS, SUBSCRIPTION_STATUS, PLAN_FEATURES } from '../types/userTypes';
 import { DEFAULT_NEWS_SOURCE } from '../types/economicEvents';
+import { useThemeMode } from './themeContextUtils';
 
 // Brand-aligned multicolor defaults (per BrandGuide: Secondary Logo — Multicolor)
 const SESSION_COLOR_MAP = {
@@ -103,6 +112,7 @@ export function useSettingsSafe() {
       newsSource: DEFAULT_NEWS_SOURCE,
       preferredSource: 'auto',
       eventFilters: {
+        datePreset: 'thisWeek',
         startDate: null,
         endDate: null,
         impacts: [],
@@ -136,6 +146,11 @@ export function useSettingsSafe() {
 export function SettingsProvider({ children }) {
   const { user } = useAuth();
 
+  // Global theme sync: Propagate SettingsContext themeMode to ThemeContext
+  // This ensures Firestore-loaded theme (e.g., 'system' after signup) reaches ThemeContext
+  // without requiring SettingsSidebar2 to be open
+  const { setThemeMode: setThemeContextMode } = useThemeMode();
+
   // Provider for settings with localStorage and Firestore sync
   const [isLoading, setIsLoading] = useState(true);
   const clockStyle = 'normal';
@@ -157,13 +172,21 @@ export function SettingsProvider({ children }) {
   const [showPastSessionsGray, setShowPastSessionsGray] = useState(false);
 
   // Theme mode preference (light | dark | system)
-  const [themeMode, setThemeMode] = useState('system');
+  // Default to 'light' for first-time guests; Firestore/localStorage overrides on load
+  const [themeMode, setThemeMode] = useState('light');
+
+  // Sync SettingsContext themeMode → ThemeContext whenever it changes
+  // Covers: localStorage load on mount, Firestore load after auth, user toggle via updateThemeMode
+  useEffect(() => {
+    setThemeContextMode(themeMode);
+  }, [themeMode, setThemeContextMode]);
+
   const [newsSource, setNewsSource] = useState(DEFAULT_NEWS_SOURCE);
   const [preferredSource, setPreferredSource] = useState('auto');
 
   // Event filters state (includes all filter fields for full persistence)
   const [eventFilters, setEventFilters] = useState({
-    datePreset: 'today',
+    datePreset: 'thisWeek',
     startDate: null,
     endDate: null,
     impacts: [],
@@ -222,7 +245,7 @@ export function SettingsProvider({ children }) {
         try {
           const parsed = JSON.parse(savedEventFilters);
           setEventFilters({
-            datePreset: parsed.datePreset || 'today',
+            datePreset: parsed.datePreset || 'thisWeek',
             startDate: parsed.startDate ? new Date(parsed.startDate) : null,
             endDate: parsed.endDate ? new Date(parsed.endDate) : null,
             impacts: parsed.impacts || [],
@@ -276,7 +299,7 @@ export function SettingsProvider({ children }) {
     if (s.eventFilters) {
       const filters = s.eventFilters;
       setEventFilters({
-        datePreset: filters.datePreset || 'today',
+        datePreset: filters.datePreset || 'thisWeek',
         startDate: filters.startDate?.toDate ? filters.startDate.toDate() : (filters.startDate ? new Date(filters.startDate) : null),
         endDate: filters.endDate?.toDate ? filters.endDate.toDate() : (filters.endDate ? new Date(filters.endDate) : null),
         impacts: filters.impacts || [],

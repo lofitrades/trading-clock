@@ -6,6 +6,7 @@
  * while normalizing them for calendar + clock rendering and future calendar sync scalability.
  * 
  * Changelog:
+ * v1.5.0 - 2026-02-10 - Added showOnCalendar field (default: true) to payload, mapping, display decoration, and metadata.
  * v1.4.1 - 2026-01-23 - Delete reminder doc when custom event reminders are removed.
  * v1.4.0 - 2026-01-23 - Add unified reminders sync to users/{uid}/reminders for custom events.
  * v1.3.0 - 2026-01-22 - Add recurring custom event support with range expansion and recurrence normalization.
@@ -46,6 +47,7 @@ const RECURRENCE_INTERVALS = {
   '1h': { unit: 'hour', step: 1, ms: 60 * 60 * 1000 },
   '4h': { unit: 'hour', step: 4, ms: 4 * 60 * 60 * 1000 },
   '1D': { unit: 'day', step: 1 },
+  '1WD': { unit: 'weekday', step: 1 },
   '1W': { unit: 'week', step: 1 },
   '1M': { unit: 'month', step: 1 },
   '1Q': { unit: 'quarter', step: 1 },
@@ -244,13 +246,36 @@ const expandRecurringEvent = ({ baseEvent, rangeStartMs, rangeEndMs, nowEpochMs 
   let stepDays = 0;
   let stepMonths = 0;
   if (intervalMeta.unit === 'day') stepDays = intervalMeta.step;
+  if (intervalMeta.unit === 'weekday') stepDays = 1; // Advance 1 day at a time, filter for weekdays
   if (intervalMeta.unit === 'week') stepDays = intervalMeta.step * 7;
   if (intervalMeta.unit === 'month') stepMonths = intervalMeta.step;
   if (intervalMeta.unit === 'quarter') stepMonths = intervalMeta.step * 3;
   if (intervalMeta.unit === 'year') stepMonths = intervalMeta.step * 12;
 
+  // BEP: Weekday-only recurrence (M-F exclusion)
+  const isWeekdayOnly = intervalMeta.unit === 'weekday';
+  const getIsWeekday = (dateParts) => {
+    const date = new Date(Date.UTC(dateParts.year, dateParts.month, dateParts.day));
+    const dayOfWeek = date.getUTCDay();
+    return dayOfWeek !== 0 && dayOfWeek !== 6; // 0 = Sunday, 6 = Saturday
+  };
+
   let startIndex = 0;
-  if (stepDays > 0) {
+  if (isWeekdayOnly) {
+    // For weekday recurrence, find first weekday >= rangeStart by counting from base event
+    let currentParts = localDateParts;
+    let dayOffset = 0;
+    const maxDaysToCheck = 365;
+    while (dayOffset < maxDaysToCheck) {
+      currentParts = addDaysToLocalDateParts(localDateParts, dayOffset);
+      const testEpochMs = buildEpochFromLocalParts(timezone, { ...currentParts, ...timeParts });
+      if (testEpochMs >= rangeStartMs && getIsWeekday(currentParts)) {
+        startIndex = dayOffset;
+        break;
+      }
+      dayOffset += 1;
+    }
+  } else if (stepDays > 0) {
     const diffDays = Math.floor((rangeStartUtc.getTime() - baseDateUtc.getTime()) / dayMs);
     startIndex = diffDays > 0 ? Math.floor(diffDays / stepDays) : 0;
   } else if (stepMonths > 0) {
@@ -259,12 +284,21 @@ const expandRecurringEvent = ({ baseEvent, rangeStartMs, rangeEndMs, nowEpochMs 
   }
 
   let currentIndex = Math.max(0, startIndex);
+  let countGenerated = 0; // Track actual occurrences for 'after' ends type
   while (generated < MAX_OCCURRENCES_PER_RANGE) {
     let nextDateParts = localDateParts;
-    if (stepDays > 0) {
+    
+    if (isWeekdayOnly) {
+      // BEP: Advance day-by-day from base; skip weekends without emitting
+      // to avoid duplicate occurrence IDs (Sat & Sun both resolving to Monday).
+      nextDateParts = addDaysToLocalDateParts(localDateParts, currentIndex);
+      if (!getIsWeekday(nextDateParts)) {
+        currentIndex += 1;
+        continue;
+      }
+    } else if (stepDays > 0) {
       nextDateParts = addDaysToLocalDateParts(localDateParts, currentIndex * stepDays);
-    }
-    if (stepMonths > 0) {
+    } else if (stepMonths > 0) {
       nextDateParts = addMonthsToLocalDateParts(localDateParts, currentIndex * stepMonths);
     }
 
@@ -275,7 +309,7 @@ const expandRecurringEvent = ({ baseEvent, rangeStartMs, rangeEndMs, nowEpochMs 
     }
     if (occurrenceEpochMs > rangeEndMs) break;
     if (untilEpochMs !== null && occurrenceEpochMs > untilEpochMs) break;
-    if (Number.isFinite(maxCount) && currentIndex >= maxCount) break;
+    if (Number.isFinite(maxCount) && countGenerated >= maxCount) break;
 
     const occurrenceId = `${seriesId}__${occurrenceEpochMs}`;
     occurrences.push(
@@ -294,6 +328,7 @@ const expandRecurringEvent = ({ baseEvent, rangeStartMs, rangeEndMs, nowEpochMs 
     );
 
     generated += 1;
+    countGenerated += 1;
     currentIndex += 1;
   }
 
@@ -310,7 +345,7 @@ export const buildCustomEventPayload = (input = {}) => {
     const reminders = normalizeRemindersWithEmail(input.reminders || []);
   const customColor = input.customColor || DEFAULT_CUSTOM_EVENT_COLOR;
   const customIcon = input.customIcon || DEFAULT_CUSTOM_EVENT_ICON;
-  const impact = input.impact || 'non-economic';
+  const impact = input.impact || 'my-events';
   const recurrence = normalizeRecurrence(input.recurrence || {}, timezone, localDate);
 
   return {
@@ -324,6 +359,7 @@ export const buildCustomEventPayload = (input = {}) => {
     customIcon,
     impact,
     showOnClock: input.showOnClock !== false,
+    showOnCalendar: input.showOnCalendar !== false,
       reminders,
     recurrence,
     recurrenceEnabled: Boolean(recurrence?.enabled),
@@ -350,9 +386,10 @@ export const decorateCustomEventForDisplay = (event, nowEpochMs = Date.now()) =>
     date: event.date ?? eventEpochMs,
     time: event.time ?? eventEpochMs,
     currency: event.currency || '—',
-    impact: event.impact || 'non-economic',
+    impact: event.impact || 'my-events',
     customColor: event.customColor || DEFAULT_CUSTOM_EVENT_COLOR,
     customIcon: event.customIcon || DEFAULT_CUSTOM_EVENT_ICON,
+    showOnCalendar: event.showOnCalendar !== false,
     recurrence: event.recurrence || { enabled: false },
     seriesId: event.seriesId || event.id || null,
     source: CUSTOM_SOURCE,
@@ -363,7 +400,7 @@ export const decorateCustomEventForDisplay = (event, nowEpochMs = Date.now()) =>
       forecast: '—',
       previous: '—',
       epochMs: eventEpochMs,
-      strengthValue: event.impact || 'non-economic',
+      strengthValue: event.impact || 'my-events',
       relativeLabel,
     },
   };
@@ -383,8 +420,9 @@ const mapCustomEventDoc = (docSnap, nowEpochMs) => {
     epochMs: data.epochMs || null,
     customColor: data.customColor || DEFAULT_CUSTOM_EVENT_COLOR,
     customIcon: data.customIcon || DEFAULT_CUSTOM_EVENT_ICON,
-    impact: data.impact || 'non-economic',
+    impact: data.impact || 'my-events',
     showOnClock: data.showOnClock !== false,
+    showOnCalendar: data.showOnCalendar !== false,
       reminders: normalizeRemindersWithEmail(data.reminders || []),
     recurrence,
     recurrenceEnabled: Boolean(recurrence?.enabled),
@@ -530,6 +568,7 @@ export const addCustomEvent = async (userId, payload = {}) => {
       customColor: data.customColor,
       customIcon: data.customIcon,
       showOnClock: data.showOnClock,
+      showOnCalendar: data.showOnCalendar,
       isCustom: true,
       seriesId: docRef.id,
     },
@@ -563,6 +602,7 @@ export const updateCustomEvent = async (userId, eventId, payload = {}) => {
       customColor: data.customColor,
       customIcon: data.customIcon,
       showOnClock: data.showOnClock,
+      showOnCalendar: data.showOnCalendar,
       isCustom: true,
       seriesId: eventId,
     },
@@ -604,6 +644,7 @@ export const updateCustomEvent = async (userId, eventId, payload = {}) => {
       if (eventKey) {
         await deleteReminderForUser(userId, eventKey);
       }
+      // eslint-disable-next-line no-unused-vars
     } catch (err) {
       // Ignore if not found
     }
@@ -638,7 +679,9 @@ export const deleteCustomEvent = async (userId, eventId) => {
   // Also try the eventKey as a direct document ID (legacy)
   try {
     await deleteReminderForUser(userId, eventKey);
-  } catch (err) {
+  }
+  // eslint-disable-next-line no-unused-vars
+  catch (err) {
     // Ignore if not found
   }
   

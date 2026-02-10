@@ -4,6 +4,9 @@
  * Purpose: High-performance landing page with a live hero clock for futures and forex day traders.
  * Highlights Time 2 Trade value props with brand-safe visuals and responsive hero layout.
  * 
+ * v1.12.0 - 2026-02-10 - BUGFIX: onSave on CustomEventDialog now actually persists to Firestore via
+ *                        useCustomEvents hook (createEvent/saveEvent). Previously ignored the payload
+ *                        parameter — dialog closed but data never saved. Matches App.jsx reference.
  * v1.11.0 - 2026-02-08 - BEP PERFORMANCE OPTIMIZATION: Eliminated unused state variable (prefersReducedMotion).
  * Memoized sectionHeadingSx object (used by 8+ components) to prevent re-renders on theme changes.
  * Optimized useAppBarNavItems hook integration with memoized callback object to prevent prop drilling issues.
@@ -11,6 +14,9 @@
  * overhead, prevents unnecessary child re-renders, improves perceived load time. All individual i18n memos
  * retained (40+ strings) for granular cache control during language switching - tradeoff prioritizes UX
  * responsiveness over hook count minimization per React best practices.
+ * v1.11.0 - 2026-02-10 - BEP: Wire onEditCustomEvent to EventModal so custom events show edit icon.
+ *                        Adds customEditingEvent state + handleEditCustomEvent callback.
+ *                        CustomEventDialog opens in edit mode at z-index 12003 (above EventModal).
  * v1.10.0 - 2026-02-08 - BEP REFACTOR: Replaced 136-line inline clock rendering (ClockCanvas + ClockHandsOverlay + 
  * ClockEventsOverlay) with centralized ClockPanelPaper component. Eliminated code duplication and achieved single source
  * of truth with ClockPage and Calendar2Page. Removed unused state: heroClockSize, renderedClockSize, clockContainerRef,
@@ -151,6 +157,7 @@ import PublicLayout from './PublicLayout';
 import { useSettingsSafe } from '../contexts/SettingsContext';
 import { useClock } from '../hooks/useClock';
 import { useTimeEngine } from '../hooks/useTimeEngine';
+import useCustomEvents from '../hooks/useCustomEvents';
 import { buildFaqSchema, buildSeoMeta, buildSoftwareApplicationSchema } from '../utils/seoMeta';
 import SEO from './SEO';
 // Consent utilities not needed on landing banner image-only version
@@ -193,6 +200,9 @@ export default function HomePage2() {
     } = useSettingsSafe();
     const timeEngine = useTimeEngine(selectedTimezone);
 
+    // BEP v1.12.0: Custom event CRUD (no subscription needed — only mutation functions)
+    const { createEvent: createCustomEvent, saveEvent: saveCustomEvent } = useCustomEvents();
+
     useClock(selectedTimezone, sessions, timeEngine);
 
     const [contactModalOpen, setContactModalOpen] = useState(false);
@@ -200,6 +210,7 @@ export default function HomePage2() {
     const [showBackToTop, setShowBackToTop] = useState(false);
     const [authModalOpen, setAuthModalOpen] = useState(false);
     const [customDialogOpen, setCustomDialogOpen] = useState(false);
+    const [customEditingEvent, setCustomEditingEvent] = useState(null);
     const [timezoneModalOpen, setTimezoneModalOpen] = useState(false);
     const [selectedEventFromClock, setSelectedEventFromClock] = useState(null);
     const [infoModalOpen, setInfoModalOpen] = useState(false);
@@ -358,6 +369,30 @@ export default function HomePage2() {
 
     const closeAuthModal = useCallback(() => setAuthModalOpen(false), []);
     const closeEventModal = useCallback(() => setSelectedEventFromClock(null), []);
+    // BEP v1.11.0: Edit custom event from EventModal → close modal → open dialog in edit mode
+    const handleEditCustomEvent = useCallback((event) => {
+        setSelectedEventFromClock(null);
+        setCustomEditingEvent(event);
+        setCustomDialogOpen(true);
+    }, []);
+
+    // BEP v1.12.0: Persist custom event to Firestore with auth check
+    const handleSaveCustomEvent = useCallback(async (payload) => {
+        if (!isAuthenticated) {
+            setCustomDialogOpen(false);
+            setCustomEditingEvent(null);
+            setAuthModalOpen(true);
+            return;
+        }
+        const eventId = customEditingEvent?.seriesId || customEditingEvent?.id;
+        const result = eventId
+            ? await saveCustomEvent(eventId, payload)
+            : await createCustomEvent(payload);
+        if (result?.success) {
+            setCustomDialogOpen(false);
+            setCustomEditingEvent(null);
+        }
+    }, [isAuthenticated, createCustomEvent, customEditingEvent, saveCustomEvent]);
 
     const handleHeroEventClick = useCallback((evt) => {
         if (!isAuthenticated) {
@@ -397,6 +432,7 @@ export default function HomePage2() {
                         onClose={closeEventModal}
                         event={selectedEventFromClock}
                         timezone={selectedTimezone}
+                        onEditCustomEvent={handleEditCustomEvent}
                     />
                 </Suspense>
             )}
@@ -411,17 +447,11 @@ export default function HomePage2() {
             <Suspense fallback={null}>
                 <CustomEventDialog
                     open={customDialogOpen}
-                    onClose={() => setCustomDialogOpen(false)}
-                    onSave={() => {
-                        // BEP: Auth check on save - show AuthModal2 if not authenticated
-                        if (!isAuthenticated) {
-                            setCustomDialogOpen(false);
-                            setAuthModalOpen(true);
-                        } else {
-                            setCustomDialogOpen(false);
-                        }
-                    }}
+                    onClose={() => { setCustomDialogOpen(false); setCustomEditingEvent(null); }}
+                    onSave={handleSaveCustomEvent}
+                    event={customEditingEvent}
                     defaultTimezone={selectedTimezone}
+                    zIndexOverride={customEditingEvent ? 12003 : undefined}
                 />
             </Suspense>
             <Dialog
@@ -663,33 +693,6 @@ export default function HomePage2() {
 
                                         {/* Ad/banner removed intentionally */}
                                     </Stack>
-                                </Box>
-
-                                <Box
-                                    sx={{
-                                        display: { xs: 'flex', sm: 'flex', md: 'none' },
-                                        justifyContent: 'center',
-                                        mt: -1.5,
-                                        mb: 2,
-                                        pt: '48px', // Account for fixed MobileHeader height
-                                        width: '100%',
-                                        px: 2,
-                                    }}
-                                >
-                                    <Chip
-                                        label="Powered by Forex Factory"
-                                        onClick={() => setInfoModalOpen(true)}
-                                        size="small"
-                                        variant="outlined"
-                                        sx={{
-                                            cursor: 'pointer',
-                                            fontWeight: 600,
-                                            fontSize: '0.75rem',
-                                            '&:hover': {
-                                                bgcolor: alpha(theme.palette.primary.main, 0.08),
-                                            },
-                                        }}
-                                    />
                                 </Box>
 
                                 {/* Hero Clock - ClockPanelPaper Component */}

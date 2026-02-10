@@ -47,7 +47,7 @@ i18n
     // Covers 7 public pages (landing, clock, calendar, about, privacy, terms, contact) + components
     // Preload list: common, pages, filter, admin, reminders, dialogs, events, blog, clock, settings, calendar, sessions, auth, actions
     // Remaining non-critical namespaces (tooltips, form, validation, etc.) still lazy-loaded on-demand
-    ns: ['common', 'pages', 'filter', 'admin', 'reminders', 'dialogs', 'events', 'blog', 'clock', 'settings', 'calendar', 'sessions', 'auth', 'actions'],
+    ns: ['common', 'pages', 'filter', 'admin', 'reminders', 'dialogs', 'events', 'blog', 'clock', 'settings', 'calendar', 'sessions', 'auth', 'actions', 'welcome'],
     defaultNS: 'common',
     
     // BEP: Enable true lazy loading for non-preloaded namespaces

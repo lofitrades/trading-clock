@@ -5,7 +5,7 @@
  * Follows Material Design v7 best practices with proper spacing, typography hierarchy, and Airbnb-inspired design.
  *
  * Changelog:
- * v1.1.33 - 2026-02-02 - BEP: Add reschedule/reinstate Chip badges next to event name in tooltip. Uses events:status i18n keys for EN/ES/FR.
+ * v1.1.35 - 2026-02-09 - UX: Renamed custom event label from 'CUS' to 'MINE' on tooltip badges. More intuitive and user-friendly across all languages.
  * v1.1.32 - 2026-01-29 - BEP i18n: Relative time labels ("In 2h 30m", "5m ago") now fully language-aware using events:relativeTime translations. Supports EN/ES/FR with proper preposition and time unit translations.
  * v1.1.31 - 2026-01-29 - BEP i18n: Footer event count and All Day/Tentative labels now fully language-aware. Event count uses plural-aware translations ("1 event" vs "N events") with full i18n support for EN/ES/FR. All hardcoded text now localized.
  * v1.1.30 - 2026-01-29 - BEP i18n: Date and time now fully language-aware and timezone-aware. Uses toLocaleDateString and toLocaleTimeString with i18n language detection (EN/ES/FR) and IANA timezone support.
@@ -49,6 +49,7 @@ import PropTypes from 'prop-types';
 import { Box, Typography, Chip, Divider, IconButton, Skeleton, useTheme } from '@mui/material';
 import { getCurrencyFlag } from '../utils/currencyFlags';
 import { resolveImpactMeta } from '../utils/newsApi';
+import { isColorDark } from '../utils/clockUtils';
 import { formatRelativeLabel, getEventEpochMs, NOW_WINDOW_MS } from '../utils/eventTimeEngine';
 import PublicIcon from '@mui/icons-material/Public';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
@@ -741,7 +742,7 @@ function EventMarkerTooltip({ events = [], timezone = 'UTC', nowEpochMs = Date.n
                                                     height: 16,
                                                     minWidth: 16,
                                                     bgcolor: impactMeta.color,
-                                                    color: '#fff',
+                                                    color: isColorDark(impactMeta.color) ? '#fff' : '#1f1f1f',
                                                     fontWeight: 800,
                                                     fontSize: '0.625rem',
                                                     borderRadius: 999,
@@ -753,7 +754,7 @@ function EventMarkerTooltip({ events = [], timezone = 'UTC', nowEpochMs = Date.n
                                             />
                                             <Chip
                                                 icon={<Icon />}
-                                                label="CUS"
+                                                label={t('calendar:tooltip.customEventLabel', { defaultValue: 'MY EVENT' })}
                                                 size="small"
                                                 sx={{
                                                     height: 16,
@@ -786,7 +787,7 @@ function EventMarkerTooltip({ events = [], timezone = 'UTC', nowEpochMs = Date.n
                                         height: 16,
                                         minWidth: 16,
                                         bgcolor: evt.impactMeta.color,
-                                        color: '#fff',
+                                        color: isColorDark(evt.impactMeta.color) ? '#fff' : '#1f1f1f',
                                         fontWeight: 800,
                                         fontSize: '0.625rem',
                                         borderRadius: 999,

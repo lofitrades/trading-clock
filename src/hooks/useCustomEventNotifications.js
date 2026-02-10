@@ -6,6 +6,27 @@
  * and optionally trigger browser notifications with permission checks.
  * 
  * Changelog:
+ * v4.3.0 - 2026-02-10 - BEP CRITICAL FIX: Recurring custom event notification duplication (25→1).
+ *                       ROOT CAUSE: customEventsService expands recurring events into N occurrence
+ *                       objects for display (30 for daily over 30 days). Each occurrence has a
+ *                       unique id (seriesId__epochMs), producing unique eventKeys that bypass all
+ *                       dedup layers. All N enter the tick loop independently, each expanding its
+ *                       own recurrence window, generating 25+ duplicate notifications per trigger.
+ *                       FIX: Collapse expanded occurrences by seriesId in legacyReminders — keep
+ *                       ONE representative per recurring series. Normalize with seriesId as event
+ *                       id for stable eventKey (custom:seriesId) matching the Firestore reminder.
+ *                       expandReminderOccurrences() handles generating actual occurrence timestamps.
+ * v4.2.0 - 2026-02-09 - BEP PLATFORM-AWARE CHANNELS: Browser notifications fire only on non-PWA
+ *                       devices. Push channel is PWA-only. Eliminates duplicate notifications on
+ *                       both browser tabs and PWA devices. On PWA, browser channel is skipped
+ *                       (push/SW handles it). On non-PWA, push channel is skipped (browser handles it).
+ * v4.1.0 - 2026-02-08 - BEP CRITICAL: Fix Firestore write stream exhaustion (resource-exhausted).
+ *                       ROOT CAUSE: 15-second interval loop fired 60+ individual fire-and-forget
+ *                       setDoc calls via recordNotificationTrigger() per tick. Each call was a
+ *                       separate Firestore write, overwhelming the write stream on remount.
+ *                       FIX: Collect all trigger payloads during the loop into pendingTriggerWrites
+ *                       array, then batch-write via single writeBatch after loop completes.
+ *                       Max 50 trigger writes per tick to prevent flooding.
  * v4.0.0 - 2026-02-07 - BEP CRITICAL: Enterprise-grade deduplication overhaul (6→1 notification fix).
  *                       ROOT CAUSES FIXED:
  *                       1) Browser channel suppressed when push is also enabled for same offset —
@@ -79,9 +100,9 @@ import {
   subscribeToNotifications,
 } from '../services/notificationsService';
 import {
+  batchRecordNotificationTriggers,
   buildTriggerId,
   loadLocalTriggerIds,
-  recordNotificationTrigger,
   saveLocalTriggerIds,
   subscribeToReminders,
 } from '../services/remindersService';
@@ -89,6 +110,17 @@ import {
 const ENABLED_CHANNELS = new Set(['inApp', 'browser', 'push']);
 const DAILY_COUNTS_KEY = 't2t_unified_notification_daily_counts_v1';
 const DISALLOWED_REPEAT_INTERVALS = new Set(['5m', '15m', '30m']);
+
+/**
+ * BEP v4.2.0: Platform detection for channel routing.
+ * - PWA devices: Use push channel (FCM/SW), skip browser channel
+ * - Non-PWA devices: Use browser channel (new Notification()), skip push channel
+ * - In-App: Always works on all platforms
+ */
+const IS_PWA = typeof window !== 'undefined' && (
+  window.matchMedia?.('(display-mode: standalone)')?.matches ||
+  window.navigator?.standalone === true
+);
 
 const getChannelsForReminder = (reminder) => {
   const channels = reminder?.channels || {};
@@ -238,9 +270,54 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
   }, [user?.uid]);
 
   const legacyReminders = useMemo(() => {
-    const mapped = (events || []).map((event) => {
+    // BEP FIX v4.3.0: Collapse recurring event occurrences by seriesId.
+    // customEventsService.expandRecurringEvent() expands a recurring event into N occurrence
+    // objects for calendar/clock display (e.g., 30 for a daily event over 30 days). Each
+    // occurrence gets a unique id (seriesId__epochMs) which produces a unique eventKey via
+    // buildEventIdentity. Without collapsing, all N occurrences enter the tick loop as
+    // independent reminders, each expanding its own recurrence window and bypassing dedup
+    // (because dedup keys include the per-occurrence eventKey). Result: 25+ duplicate
+    // notifications per trigger.
+    // FIX: Group recurring occurrences by seriesId, keep ONE representative per series.
+    // Normalize with seriesId as the event id so the eventKey is stable (custom:seriesId),
+    // matching the Firestore reminder key. expandReminderOccurrences() handles generating
+    // actual occurrence timestamps from the single representative.
+    const collapsedEvents = (() => {
+      const seriesMap = new Map();
+      const singles = [];
+
+      (events || []).forEach((event) => {
+        const sid = event.seriesId;
+        if (event.recurrence?.enabled && sid) {
+          const existing = seriesMap.get(sid);
+          if (!existing) {
+            seriesMap.set(sid, event);
+          } else if (event.id === sid) {
+            // Prefer the base event (id === seriesId) over expanded occurrences
+            seriesMap.set(sid, event);
+          } else if (existing.id !== sid && (event.epochMs || 0) < (existing.epochMs || 0)) {
+            // Both are expanded occurrences — keep the earliest for most accurate base
+            seriesMap.set(sid, event);
+          }
+        } else {
+          singles.push(event);
+        }
+      });
+
+      return [...singles, ...seriesMap.values()];
+    })();
+
+    const mapped = collapsedEvents.map((event) => {
+      // BEP FIX: For recurring occurrences, normalize with seriesId as the event id.
+      // This produces a stable eventKey (custom:seriesId) regardless of which occurrence
+      // was selected as representative. Without this, occurrence ids (seriesId__epochMs)
+      // produce unique keys that bypass all notification dedup layers.
+      const stableEvent = (event.recurrence?.enabled && event.seriesId && event.id !== event.seriesId)
+        ? { ...event, id: event.seriesId }
+        : event;
+
       const normalized = normalizeEventForReminder({
-        event,
+        event: stableEvent,
         source: 'custom',
         userId: user?.uid,
         reminders: event.reminders,
@@ -254,9 +331,9 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
       });
       return normalized;
     });
-    
+
     const filtered = mapped.filter((reminder) => reminder.reminders && reminder.reminders.length > 0);
-    
+
     return filtered;
   }, [events, user?.uid]);
 
@@ -328,6 +405,10 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
       const run = async () => {
         try {
           if (!effectiveReminders.length) return;
+
+          // BEP v4.1.0: Collect trigger writes for single batched Firestore operation
+          // Replaces 60+ individual fire-and-forget setDoc calls that caused resource-exhausted
+          const pendingTriggerWrites = [];
 
           const nowEpochMs = Date.now();
           // BEP FIX v2.4.0: Look back by NOW_WINDOW_MS so events currently happening are still included
@@ -413,14 +494,14 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
                     triggers = new Set(triggers);
                     triggers.add(triggerId);
                     didUpdate = true;
-                    void recordNotificationTrigger(user?.uid, triggerId, {
+                    pendingTriggerWrites.push({ triggerId, payload: {
                       eventKey: reminderRecord.eventKey,
                       occurrenceEpochMs,
                       minutesBefore,
                       channel,
                       status: 'skipped-quiet-hours',
                       scheduledForMs: reminderAt,
-                    });
+                    }});
                   });
                   return;
                 }
@@ -463,14 +544,14 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
                     triggers.add(triggerId);
                     triggers.add(occurrenceKey);
                     didUpdate = true;
-                    void recordNotificationTrigger(user?.uid, triggerId, {
+                    pendingTriggerWrites.push({ triggerId, payload: {
                       eventKey: reminderRecord.eventKey,
                       occurrenceEpochMs,
                       minutesBefore,
                       channel,
                       status: 'skipped-cap',
                       scheduledForMs: reminderAt,
-                    });
+                    }});
                     return;
                   }
 
@@ -484,7 +565,27 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
                   // The server-side FCM scheduler sends a push notification which the service worker
                   // displays as a browser notification via showNotification(). Firing `new Notification()`
                   // from the client AND having SW show the push would result in duplicate browser notifs.
+                  //
+                  // BEP v4.2.0: PLATFORM-AWARE — On PWA devices, ALWAYS skip browser channel.
+                  // Push/SW handles all OS-level notifications on PWA. This prevents duplicates
+                  // regardless of whether push is enabled on the same offset.
                   if (channel === 'browser') {
+                    if (IS_PWA) {
+                      // PWA: push/SW handles browser notifications — skip client-side dispatch
+                      triggers = new Set(triggers);
+                      triggers.add(triggerId);
+                      triggers.add(occurrenceKey);
+                      didUpdate = true;
+                      pendingTriggerWrites.push({ triggerId, payload: {
+                        eventKey: reminderRecord.eventKey,
+                        occurrenceEpochMs,
+                        minutesBefore,
+                        channel,
+                        status: 'skipped-pwa-push-handles-browser',
+                        scheduledForMs: reminderAt,
+                      }});
+                      return;
+                    }
                     const pushAlsoEnabled = reminder?.channels?.push === true;
                     if (pushAlsoEnabled) {
                       // Mark as triggered but skip dispatch — push/SW will handle browser display
@@ -492,14 +593,14 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
                       triggers.add(triggerId);
                       triggers.add(occurrenceKey);
                       didUpdate = true;
-                      void recordNotificationTrigger(user?.uid, triggerId, {
+                      pendingTriggerWrites.push({ triggerId, payload: {
                         eventKey: reminderRecord.eventKey,
                         occurrenceEpochMs,
                         minutesBefore,
                         channel,
                         status: 'skipped-push-handles-browser',
                         scheduledForMs: reminderAt,
-                      });
+                      }});
                       return;
                     }
                   }
@@ -582,6 +683,15 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
                   }
 
                   if (channel === 'push') {
+                    // BEP v4.2.0: PLATFORM-AWARE — Push is PWA-only.
+                    // On non-PWA (browser tabs), skip push entirely. Browser channel handles it.
+                    if (!IS_PWA) {
+                      triggers = new Set(triggers);
+                      triggers.add(triggerId);
+                      triggers.add(occurrenceKey);
+                      didUpdate = true;
+                      return; // Non-PWA: browser channel handles notifications
+                    }
                     // BEP v4.0.0: Push notifications are handled server-side via FCM Cloud Function.
                     // Also mark browser occurrence as triggered since SW showNotification() covers it.
                     const browserOccurrenceKey = `${reminderRecord.eventKey}__${occurrenceEpochMs}__browser`;
@@ -594,18 +704,24 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
                   }
 
                   // BEP: Only record inApp/browser triggers to Firestore - NOT push
-                  void recordNotificationTrigger(user?.uid, triggerId, {
+                  pendingTriggerWrites.push({ triggerId, payload: {
                     eventKey: reminderRecord.eventKey,
                     occurrenceEpochMs,
                     minutesBefore,
                     channel,
                     status: 'sent',
                     scheduledForMs: reminderAt,
-                  });
+                  }});
                 });
               });
             });
           });
+
+          // BEP v4.1.0: Single batched Firestore write for all collected triggers
+          // Replaces 60+ individual fire-and-forget setDoc calls that caused resource-exhausted
+          if (pendingTriggerWrites.length && user?.uid) {
+            void batchRecordNotificationTriggers(user.uid, pendingTriggerWrites);
+          }
 
           if (didUpdate) {
             triggersRef.current = triggers;

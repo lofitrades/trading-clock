@@ -11,6 +11,12 @@
  * BEP: Mobile-first, responsive, i18n, theme-aware, centered viewport layout.
  *
  * Changelog:
+ * v2.9.0 - 2026-02-10 - BUGFIX: handleSaveCustomEvent now actually persists to Firestore via useCustomEvents
+ *                        hook (createEvent/saveEvent). Previously ignored the payload parameter — dialog
+ *                        closed but data never saved. Matches App.jsx reference implementation.
+ * v2.8.0 - 2026-02-10 - BEP: Wire onEditCustomEvent to EventModal so custom events show edit icon.
+ *                        Adds editingEvent state + handleEditCustomEvent callback. CustomEventDialog
+ *                        opens in edit mode at z-index 12003 (above EventModal). Resets on close.
  * v2.7.0 - 2026-02-07 - BEP LOADING ANIMATION: Replaced Skeleton rectangle Suspense fallback with
  *                        LoadingAnimation component. Shows rotating donut animation centered in the
  *                        clock panel while lazy component loads. Matches ClockPanelPaper internal
@@ -62,6 +68,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import InfoIcon from '@mui/icons-material/Info';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import PublicLayout from './PublicLayout';
 import SEO from './SEO';
 import LoadingAnimation from './LoadingAnimation';
@@ -70,6 +77,7 @@ import useAppBarNavItems from '../hooks/useAppBarNavItems';
 import { useSettingsSafe } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useTimeEngine } from '../hooks/useTimeEngine';
+import useCustomEvents from '../hooks/useCustomEvents';
 import { buildSeoMeta } from '../utils/seoMeta';
 import { preloadNamespaces } from '../i18n/config';
 
@@ -93,6 +101,9 @@ export default function ClockPage() {
     const theme = useTheme();
     const settingsContext = useSettingsSafe();
     const { isAuthenticated } = useAuth();
+
+    // BEP v2.9.0: Custom event CRUD (no subscription needed — only mutation functions)
+    const { createEvent: createCustomEvent, saveEvent: saveCustomEvent } = useCustomEvents();
 
     // Preload namespaces
     useEffect(() => {
@@ -121,6 +132,7 @@ export default function ClockPage() {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [contactModalOpen, setContactModalOpen] = useState(false);
     const [customDialogOpen, setCustomDialogOpen] = useState(false);
+    const [customEditingEvent, setCustomEditingEvent] = useState(null);
     const [infoModalOpen, setInfoModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
 
@@ -131,22 +143,35 @@ export default function ClockPage() {
     const handleOpenContact = useCallback(() => setContactModalOpen(true), []);
     const handleCloseContact = useCallback(() => setContactModalOpen(false), []);
     const handleOpenCustomDialog = useCallback(() => setCustomDialogOpen(true), []);
-    const handleCloseCustomDialog = useCallback(() => setCustomDialogOpen(false), []);
+    const handleCloseCustomDialog = useCallback(() => { setCustomDialogOpen(false); setCustomEditingEvent(null); }, []);
+    // BEP v2.8.0: Edit custom event from EventModal → close modal → open dialog in edit mode
+    const handleEditCustomEvent = useCallback((event) => {
+        setSelectedEvent(null);
+        setCustomEditingEvent(event);
+        setCustomDialogOpen(true);
+    }, []);
     const handleOpenInfo = useCallback(() => setInfoModalOpen(true), []);
     const handleCloseInfo = useCallback(() => setInfoModalOpen(false), []);
     const handleOpenTimezone = useCallback(() => setSettingsOpen(true), []);
     const handleOpenEvent = useCallback((event) => setSelectedEvent(event), []);
     const handleCloseEvent = useCallback(() => setSelectedEvent(null), []);
 
-    // BEP: Auth check on CustomEventDialog save
-    const handleSaveCustomEvent = useCallback(() => {
+    // BEP v2.9.0: Persist custom event to Firestore with auth check
+    const handleSaveCustomEvent = useCallback(async (payload) => {
         if (!isAuthenticated()) {
             setCustomDialogOpen(false);
             setAuthModalOpen(true);
             return;
         }
-        setCustomDialogOpen(false);
-    }, [isAuthenticated]);
+        const eventId = customEditingEvent?.seriesId || customEditingEvent?.id;
+        const result = eventId
+            ? await saveCustomEvent(eventId, payload)
+            : await createCustomEvent(payload);
+        if (result?.success) {
+            setCustomDialogOpen(false);
+            setCustomEditingEvent(null);
+        }
+    }, [isAuthenticated, createCustomEvent, customEditingEvent, saveCustomEvent]);
 
     const navItems = useAppBarNavItems({
         onOpenAuth: handleOpenAuth,
@@ -202,29 +227,50 @@ export default function ClockPage() {
                             direction="row"
                             alignItems="center"
                             justifyContent="space-between"
-                            sx={{ mb: 1.5 }}
+                            sx={{ mb: 1.5, gap: 0.75 }}
                         >
-                            <Typography variant="h5" fontWeight={800}>
-                                {t('calendar:clock.title')}
-                            </Typography>
-                            <Tooltip title="Powered by Forex Factory" placement="left">
+                            <Stack direction="row" alignItems="center" spacing={0.75}>
+                                <Typography variant="h5" fontWeight={800}>
+                                    {t('calendar:clock.title')}
+                                </Typography>
+                                <Tooltip title="Powered by Forex Factory" placement="right">
+                                    <IconButton
+                                        size="small"
+                                        onClick={handleOpenInfo}
+                                        sx={{
+                                            color: alpha(theme.palette.text.primary, 0.7),
+                                            p: 0,
+                                            minWidth: 'auto',
+                                            minHeight: 'auto',
+                                            '&:hover': {
+                                                color: theme.palette.text.primary,
+                                                bgcolor: 'transparent',
+                                            },
+                                        }}
+                                        aria-label="Data source information"
+                                    >
+                                        <InfoIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            </Stack>
+                            <Tooltip title={t('calendar:tooltip.addReminder')} placement="left">
                                 <IconButton
-                                    size="small"
-                                    onClick={handleOpenInfo}
+                                    size="medium"
+                                    onClick={handleOpenCustomDialog}
                                     sx={{
-                                        color: alpha(theme.palette.text.primary, 0.7),
-                                        p: 0.5,
+                                        color: alpha(theme.palette.text.primary, 0.9),
+                                        p: 0.75,
                                         border: '1.5px solid',
                                         borderColor: alpha(theme.palette.text.primary, 0.2),
                                         borderRadius: '50%',
                                         '&:hover': {
                                             borderColor: alpha(theme.palette.text.primary, 0.4),
-                                            bgcolor: alpha(theme.palette.text.primary, 0.06),
+                                            bgcolor: alpha(theme.palette.text.primary, 0.08),
                                         },
                                     }}
-                                    aria-label="Data source information"
+                                    aria-label={t('calendar:aria.addReminder')}
                                 >
-                                    <InfoIcon fontSize="small" />
+                                    <AddRoundedIcon fontSize="medium" />
                                 </IconButton>
                             </Tooltip>
                         </Stack>
@@ -295,6 +341,7 @@ export default function ClockPage() {
                         onClose={handleCloseEvent}
                         event={selectedEvent}
                         timezone={settingsContext.selectedTimezone}
+                        onEditCustomEvent={handleEditCustomEvent}
                     />
                 )}
             </Suspense>
@@ -317,7 +364,9 @@ export default function ClockPage() {
                     open={customDialogOpen}
                     onClose={handleCloseCustomDialog}
                     onSave={handleSaveCustomEvent}
+                    event={customEditingEvent}
                     defaultTimezone={Intl.DateTimeFormat().resolvedOptions().timeZone}
+                    zIndexOverride={customEditingEvent ? 12003 : undefined}
                 />
             </Suspense>
 

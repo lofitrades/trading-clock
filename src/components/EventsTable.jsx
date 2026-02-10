@@ -17,6 +17,7 @@
  * - Accessibility compliant
  * 
  * Changelog:
+ * v1.13.0 - 2026-02-10 - BEP: Accept and pass onEditCustomEvent prop to EventModal so custom events show edit icon.
  * v1.12.0 - 2026-02-06 - BEP: Display rescheduled/reinstated event indicators under event name. Reschedule badge (ScheduleIcon, color: secondary) shows when rescheduledFrom is set. Reinstate badge (RestoreIcon, color: info) shows when status is cancelled but has reappeared.
  * v1.11.0 - 2026-01-30 - BEP i18n migration: Added useTranslation hook, converted 8 column headers (COLUMNS), 5 impact labels (IMPACT_CONFIG), and associated strings to t() calls for calendar namespace
  * v1.10.2 - 2026-01-24 - Phase 2 prep: File header updated, scheduled for i18n migration (requires memoized column header component for t() integration)
@@ -151,6 +152,7 @@ const IMPACT_CONFIG = {
   strong: { icon: '!!!', label: 'High', labelKey: 'calendar:impact.high.label' },
   moderate: { icon: '!!', label: 'Medium', labelKey: 'calendar:impact.medium.label' },
   weak: { icon: '!', label: 'Low', labelKey: 'calendar:impact.low.label' },
+  'my-events': { icon: '★', label: 'My Events', labelKey: 'calendar:impact.myEvents.label' },
   'not-loaded': { icon: '?', label: 'Data Not Loaded', labelKey: 'calendar:impact.notLoaded.label' },
   'non-economic': { icon: '~', label: 'Non-Economic', labelKey: 'calendar:impact.nonEconomic.label' },
   unknown: { icon: '?', label: 'Unknown', labelKey: 'calendar:impact.unknown.label' },
@@ -438,6 +440,7 @@ export default function EventsTable({
   isEventNotesLoading = () => false,
   onOpenAuth = null,
   authRedirectPath = null,
+  onEditCustomEvent = null,
 }) {
   const theme = useTheme();
   const { user } = useAuth();
@@ -1360,6 +1363,7 @@ export default function EventsTable({
           hasEventNotes={hasEventNotes}
           onOpenNotes={onOpenNotes}
           isEventNotesLoading={isEventNotesLoading}
+          onEditCustomEvent={onEditCustomEvent}
         />
       )}
 
@@ -1393,4 +1397,5 @@ EventsTable.propTypes = {
   isEventNotesLoading: PropTypes.func,
   onOpenAuth: PropTypes.func,
   authRedirectPath: PropTypes.string,
+  onEditCustomEvent: PropTypes.func,
 };

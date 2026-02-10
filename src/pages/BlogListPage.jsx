@@ -2,11 +2,38 @@
  * src/pages/BlogListPage.jsx
  *
  * Purpose: Public blog listing page with SEO-first design.
- * Displays published posts with infinite scroll (magic pagination), full-text search, and taxonomy filters.
+ * Displays published posts with MUI pagination, full-text search, and taxonomy filters.
  * Supports multi-language URLs via subpath routing.
  *
  * Changelog:
- * v2.4.0 - 2026-02-08 - BEP CRITICAL FIX: Fixed infinite skeleton loop on xs/sm breakpoints. (1) Root cause: rootMargin:'200px' on IntersectionObserver triggered sentinel detection 200px before viewport on small mobile screens, causing race condition with hasMore checks. (2) Solution: Changed rootMargin to '0px' — sentinel only triggers when truly visible, preventing re-triggers after hasMore=false. (3) Added protective guard: skeleton cards now show ONLY if `loadingMore && hasMore`, not just loadingMore. (4) Result: Skeleton cards appear naturally while loading, stop immediately when end reached, no infinite loop on mobile.
+ * v4.2.0 - 2026-02-08 - BEP UX: Added page-transition skeleton flash on pagination click. Since all posts
+ *                       are pre-fetched and page changes are instant client-side slices, there was zero
+ *                       visual feedback that content changed. Now shows 150ms skeleton overlay on page
+ *                       switch (same pattern as YouTube/Medium) to signal content transition. Uses
+ *                       pageTransitioning state + timer ref with proper cleanup on unmount.
+ * v4.1.0 - 2026-02-08 - BEP CRITICAL FIX: Fixed pagination redirecting to page 1 on every page change.
+ *                       ROOT CAUSE: React Router v7 setSearchParams is NOT referentially stable — it is
+ *                       recreated when searchParams changes. The filter-reset useEffect included
+ *                       setSearchParams in its dependency array, causing it to fire on every URL change
+ *                       (including page changes), which stripped the ?page param.
+ *                       FIX: Replaced fragile effect-driven page reset with event-driven approach:
+ *                       each filter onChange handler explicitly clears ?page. Debounced search uses a
+ *                       prev-value ref to detect actual changes. Zero effects watching setSearchParams.
+ *                       Also simplified scroll-to-top (scrollIntoView + window fallback), added
+ *                       shape="rounded" per MUI Pagination best practices.
+ * v4.0.0 - 2026-02-08 - BEP CRITICAL: Complete pagination architecture rewrite.
+ *                       BUGS FIXED: (1) smooth scroll started before React committed loading state,
+ *                       content height changed mid-animation → scroll never reached top. (2) pageFromUrl
+ *                       ↔ currentPage sync effect raced with filter reset → URL said ?page=2 while
+ *                       filter reset set page 1 → sync re-set to 2. (3) totalCount was estimated
+ *                       (guessed one more page) → page count changed as user navigated. (4) filter
+ *                       reset didn't clear URL ?page param → stale URL. (5) Per-page Firestore fetch
+ *                       added network latency on every page change → skeleton flicker.
+ *                       ARCHITECTURE: Fetch all matching posts once per filter/lang change (<500 posts,
+ *                       blog-scale). Client-side slice for instant page switches — zero network, zero
+ *                       skeletons on page change. URL is single source of truth for page number (no
+ *                       currentPage state). Derived: pageCount, currentPage, posts. Mount guard ref
+ *                       preserves ?page=N on direct link. Filter changes clear URL page param safely.
  * v2.3.0 - 2026-02-07 - BEP CRITICAL FIX: Removed language prefix from blog post card URLs. Localized slugs already carry language identity; adding /es/ or /fr/ prefix caused incorrect redirects (e.g., /es/blog/{en-slug}). SPA route is /blog/:slug with no prefix. BlogPostPage resolves slugs across all languages.
  * v2.2.0 - 2026-02-06 - BEP UX FIX: Fixed duplicate posts on scroll (deduplicate via Set before adding), changed posts.map to flatMap for proper array flattening, show skeleton cards during loadingMore (not just text) for better perceived performance
  * v2.1.0 - 2026-02-06 - BEP Phase 7: Integrated AdUnit (display ad after every 6th post card, consent-gated, lazy-loaded)
@@ -21,9 +48,9 @@
  * v1.0.0 - 2026-02-04 - Initial implementation (Phase 3 Blog)
  */
 
-import { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense, lazy } from 'react';
 import PropTypes from 'prop-types';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
     Box,
@@ -45,6 +72,7 @@ import {
     Alert,
     Autocomplete,
     Button,
+    Pagination,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -312,17 +340,23 @@ const PostCardSkeleton = () => (
 export default function BlogListPage() {
     const { t, i18n } = useTranslation(['blog', 'common']);
     const currentLang = i18n.language || 'en';
-    const observerRef = useRef(null);
+    const [searchParams, setSearchParams] = useSearchParams();
 
-    // State
-    const [posts, setPosts] = useState([]);
+    // PublicLayout scrolls an internal container (overflowY:auto). Use an anchor to scroll that container.
+    const pageTopRef = useRef(null);
+
+    // URL is the single source of truth for page number
+    const pageFromUrl = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+
+    // All matching posts (fetched once per filter/lang change — paginated client-side for instant page switches)
+    const [allPosts, setAllPosts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(null);
-    const [hasMore, setHasMore] = useState(true);
-    const lastDocRef = useRef(null);
-    const loadingMoreRef = useRef(false);
-    const hasMoreRef = useRef(true);
+
+    // Brief skeleton flash on page change for visual transition feedback (BEP UX pattern)
+    const [pageTransitioning, setPageTransitioning] = useState(false);
+    const transitionTimerRef = useRef(null);
+    useEffect(() => () => clearTimeout(transitionTimerRef.current), []);
 
     // Search and filter state
     const [searchQuery, setSearchQuery] = useState('');
@@ -381,14 +415,38 @@ export default function BlogListPage() {
         loadFilters();
     }, [currentLang]);
 
-    // Fetch initial page of posts (resets on filter/language change)
+    // Event-driven page reset: called by each filter onChange handler (NOT via effect)
+    // Avoids React Router v7 setSearchParams instability that caused the page-1 redirect bug
+    const clearPageParam = useCallback(() => {
+        setSearchParams((prev) => {
+            if (!prev.has('page')) return prev;
+            const next = new URLSearchParams(prev);
+            next.delete('page');
+            return next;
+        }, { replace: true });
+    }, [setSearchParams]);
+
+    // Reset page when debounced search query actually changes (prev-value ref avoids mount fire)
+    const prevDebouncedQueryRef = useRef(debouncedQuery);
     useEffect(() => {
-        const fetchPosts = async () => {
+        if (prevDebouncedQueryRef.current === debouncedQuery) return;
+        prevDebouncedQueryRef.current = debouncedQuery;
+        setSearchParams((prev) => {
+            if (!prev.has('page')) return prev;
+            const next = new URLSearchParams(prev);
+            next.delete('page');
+            return next;
+        }, { replace: true });
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- setSearchParams is functionally stable; ref guards prevent stale fires
+    }, [debouncedQuery]);
+
+    // Fetch ALL matching posts once per filter/lang change (blog-scale <500 posts)
+    // Page changes are instant client-side slices — zero network, zero skeletons
+    useEffect(() => {
+        let cancelled = false;
+        const fetchAllPosts = async () => {
             setLoading(true);
             setError(null);
-            setPosts([]);
-            lastDocRef.current = null;
-            setHasMore(true);
             try {
                 const result = await searchBlogPosts({
                     query: debouncedQuery,
@@ -398,103 +456,55 @@ export default function BlogListPage() {
                     currencies: selectedCurrency ? [selectedCurrency] : [],
                     tags: selectedTags.length > 0 ? selectedTags : [],
                     authorIds: selectedAuthorIds.length > 0 ? selectedAuthorIds : [],
-                    limit: POSTS_PER_PAGE,
+                    limit: 500,
                     cursor: null,
                 });
-                setPosts(result.posts);
-                lastDocRef.current = result.lastCursor;
-                setHasMore(result.hasMore);
+                if (!cancelled) setAllPosts(result.posts);
             } catch (err) {
-                console.error('Failed to fetch posts:', err);
-                setError(err.message || 'Failed to load posts');
+                if (!cancelled) {
+                    console.error('Failed to fetch posts:', err);
+                    setError(err.message || 'Failed to load posts');
+                }
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
-
-        fetchPosts();
+        fetchAllPosts();
+        return () => { cancelled = true; };
     }, [currentLang, selectedCategory, selectedEvent, selectedCurrency, selectedTags, selectedAuthorIds, debouncedQuery]);
 
-    // Keep refs in sync to avoid stale closures in observer callback
-    useEffect(() => { loadingMoreRef.current = loadingMore; }, [loadingMore]);
-    useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
-
-    // Load next page from Firestore (cursor-based with search service)
-    const loadMorePosts = useCallback(async () => {
-        if (loadingMoreRef.current || !hasMoreRef.current) return;
-        setLoadingMore(true);
-        loadingMoreRef.current = true;
-        try {
-            const result = await searchBlogPosts({
-                query: debouncedQuery,
-                lang: currentLang,
-                category: selectedCategory || undefined,
-                events: selectedEvent ? [selectedEvent] : [],
-                currencies: selectedCurrency ? [selectedCurrency] : [],
-                tags: selectedTags.length > 0 ? selectedTags : [],
-                authorIds: selectedAuthorIds.length > 0 ? selectedAuthorIds : [],
-                limit: POSTS_PER_PAGE,
-                cursor: lastDocRef.current,
-            });
-
-            // Deduplicate posts using Set to prevent duplicates from cursor pagination
-            const existingIds = new Set(posts.map(p => p.id));
-            const newPosts = result.posts.filter(p => !existingIds.has(p.id));
-
-            if (newPosts.length > 0) {
-                setPosts((prev) => [...prev, ...newPosts]);
-            }
-
-            lastDocRef.current = result.lastCursor;
-            setHasMore(result.hasMore);
-            hasMoreRef.current = result.hasMore;
-        } catch (err) {
-            console.error('Failed to load more posts:', err);
-        } finally {
-            setLoadingMore(false);
-            loadingMoreRef.current = false;
-        }
-    }, [currentLang, selectedCategory, selectedEvent, selectedCurrency, selectedTags, selectedAuthorIds, debouncedQuery, posts]);
-
-    // Callback ref for infinite scroll sentinel (BEP: reconnects observer on mount/unmount)
-    // CRITICAL: Reduced rootMargin to 0px to prevent mobile sentinel from re-triggering after hasMore=false
-    // On xs/sm: smaller viewport + 200px margin caused infinite loop of skeleton cards
-    // Fix: Use 0px margin, let scroll naturally reach sentinel, prevents race condition on mobile
-    const sentinelRef = useCallback(
-        (node) => {
-            // Disconnect previous observer
-            if (observerRef.current) {
-                observerRef.current.disconnect();
-                observerRef.current = null;
-            }
-
-            if (!node) return;
-
-            // Create new observer and connect to the sentinel node
-            const observer = new IntersectionObserver(
-                (entries) => {
-                    // Guard: Only load if sentinel is visible AND has more AND not already loading
-                    if (entries[0].isIntersecting && hasMoreRef.current && !loadingMoreRef.current) {
-                        loadMorePosts();
-                    }
-                },
-                { threshold: 0.1, rootMargin: '0px' } // Changed from 200px to 0px to fix mobile loop
-            );
-
-            observer.observe(node);
-            observerRef.current = observer;
-        },
-        [loadMorePosts]
+    // Derived pagination — zero state, URL + data = everything
+    const pageCount = Math.max(1, Math.ceil(allPosts.length / POSTS_PER_PAGE));
+    const currentPage = Math.min(pageFromUrl, pageCount);
+    const posts = useMemo(
+        () => allPosts.slice((currentPage - 1) * POSTS_PER_PAGE, currentPage * POSTS_PER_PAGE),
+        [allPosts, currentPage]
     );
 
-    // Cleanup observer on unmount
-    useEffect(() => {
-        return () => {
-            if (observerRef.current) {
-                observerRef.current.disconnect();
+    // Page change: show skeleton transition → scroll to top → update URL
+    const handlePageChange = useCallback((_, page) => {
+        // Immediately show skeletons over current cards for visual transition feedback
+        setPageTransitioning(true);
+        clearTimeout(transitionTimerRef.current);
+
+        // Scroll to top (scrollIntoView handles PublicLayout overflowY:auto container)
+        pageTopRef.current?.scrollIntoView({ block: 'start', behavior: 'instant' });
+        window.scrollTo(0, 0);
+
+        // Update URL → derives new page slice
+        setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            if (page > 1) {
+                next.set('page', String(page));
+            } else {
+                next.delete('page');
             }
-        };
-    }, []);
+            return next;
+        });
+
+        // Brief skeleton flash (150ms) then reveal new page cards
+        transitionTimerRef.current = setTimeout(() => setPageTransitioning(false), 150);
+    }, [setSearchParams]);
 
     // Modal handlers
     const handleOpenAuth = useCallback(() => {
@@ -551,6 +561,7 @@ export default function BlogListPage() {
                 onOpenAuth={handleOpenAuth}
                 onOpenSettings={handleOpenSettings}
             >
+                <Box ref={pageTopRef} />
                 <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 } }}>
                     {/* Page Header */}
                     <Box sx={{ mb: 4, textAlign: 'center' }}>
@@ -603,7 +614,7 @@ export default function BlogListPage() {
                             <InputLabel>{t('blog:listPage.categoryLabel', 'Category')}</InputLabel>
                             <Select
                                 value={selectedCategory}
-                                onChange={(e) => setSelectedCategory(e.target.value)}
+                                onChange={(e) => { setSelectedCategory(e.target.value); clearPageParam(); }}
                                 label={t('blog:listPage.categoryLabel', 'Category')}
                                 sx={{
                                     backgroundColor: 'background.paper',
@@ -624,7 +635,7 @@ export default function BlogListPage() {
                             <InputLabel>{t('blog:listPage.eventLabel', 'Economic Event')}</InputLabel>
                             <Select
                                 value={selectedEvent}
-                                onChange={(e) => setSelectedEvent(e.target.value)}
+                                onChange={(e) => { setSelectedEvent(e.target.value); clearPageParam(); }}
                                 label={t('blog:listPage.eventLabel', 'Economic Event')}
                                 sx={{
                                     backgroundColor: 'background.paper',
@@ -645,7 +656,7 @@ export default function BlogListPage() {
                             <InputLabel>{t('blog:listPage.currencyLabel', 'Currency')}</InputLabel>
                             <Select
                                 value={selectedCurrency}
-                                onChange={(e) => setSelectedCurrency(e.target.value)}
+                                onChange={(e) => { setSelectedCurrency(e.target.value); clearPageParam(); }}
                                 label={t('blog:listPage.currencyLabel', 'Currency')}
                                 sx={{
                                     backgroundColor: 'background.paper',
@@ -684,7 +695,7 @@ export default function BlogListPage() {
                             size="small"
                             options={availableFilters.tags}
                             value={selectedTags}
-                            onChange={(e, newValue) => setSelectedTags(newValue)}
+                            onChange={(e, newValue) => { setSelectedTags(newValue); clearPageParam(); }}
                             renderInput={(params) => (
                                 <TextField
                                     {...params}
@@ -735,6 +746,7 @@ export default function BlogListPage() {
                                 setSelectedCurrency('');
                                 setSelectedTags([]);
                                 setSelectedAuthorIds([]);
+                                clearPageParam();
                             }}
                             sx={{ mt: 2, mb: 2 }}
                         >
@@ -762,7 +774,7 @@ export default function BlogListPage() {
                             mb: 4,
                         }}
                     >
-                        {loading
+                        {(loading || pageTransitioning)
                             ? Array.from({ length: 6 }).map((_, i) => <PostCardSkeleton key={i} />)
                             : posts.flatMap((post, index) => {
                                 const items = [
@@ -790,11 +802,6 @@ export default function BlogListPage() {
                                 return items;
                             })}
 
-                        {/* Show skeleton cards while loading more (BEP UX: perceived performance) */}
-                        {/* CRITICAL FIX: Only show skeletons if loadingMore AND hasMore, prevents infinite loop on mobile */}
-                        {loadingMore && hasMore && Array.from({ length: 3 }).map((_, i) => (
-                            <PostCardSkeleton key={`skeleton-${i}`} />
-                        ))}
                     </Box>
 
                     {/* Empty state */}
@@ -811,18 +818,26 @@ export default function BlogListPage() {
                         </Box>
                     )}
 
-                    {/* Infinite scroll sentinel (invisible, triggers on intersection) */}
-                    {!loading && hasMore && (
-                        <Box
-                            ref={sentinelRef}
-                            sx={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                py: 4,
-                                minHeight: 40,
-                            }}
-                        />
+                    {/* BEP v3.1.0: MUI Pagination with URL params (?page=N) for SEO + bookmarking */}
+                    {!loading && posts.length > 0 && pageCount > 1 && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', pt: 2, pb: 4 }}>
+                            <Pagination
+                                count={pageCount}
+                                page={currentPage}
+                                onChange={handlePageChange}
+                                color="primary"
+                                size="large"
+                                shape="rounded"
+                                showFirstButton
+                                showLastButton
+                                sx={{
+                                    '& .MuiPaginationItem-root': {
+                                        fontWeight: 600,
+                                        fontSize: '0.875rem',
+                                    },
+                                }}
+                            />
+                        </Box>
                     )}
                 </Container>
 

@@ -4,8 +4,15 @@
  * Purpose: Auth-aware hook for user custom reminder events with realtime range subscriptions.
  * Key responsibility and main functionality: Stream custom events for a date range, and expose
  * create/update/delete helpers with BEP schema handling, plus activity logging for CRUD ops.
+ * For non-auth users, displays default weekday custom events (read-only).
  * 
  * Changelog:
+ * v1.2.1 - 2026-02-10 - BEP: Replaced hardcoded guest events with shared buildGuestSampleEventsForRange
+ *                        from defaultCustomEvents.js. Single source of truth — names, times, colors,
+ *                        and impact values now match ClockEventsOverlay guest markers exactly.
+ * v1.2.0 - 2026-02-10 - BEP: Non-auth users now see default weekday custom events (NY Open/Close).
+ *                        Auth users get personalized Firestore events. Both merge in Calendar2Page.
+ *                        Clicking custom events shows AuthModal2 for non-auth users (read-only view).
  * v1.1.0 - 2026-02-05 - Added activity logging for event_created, event_updated, event_deleted actions
  * v1.0.0 - 2026-01-21 - Initial implementation for custom reminder events.
  */
@@ -23,6 +30,7 @@ import {
   logEventDeleted,
   logEventUpdated,
 } from '../services/activityLogger';
+import { buildGuestSampleEventsForRange } from '../utils/defaultCustomEvents';
 
 export const useCustomEvents = ({ startDate, endDate } = {}) => {
   const { user } = useAuth();
@@ -37,13 +45,23 @@ export const useCustomEvents = ({ startDate, endDate } = {}) => {
   }, [startDate, endDate]);
 
   useEffect(() => {
-    if (!user || !startDate || !endDate) {
-      setEvents([]);
-      setLoading(false);
-      setError(null);
+    // BEP v1.2.0: Non-auth users get default guest events, auth users get Firestore
+    if (!user) {
+      // Non-auth: show default weekday events (read-only) from shared utility
+      if (startDate && endDate) {
+        setLoading(true);
+        setError(null);
+        const defaultEvents = buildGuestSampleEventsForRange(startDate, endDate);
+        setEvents(defaultEvents);
+        setLoading(false);
+      } else {
+        setEvents([]);
+        setLoading(false);
+      }
       return undefined;
     }
 
+    // Auth: load user's custom events from Firestore
     setLoading(true);
     setError(null);
 

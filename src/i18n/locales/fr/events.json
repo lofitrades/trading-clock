@@ -33,6 +33,7 @@
     "repeatLabel": "Répéter",
     "impactLabel": "Impact",
     "showOnClock": "Afficher sur l'Horloge",
+    "showOnCalendar": "Afficher sur le Calendrier",
     "noRepeat": "Ne se répète pas",
     "everyDay": "Chaque jour",
     "everyWeek": "Chaque semaine",
@@ -48,6 +49,8 @@
       "appearance": "Apparence",
       "visibleOnClock": "Visible sur l'horloge",
       "hiddenFromClock": "Caché de l'horloge",
+      "visibleOnCalendar": "Visible sur le calendrier",
+      "hiddenFromCalendar": "Caché du calendrier",
       "notes": "Notes",
       "timezone": "Fuseau Horaire"
     },
@@ -87,6 +90,8 @@
     "dataNotLoadedDesc": "Les données de niveau d'impact sont toujours en cours de chargement",
     "nonEconomic": "Non Économique",
     "nonEconomicDesc": "Cet événement n'est pas classé comme données économiques",
+    "myEvents": "Mes Événements",
+    "myEventsDesc": "Événement personnalisé créé par vous",
     "unknown": "Inconnu",
     "unknownDesc": "Le niveau d'impact ne peut pas être déterminé"
   },
@@ -173,6 +178,7 @@
           "hour1": "Toutes les 1 heure",
           "hour4": "Toutes les 4 heures",
           "day1": "Tous les jours",
+          "weekdays": "Chaque jour de semaine (L-V)",
           "week1": "Chaque semaine",
           "month1": "Chaque mois",
           "quarter1": "Chaque trimestre",
@@ -215,6 +221,10 @@
         "showOnClock": {
           "label": "Afficher sur l'horloge",
           "description": "Afficher cet événement sur votre horloge de trading"
+        },
+        "showOnCalendar": {
+          "label": "Afficher sur le calendrier",
+          "description": "Afficher cet événement dans votre tableau de calendrier économique"
         }
       }
     },

@@ -5,7 +5,7 @@
  * Renders impact-based icons on AM (inner) and PM (outer) rings using current filters and news source.
  *
  * Changelog:
- * v1.19.1 - 2026-02-03 - BEP FIX: Removed nowEpochMs from renderedMarkers dependencies to prevent marker blinking every second. Uses Date.now() inside memo for fallback timestamps instead of reactive dependency.
+ * v1.19.2 - 2026-02-09 - BEP ACCESSIBILITY: Impact badge text color now uses `isColorDark()` for contrast-aware coloring. Custom event impact badges use white text on dark backgrounds, dark text on light backgrounds. Ensures WCAG AA compliance for impact icons on all event marker badges.
  * v1.19.0 - 2026-02-02 - BEP: Removed real-time Firestore listener (timezone conversion complexity introduced inaccuracies). Data refreshes on page reload/remount for consistent, accurate results.
  * v1.18.26 - 2026-01-30 - BEP NOW WINDOW COLORING: Markers keep full colors during entire 10-minute NOW state. Only gray out after NOW window ends (badge, flag, border, color). Changed from isPastEvent check to isPastNowWindow (isTodayPast && !isNow). Improves UX by maintaining visual emphasis on NOW events throughout their entire active window. Follows enterprise pattern: active events remain prominent.
  * v1.18.25 - 2026-01-23 - BEP: Migrate to useReminderActions hook for centralized reminder subscription (removes duplicate subscription).
@@ -93,6 +93,8 @@
  * v1.7.0 - 2025-12-15 - CRITICAL FIX: Refactored to use shared eventTimeEngine for absolute-epoch-based NOW/NEXT detection and countdown. Eliminates timezone-shifted Date object bugs.
  * v1.6.3 - 2025-12-15 - Tooltip event rows are clickable/tappable: opens events drawer and auto-scrolls to the exact event clicked.
  * v1.6.2 - 2025-12-12 - Touch-first tooltip flow: first tap shows tooltip; second tap opens drawer and auto-scrolls.
+ * v1.6.3 - 2026-02-08 - BEP NAVIGATION FIX: Wrapped setInterval NOW tick in startTransition to
+ *                       prevent blocking React Router v7 navigation transitions.
  * v1.6.1 - 2025-12-11 - Tooltip rows combine time, flag/currency, and countdown; removed impact label row.
  * v1.6.0 - 2025-12-11 - Tooltips show time-to-event countdown for each listed event.
  * v1.5.1 - 2025-12-13 - NEXT markers keep impact border and use smooth scale animation when no NOW event.
@@ -111,7 +113,7 @@
  * v1.0.0 - 2025-12-09 - Initial implementation of timezone-aware event markers with grouped tooltips.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, startTransition } from 'react';
 import PropTypes from 'prop-types';
 import { Box, Typography, alpha, Portal } from '@mui/material';
 import { useLocation } from 'react-router-dom';
@@ -371,8 +373,12 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
     onLoadingStateChange?.(isFilterLoading);
   }, [isFilterLoading, onLoadingStateChange]);
 
+  // BEP: Wrap in startTransition so this low-priority tick doesn't block
+  // React Router v7 navigation transitions (which also use startTransition).
   useEffect(() => {
-    const id = setInterval(() => setNowTick(Date.now()), 1000);
+    const id = setInterval(() => {
+      startTransition(() => setNowTick(Date.now()));
+    }, 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -627,7 +633,7 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
 
         const isHovered = hoveredMarkerKey === markerKey;
 
-        // Calculate z-index priority: NOW > NEXT > Custom > Favorite > Note > High > Medium > Low > Non-Economic > Other
+        // Calculate z-index priority: NOW > NEXT > Custom > Favorite > Note > High > Medium > My Events > Low > Non-Economic > Other
         let zIndex = 12; // Base z-index
         if (marker.isNow) {
           zIndex = 90;
@@ -643,6 +649,8 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
           zIndex = 40;
         } else if (impactKey === 'moderate') {
           zIndex = 30;
+        } else if (impactKey === 'my-events') {
+          zIndex = 25;
         } else if (impactKey === 'weak') {
           zIndex = 22;
         } else if (impactKey === 'non-economic') {

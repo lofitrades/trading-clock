@@ -16,6 +16,11 @@
  * All results written back through all layers for future hits
  *
  * Changelog:
+ * v1.9.0 - 2026-02-09 - BEP: Inject guest sample custom events (NY Open 9:30 AM ET, Market Close 5:00 PM ET)
+ *                        for non-auth users so clock markers show sample custom events on weekdays.
+ * v1.8.0 - 2026-02-09 - BEP MULTI-FILTER: Pass ALL currencies/impacts to adapter instead of only
+ *                        first value. Fixes multi-select filter for clock markers. Shared cached
+ *                        data with Calendar via Zustand store for instant cross-page loads.
  * v1.7.2 - 2026-02-03 - BEP FIX: Prevented marker blinking by using dayKey (stable per day) instead of nowEpochMs (changes every second) for date range calculation.
  * v1.7.1 - 2026-02-03 - BEP FIX: Refactored to call all hooks unconditionally (rules of hooks compliance). Removed unused normalizeImpactValue.
  * v1.7.0 - 2026-02-03 - BEP FIX: Custom events now display correctly. Fixed buildRangeFromDayKey to use timezone-aware getUtcDayRangeForTimezone instead of local browser time. This ensures custom event queries use the correct day boundaries for the user's selected clock timezone.
@@ -39,6 +44,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useEventsAdapter } from '../services/eventsStorageAdapter';
 import useEventsStore from '../stores/eventsStore';
 import { subscribeToCustomEventsByRange } from '../services/customEventsService';
+import { buildGuestSampleEvents } from '../utils/defaultCustomEvents';
 import { sortEventsByTime } from '../utils/newsApi';
 import { getEventEpochMs } from '../utils/eventTimeEngine';
 import { getUtcDayRangeForTimezone } from '../utils/dateUtils';
@@ -164,14 +170,15 @@ export function useClockEventsData({
   // STRATEGY 2: Use adaptive storage adapter for today's events
   // BEP v1.6.0: Removed Zustand real-time subscription - timezone conversion 
   // complexity introduced display inaccuracies. Data refreshes on page reload.
+  // BEP v1.8.0: Pass ALL currencies/impacts to adapter for full multi-select support
   // Always call hook unconditionally (rules of hooks)
   // ========================================================================
   const {
     events: adapterEvents,
     loading: adapterLoading,
   } = useEventsAdapter(todayStart, todayEnd, {
-    currency: eventFilters?.currencies?.[0],
-    impact: eventFilters?.impacts?.[0],
+    currencies: eventFilters?.currencies || [],
+    impacts: eventFilters?.impacts || [],
     source: newsSource,
     enrich: false,
   });
@@ -204,11 +211,20 @@ export function useClockEventsData({
       });
   }, [customEvents, eventFilters?.currencies, searchQuery]);
 
+  // BEP: Build guest sample events for non-auth users (NY Open + Market Close)
+  const guestSampleEvents = useMemo(() => {
+    if (user) return []; // Auth users get real custom events from Firestore
+    return buildGuestSampleEvents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, timezone, dayKey]);
+
   const mergedEvents = useMemo(() => {
     const existingKeys = new Set((economicEvents || []).map(eventKey));
     const dedupedCustom = customFiltered.filter((evt) => !existingKeys.has(eventKey(evt)));
-    return sortEventsByTime([...(economicEvents || []), ...dedupedCustom]);
-  }, [economicEvents, customFiltered]);
+    // Merge guest sample events for non-auth users
+    const dedupedGuest = guestSampleEvents.filter((evt) => !existingKeys.has(eventKey(evt)));
+    return sortEventsByTime([...(economicEvents || []), ...dedupedCustom, ...dedupedGuest]);
+  }, [economicEvents, customFiltered, guestSampleEvents]);
 
   // Subscribe to custom events for real-time updates
   // BEP v1.7.0: Use timezone-aware range for correct day boundaries

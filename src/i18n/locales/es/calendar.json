@@ -80,6 +80,7 @@
     "removeFavorite": "Eliminar favorito",
     "addToFavorites": "Agregar a favoritos",
     "customEvent": "Evento personalizado",
+    "customEventLabel": "MI EVENTO",
     "unknown": "Desconocido",
     "global": "Global",
     "allDay": "Todo el día",
@@ -109,7 +110,14 @@
       "actual": "R",
       "forecast": "P",
       "previous": "A"
-    }
-  }
+    }  },
+  "impact": {
+    "high": { "label": "Alto" },
+    "medium": { "label": "Medio" },
+    "low": { "label": "Bajo" },
+    "myEvents": { "label": "Mis Eventos" },
+    "notLoaded": { "label": "No Cargado" },
+    "nonEconomic": { "label": "No Económico" },
+    "unknown": { "label": "Desconocido" }  }
 }
 

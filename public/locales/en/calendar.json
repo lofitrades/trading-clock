@@ -1,10 +1,32 @@
 {
   "title": "Economic Calendar",
-  "subtitle": "Forex Factory-powered calendar with NY time-first clarity",
+  "subtitle": "Forex Factory-powered with NY time-first clarity",
   "filter": "Filter Events",
   "search": "Search Events",
   "sort": "Sort by",
-  "impact": "Impact",
+  "impact": {
+    "high": {
+      "label": "High"
+    },
+    "medium": {
+      "label": "Medium"
+    },
+    "low": {
+      "label": "Low"
+    },
+    "myEvents": {
+      "label": "My Events"
+    },
+    "notLoaded": {
+      "label": "Not Loaded"
+    },
+    "nonEconomic": {
+      "label": "Non-Economic"
+    },
+    "unknown": {
+      "label": "Unknown"
+    }
+  },
   "currency": "Currency",
   "source": "Source",
   "date": "Date",
@@ -73,21 +95,7 @@
     "awaitingSync": "Awaiting sync..."
   },
   "tooltip": {
-    "loadingNotes": "Loading notes...",
-    "viewNotes": "View notes",
-    "addNote": "Add a note",
-    "addReminder": "Add reminder",
-    "removeFavorite": "Remove favorite",
-    "addToFavorites": "Add to favorites",
-    "customEvent": "Custom event",
-    "unknown": "Unknown",
-    "global": "Global",
-    "allDay": "All Day",
-    "tentative": "Tentative",
-    "allDayAndTentative": "All Day / Tentative",
-    "time": "Time",
-    "singleEvent": "1 event",
-    "eventCount": "{{count}} events"
+    "customEventLabel": "MY EVENT"
   },
   "clock": {
     "title": "Trading Clock",

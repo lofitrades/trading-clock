@@ -6,6 +6,11 @@
  * and persist notification trigger IDs for client-side reminder firing.
  * 
  * Changelog:
+ * v1.3.0 - 2026-02-08 - BEP CRITICAL: Add batchRecordNotificationTriggers() to batch trigger
+ *                       writes into a single Firestore writeBatch operation. Fixes
+ *                       resource-exhausted error caused by 60+ individual fire-and-forget
+ *                       setDoc calls per notification tick. Suppress noisy push trigger
+ *                       console.warn in recordNotificationTrigger().
  * v1.2.0 - 2026-02-04 - BEP CRITICAL: Block push triggers in recordNotificationTrigger().
  *                       Server-side FCM exclusively handles push trigger creation. This 
  *                       safeguard ensures even old cached client code can't write push 
@@ -26,6 +31,7 @@ import {
     serverTimestamp,
     setDoc,
     deleteDoc,
+    writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import {
@@ -248,11 +254,7 @@ export const saveLocalTriggerIds = (userId, triggers) => {
 
 export const recordNotificationTrigger = async (userId, triggerId, payload = {}) => {
     // BEP CRITICAL: NEVER write push triggers from client - server-side FCM handles these
-    // This safeguard prevents old cached code from blocking server-side FCM delivery
-    if (payload.channel === 'push') {
-        console.warn('[recordNotificationTrigger] ⚠️ Blocked push trigger write - server handles push');
-        return;
-    }
+    if (payload.channel === 'push') return;
 
     const nextPayload = {
         ...payload,
@@ -265,4 +267,43 @@ export const recordNotificationTrigger = async (userId, triggerId, payload = {})
     const encodedTriggerId = encodeFirestoreDocId(triggerId);
     const triggerRef = doc(db, 'users', userId, TRIGGERS_COLLECTION, String(encodedTriggerId));
     await setDoc(triggerRef, nextPayload, { merge: true });
+};
+
+/**
+ * Batch-write multiple notification triggers in a single Firestore writeBatch operation.
+ * Replaces individual fire-and-forget setDoc calls that caused resource-exhausted errors
+ * when 60+ triggers were written per notification tick.
+ *
+ * @param {string} userId - Firebase UID
+ * @param {Array<{triggerId: string, payload: object}>} triggers - Trigger writes to batch
+ */
+const MAX_TRIGGER_WRITES_PER_BATCH = 50;
+
+export const batchRecordNotificationTriggers = async (userId, triggers) => {
+    if (!userId || !triggers?.length) return;
+
+    // Filter out push triggers (server handles) and cap per batch to prevent flooding
+    const validTriggers = triggers
+        .filter((t) => t.payload?.channel !== 'push')
+        .slice(0, MAX_TRIGGER_WRITES_PER_BATCH);
+
+    if (!validTriggers.length) return;
+
+    const batch = writeBatch(db);
+
+    validTriggers.forEach(({ triggerId, payload }) => {
+        const encodedTriggerId = encodeFirestoreDocId(triggerId);
+        const triggerRef = doc(db, 'users', userId, TRIGGERS_COLLECTION, String(encodedTriggerId));
+        batch.set(triggerRef, {
+            ...payload,
+            updatedAt: serverTimestamp(),
+            createdAt: payload.createdAt || serverTimestamp(),
+        }, { merge: true });
+    });
+
+    try {
+        await batch.commit();
+    } catch (error) {
+        console.error('[batchRecordNotificationTriggers] Batch commit failed:', error?.code || error?.message);
+    }
 };

@@ -130,6 +130,9 @@ function normalizeImpactValue(impact) {
   if (value.includes('non-eco') || value.includes('non-economic') || value.includes('none')) {
     return 'Non-Economic';
   }
+  if (value.includes('my-events') || value.includes('my events')) {
+    return 'My Events';
+  }
 
   return 'Data Not Loaded';
 }

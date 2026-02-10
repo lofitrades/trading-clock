@@ -6,6 +6,9 @@
  * Extracted from PublicLayout to improve separation of concerns and ensure consistency across all pages.
  * 
  * Changelog:
+ * v1.9.0 - 2026-02-10 - BUGFIX: handleSaveCustomEvent now actually persists to Firestore via useCustomEvents
+ *                        hook (createEvent). Previously ignored the payload parameter — dialog closed
+ *                        but data never saved. Matches App.jsx reference implementation.
  * v1.8.0 - 2026-01-29 - BEP i18n: Added 'reminders' namespace to useTranslation hook. Replaced hardcoded "Add reminder" tooltip with t('reminders:actions.addReminder') for full language awareness (EN/ES/FR). Tooltip now dynamically updates when user changes language.
  * v1.7.0 - 2026-01-29 - BEP SIZING: Logo icon now consistent 32px (1:1 square) on all breakpoints, matching unlock button and LanguageSwitcher (both size="small"). Removed responsive width/height to maintain visual alignment across xs/sm/md.
  * v1.6.0 - 2026-01-29 - BEP UX: LanguageSwitcher now visible for non-auth users on ALL breakpoints (xs/sm/md/lg). Removed display: { xs: 'none' } to ensure guests can change language on mobile. Key for global language preference accessibility.
@@ -42,6 +45,7 @@ import NotificationCenter from './NotificationCenter';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../hooks/useSettings';
+import useCustomEvents from '../hooks/useCustomEvents';
 
 const LogoutModal = lazy(() => import('./LogoutModal'));
 const AuthModal2 = lazy(() => import('./AuthModal2'));
@@ -61,6 +65,8 @@ const MobileHeader = ({
     const { t } = useTranslation(['common', 'reminders']);
     const { isAuthenticated } = useAuth();
     const { settings } = useSettings();
+    // BEP v1.9.0: Custom event CRUD (no subscription needed — only mutation functions)
+    const { createEvent: createCustomEvent } = useCustomEvents();
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [notificationCloseSignal, setNotificationCloseSignal] = useState(0);
@@ -74,17 +80,18 @@ const MobileHeader = ({
         setCustomDialogOpen(true);
     };
 
-    const handleSaveCustomEvent = () => {
-        // BEP: Auth check on save - prevents save and shows AuthModal2 for non-auth users
+    const handleSaveCustomEvent = async (payload) => {
+        // BEP v1.9.0: Auth check + persist to Firestore
         const isUserAuthenticated = isAuthenticated ? isAuthenticated() : Boolean(user);
         if (!isUserAuthenticated) {
             setCustomDialogOpen(false);
             setShowAuthModal(true);
             return;
         }
-
-        // Auth users can proceed with save (actual save logic in parent page)
-        setCustomDialogOpen(false);
+        const result = await createCustomEvent(payload);
+        if (result?.success) {
+            setCustomDialogOpen(false);
+        }
     };
 
     return (

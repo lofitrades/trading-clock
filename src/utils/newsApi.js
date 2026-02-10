@@ -20,6 +20,7 @@ export const IMPACT_COLORS = {
   high: '#d32f2f',      // Red
   medium: '#f57c00',    // Orange
   low: '#F2C94C',       // Yellow (folder yellow) for low impact
+  myEvents: '#2196f3',  // Blue — user custom events
   nonEconomic: '#9e9e9e',
   unknown: '#C7B8A4',   // Taupe for unknown
 };
@@ -28,6 +29,7 @@ export const IMPACT_LEVELS = [
   { key: 'strong', label: 'High Impact', icon: '!!!', color: IMPACT_COLORS.high, priority: 4, test: (v) => v.includes('strong') || v.includes('high') },
   { key: 'moderate', label: 'Medium Impact', icon: '!!', color: IMPACT_COLORS.medium, priority: 3, test: (v) => v.includes('moderate') || v.includes('medium') },
   { key: 'weak', label: 'Low Impact', icon: '!', color: IMPACT_COLORS.low, priority: 2, test: (v) => v.includes('weak') || v.includes('low') },
+  { key: 'my-events', label: 'My Events', icon: '★', color: IMPACT_COLORS.myEvents, priority: 3, test: (v) => v.includes('my-events') || v.includes('my events') },
   { key: 'not-loaded', label: 'Data Not Loaded', icon: '?', color: IMPACT_COLORS.nonEconomic, priority: 1, test: (v) => v.includes('not loaded') },
   { key: 'non-economic', label: 'Non-Economic', icon: '~', color: IMPACT_COLORS.nonEconomic, priority: 1, test: (v) => v.includes('non-economic') || v === 'none' },
   { key: 'unknown', label: 'Unknown', icon: '?', color: IMPACT_COLORS.unknown, priority: 0, test: () => true },
@@ -561,6 +563,7 @@ export const getImpactBadge = (impact) => {
   if (impactStr.includes('strong')) return 'H';
   if (impactStr.includes('moderate')) return 'M';
   if (impactStr.includes('weak')) return 'L';
+  if (impactStr.includes('my-events') || impactStr.includes('my events')) return '★';
   if (impactStr.includes('non-economic')) return 'N';
   
   // Legacy format (from economicEventDescriptions)

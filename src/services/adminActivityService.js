@@ -6,6 +6,10 @@
  * and queries existing data for dashboard insights.
  *
  * Changelog:
+ * v1.0.1 - 2026-02-08 - BEP FIX: Fixed Firestore collection path for economicEvents (use doc() → collection()
+ *                       pattern). Added missing ACTIVITY_TYPES (BLOG_CREATED, BLOG_DELETED, EVENT_CREATED,
+ *                       EVENT_DELETED, EVENT_UPDATED) exported by AdminDashboardPage. Resolves undefined
+ *                       reference errors when navigating to /admin from UserAvatar.
  * v1.0.0 - 2026-02-05 - Initial implementation with activity logging and stats fetching.
  */
 
@@ -20,6 +24,7 @@ import {
   serverTimestamp,
   Timestamp,
   getCountFromServer,
+  doc,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -28,10 +33,15 @@ export const ACTIVITY_TYPES = {
   EVENT_RESCHEDULED: 'event_rescheduled',
   EVENT_CANCELLED: 'event_cancelled',
   EVENT_REINSTATED: 'event_reinstated',
+  EVENT_CREATED: 'event_created',
+  EVENT_DELETED: 'event_deleted',
+  EVENT_UPDATED: 'event_updated',
   SYNC_COMPLETED: 'sync_completed',
   SYNC_FAILED: 'sync_failed',
   BLOG_PUBLISHED: 'blog_published',
   BLOG_UPDATED: 'blog_updated',
+  BLOG_CREATED: 'blog_created',
+  BLOG_DELETED: 'blog_deleted',
   USER_SIGNUP: 'user_signup',
   GPT_UPLOAD: 'gpt_upload',
 };
@@ -164,9 +174,9 @@ export async function fetchBlogStats(period = '30d') {
  */
 export async function fetchEventStats(period = '30d') {
   try {
-    const eventsCollection = collection(db, 'economicEvents', 'events', 'events');
-    // Period is available for future filtering if needed
-    void period;
+    // Correct path: /economicEvents/events/events (doc → collection)
+    const rootDoc = doc(collection(db, 'economicEvents'), 'events');
+    const eventsCollection = collection(rootDoc, 'events');
 
     // Total events
     const totalSnapshot = await getCountFromServer(eventsCollection);

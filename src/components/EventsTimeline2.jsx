@@ -7,6 +7,8 @@
  * for past events in the selected timezone.
  *
  * Changelog:
+ * v3.11.0 - 2026-02-10 - BEP: Accept and pass onEditCustomEvent prop to EventModal instances.
+ *                        Enables edit icon for custom events opened from timeline cards.
  * v3.10.0 - 2026-02-06 - BEP: Display rescheduled/reinstated event indicators. Reschedule badge (ScheduleIcon) shows when rescheduledFrom is set with tooltip showing old date. Reinstate badge (RestoreIcon) shows when event status is cancelled but has been reappeared.
  * v3.9.0 - 2026-01-28 - BEP THEME: Replaced 15+ hardcoded colors with theme tokens throughout component. Changed #f5f5f5 to theme.palette.action.hover, #9e9e9e/#757575 gray to theme.palette.text.disabled, #424242/#616161 dark text to theme.palette.text.secondary, #e0e0e0/#d6d6d6 disabled backgrounds to alpha(theme.palette.text.disabled), #b0b0b0 divider to theme.palette.divider, alpha('#000') to alpha(theme.palette.text.primary), rgba(25,118,210) to theme.palette.info.main. All colors now adapt to light/dark theme modes dynamically.
  * v3.8.5 - 2026-01-16 - Display all-day/tentative time labels for GPT placeholder events.
@@ -160,6 +162,7 @@ const IMPACT_CONFIG = {
   strong: { icon: '!!!', label: 'High Impact' },
   moderate: { icon: '!!', label: 'Medium Impact' },
   weak: { icon: '!', label: 'Low Impact' },
+  'my-events': { icon: '★', label: 'My Events' },
   'not-loaded': { icon: '?', label: 'Data Not Loaded' },
   'non-economic': { icon: '~', label: 'Non-Economic' },
   unknown: { icon: '?', label: 'Unknown' },
@@ -1910,6 +1913,7 @@ export default function EventsTimeline2({
   hasEventNotes = () => false,
   onOpenNotes = null,
   isEventNotesLoading = () => false,
+  onEditCustomEvent = null,
 }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -2838,6 +2842,7 @@ export default function EventsTimeline2({
         hasEventNotes={hasEventNotes}
         onOpenNotes={onOpenNotes}
         isEventNotesLoading={isEventNotesLoading}
+        onEditCustomEvent={onEditCustomEvent}
       />
 
       {/* Event Details Modal (for card click) */}
@@ -2853,6 +2858,7 @@ export default function EventsTimeline2({
         hasEventNotes={hasEventNotes}
         onOpenNotes={onOpenNotes}
         isEventNotesLoading={isEventNotesLoading}
+        onEditCustomEvent={onEditCustomEvent}
       />
     </Box>
   );

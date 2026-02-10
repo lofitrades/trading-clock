@@ -8,9 +8,13 @@
  * - Welcome message
  * - Quick feature overview
  * - Getting started tips
+ * - Default events reminder note
  * - Dismissible (shown once)
  * 
  * Changelog:
+ * v1.3.0 - 2026-02-09 - BEP i18n: Migrated ALL hardcoded strings to welcome namespace (quickStartGuide,
+ *                       tradingClock, economicEvents, customizeExperience, proFeatures, getStarted,
+ *                       defaultEventsNote). Zero hardcoded client-facing copy remains.
  * v1.2.0 - 2026-01-24 - Phase 2 i18n migration - Added useTranslation hook with 'welcome' namespace. Replaced WELCOME_COPY hardcoded strings with t() calls (headline, confirmation, multiProvider). Updated 3 strings to i18n keys.
  * v1.1.1 - 2026-01-15 - Modal layering: keep backdrop behind paper and ensure modal stacks above AppBar.
  * v1.1.0 - 2025-12-22 - Use centralized welcome copy shared across auth providers.
@@ -88,7 +92,7 @@ export default function WelcomeModal({ onClose, userEmail }) {
 
         {/* Quick Start Guide */}
         <Typography variant="h6" fontWeight="600" gutterBottom>
-          Quick Start Guide
+          {t('quickStartGuide')}
         </Typography>
 
         <Stack spacing={2} sx={{ mb: 3 }}>
@@ -96,10 +100,10 @@ export default function WelcomeModal({ onClose, userEmail }) {
             <AccessTimeIcon color="primary" />
             <Box>
               <Typography variant="subtitle2" fontWeight="600">
-                Trading Clock
+                {t('tradingClock')}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                View real-time market sessions (Tokyo, London, New York) on an interactive clock.
+                {t('tradingClockDescription')}
               </Typography>
             </Box>
           </Box>
@@ -108,10 +112,10 @@ export default function WelcomeModal({ onClose, userEmail }) {
             <EventNoteIcon color="primary" />
             <Box>
               <Typography variant="subtitle2" fontWeight="600">
-                Economic Events
+                {t('economicEvents')}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Track high-impact economic events and their potential market effects.
+                {t('economicEventsDescription')}
               </Typography>
             </Box>
           </Box>
@@ -120,10 +124,10 @@ export default function WelcomeModal({ onClose, userEmail }) {
             <SettingsIcon color="primary" />
             <Box>
               <Typography variant="subtitle2" fontWeight="600">
-                Customize Your Experience
+                {t('customizeExperience')}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Click the settings icon to customize sessions, colors, and timezones.
+                {t('customizeExperienceDescription')}
               </Typography>
             </Box>
           </Box>
@@ -132,14 +136,19 @@ export default function WelcomeModal({ onClose, userEmail }) {
         <Divider sx={{ my: 3 }} />
 
         {/* Pro Features Teaser */}
-        <Box sx={{ bgcolor: 'primary.light', p: 2, borderRadius: 2, mb: 3 }}>
+        <Box sx={{ bgcolor: 'primary.light', p: 2, borderRadius: 2, mb: 2 }}>
           <Typography variant="subtitle2" fontWeight="600" gutterBottom>
-            ✨ Pro Features Coming Soon
+            {t('proFeatures')}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Custom alerts, advanced analytics, and API access will be available with premium plans.
+            {t('proFeaturesDescription')}
           </Typography>
         </Box>
+
+        {/* Default Events Note */}
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 3, textAlign: 'center' }}>
+          {t('defaultEventsNote')}
+        </Typography>
 
         {/* CTA Button */}
         <Button
@@ -155,7 +164,7 @@ export default function WelcomeModal({ onClose, userEmail }) {
             fontWeight: 600,
           }}
         >
-          Get Started
+          {t('getStarted')}
         </Button>
       </DialogContent>
     </Dialog>

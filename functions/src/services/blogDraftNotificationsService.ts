@@ -6,6 +6,9 @@
  * users/{uid}/notifications and send FCM web/pwa push to enabled device tokens.
  *
  * Changelog:
+ * v1.2.0 - 2026-02-09 - BEP FIX: Push notifications now sent only to PWA device tokens (isPWA=true).
+ *                       Non-PWA browser tabs handle notifications via client-side browser channel.
+ *                       Fixes duplicate push notifications on PWA devices.
  * v1.1.0 - 2026-02-06 - BEP FIX: Deduplicate user IDs to prevent duplicate notifications for users with multiple CMS roles.
  * v1.0.0 - 2026-02-06 - Initial implementation (in-app + push for blog draft creation).
  */
@@ -125,6 +128,10 @@ const isRecipientRole = (role: string): role is SupportedRole => {
 };
 
 const getEnabledTokensForUser = async (userId: string) => {
+  // BEP v1.2.0: Only send push to PWA devices (isPWA === true).
+  // Non-PWA browser tabs handle notifications via client-side browser channel.
+  // This prevents duplicate notifications and follows the platform-aware architecture:
+  // PWA = push (FCM/SW), Non-PWA = browser (new Notification()).
   const snapshot = await admin
     .firestore()
     .collection(`${USERS_COLLECTION}/${userId}/${TOKENS_SUBCOLLECTION}`)
@@ -132,6 +139,7 @@ const getEnabledTokensForUser = async (userId: string) => {
     .get();
 
   return snapshot.docs
+    .filter((docSnap) => docSnap.get("isPWA") === true)
     .map((docSnap) => String(docSnap.get("token") || "").trim())
     .filter(Boolean);
 };

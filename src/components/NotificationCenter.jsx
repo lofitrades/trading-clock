@@ -6,6 +6,12 @@
  * and provide quick actions to mark as read or clear.
  * 
  * Changelog:
+ * v1.3.0  - 2026-02-10 - BUGFIX: onSave on CustomEventDialog now actually persists to Firestore via
+ *                        useCustomEvents hook (createEvent/saveEvent). Previously used handleCloseCustomDialog
+ *                        as onSave — dialog closed but data never saved.
+ * v1.2.0  - 2026-02-10 - BEP: Self-contained edit custom event support. Adds CustomEventDialog
+ *                        (lazy) so clicking Edit in EventModal opens edit form without prop-drilling
+ *                        through MobileHeader/PublicLayout.
  * v1.1.0  - 2026-02-07 - BEP: Defense-in-depth dedup in visibleNotifications. Deduplicates
  *                        by eventKey+eventEpochMs+channel to guarantee one notification per
  *                        event per occurrence in the UI, even if upstream has edge cases.
@@ -35,7 +41,7 @@
  */
 
 import PropTypes from 'prop-types';
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Box,
@@ -52,9 +58,11 @@ import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { resolveImpactMeta } from '../utils/newsApi';
 import { useAuth } from '../contexts/AuthContext';
+import useCustomEvents from '../hooks/useCustomEvents';
 
 const EventModal = lazy(() => import('./EventModal'));
 const AuthModal2 = lazy(() => import('./AuthModal2'));
+const CustomEventDialog = lazy(() => import('./CustomEventDialog'));
 
 export default function NotificationCenter({
     notifications,
@@ -68,12 +76,16 @@ export default function NotificationCenter({
     closeSignal,
 }) {
     const { user, isAuthenticated } = useAuth();
+    // BEP v1.3.0: Custom event CRUD (no subscription needed — only mutation functions)
+    const { createEvent: createCustomEvent, saveEvent: saveCustomEvent } = useCustomEvents();
     const { t } = useTranslation('notification');
     const theme = useTheme();
     const anchorRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [showAuthModal, setShowAuthModal] = useState(false);
+    const [customEditingEvent, setCustomEditingEvent] = useState(null);
+    const [customDialogOpen, setCustomDialogOpen] = useState(false);
     const lastCloseSignalRef = useRef(closeSignal || 0);
     const visibleNotifications = useMemo(
         () => {
@@ -142,6 +154,36 @@ export default function NotificationCenter({
     };
 
     const handleCloseEventModal = () => setSelectedEvent(null);
+
+    // BEP v1.2.0: Self-contained edit — close EventModal, open CustomEventDialog in edit mode
+    const handleEditCustomEvent = useCallback((event) => {
+        setSelectedEvent(null);
+        setCustomEditingEvent(event);
+        setCustomDialogOpen(true);
+    }, []);
+    const handleCloseCustomDialog = useCallback(() => {
+        setCustomDialogOpen(false);
+        setCustomEditingEvent(null);
+    }, []);
+
+    // BEP v1.3.0: Persist custom event to Firestore with auth check
+    const handleSaveCustomEvent = useCallback(async (payload) => {
+        const isUserAuthenticated = isAuthenticated ? isAuthenticated() : Boolean(user);
+        if (!isUserAuthenticated) {
+            setCustomDialogOpen(false);
+            setCustomEditingEvent(null);
+            setShowAuthModal(true);
+            return;
+        }
+        const eventId = customEditingEvent?.seriesId || customEditingEvent?.id;
+        const result = eventId
+            ? await saveCustomEvent(eventId, payload)
+            : await createCustomEvent(payload);
+        if (result?.success) {
+            setCustomDialogOpen(false);
+            setCustomEditingEvent(null);
+        }
+    }, [isAuthenticated, user, createCustomEvent, customEditingEvent, saveCustomEvent]);
 
     useEffect(() => {
         if (menuOpen && !isAnchorValid) {
@@ -361,6 +403,19 @@ export default function NotificationCenter({
                         event={selectedEvent}
                         onClose={handleCloseEventModal}
                         open={Boolean(selectedEvent)}
+                        onEditCustomEvent={handleEditCustomEvent}
+                    />
+                </Suspense>
+            )}
+            {customDialogOpen && (
+                <Suspense fallback={null}>
+                    <CustomEventDialog
+                        open={customDialogOpen}
+                        onClose={handleCloseCustomDialog}
+                        onSave={handleSaveCustomEvent}
+                        event={customEditingEvent}
+                        defaultTimezone={Intl.DateTimeFormat().resolvedOptions().timeZone}
+                        zIndexOverride={customEditingEvent ? 12003 : undefined}
                     />
                 </Suspense>
             )}

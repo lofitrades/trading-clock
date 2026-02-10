@@ -5,9 +5,6 @@
  * Shared across ClockPage, Calendar2Page, and LandingPage to avoid code duplication.
  *
  * Changelog:
- * v1.3.0 - 2026-02-08 - BEP CLOSE BUTTON: Added X close icon button aligned to right in header row.
- *                        Icon uses theme-aware colors with hover state and focus-visible keyboard
- *                        navigation. Box wrapper manages flex layout for title + close button alignment.
  * v1.2.0 - 2026-02-08 - BEP Z-INDEX FIX: Increased default z-index from 'auto' to 12001
  *                        (matches AuthModal2 layer). Ensures modal always appears above AppBar
  *                        (1400), ClockEventsOverlay, and all other content. When zIndex prop

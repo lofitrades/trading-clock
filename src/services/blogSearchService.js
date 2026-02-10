@@ -15,6 +15,10 @@
  * fall outside the initial page limit. Safe for blog-scale data (<500 posts).
  *
  * Changelog:
+ * v1.4.0 - 2026-02-08 - BEP: Unified numeric offset pagination for both fast path and filtered path.
+ *                       Fast path now detects numeric cursor (from MUI Pagination) and uses
+ *                       fetch-all + slice instead of Firestore startAfter. Supports page-based
+ *                       navigation replacing IntersectionObserver infinite scroll.
  * v1.3.0 - 2026-02-07 - BEP CRITICAL FIX: Search was returning zero results because filter relied
  *                       exclusively on pre-computed searchTokens (empty for GPT-uploaded posts).
  *                       Replaced searchTokens-based filter with scorePost()-based filter that uses
@@ -160,6 +164,26 @@ export const searchBlogPosts = async (options = {}) => {
 
     if (!hasClientFilters) {
       // ── FAST PATH: No client-side filters → limited Firestore query ──
+
+      // BEP v1.4.0: Detect numeric offset cursor (from MUI Pagination).
+      // Firestore startAfter requires a doc snapshot, not a number.
+      // When offset is numeric, fetch all and slice client-side.
+      if (typeof cursor === 'number') {
+        const q = query(collection(db, BLOG_POSTS_COLLECTION), ...constraints);
+        const snapshot = await getDocs(q);
+        let posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        let filtered = posts.filter(post => !!post.languages?.[lang]);
+        const seenIds = new Set();
+        filtered = filtered.filter(post => {
+          if (seenIds.has(post.id)) return false;
+          seenIds.add(post.id);
+          return true;
+        });
+        const page = filtered.slice(cursor, cursor + pageLimit);
+        const hasMore = cursor + pageLimit < filtered.length;
+        return { posts: page, hasMore, lastCursor: hasMore ? cursor + pageLimit : null };
+      }
+
       constraints.push(limit(pageLimit + 1));
       if (cursor) {
         constraints.push(startAfter(cursor));

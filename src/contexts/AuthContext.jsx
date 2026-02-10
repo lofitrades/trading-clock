@@ -6,6 +6,10 @@
  * Automatically creates user documents with role and subscription on account creation.
  * 
  * Changelog:
+ * v2.6.0 - 2026-02-09 - BEP: Dispatch t2t:welcome-complete event on WelcomeModal close to trigger
+ *                       notification permission prompt for new users. Foreground FCM listener now
+ *                       only shows OS-level notifications on PWA devices (browser tabs skip — browser
+ *                       channel handles it client-side).
  * v2.5.0 - 2026-02-07 - BEP CRITICAL: Wired initFcmForegroundListener() to show push notifications
  *                       when the app is in the foreground. FCM's onMessage fires instead of SW's
  *                       onBackgroundMessage when the app is open — without this listener, foreground
@@ -252,9 +256,21 @@ export const AuthProvider = ({ children }) => {
   // same notification somehow arrives via both paths, only one is shown.
   // The client-side browser channel is already suppressed when push is enabled (v4.0.0),
   // so the only visible notifications are: 1 push + 1 in-app (correct behavior).
+  //
+  // BEP v2.6.0: Only show OS-level notifications on PWA devices.
+  // Non-PWA browser tabs handle notifications via the client-side browser channel
+  // (new Notification()). Showing push via SW on non-PWA would cause duplicates.
   useEffect(() => {
     if (!user?.uid) return undefined;
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return undefined;
+
+    // BEP: Detect PWA - only show push notifications via SW on installed PWA devices.
+    // Non-PWA browser tabs use client-side browser channel instead.
+    const isPWA =
+      window.matchMedia?.('(display-mode: standalone)')?.matches ||
+      window.navigator?.standalone === true;
+
+    if (!isPWA) return undefined; // Non-PWA: skip — browser channel handles it
 
     let cleanup = () => { };
 
@@ -365,6 +381,12 @@ export const AuthProvider = ({ children }) => {
         <WelcomeModal
           onClose={() => {
             setShowWelcomeModal(false);
+            // BEP: Signal to notification permission prompt that welcome is complete
+            // usePushPermissionPrompt listens for this event to show the permission modal
+            // after new users have had their default custom events + reminders created.
+            try {
+              window.dispatchEvent(new Event('t2t:welcome-complete'));
+            } catch { /* SSR safety */ }
           }}
           userEmail={user?.email}
         />

@@ -1,5 +1,16 @@
 {
   "headline": "Welcome to Time 2 Trade!",
   "confirmation": "Your account has been created successfully.",
-  "multiProvider": "Use magic links, Google, or X (coming soon) to sign in from any device."
+  "multiProvider": "Use magic links, Google, or X (coming soon) to sign in from any device.",
+  "quickStartGuide": "Quick Start Guide",
+  "tradingClock": "Trading Clock",
+  "tradingClockDescription": "View real-time market sessions (Tokyo, London, New York) on an interactive clock.",
+  "economicEvents": "Economic Events",
+  "economicEventsDescription": "Track high-impact economic events and their potential market effects.",
+  "customizeExperience": "Customize Your Experience",
+  "customizeExperienceDescription": "Click the settings icon to customize sessions, colors, and timezones.",
+  "proFeatures": "✨ Pro Features Coming Soon",
+  "proFeaturesDescription": "Custom alerts, advanced analytics, and API access will be available with premium plans.",
+  "getStarted": "Get Started",
+  "defaultEventsNote": "We've added NY Open and Market Close reminders to your clock. You can customize or remove them anytime."
 }

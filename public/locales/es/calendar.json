@@ -4,7 +4,29 @@
   "filter": "Filtrar Eventos",
   "search": "Buscar Eventos",
   "sort": "Ordenar por",
-  "impact": "Impacto",
+  "impact": {
+    "high": {
+      "label": "Alto"
+    },
+    "medium": {
+      "label": "Medio"
+    },
+    "low": {
+      "label": "Bajo"
+    },
+    "myEvents": {
+      "label": "Mis Eventos"
+    },
+    "notLoaded": {
+      "label": "No Cargado"
+    },
+    "nonEconomic": {
+      "label": "No Económico"
+    },
+    "unknown": {
+      "label": "Desconocido"
+    }
+  },
   "currency": "Moneda",
   "source": "Fuente",
   "date": "Fecha",
@@ -80,6 +102,7 @@
     "removeFavorite": "Eliminar favorito",
     "addToFavorites": "Agregar a favoritos",
     "customEvent": "Evento personalizado",
+    "customEventLabel": "MI EVENTO",
     "unknown": "Desconocido",
     "global": "Global",
     "allDay": "Todo el día",

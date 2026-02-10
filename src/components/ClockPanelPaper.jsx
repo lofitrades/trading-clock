@@ -318,32 +318,38 @@ const ClockPanelPaper = memo(function ClockPanelPaper({
             <Stack spacing={0.75} sx={{ mb: 0.5, position: 'relative', minWidth: 0, maxWidth: '100%' }}>
                 {!hideHeaderChrome && (
                     <>
-                        <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.2 }}>
-                            {t('calendar:clock.title')}
-                        </Typography>
-                        <Tooltip title={t('calendar:tooltip.addReminder')} placement="left">
-                            <IconButton
-                                size="medium"
-                                onClick={onOpenAddEvent}
-                                sx={{
-                                    position: 'absolute',
-                                    top: -2,
-                                    right: 0,
-                                    color: alpha(clockPaperTextColor, 0.9),
-                                    p: 0.75,
-                                    border: '1.5px solid',
-                                    borderColor: alpha(clockPaperTextColor, 0.2),
-                                    borderRadius: '50%',
-                                    '&:hover': {
-                                        borderColor: alpha(clockPaperTextColor, 0.4),
-                                        bgcolor: alpha(clockPaperTextColor, 0.08),
-                                    },
-                                }}
-                                aria-label={t('calendar:aria.addReminder')}
-                            >
-                                <AddRoundedIcon fontSize="medium" />
-                            </IconButton>
-                        </Tooltip>
+                        <Stack
+                            direction="row"
+                            alignItems="center"
+                            justifyContent="space-between"
+                            sx={{ gap: 0.75 }}
+                        >
+                            <Stack direction="row" alignItems="center" spacing={0.75}>
+                                <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.2 }}>
+                                    {t('calendar:clock.title')}
+                                </Typography>
+                            </Stack>
+                            <Tooltip title={t('calendar:tooltip.addReminder')} placement="left">
+                                <IconButton
+                                    size="medium"
+                                    onClick={onOpenAddEvent}
+                                    sx={{
+                                        color: alpha(clockPaperTextColor, 0.9),
+                                        p: 0.75,
+                                        border: '1.5px solid',
+                                        borderColor: alpha(clockPaperTextColor, 0.2),
+                                        borderRadius: '50%',
+                                        '&:hover': {
+                                            borderColor: alpha(clockPaperTextColor, 0.4),
+                                            bgcolor: alpha(clockPaperTextColor, 0.08),
+                                        },
+                                    }}
+                                    aria-label={t('calendar:aria.addReminder')}
+                                >
+                                    <AddRoundedIcon fontSize="medium" />
+                                </IconButton>
+                            </Tooltip>
+                        </Stack>
                         <Typography variant="body2" sx={{ color: alpha(clockPaperTextColor, 0.72) }}>
                             {t('calendar:clock.subtitle')}
                         </Typography>

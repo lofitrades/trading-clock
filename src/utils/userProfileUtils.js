@@ -5,6 +5,7 @@
  * Prevents duplicate user documents and handles race conditions.
  * 
  * Changelog:
+ * v1.2.0 - 2026-02-09 - BEP: Create default custom events (NY Open + Market Close) with reminders for new users.
  * v1.1.2 - 2026-01-08 - Removed backgroundColor from default user settings (cleanup for removed feature).
  * v1.1.1 - 2025-12-18 - Align default settings to show session names and time-to-end by default for new profiles.
  * v1.1.0 - 2025-12-16 - Backfilled missing role/subscription defaults when profiles already exist.
@@ -15,6 +16,7 @@
 import { doc, getDoc, setDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { db } from '../firebase';
 import { USER_ROLES, SUBSCRIPTION_PLANS, SUBSCRIPTION_STATUS, PLAN_FEATURES } from '../types/userTypes';
+import { createDefaultCustomEventsForUser } from './defaultCustomEvents';
 
 /**
  * Safely create or retrieve user profile with duplicate prevention
@@ -128,6 +130,16 @@ export async function createUserProfileSafely(user) {
         ...defaultProfile,
       };
     });
+
+    // BEP: Create default custom events for new users (fire-and-forget)
+    // NY Open (9:30 AM ET) + Market Close (5:00 PM ET) with 10-min reminders
+    // Uses the profile's default timezone (America/New_York)
+    if (result && !result.subscription?.startDate?.seconds) {
+      // Only for genuinely new profiles (no existing startDate timestamp)
+      createDefaultCustomEventsForUser(user.uid).catch((err) => {
+        console.warn('[UserProfile] Default custom events creation failed (non-critical):', err?.message || err);
+      });
+    }
 
     return result;
   } catch (error) {

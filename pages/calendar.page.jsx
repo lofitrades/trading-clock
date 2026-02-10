@@ -179,7 +179,7 @@ export default function Page() {
                         </p>
 
                         <h1 id="calendar-hero-heading" className="heading-lg">
-                            Forex Factory-powered calendar with NY time-first clarity
+                            Forex Factory-powered economic calendar with NY time-first clarity
                         </h1>
 
                         <p className="text-lead">
