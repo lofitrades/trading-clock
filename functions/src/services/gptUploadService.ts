@@ -6,6 +6,7 @@
  * Priority: NFS > JBlanked-FF > JBlanked-MT > JBlanked-FXStreet > GPT
  *
  * Changelog:
+ * v1.7.0 - 2026-02-10 - BEP P0: Wire logEventReinstatement() for reinstated cancelled events.
  * v1.6.0 - 2026-02-06 - BEP CRITICAL FIX: Rescheduled/reinstated events now bypass isPreferredSourcePresent skip. Previously, GPT reschedules were detected but never written because NFS source was present. Now schedule changes (datetime, status) are always applied.
  * v1.5.0 - 2026-02-06 - BEP: Track and return rescheduled/reinstated event counts in response (for admin activity logging).
  * v1.4.0 - 2026-02-06 - BUGFIX: Filter undefined values before Firestore batch write to prevent "undefined is not a valid Firestore value" error on rescheduledFrom field.
@@ -26,6 +27,7 @@ import {
   mergeProviderEvent,
   normalizeEventName,
 } from "../models/economicEvent";
+import { logEventReinstatement } from "./activityLoggingService";
 
 export interface GptUploadEventInput {
   eventId?: string | null;
@@ -152,6 +154,7 @@ export async function uploadGptEventsBatch(events: GptUploadEventInput[]) {
         }
         if (identityMatch.event.status === "cancelled") {
           logger.info(`📢 GPT: Reinstating cancelled event ${name} (${currency})`);
+          await logEventReinstatement(name, currency || "N/A");
           reinstated += 1;
         }
       } else if (currency) {

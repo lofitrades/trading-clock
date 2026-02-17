@@ -2,46 +2,46 @@
   "listPage": {
     "title": "Blog | Time 2 Trade",
     "description": "Analyses de trading, analyses de marché et conseils pour les traders de futures et forex. Restez informé avec Time 2 Trade.",
-    "heading": "Insights de Trading",
+    "heading": "Blog",
     "subtitle": "Intelligence de marché en temps réel pour les traders de futures et forex",
-    "searchPlaceholder": "Rechercher des Insights...",
+    "searchPlaceholder": "Rechercher des articles du blog...",
     "categoryLabel": "Catégorie",
     "allCategories": "Toutes les Catégories",
     "eventLabel": "Événement Économique",
     "allEvents": "Tous les Événements",
     "currencyLabel": "Devise",
     "allCurrencies": "Toutes les Devises",
-    "noPostsTitle": "Aucun insight trouvé",
+    "noPostsTitle": "Aucun article trouvé",
     "noPostsSearch": "Essayez d'ajuster votre recherche ou vos filtres",
     "noPostsYet": "Revenez bientôt pour du nouveau contenu",
-    "loadingMore": "Chargement d'autres insights..."
+    "loadingMore": "Chargement d'autres articles..."
   },
   "postPage": {
-    "defaultTitle": "Insight de Blog",
-    "defaultDescription": "Lisez cet insight sur Time 2 Trade",
+    "defaultTitle": "Article du blog",
+    "defaultDescription": "Lisez cet article sur Time 2 Trade",
     "backToBlog": "Retour au Blog",
-    "relatedPosts": "Insights Connexes",
-    "relatedArticles": "Insights Connexes",
+    "relatedPosts": "Articles associés",
+    "relatedArticles": "Articles associés",
     "relatedPostLabel": "Connexe",
     "readingTimeShort": "{{minutes}} MIN",
     "editButton": "Modifier",
-    "publishButton": "Publier l'Insight",
-    "publishedTitle": "Insight Publié avec Succès ! 🎉",
-    "publishedMessage": "Votre insight \"{{title}}\" a été publié et est maintenant visible par les lecteurs.",
-    "publishedHint": "Vous pouvez maintenant voir l'insight publié, ajouter un autre insight ou retourner au tableau de bord.",
-    "addNewPost": "Ajouter un Nouvel Insight",
-    "viewPublished": "Voir l'Insight Publié",
+    "publishButton": "Publier l'article",
+    "publishedTitle": "Article publié avec succès ! 🎉",
+    "publishedMessage": "Votre article \"{{title}}\" a été publié et est maintenant visible par les lecteurs.",
+    "publishedHint": "Vous pouvez maintenant voir l'article publié, ajouter un autre article ou retourner au tableau de bord.",
+    "addNewPost": "Ajouter un nouvel article",
+    "viewPublished": "Voir l'article publié",
     "previewMode": "Mode Aperçu",
-    "previewModeHint": "Cet insight n'est pas publié. Seuls les utilisateurs CMS peuvent voir cet aperçu.",
+    "previewModeHint": "Cet article n'est pas publié. Seuls les utilisateurs CMS peuvent voir cet aperçu.",
     "copyLinkToShare": "Copier le lien pour partager",
     "copiedToClipboard": "Copié !",
-    "postNotFound": "Insight non trouvé",
-    "failedToLoad": "Erreur lors du chargement de l'insight",
+    "postNotFound": "Article non trouvé",
+    "failedToLoad": "Erreur lors du chargement de l'article",
     "previewAccessDenied": "Accès à l'aperçu refusé. Veuillez vous connecter avec un compte CMS.",
-    "authorTooltip": "Voir les insights de {{author}}",
-    "like": "J'aime cet insight",
-    "unlike": "Je n'aime plus cet insight",
-    "likeLoginRequired": "Connectez-vous pour aimer cet insight",
+    "authorTooltip": "Voir les articles de {{author}}",
+    "like": "J'aime cet article",
+    "unlike": "Je n'aime plus cet article",
+    "likeLoginRequired": "Connectez-vous pour aimer cet article",
     "jumpToTop": "Retour en haut"
   },
   "status": {
@@ -51,31 +51,31 @@
   },
   "eventPage": {
     "title": "Analyses de Trading sur {{event}} | Time 2 Trade",
-    "description": "Insights sur {{event}} - stratégies de trading, analyses et impact de {{event}} sur les marchés.",
+    "description": "Articles sur {{event}} - stratégies de trading, analyses et impact de {{event}} sur les marchés.",
     "heading": "{{event}}",
-    "subtitle": "Insights et analyses de trading sur {{event}}",
+    "subtitle": "Articles et analyses de trading sur {{event}}",
     "notFound": "Événement non trouvé",
-    "noPosts": "Aucun insight sur cet événement pour l'instant. Revenez bientôt !",
-    "postCount_one": "{{count}} insight",
-    "postCount_other": "{{count}} insights"
+    "noPosts": "Aucun article sur cet événement pour l'instant. Revenez bientôt !",
+    "postCount_one": "{{count}} article",
+    "postCount_other": "{{count}} articles"
   },
   "currencyPage": {
     "title": "Analyses de Trading sur {{currency}} | Time 2 Trade",
-    "description": "Insights sur {{currency}} - stratégies de trading, analyses et perspectives de marché pour les paires {{currency}}.",
+    "description": "Articles sur {{currency}} - stratégies de trading, analyses et perspectives de marché pour les paires {{currency}}.",
     "heading": "{{currency}}",
-    "subtitle": "Insights et analyses de trading sur {{currency}}",
+    "subtitle": "Articles et analyses de trading sur {{currency}}",
     "notFound": "Devise non trouvée",
-    "noPosts": "Aucun insight sur cette devise pour l'instant. Revenez bientôt !",
-    "postCount_one": "{{count}} insight",
-    "postCount_other": "{{count}} insights"
+    "noPosts": "Aucun article sur cette devise pour l'instant. Revenez bientôt !",
+    "postCount_one": "{{count}} article",
+    "postCount_other": "{{count}} articles"
   },
   "authorPage": {
-    "title": "Insights de {{author}} | Time 2 Trade",
-    "description": "Insights rédigés par {{author}} sur Time 2 Trade. Analyses de trading, analyses de marché et plus.",
+    "title": "Articles de {{author}} | Time 2 Trade",
+    "description": "Articles rédigés par {{author}} sur Time 2 Trade. Analyses de trading, analyses de marché et plus.",
     "notFound": "Auteur non trouvé",
-    "noPosts": "Aucun insight de cet auteur pour l'instant.",
-    "posts_one": "{{count}} insight",
-    "posts_other": "{{count}} insights"
+    "noPosts": "Aucun article de cet auteur pour l'instant.",
+    "posts_one": "{{count}} article",
+    "posts_other": "{{count}} articles"
   },
   "readingTime": "{{minutes}} min de lecture",
   "fetchError": "Échec du chargement des données",
@@ -136,50 +136,50 @@
   },
   "eventHub": {
     "title": "Analyses de Trading {{event}} | Blog Time 2 Trade",
-    "description": "Insights experts et analyses de trading sur {{event}}. Découvrez comment {{event}} impacte les marchés forex et futures.",
+    "description": "Articles experts et analyses de trading sur {{event}}. Découvrez comment {{event}} impacte les marchés forex et futures.",
     "notFound": "Événement non trouvé",
-    "intro": "Explorez {{count}} insights sur {{event}} et son impact sur les marchés mondiaux.",
-    "noPosts": "Aucun insight trouvé pour cet événement pour le moment."
+    "intro": "Explorez {{count}} articles sur {{event}} et son impact sur les marchés mondiaux.",
+    "noPosts": "Aucun article trouvé pour cet événement pour le moment."
   },
   "currencyHub": {
     "title": "Analyses de Trading {{currency}} | Blog Time 2 Trade",
-    "description": "Insights experts et analyses de trading pour {{currency}}. Perspectives du marché, stratégies et actualités pour les traders {{currency}}.",
+    "description": "Articles experts et analyses de trading pour {{currency}}. Perspectives du marché, stratégies et actualités pour les traders {{currency}}.",
     "notFound": "Devise non trouvée",
-    "intro": "Explorez {{count}} insights sur le trading et l'analyse de marché {{currency}}.",
-    "noPosts": "Aucun insight trouvé pour cette devise pour le moment."
+    "intro": "Explorez {{count}} articles sur le trading et l'analyse de marché {{currency}}.",
+    "noPosts": "Aucun article trouvé pour cette devise pour le moment."
   },
   "eventCurrencyHub": {
     "title": "Trading {{event}} & {{currency}} | Blog Time 2 Trade",
-    "description": "Insights sur l'impact de {{event}} sur {{currency}}. Analyse experte pour les traders axés sur {{currency}} autour des publications {{event}}.",
+    "description": "Articles sur l'impact de {{event}} sur {{currency}}. Analyse experte pour les traders axés sur {{currency}} autour des publications {{event}}.",
     "notFound": "Page non trouvée",
-    "intro": "Explorez {{count}} insights couvrant {{event}} et son impact sur les marchés {{currency}}.",
-    "noPosts": "Aucun insight trouvé pour cette combinaison événement et devise pour le moment."
+    "intro": "Explorez {{count}} articles couvrant {{event}} et son impact sur les marchés {{currency}}.",
+    "noPosts": "Aucun article trouvé pour cette combinaison événement et devise pour le moment."
   },
   "categoryHub": {
-    "title": "Insights {{category}} | Blog Time 2 Trade",
-    "description": "Parcourez tous les insights {{category}} sur Time 2 Trade. Analyses expertes pour les traders.",
+    "title": "Articles {{category}} | Blog Time 2 Trade",
+    "description": "Parcourez tous les articles {{category}} sur Time 2 Trade. Analyses expertes pour les traders.",
     "notFound": "Catégorie non trouvée",
-    "intro": "Explorez {{count}} insights dans la catégorie {{category}}.",
-    "noPosts": "Aucun insight trouvé dans cette catégorie pour le moment."
+    "intro": "Explorez {{count}} articles dans la catégorie {{category}}.",
+    "noPosts": "Aucun article trouvé dans cette catégorie pour le moment."
   },
   "tagHub": {
-    "title": "Insights {{tag}} | Blog Time 2 Trade",
-    "description": "Insights tagués avec {{tag}} sur Time 2 Trade. Découvrez du contenu de trading connexe.",
+    "title": "Articles {{tag}} | Blog Time 2 Trade",
+    "description": "Articles tagués avec {{tag}} sur Time 2 Trade. Découvrez du contenu de trading connexe.",
     "notFound": "Tag non trouvé",
-    "intro": "Explorez {{count}} insights tagués avec {{tag}}.",
-    "noPosts": "Aucun insight trouvé avec ce tag."
+    "intro": "Explorez {{count}} articles tagués avec {{tag}}.",
+    "noPosts": "Aucun article trouvé avec ce tag."
   },
   "taxonomy": {
     "events": "Événements de Trading",
     "currencies": "Paires de Devises",
-    "tagTooltip": "Voir les insights marqués avec {{tag}}",
+    "tagTooltip": "Voir les articles marqués avec {{tag}}",
     "editorialTag": "Balise Éditoriale",
-    "categoryTooltip": "Voir les insights {{category}}",
-    "eventTooltip": "Voir les insights sur {{event}}",
-    "currencyTooltip": "Voir les insights sur {{currency}}"
+    "categoryTooltip": "Voir les articles {{category}}",
+    "eventTooltip": "Voir les articles sur {{event}}",
+    "currencyTooltip": "Voir les articles sur {{currency}}"
   },
   "footer": {
-    "exploreMore": "Explorer Plus Insights",
+    "exploreMore": "Explorer plus d'articles",
     "categories": "Catégories",
     "events": "Événements Économiques",
     "currencies": "Devises",

@@ -200,7 +200,7 @@ export default function LoginPage() {
               <Typography variant="body2" color="text.secondary">
                 {isSignup
                   ? 'Get started with Time 2 Trade - no password required!'
-                  : 'Sign in to access your trading clock and sessions.'}
+                  : 'Sign in to access your market clock and sessions.'}
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                 Already used Google with this email? We will link this magic link to that account automatically.

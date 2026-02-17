@@ -5,6 +5,9 @@
  * Bootstraps React with providers and routing. Includes ThemeContextProvider for dynamic theme switching.
  * 
  * Changelog:
+ * v5.3.0 - 2026-02-10 - BEP: Added vite:preloadError handler for stale chunk auto-reload after deploys.
+ *                       When a user has a cached page referencing old chunk hashes, the dynamic import
+ *                       fails. This handler auto-reloads the page once to fetch fresh assets.
  * v5.2.0 - 2026-02-07 - BEP SEO ROUTING FIX: Added early language prefix stripping before React mounts. Detects /es/ or /fr/ URL prefix from shared links/bookmarks/crawl, persists language to localStorage, strips prefix via history.replaceState. Ensures React Router can match prefix-free routes (/clock, /blog/:slug). Without this, language-prefixed URLs would hit the 404 catch-all.
  * v5.1.0 - 2026-02-02 - BEP ANALYTICS: Integrated Facebook Pixel for conversion tracking. Initialized on app startup.
  * v5.0.1 - 2026-01-28 - BEP FIX: Cache root instance to prevent duplicate createRoot() calls during HMR.
@@ -45,6 +48,19 @@ import AppRoutes from './routes/AppRoutes';
 import { setupViewportCssVars, scheduleNonCriticalAssets } from './app/clientEffects';
 import { registerServiceWorker } from './registerServiceWorker';
 
+// BEP v5.3.0: Handle stale chunk errors after deployments.
+// When a new build is deployed, existing browser tabs still reference old chunk hashes.
+// Vite fires 'vite:preloadError' when a dynamic import() fails to fetch.
+// Auto-reload once to pick up fresh assets. Guard prevents infinite reload loops.
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault();
+  const reloadKey = 't2t_chunk_reload';
+  if (!sessionStorage.getItem(reloadKey)) {
+    sessionStorage.setItem(reloadKey, '1');
+    window.location.reload();
+  }
+});
+
 // BEP SEO: Detect language from URL prefix and normalize for SPA routing.
 // Firebase serves pre-rendered HTML at /es/clock, /fr/about etc. for crawlers.
 // LanguageContext reads language from localStorage (set here on first visit).
@@ -74,7 +90,7 @@ setupViewportCssVars();
 // Initialize Facebook Pixel for conversion tracking
 initFacebookPixel();
 
-// Load non-critical assets (flag-icons CSS, service worker) when idle
+// Load non-critical assets (service worker) when idle\n// BEP PERFORMANCE v5.4.0: Flag-icons CSS removed from global idle load.\n// Now loaded on-demand only on routes with country flags (/clock, /calendar, /blog).
 scheduleNonCriticalAssets(registerServiceWorker);
 
 /**

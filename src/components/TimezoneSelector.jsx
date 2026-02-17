@@ -4,6 +4,11 @@
  * Purpose: Asynchronous timezone selector with read-only collapsed display and dedicated search field.
  * Key responsibility: Persist user timezone selection to Firestore via SettingsContext while gating guest edits.
  * 
+ * v1.6.2 - 2026-02-11 - BEP LINTING: Removed unused i18n destructure from useTranslation hook
+ *                        in SearchablePopper component. ESLint no-unused-vars fix.
+ * v1.6.1 - 2026-02-11 - BEP PERFORMANCE: Lazy-loaded AuthModal2 (conditionally rendered for guest
+ *                        users only). Eliminates Firebase Auth SDK from TimezoneSelector’s initial
+ *                        chunk, reducing parse cost for every component that imports TimezoneSelector.
  * v1.6.0 - 2026-02-07 - BEP i18n: Replaced hardcoded 'en-US' Intl locale with dynamic locale derived from i18n.language. Timezone list now rebuilds on language change with locale-aware DateTimeFormat and localeCompare sorting. Ensures correct formatting when user switches between EN/ES/FR.
  * v1.5.3 - 2026-01-27 - BEP: Added compact prop for seamless integration in merged Language & Timezone section. When compact=true, renders only Autocomplete without Paper wrapper/header, allowing parent flexbox to control layout. Enables clean side-by-side display in SettingsSidebar2 General tab.
  * v1.5.2 - 2026-01-27 - BEP: Fixed "t is not defined" ReferenceError in SearchablePopper by adding useTranslation hook call to ensure context is available when MUI renders the slot component.
@@ -33,19 +38,16 @@
  */
 
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Autocomplete, TextField, Box, Popper, CircularProgress, Paper, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
-import AuthModal2 from './AuthModal2';
+const AuthModal2 = lazy(() => import('./AuthModal2'));
 
 // Popper with embedded search field; forwards ref so parent can inspect clicks to keep open
 const SearchablePopper = React.forwardRef(
   ({ searchQuery, onSearchChange, searchInputRef, mainInputRef, children, placement = 'bottom-start', searchPlaceholder = 'Search...', searchAriaLabel = 'Search timezone', ...props }, ref) => {
-    // Ensure useTranslation is available in case MUI renders this in isolated context
-    const { i18n } = useTranslation();
-
     return (
       <Popper
         {...props}
@@ -504,10 +506,12 @@ export default function TimezoneSelector({ textColor = 'inherit', onTimezoneChan
       )}
 
       {showUnlock && (
-        <AuthModal2
-          open={showUnlock}
-          onClose={() => setShowUnlock(false)}
-        />
+        <Suspense fallback={null}>
+          <AuthModal2
+            open={showUnlock}
+            onClose={() => setShowUnlock(false)}
+          />
+        </Suspense>
       )}
     </>
   );

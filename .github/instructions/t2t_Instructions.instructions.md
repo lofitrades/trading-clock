@@ -70,7 +70,7 @@ applyTo: '**'
 | Route | Component | Access | Purpose |
 |-------|-----------|--------|---------|
 | `/` | `LandingPage` | Public | SEO-optimized marketing page |
-| `/clock` | `ClockPage` | Public | **Primary app** - Trading clock UI |
+| `/clock` | `ClockPage` | Public | **Primary app** - Market clock UI |
 | `/app` | `HomePage` | Public | Legacy app shell (noindex) |
 | `/calendar` | `CalendarPage` | Public | Economic events calendar |
 | `/about` | `AboutPage` | Public | About page |
@@ -193,7 +193,7 @@ AppRoutes
 ### Clock Components
 ```
 ClockPage / HomePage
-├── ClockCanvas.jsx (Canvas API - DO NOT MODIFY)
+├── ClockCanvas.jsx (Canvas API - ASK TO MODIFY PROVIDING A REASON FOR THE UPDATE)
 ├── ClockEventsOverlay.jsx (event markers)
 ├── ClockHandsOverlay.jsx (hand overlays)
 ├── DigitalClock.jsx
@@ -441,7 +441,7 @@ public/locales/       (AUTO-GENERATED - don't edit directly)
    - `src/i18n/locales/fr/[namespace].json`
 4. **Run `npm run sync-locales`** to copy to `public/locales/` (or let build do it)
 5. **Use consistent terminology** across all locales:
-   - **"Trading Clock"** (EN) → **"Reloj de Trading"** (ES) → **"Horloge de Trading"** (FR)
+  - **"Market Clock"** (EN) → **"Reloj de Mercado"** (ES) → **"Horloge du Marché"** (FR)
    - Brand terms capitalized in titles, lowercase in descriptions where appropriate
 5. **Verify all 3 languages are complete** before marking task complete
 
@@ -698,5 +698,5 @@ npm run deploy           # Build + deploy to Firebase Hosting
 ---
 
 **Additonal instructions or clarifications can be appended here as needed:**
-- 'bep'/'BEP' = 'following all best React, Firebase, MUI, UI, UX, dev, copywriting, security, performance, loading speed, separation of concerns, SEO, accessibility, i18n, theme, and mobile-first-responsive top modern enterprise practices'.
+- 'bep'/'BEP' = 'following all best React, Firebase, MUI, UI, UX, dev, copywriting, security, performance, loading speed (lazy loading), separation of concerns, SEO, accessibility, i18n-and-theme-aware, and mobile-first-responsive top modern enterprise practices'.
 - **i18n Standard:** All client-facing copy MUST use translation keys (t keys) with full translations in EN/ES/FR locale files before deployment.

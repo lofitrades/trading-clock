@@ -19,6 +19,8 @@
  * New device: Detected automatically — any device with permission='default' and active reminders.
  * 
  * Changelog:
+ * v2.1.0 - 2026-02-13 - BEP PERFORMANCE: Dynamic import remindersService + pushNotificationsService.
+ *                       Removes ~30-50KB from critical parse path — only loaded when needed.
  * v2.0.0 - 2026-02-09 - BEP UNIVERSAL: Removed mobile/PWA gate — prompts on all platforms
  *                       (desktop Chrome, mobile Safari, PWA, etc.). Added welcome-complete
  *                       event listener for post-signup flow (new users get default reminders,
@@ -32,8 +34,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { subscribeToReminders } from '../services/remindersService';
-import { requestFcmTokenForUser } from '../services/pushNotificationsService';
+// BEP PERFORMANCE v2.1.0: remindersService + pushNotificationsService dynamically imported.
+// Only loaded when user is auth'd, permission is 'default', and conditions are met.
 
 /**
  * Check if any reminder has browser OR push channel enabled
@@ -70,7 +72,7 @@ export const usePushPermissionPrompt = () => {
    * Core check: subscribe to reminders and show modal if conditions are met.
    * Extracted so both the initial check and the welcome-complete listener can call it.
    */
-  const performCheck = useCallback((userId) => {
+  const performCheck = useCallback(async (userId) => {
     if (!userId) return;
 
     // Already dismissed this session
@@ -84,22 +86,29 @@ export const usePushPermissionPrompt = () => {
     // Already granted or denied — don't prompt
     if (Notification.permission === 'granted' || Notification.permission === 'denied') return;
 
-    // Permission is 'default' — check if user has browser/push reminders
-    const unsubscribe = subscribeToReminders(
-      userId,
-      (reminders) => {
-        if (hasPermissionRequiredReminders(reminders)) {
-          setShouldShowModal(true);
+    // BEP PERFORMANCE v2.1.0: Dynamic import — only loaded when conditions are met
+    try {
+      const { subscribeToReminders } = await import('../services/remindersService');
+      // Permission is 'default' — check if user has browser/push reminders
+      const unsubscribe = subscribeToReminders(
+        userId,
+        (reminders) => {
+          if (hasPermissionRequiredReminders(reminders)) {
+            setShouldShowModal(true);
+          }
+          setHasChecked(true);
+          unsubscribe();
+        },
+        (error) => {
+          console.warn('[usePushPermissionPrompt] Error checking reminders:', error);
+          setHasChecked(true);
+          unsubscribe();
         }
-        setHasChecked(true);
-        unsubscribe();
-      },
-      (error) => {
-        console.warn('[usePushPermissionPrompt] Error checking reminders:', error);
-        setHasChecked(true);
-        unsubscribe();
-      }
-    );
+      );
+    } catch (err) {
+      console.warn('[usePushPermissionPrompt] Failed to load reminders service:', err);
+      setHasChecked(true);
+    }
   }, []);
 
   // Initial check on mount (after 3s delay to let app initialize)
@@ -180,6 +189,7 @@ export const usePushPermissionPrompt = () => {
 
     setIsRequesting(true);
     try {
+      const { requestFcmTokenForUser } = await import('../services/pushNotificationsService');
       const result = await requestFcmTokenForUser(user.uid);
 
       if (result.status === 'granted') {

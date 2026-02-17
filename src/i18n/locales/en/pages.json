@@ -2,7 +2,7 @@
   "landing": {
     "badge": "Powered by Forex Factory data",
     "hero": {
-      "heading": "Trading Clock + Economic Calendar (NY Time)",
+      "heading": "Market Clock + Economic Calendar",
       "subheading": "See every trading session and market-moving event at a glance. A visual 24-hour clock displays New York, London, and Asia sessions with real-time countdowns—while an integrated Forex Factory calendar shows upcoming releases filtered by impact and currency. Built for futures and forex day traders who refuse to trade blind.",
       "cta1": "Open the clock",
       "cta2": "Open calendar",
@@ -32,7 +32,7 @@
     "solutions": {
       "heading": "The solution",
       "points": [
-        "One trading clock shows New York, London, and Asia sessions in real-time",
+        "One market clock shows New York, London, and Asia sessions in real-time",
         "Countdown timers tell you exactly when key session transitions happen",
         "Forex Factory-powered events so you see scheduled catalysts before they hit",
         "Add custom events and enable notifications to follow your own rules and routines"
@@ -214,7 +214,7 @@
     },
     "highlights": {
       "product": {
-        "label": "Trading Clock",
+        "label": "Market Clock",
         "value": "NY + London + Asia",
         "hint": "Real-time countdown to key transitions"
       },
@@ -262,7 +262,7 @@
     "finalCta": {
       "heading": "Go to the calendar with session context",
       "description": "Check today's economic events, confirm session context with countdowns, and set your own custom events and notifications. Powered by Forex Factory data with fast filters, favorites, and notes.",
-      "buttonOpenClock": "Open Trading Clock",
+      "buttonOpenClock": "Open Market Clock",
       "disclaimer": "Not financial advice. Trading involves risk."
     },
     "footer": {

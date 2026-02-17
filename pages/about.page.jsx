@@ -12,7 +12,7 @@
  *                       Updated pillar copy to mention consent-based tracking approach.
  * v1.3.0 - 2026-02-02 - BEP SEO FIX: Added BreadcrumbList schema to help Google understand site
  *                       hierarchy and prioritize crawling. Addresses "Discovered - currently not indexed" GSC status.
- * v1.2.0 - 2026-01-22 - Updated positioning to match BEP SEO: Trading Clock + Forex Factory-powered economic calendar (NY time),
+ * v1.2.0 - 2026-01-22 - Updated positioning to match BEP SEO: Market Clock + Forex Factory-powered economic calendar (NY time),
  *                       added custom events + notifications pillars, removed “overlaps/PWA install/JBlanked” claims, added /calendar CTAs,
  *                       expanded structured data (WebPage + WebApplication).
  * v1.1.0 - 2026-01-16 - Updated /clock CTAs and refreshed About meta title/description.
@@ -82,7 +82,7 @@ const aboutBreadcrumbSchema = {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const documentProps = {
-    title: 'About Time 2 Trade | Trading Clock + Forex Factory Calendar (NY Time)',
+    title: 'About Time 2 Trade | Market Clock + Forex Factory Calendar (NY Time)',
     description:
         'Why Time 2 Trade exists: a NY-time-first session clock with countdowns plus a Forex Factory-powered economic calendar, custom events, and notifications for intraday futures and forex traders.',
     canonical: `${siteUrl}/about`,

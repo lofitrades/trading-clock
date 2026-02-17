@@ -9,7 +9,7 @@ Economic event times are displaying **7 hours off** from their correct times. Th
 
 ## Context
 
-**App:** Trading clock web app for futures/forex traders  
+**App:** Market clock web app for futures/forex traders  
 **Tech Stack:**
 - **Frontend:** React 19, Vite, MUI v7, Firebase SDK
 - **Backend:** Firebase Cloud Functions v2, TypeScript, Node.js

@@ -5,8 +5,47 @@
  * Left column (scrollable) + Right column (sticky sidebar).
  * Responsive: 2-column on md+ (2fr 1fr), 1-column on xs/sm.
  * BEP: Theme-aware, responsive, flexible content slots, independent scrolling.
+ * Supports Chrome-like tabbed right column via rightTabs prop (backward compat with right).
  * 
  * Changelog:
+ * v2.3.2 - 2026-02-14 - BEP MD+ BOTTOM GAP: Removed grid-level pb and moved md+ bottom breathing
+ *                       room to the right column wrapper via pb. This keeps the md+ right Paper
+ *                       off the viewport bottom without affecting overall grid sizing.
+ * v2.3.1 - 2026-02-14 - BEP BOTTOM BREATHING (MD+): Moved md+ bottom spacing from per-column mb
+ *                       (which conflicts with height-locked grid cells) to a grid-level pb. Keeps
+ *                       both columns visually off the viewport bottom while preserving the md+
+ *                       contract: left column is non-scrollable, right column scrolls internally.
+ * v2.3.0 - 2026-02-14 - BEP NO-PAGE-SCROLL: On md+, right column wrapper now has overflow:hidden +
+ *                       height:100% so it fills exactly the grid row height (matching left column).
+ *                       The TabbedStickyPanel (or plain Paper) scrolls internally within this
+ *                       constrained cell — no page-level vertical scroll from the grid. On xs/sm,
+ *                       behavior unchanged (natural content height, columns stacked).
+ * v2.2.0 - 2026-02-14 - BEP CLOCK PARITY: Reduced left column Paper padding from p:2 to
+ *                       p:{xs:1.5, md:2} to match TabbedStickyPanel padding on xs/sm. Ensures
+ *                       clock canvas in /clock left column gets same available width as /calendar
+ *                       right column. 12px vs 16px = 8px more horizontal room for clock on mobile.
+ * v2.1.2 - 2026-02-14 - BEP MOBILE FLEX FIX: Changed flex:1 to flex:{xs:'none',md:1}. On xs/sm
+ *                       the grid stacks columns vertically and should use natural content height
+ *                       so the PublicLayout scroll container's pb is visible below the last Paper.
+ *                       With flex:1 on all breakpoints, the grid stretched to fill the container,
+ *                       absorbing all bottom padding and leaving the right column Paper flush
+ *                       against the viewport edge.
+ * v2.1.1 - 2026-02-14 - BEP BOTTOM BREATHING: Added mb (xs:1, sm:1.5) to right column wrapper so
+ *                       the last Paper on mobile has visual breathing room from the viewport bottom.
+ *                       Works in tandem with PublicLayout scroll container pb for consistent spacing.
+ * v2.1.0 - 2026-02-14 - BEP FULL VIEWPORT: Removed mobile bottom spacing (mb/pb on xs/sm) from
+ *                       both left and right column wrappers. Bottom AppBar auto-hides on scroll
+ *                       (AppBar v1.5.11+), so content extends to viewport bottom. The nav overlays
+ *                       on top (position:fixed) and slides away — no reserved gap needed.
+ * v2.0.0 - 2026-02-09 - BEP TABBED PANEL: Added rightTabs prop for Chrome-like tabbed right column.
+ *                       When rightTabs (array of {key,label,icon,content}) is provided, renders
+ *                       TabbedStickyPanel instead of plain Paper. Backward compat: right prop still
+ *                       works as before. Tabs persist per-route during session. Vertical scrolling
+ *                       within Paper. Lazy TabbedStickyPanel import for pages that don't use tabs.
+ * v1.8.0 - 2026-02-09 - BEP STICKY FIX: Removed overflow:hidden from md+ on right column wrapper.
+ *                       The overflow was creating a stacking context that prevented position:sticky
+ *                       on the Paper from working with parent grid scroll. Now matches AdminBlogEditorPage
+ *                       pattern: wrapper has no overflow constraint, Paper is sticky with grid as scroll container.
  * v1.7.0 - 2026-02-07 - BEP BOTTOM SPACING FIX: Moved mb from Paper (inside grid item) to left
  *                       Box wrapper (grid item itself). When Paper has height:100% on md+, its
  *                       internal margin-bottom can't display. Moving margin to the grid item wrapper
@@ -29,19 +68,28 @@
  * v1.0.0 - 2026-02-06 - Initial implementation (extracted from AdminBlogEditorPage layout pattern)
  */
 
+import { lazy, Suspense } from 'react';
 import PropTypes from 'prop-types';
 import { Box, Paper } from '@mui/material';
+
+// BEP: Lazy-load TabbedStickyPanel — only pages using rightTabs pay the import cost
+const TabbedStickyPanel = lazy(() => import('./TabbedStickyPanel'));
 
 /**
  * MainLayout Component
  * 
  * Two-column responsive grid with white Paper containers:
  * - Left: Main scrollable content (2fr width on desktop)
- * - Right: Sticky sidebar (1fr width on desktop, hidden on mobile)
+ * - Right: Sticky sidebar (1fr width on desktop, shown below on mobile)
+ * 
+ * Right column supports two modes:
+ * - `right` prop: Plain Paper with content (backward compat)
+ * - `rightTabs` prop: Chrome-like tabbed panel with tab persistence
  * 
  * @param {Object} props
  * @param {React.ReactNode} props.left - Left column content (required)
- * @param {React.ReactNode} props.right - Right column content (optional)
+ * @param {React.ReactNode} props.right - Right column content (optional, plain Paper)
+ * @param {Array<{key?,label,icon?,content}>} props.rightTabs - Tabbed right column (optional)
  * @param {number} props.gap - Gap between columns (default: 3)
  * @param {number} props.stickyTop - Distance from top for sticky positioning (default: 16)
  * @param {Object} props.sx - Additional MUI sx props for wrapper
@@ -49,10 +97,13 @@ import { Box, Paper } from '@mui/material';
 const MainLayout = ({
     left,
     right,
+    rightTabs,
     gap = 3,
     stickyTop = 16,
     sx = {},
 }) => {
+    // Determine if right column should render (either mode)
+    const hasRightColumn = right || (rightTabs && rightTabs.length > 0);
     return (
         <Box
             sx={{
@@ -65,7 +116,10 @@ const MainLayout = ({
                 gap,
                 px: { xs: 2, sm: 2.75, md: 3.5 },
                 py: { xs: 1.5, sm: 2, md: 0 },
-                flex: 1,
+                /* BEP: flex:1 only on md+ where the grid must fill the viewport-constrained
+                   layout. On xs/sm the grid stacks columns vertically and should use natural
+                   height so the scroll container's pb is visible below the last Paper. */
+                flex: { xs: 'none', md: 1 },
                 minHeight: 0,
                 /* BEP: No alignItems — grid default is 'stretch', so right column wrapper
                    fills the full row height. This gives position:sticky on the inner Paper
@@ -74,11 +128,12 @@ const MainLayout = ({
             }}
         >
             {/* Left Column - Main scrollable content */}
-            <Box sx={{ mb: { xs: 1.5, md: 2 }, minHeight: { md: 0 }, overflow: { md: 'hidden' } }}>
+            {/* BEP: mb on xs/sm removed — bottom AppBar auto-hides on scroll, content fills viewport */}
+            <Box sx={{ mb: { xs: 0, md: 0 }, minHeight: { md: 0 }, overflow: { md: 'hidden' } }}>
                 <Paper
                     variant="outlined"
                     sx={{
-                        p: 2,
+                        p: { xs: 1.5, md: 2 },
                         borderRadius: 3,
                         borderColor: 'divider',
                         boxShadow: 'none',
@@ -98,22 +153,45 @@ const MainLayout = ({
 
             {/* Right Column - Sticky sidebar (shown below on mobile, sticky on desktop) */}
             {/* BEP: No alignSelf on the wrapper — grid cell must stretch to full row height
-                so the inner Paper's position:sticky has scrollable room (same as AdminBlogEditorPage). */}
-            {right && (
-                <Box sx={{ pb: { xs: 1.5, sm: 1.5, md: 0 }, minHeight: { md: 0 }, overflow: { md: 'hidden' } }}>
-                    <Paper
-                        variant="outlined"
-                        sx={{
-                            p: 2,
-                            position: { xs: 'static', md: 'sticky' },
-                            top: { xs: 'auto', md: stickyTop },
-                            borderRadius: 3,
-                            borderColor: 'divider',
-                            boxShadow: 'none',
-                        }}
-                    >
-                        {right}
-                    </Paper>
+                so the inner Paper's position:sticky has scrollable room (same as AdminBlogEditorPage).
+                Removed overflow:hidden from md+ to allow sticky to work with parent grid scroll. */}
+            {/* BEP: mb on xs/sm gives the last visible Paper breathing room from the
+                viewport bottom. On md+ the grid handles layout so no margin needed. */}
+            {hasRightColumn && (
+                <Box
+                    sx={{
+                        mb: { xs: 1, sm: 1.5, md: 0 },
+                        pb: { md: 2 },
+                        minHeight: { md: 0 },
+                        overflow: { md: 'hidden' },
+                        height: { md: '100%' },
+                    }}
+                >
+                    {rightTabs && rightTabs.length > 0 ? (
+                        /* BEP: Chrome-tabbed mode — TabbedStickyPanel owns its own
+                           sticky positioning and Paper, so no wrapper Paper needed. */
+                        <Suspense fallback={null}>
+                            <TabbedStickyPanel
+                                tabs={rightTabs}
+                                stickyTop={stickyTop}
+                            />
+                        </Suspense>
+                    ) : (
+                        /* BEP: Plain mode (backward compat) — single Paper with content */
+                        <Paper
+                            variant="outlined"
+                            sx={{
+                                p: 2,
+                                position: { xs: 'static', md: 'sticky' },
+                                top: { xs: 'auto', md: stickyTop },
+                                borderRadius: 3,
+                                borderColor: 'divider',
+                                boxShadow: 'none',
+                            }}
+                        >
+                            {right}
+                        </Paper>
+                    )}
                 </Box>
             )}
         </Box>
@@ -122,7 +200,17 @@ const MainLayout = ({
 
 MainLayout.propTypes = {
     left: PropTypes.node.isRequired,
+    /** Plain right column content (renders in a single Paper). Use this OR rightTabs, not both. */
     right: PropTypes.node,
+    /** Chrome-tabbed right column. Array of { key?, label, icon?, content } objects. */
+    rightTabs: PropTypes.arrayOf(
+        PropTypes.shape({
+            key: PropTypes.string,
+            label: PropTypes.string.isRequired,
+            icon: PropTypes.node,
+            content: PropTypes.node.isRequired,
+        })
+    ),
     gap: PropTypes.number,
     stickyTop: PropTypes.number,
     sx: PropTypes.object,

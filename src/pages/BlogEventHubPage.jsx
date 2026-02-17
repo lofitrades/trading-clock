@@ -7,6 +7,7 @@
  * Routes: /blog/event/{eventKey}, /{lang}/blog/event/{eventKey}
  * 
  * Changelog:
+ * v1.1.0 - 2026-02-15 - BEP: Always show cover image with fallback to default thumbnail
  * v1.0.1 - 2026-02-04 - Fixed Temporal Dead Zone issue: moved PostCard.propTypes assignment after component definition
  * v1.0.0 - 2026-02-04 - Initial implementation (Phase 5.B Blog)
  */
@@ -45,6 +46,7 @@ import {
     DEFAULT_BLOG_LANGUAGE,
 } from '../types/blogTypes';
 import { SITE_URL } from '../utils/seoMeta';
+import { getDefaultBlogThumbnail } from '../utils/blogThumbnailFallback';
 
 const AuthModal2 = lazy(() => import('../components/AuthModal2'));
 const SettingsSidebar2 = lazy(() => import('../components/SettingsSidebar2'));
@@ -84,15 +86,13 @@ const PostCard = ({ post, lang }) => {
                 to={postUrl}
                 sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
             >
-                {content.coverImage?.url && (
-                    <CardMedia
-                        component="img"
-                        height="160"
-                        image={content.coverImage.url}
-                        alt={content.coverImage.alt || content.title}
-                        sx={{ objectFit: 'cover' }}
-                    />
-                )}
+                <CardMedia
+                    component="img"
+                    height="160"
+                    image={content.coverImage?.url || getDefaultBlogThumbnail(post.id, true)}
+                    alt={content.coverImage?.alt || content.title}
+                    sx={{ objectFit: 'cover' }}
+                />
                 <CardContent sx={{ flexGrow: 1 }}>
                     {post.category && (
                         <Chip

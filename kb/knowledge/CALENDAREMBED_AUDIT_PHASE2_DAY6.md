@@ -48,7 +48,7 @@
 4. **Button labels** (Add custom event, refresh, close, timezone selector)
 5. **Tooltip text** (Event status, timezone info, button hints)
 6. **No-data states** (Empty calendar messages, loading states)
-7. **Section headers** (Trading Clock, Calendar, Data columns)
+7. **Section headers** (Market Clock, Calendar, Data columns)
 8. **Status badges** (NOW, NEXT, timezone chips)
 
 ---
@@ -169,7 +169,7 @@
 
 | String | Key Path | Context |
 |--------|----------|---------|
-| `'Trading Clock'` | `calendar:layout.clock.title` | Left panel header |
+| `'Market Clock'` | `calendar:layout.clock.title` | Left panel header |
 | `'Economic Calendar'` | `calendar:layout.calendar.title` | Right panel header |
 | `'Powered by Forex Factory data'` | `calendar:layout.attribution` | Attribution text |
 | `'Forecast'` | `calendar:layout.forecast.label` | Forecast section |

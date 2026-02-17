@@ -20,6 +20,7 @@
  * ✅ Notes: buildEventIdentity (composite key)
  * 
  * Changelog:
+ * v1.2.0 - 2026-02-09 - Phase 2 Insights: Compute insightKeys on note summary docs for cross-reference queries
  * v1.1.4 - 2026-02-06 - BEP CRITICAL FIX: Rescheduled events now preserve user notes. Uses updated buildEventIdentity() from favoritesService which uses originalDatetimeUtc for stable composite keys. Notes stay attached to events after reschedules with full audit trail.
  * v1.1.3 - 2026-01-23 - Fix: Encode eventId when looking up in noteSummaries for proper matching.
  * v1.1.2 - 2026-01-23 - Fix: Encode eventKeys with slashes for safe Firestore document IDs.
@@ -41,6 +42,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { buildEventIdentity, buildPendingKey } from './favoritesService';
+import { computeNoteInsightKeys } from '../utils/insightKeysUtils';
 
 /**
  * Encode eventKey to make it safe for use as a Firestore document ID.
@@ -249,6 +251,12 @@ export const addEventNote = async (userId, event, content) => {
 				source: eventMeta.source,
 				date: eventMeta.date,
 				noteCount: nextCount,
+				// Phase 2 Insights: Compute insightKeys for cross-reference queries
+				insightKeys: computeNoteInsightKeys({
+					primaryNameKey: identity.primaryNameKey,
+					currencyKey: identity.currencyKey,
+					dateKey: identity.dateKey,
+				}),
 				updatedAt: serverTimestamp(),
 				createdAt: meta.createdAt || serverTimestamp(),
 			},

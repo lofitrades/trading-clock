@@ -6,6 +6,8 @@
  * Priority: NFS > JBlanked-FF > GPT > JBlanked-MT > JBlanked-FXStreet
  *
  * Changelog:
+ * v1.6.0 - 2026-02-10 - BEP P0/P3: Added reinstatement detection + logEventReinstatement(). P2: Pass currencyTags to logSyncCompleted.
+ * v1.5.0 - 2026-02-09 - BEP FIX: Strip undefined values before Firestore batch write (prevents rescheduledFrom crash).
  * v1.4.0 - 2026-02-05 - Integrated activity logging for sync completion and failures.
  * v1.3.2 - 2026-01-21 - BEP Refactor: Normalize JBlanked currency prefix for matching.
  * v1.3.1 - 2026-01-21 - BEP Refactor: Add fallback matching window for JBlanked actuals.
@@ -29,6 +31,7 @@ import {parseJblankedDateToTimestamp} from "../utils/dateUtils";
 import {
   logSyncCompleted,
   logSyncFailed,
+  logEventReinstatement,
 } from "./activityLoggingService";
 
 const PROVIDER_PATH_MAP: Record<"jblanked-ff" | "jblanked-mt" | "jblanked-fxstreet", string> = {
@@ -195,6 +198,16 @@ export async function syncTodayActualsFromJblankedProvider(
       const eventId = existingMatch.eventId;
       const existingDoc = existingMatch.event;
 
+      // P0/P3: Reinstatement detection — cancelled event reappearing with actual data
+      if (existingDoc?.status === "cancelled") {
+        logger.info("📢 JBlanked: EVENT REINSTATED from cancelled", {
+          provider,
+          eventName: rawName,
+          currency,
+        });
+        await logEventReinstatement(rawName, currency || "N/A");
+      }
+
       const merged = mergeProviderEvent(existingDoc, {
         provider,
         eventId,
@@ -229,7 +242,11 @@ export async function syncTodayActualsFromJblankedProvider(
     const batch = db.batch();
     const slice = entries.slice(i, i + batchSize);
     for (const [eventId, canonical] of slice) {
-      batch.set(collection.doc(eventId), canonical, {merge: true});
+      // BEP: Strip undefined values — Firestore does not allow undefined
+      const cleaned = Object.fromEntries(
+        Object.entries(canonical).filter(([, v]) => v !== undefined)
+      ) as typeof canonical;
+      batch.set(collection.doc(eventId), cleaned, {merge: true});
     }
     await batch.commit();
   }
@@ -249,7 +266,8 @@ export async function syncTodayActualsFromJblankedProvider(
     0,
     mergedIntoExisting,
     0,
-    0
+    0,
+    { currencyTags: [...new Set(entries.map(([, e]) => e.currency).filter(Boolean) as string[])] }
   );
 }
 

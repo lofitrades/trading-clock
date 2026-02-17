@@ -109,7 +109,7 @@ export default function LanguageSwitcher() {
                     backgroundColor: 'background.paper',
                     border: '1px solid',
                     borderColor: 'divider',
-                    borderRadius: 1.5,
+                    borderRadius: 999,
                     '&:hover': {
                         backgroundColor: 'action.hover',
                     },
@@ -122,13 +122,7 @@ export default function LanguageSwitcher() {
                         {t('common:language.changingLanguage', 'Changing...')}
                     </>
                 ) : (
-                    <>
-                        <span
-                            className={`fi fi-${currentLanguage?.countryCode}`}
-                            style={{ marginRight: 4, display: 'inline-block', width: '1em', height: '1em' }}
-                        />
-                        {currentLanguage?.code.toUpperCase()}
-                    </>
+                    currentLanguage?.code.toUpperCase()
                 )}
             </Button>
 
@@ -164,12 +158,6 @@ export default function LanguageSwitcher() {
                             },
                         }}
                     >
-                        <ListItemIcon sx={{ mr: 2, minWidth: 'auto' }}>
-                            <span
-                                className={`fi fi-${lang.countryCode}`}
-                                style={{ display: 'inline-block', width: '1.5em', height: '1.5em' }}
-                            />
-                        </ListItemIcon>
                         {lang.label}
                     </MenuItem>
                 ))}

@@ -1,0 +1,59 @@
+{
+  "title": "Insights",
+  "filters": {
+    "sources": "Source Types",
+    "timeframe": "Timeframe"
+  },
+  "sourceChips": {
+    "article": "Articles",
+    "activity": "Activity",
+    "note": "Notes"
+  },
+  "timeframeSelector": {
+    "day": "Last 24h",
+    "week": "Last 7 days",
+    "month": "Last 30 days",
+    "all": "All time"
+  },
+  "infoModal": {
+    "title": "About Insights",
+    "tooltip": "What are Insights?",
+    "description": "<strong>Insights</strong> surfaces real-time market activity relevant to your current view — event schedule changes, new blog analysis, sync status, and more. It helps you stay aware of what's happening behind the scenes so you can make better-informed trading decisions.",
+    "updateNote": "Insights refresh automatically and show the most recent 24 hours of activity. Relevance is ranked by recency and severity."
+  },
+  "empty": {
+    "noResults": "No recent activity in the last 24 hours."
+  },
+  "loadMore": "Load More Insights",
+  "summary": "{{articles}} articles • {{activities}} activities • {{notes}} notes",
+  "summaryActivity": "{{activities}} recent activities",
+  "article": {
+    "readingTime": "{{minutes}} min read"
+  },
+  "activity": {
+    "severity": {
+      "error": "Error",
+      "warning": "Warning",
+      "success": "Success",
+      "info": "Information"
+    },
+    "types": {
+      "event_rescheduled": "Event Rescheduled",
+      "event_cancelled": "Event Cancelled",
+      "event_reinstated": "Event Reinstated",
+      "blog_published": "Blog Published",
+      "sync_completed": "Sync Complete",
+      "sync_failed": "Sync Failed",
+      "blog_created": "Blog Created",
+      "gpt_upload": "GPT Upload",
+      "user_signup": "New User",
+      "unknown": "Activity"
+    }
+  },
+  "note": {
+    "note": "Note"
+  },
+  "card": {
+    "unknownType": "Unknown insight type"
+  }
+}

@@ -6,12 +6,22 @@
  * and restrict server-managed collections.
  * 
  * Changelog:
+ * v1.15.0 - 2026-02-11 - BEP CRITICAL FIX: Added missing isAdmin() and isSuperAdmin() helper
+ *                       functions. The systemActivityLog read rule referenced these undefined
+ *                       functions, causing "Missing or insufficient permissions" errors for ALL
+ *                       users (even non-auth trying to read public visibility logs). Errors now
+ *                       propagate correctly from insightsQueryService to InsightsPanel UI.
+ *                       Non-auth users can now see public insights in Blog/Calendar.
+ * v1.14.0 - 2026-02-10 - BEP: Allow unauthenticated reads of public visibility systemActivityLog
+ *                       entries. Non-auth users can now see trending insights in InsightsPanel.
+ *                       Internal/admin visibility still requires auth + role.
  * v1.13.0 - 2026-02-07 - BEP ENGAGEMENT PERMISSIONS FIX: Split viewCount and likeCount permissions.
  *                       (1) viewCount: ANY user (auth + guest) can increment on published posts.
  *                       (2) likeCount: ONLY authenticated users can update. Root cause: v1.12.0 rule
  *                       required isAuthenticated() for both fields, blocking guests from incrementing
  *                       view counts. Now guests can track page views while likes remain auth-only.
  * v1.12.0 - 2026-02-07 - BEP: Add blogActivity subcollection rules (readHistory, likes). Allow auth users to update engagement fields (viewCount, likeCount) on blogPosts.
+ * v1.12.0 - 2026-02-09 - Phase 7: Add visibility field enforcement to systemActivityLog read rules
  * v1.11.0 - 2026-02-05 - BEP: Allow all authenticated users to read systemActivityLog (client-side filtering per role)
  * v1.9.0 - 2026-02-05 - Allow authenticated users to create activity logs (frontend logging). Superadmin write/update/delete.
  * v1.8.0 - 2026-02-05 - Add rules for systemActivityLog collection (admin activity audit trail).
@@ -47,6 +57,23 @@ service cloud.firestore {
         request.auth.token.role == 'admin' ||
         request.auth.token.role == 'superadmin' ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['author', 'admin', 'superadmin']
+      );
+    }
+
+    // Helper function to check if user has admin role
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'admin' ||
+        request.auth.token.role == 'superadmin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin']
+      );
+    }
+
+    // Helper function to check if user has superadmin role
+    function isSuperAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'superadmin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin'
       );
     }
 
@@ -303,19 +330,26 @@ service cloud.firestore {
     }
 
     // System Activity Log - Admin audit trail for events, syncs, etc.
-    // Structure: /systemActivityLog/{activityId} → { type, title, description, severity, createdAt, metadata, source }
+    // Structure: /systemActivityLog/{activityId} → { type, title, description, severity, visibility, createdAt, metadata, source }
+    // Visibility: 'public' (all users), 'internal' (admin+), 'admin' (superadmin only)
     // Backend (Cloud Functions) and Frontend (authenticated users) can write
     match /systemActivityLog/{activityId} {
-      // All authenticated users can read activity logs (client-side filters activities per role)
-      // This allows AdminDashboardPage to fetch logs for role-based filtering
-      allow read: if isAuthenticated();
+      // Read: Enforce visibility-based access control
+      // - 'public': ALL users (including unauthenticated) — trending insights
+      // - 'internal': admin + superadmin (requires auth)
+      // - 'admin': superadmin only (requires auth)
+      allow read: if
+        resource.data.visibility == 'public' ||
+        (isAuthenticated() && resource.data.visibility == 'internal' && isAdmin()) ||
+        (isAuthenticated() && resource.data.visibility == 'admin' && isSuperAdmin());
 
       // Authenticated users can create (frontend logging)
       allow create: if isAuthenticated() &&
-        request.resource.data.keys().hasAll(['type', 'title', 'description', 'createdAt']) &&
+        request.resource.data.keys().hasAll(['type', 'title', 'description', 'createdAt', 'visibility']) &&
         request.resource.data.type is string &&
         request.resource.data.title is string &&
         request.resource.data.description is string &&
+        request.resource.data.visibility in ['public', 'internal', 'admin'] &&
         (request.resource.data.severity == null || request.resource.data.severity is string) &&
         (request.resource.data.source == null || request.resource.data.source is string);
 

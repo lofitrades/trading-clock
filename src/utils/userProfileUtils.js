@@ -36,6 +36,7 @@ export async function createUserProfileSafely(user) {
     // Use transaction to prevent race condition
     const result = await runTransaction(db, async (transaction) => {
       const userDoc = await transaction.get(userDocRef);
+      const isNewProfile = !userDoc.exists();
 
       // If document already exists, ensure required defaults are present
       if (userDoc.exists()) {
@@ -69,6 +70,7 @@ export async function createUserProfileSafely(user) {
           uid: user.uid,
           ...existingData,
           ...backfill,
+          isNewProfile,
         };
       }
 
@@ -103,7 +105,7 @@ export async function createUserProfileSafely(user) {
           backgroundBasedOnSession: false,
           showHandClock: true,
           showDigitalClock: true,
-          showSessionLabel: false,
+          showSessionLabel: true,
           showTimezoneLabel: true,
           showTimeToEnd: true,
           showTimeToStart: true,
@@ -128,14 +130,14 @@ export async function createUserProfileSafely(user) {
         email: user.email,
         emailVerified: user.emailVerified,
         ...defaultProfile,
+        isNewProfile,
       };
     });
 
     // BEP: Create default custom events for new users (fire-and-forget)
     // NY Open (9:30 AM ET) + Market Close (5:00 PM ET) with 10-min reminders
     // Uses the profile's default timezone (America/New_York)
-    if (result && !result.subscription?.startDate?.seconds) {
-      // Only for genuinely new profiles (no existing startDate timestamp)
+    if (result?.isNewProfile) {
       createDefaultCustomEventsForUser(user.uid).catch((err) => {
         console.warn('[UserProfile] Default custom events creation failed (non-critical):', err?.message || err);
       });

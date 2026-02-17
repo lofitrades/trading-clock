@@ -3,7 +3,7 @@
  *
  * Purpose: SEO-first landing page for Time 2 Trade. Delivers fully
  * prerendered HTML with semantic copy, FAQ schema, and clear CTAs for
- * launching the trading clock or learning more.
+ * launching the market clock or learning more.
  *
  * Changelog:
  * v2.3.0 - 2026-02-02 - BEP SEO FIX: Added SiteNavigationElement schema to explicitly declare site
@@ -18,7 +18,7 @@
  *                       for faqEntries duplication, improved error resilience with .filter(Boolean).
  * v2.0.0 - 2026-01-24 - Migrated to i18n: Replaced 100+ hardcoded strings with t() calls from pages namespace.
  *                       Supports EN/ES/FR languages with full translations for hero, features, benefits, FAQ, and navigation.
- * v1.2.0 - 2026-01-22 - BEP copy + schema refresh: align hero with "Trading Clock + Economic Calendar (NY Time)",
+ * v1.2.0 - 2026-01-22 - BEP copy + schema refresh: align hero with "Market Clock + Economic Calendar",
  *                       prioritize Forex Factory-powered events, custom events, and reminders/notifications.
  *                       Removed overlaps/PWA/export from "main feature" positioning (kept secondary where helpful).
  * v1.1.0 - 2026-01-16 - Updated /clock CTAs and refreshed home meta/title lengths.
@@ -37,7 +37,7 @@ const faqEntries = [
     {
         question: 'What is Time 2 Trade?',
         answer:
-            'Time 2 Trade is a Trading Clock + Economic Calendar (NY Time) for intraday futures and forex traders. It combines session timing, countdowns, and Forex Factory-powered economic events in one fast workspace.',
+            'Time 2 Trade is a Market Clock + Economic Calendar for intraday futures and forex traders. It combines session timing, countdowns, and Forex Factory-powered economic events in one fast workspace.',
     },
     {
         question: 'Is the economic calendar powered by Forex Factory?',
@@ -82,11 +82,11 @@ const softwareSchema = {
     operatingSystem: 'Web Browser',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     description:
-        'Trading Clock + Economic Calendar (NY Time) for futures and forex day traders: session timing and countdowns, Forex Factory-powered events, custom events, reminders, timezone switching, and synced settings.',
+        'Market Clock + Economic Calendar for futures and forex day traders: session timing and countdowns, Forex Factory-powered events, custom events, reminders, timezone switching, and synced settings.',
     url: `${siteUrl}/clock`,
     creator: { '@type': 'Organization', name: 'Lofi Trades', url: siteUrl },
     featureList: [
-        'Trading Clock (NY Time-first) with real-time countdowns',
+        'Market Clock (NY Time-first) with real-time countdowns',
         'Forex Factory-powered economic calendar with impact and currency filtering',
         'Custom events (prep checkpoints, reminders, no-trade windows)',
         'Reminders/notifications where available',
@@ -117,8 +117,8 @@ const siteNavigationSchema = {
         {
             '@type': 'SiteNavigationElement',
             position: 1,
-            name: 'Trading Clock',
-            description: 'Live trading session clock with real-time countdowns and economic events',
+            name: 'Market Clock',
+            description: 'Live market session clock with real-time countdowns and economic events',
             url: `${siteUrl}/clock`,
         },
         {
@@ -146,7 +146,7 @@ const siteNavigationSchema = {
             '@type': 'SiteNavigationElement',
             position: 5,
             name: 'Terms & Conditions',
-            description: 'Terms of use for Time 2 Trade trading clock and calendar',
+            description: 'Terms of use for Time 2 Trade market clock and calendar',
             url: `${siteUrl}/terms`,
         },
         {
@@ -161,9 +161,9 @@ const siteNavigationSchema = {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const documentProps = {
-    title: 'Time 2 Trade | Trading Clock + Economic Calendar (NY Time)',
+    title: 'Time 2 Trade | Market Clock + Economic Calendar',
     description:
-        'Trading Clock + Economic Calendar (NY Time) for futures and forex day traders. Track session timing and countdowns, Forex Factory-powered events, custom events, and reminders in one fast workspace.',
+        'Market Clock + Economic Calendar for futures and forex day traders. Track session timing and countdowns, Forex Factory-powered events, custom events, and reminders in one fast workspace.',
     canonical: `${siteUrl}/`,
     robots: 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1',
     ogImage,

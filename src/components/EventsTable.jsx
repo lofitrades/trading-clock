@@ -33,6 +33,8 @@
     * v1.9.2 - 2025-12-16 - Moved favorite/notes action column to the first position in table rows (mobile layout across all breakpoints).
     * v1.9.1 - 2025-12-16 - Unified mobile table layout for all breakpoints; horizontal scroll retained for full data access.
  * v1.9.0 - 2025-12-15 - REFACTOR: Replaced hardcoded NOW/NEXT calculations with global eventTimeEngine utilities (computeNowNextState, getNowEpochMs)
+ * v1.8.4 - 2026-02-11 - BEP PERFORMANCE: Lazy-loaded AuthModal2 (conditionally rendered for
+ *                        non-authenticated users). Wrapped in Suspense to defer Firebase Auth SDK.
  * v1.8.3 - 2025-12-15 - ENHANCEMENT: NEXT detection now based on filtered displayed events (matching timeline behavior), not contextEvents
  * v1.8.2 - 2025-12-15 - BUGFIX: Fixed NEXT/NOW badge detection - NOW events no longer counted as NEXT, added debug logging
  * v1.8.1 - 2025-12-15 - ENHANCEMENT: Mobile optimizations - hide headers, narrower time/currency columns, simple green clock icon for NEXT/NOW, flag-only currency display
@@ -53,7 +55,7 @@
  * v1.0.0 - 2025-12-08 - Initial implementation
  */
 
-import React, { useState, useMemo, useCallback, memo, useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useState, useMemo, useCallback, memo, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import {
@@ -97,7 +99,7 @@ import {
   Restore as RestoreIcon,
 } from '@mui/icons-material';
 import EventModal from './EventModal';
-import AuthModal2 from './AuthModal2';
+const AuthModal2 = lazy(() => import('./AuthModal2'));
 import { useAuth } from '../contexts/AuthContext';
 import { formatTime, formatDate } from '../utils/dateUtils';
 import {
@@ -1368,11 +1370,13 @@ export default function EventsTable({
       )}
 
       {!user && (
-        <AuthModal2
-          open={authModalOpen}
-          onClose={handleCloseAuthModal}
-          redirectPath={computedAuthRedirect}
-        />
+        <Suspense fallback={null}>
+          <AuthModal2
+            open={authModalOpen}
+            onClose={handleCloseAuthModal}
+            redirectPath={computedAuthRedirect}
+          />
+        </Suspense>
       )}
     </Paper>
   );

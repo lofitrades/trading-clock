@@ -10,6 +10,9 @@
  * - Manifest: blogRenders/{postId} tracks generated paths for cleanup
  *
  * Changelog:
+ * v1.2.0 - 2026-02-11 - BEP CRITICAL FIX: Added safeToDate() helper to handle mixed date formats.
+ *                       Prevents 'toDate is not a function' crash during HTML generation when
+ *                       publishedAt/updatedAt aren't native Firestore Timestamps.
  * v1.1.0 - 2026-02-07 - Added on-the-fly rendering fallback for posts without pre-rendered HTML
  * v1.0.0 - 2026-02-04 - Initial implementation (Phase 4 Blog)
  */
@@ -69,6 +72,32 @@ const DEFAULT_BLOG_THUMBNAILS = [
 ];
 
 /**
+ * Safely convert a Firestore field to a JS Date.
+ * Handles: Firestore Timestamp (.toDate()), Date object, ISO string,
+ * epoch number (ms), serialized Timestamp ({_seconds}), or null/undefined.
+ * Returns fallback (default: current date) if conversion fails.
+ */
+const safeToDate = (
+  value: unknown,
+  fallback: Date = new Date()
+): Date => {
+  if (!value) return fallback;
+  if (typeof (value as { toDate?: () => Date }).toDate === "function") {
+    return (value as { toDate: () => Date }).toDate();
+  }
+  if (value instanceof Date) return value;
+  if (typeof value === "string") {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? fallback : d;
+  }
+  if (typeof value === "number") return new Date(value);
+  if (typeof value === "object" && "_seconds" in (value as Record<string, unknown>)) {
+    return new Date((value as { _seconds: number })._seconds * 1000);
+  }
+  return fallback;
+};
+
+/**
  * Get a consistent default thumbnail URL for a post based on ID
  * Uses post ID to deterministically select from 3 options
  */
@@ -96,8 +125,8 @@ const generateBlogHtml = (
   const ogImage = content.coverImage?.url || getDefaultBlogThumbnail(post.id);
 
   // Format dates
-  const publishedDate = post.publishedAt?.toDate() || new Date();
-  const modifiedDate = post.updatedAt?.toDate() || publishedDate;
+  const publishedDate = safeToDate(post.publishedAt);
+  const modifiedDate = safeToDate(post.updatedAt, publishedDate);
 
   // Generate hreflang links
   const hreflangLinks = SUPPORTED_LANGUAGES.map((lng) => {

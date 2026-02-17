@@ -6,6 +6,8 @@
  * and queries existing data for dashboard insights.
  *
  * Changelog:
+ * v1.1.0 - 2026-02-17 - BEP: Added period-scoped counts to fetchBlogStats, fetchEventStats, fetchUserStats
+ *                        so Overview cards filter data by the selected date range toggle (7d/30d/all).
  * v1.0.1 - 2026-02-08 - BEP FIX: Fixed Firestore collection path for economicEvents (use doc() → collection()
  *                       pattern). Added missing ACTIVITY_TYPES (BLOG_CREATED, BLOG_DELETED, EVENT_CREATED,
  *                       EVENT_DELETED, EVENT_UPDATED) exported by AdminDashboardPage. Resolves undefined
@@ -122,32 +124,30 @@ function getDateRange(period) {
 
 /**
  * Fetch blog post statistics
+ * Returns both all-time totals and period-scoped counts.
  */
 export async function fetchBlogStats(period = '30d') {
   try {
     const postsCollection = collection(db, 'blogPosts');
     const { start } = getDateRange(period);
 
-    // Total posts
+    // All-time totals
     const totalSnapshot = await getCountFromServer(postsCollection);
     const total = totalSnapshot.data().count;
 
-    // Published posts
     const publishedQuery = query(postsCollection, where('status', '==', 'published'));
     const publishedSnapshot = await getCountFromServer(publishedQuery);
     const published = publishedSnapshot.data().count;
 
-    // Draft posts
     const draftQuery = query(postsCollection, where('status', '==', 'draft'));
     const draftSnapshot = await getCountFromServer(draftQuery);
     const drafts = draftSnapshot.data().count;
 
-    // Scheduled posts
     const scheduledQuery = query(postsCollection, where('status', '==', 'scheduled'));
     const scheduledSnapshot = await getCountFromServer(scheduledQuery);
     const scheduled = scheduledSnapshot.data().count;
 
-    // Recent posts (in period)
+    // Period-scoped: posts created within selected range
     const recentQuery = query(
       postsCollection,
       where('createdAt', '>=', start),
@@ -156,40 +156,50 @@ export async function fetchBlogStats(period = '30d') {
     const recentSnapshot = await getDocs(recentQuery);
     const recentCount = recentSnapshot.size;
 
+    // Period-scoped: published posts created within range
+    const publishedInPeriodQuery = query(
+      postsCollection,
+      where('status', '==', 'published'),
+      where('createdAt', '>=', start),
+      orderBy('createdAt', 'desc')
+    );
+    const publishedInPeriodSnapshot = await getDocs(publishedInPeriodQuery);
+    const publishedInPeriod = publishedInPeriodSnapshot.size;
+
     return {
       total,
       published,
       drafts,
       scheduled,
       recentCount,
+      publishedInPeriod,
     };
   } catch (error) {
     console.error('Failed to fetch blog stats:', error);
-    return { total: 0, published: 0, drafts: 0, scheduled: 0, recentCount: 0 };
+    return { total: 0, published: 0, drafts: 0, scheduled: 0, recentCount: 0, publishedInPeriod: 0 };
   }
 }
 
 /**
  * Fetch economic events statistics
+ * Returns both all-time totals and period-scoped counts.
  */
 export async function fetchEventStats(period = '30d') {
   try {
     // Correct path: /economicEvents/events/events (doc → collection)
     const rootDoc = doc(collection(db, 'economicEvents'), 'events');
     const eventsCollection = collection(rootDoc, 'events');
+    const { start } = getDateRange(period);
 
-    // Total events
+    // All-time totals
     const totalSnapshot = await getCountFromServer(eventsCollection);
     const total = totalSnapshot.data().count;
 
-    // Cancelled events
     const cancelledQuery = query(eventsCollection, where('status', '==', 'cancelled'));
     const cancelledSnapshot = await getCountFromServer(cancelledQuery);
     const cancelled = cancelledSnapshot.data().count;
 
-    // Events with reschedule data (have rescheduledFrom field)
-    // Note: Firestore doesn't support "field exists" queries well, so we query where rescheduledFrom != null
-    // This is a workaround - in production you might want to add an explicit "wasRescheduled" boolean field
+    // Rescheduled events (all-time)
     const rescheduledQuery = query(
       eventsCollection,
       where('rescheduledFrom', '!=', null),
@@ -198,9 +208,9 @@ export async function fetchEventStats(period = '30d') {
     const rescheduledSnapshot = await getDocs(rescheduledQuery);
     const rescheduled = rescheduledSnapshot.size;
 
-    // This week's events
+    // This week's events (always useful context)
     const weekStart = new Date();
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     weekStart.setHours(0, 0, 0, 0);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 7);
@@ -213,31 +223,53 @@ export async function fetchEventStats(period = '30d') {
     const thisWeekSnapshot = await getDocs(thisWeekQuery);
     const thisWeek = thisWeekSnapshot.size;
 
+    // Period-scoped: events occurring within the selected range
+    const eventsInPeriodQuery = query(
+      eventsCollection,
+      where('datetimeUtc', '>=', start),
+      orderBy('datetimeUtc', 'desc')
+    );
+    const eventsInPeriodSnapshot = await getDocs(eventsInPeriodQuery);
+    const eventsInPeriod = eventsInPeriodSnapshot.size;
+
+    // Period-scoped: cancelled events within range
+    const cancelledInPeriodQuery = query(
+      eventsCollection,
+      where('status', '==', 'cancelled'),
+      where('datetimeUtc', '>=', start),
+      orderBy('datetimeUtc', 'desc')
+    );
+    const cancelledInPeriodSnapshot = await getDocs(cancelledInPeriodQuery);
+    const cancelledInPeriod = cancelledInPeriodSnapshot.size;
+
     return {
       total,
       cancelled,
       rescheduled,
       thisWeek,
+      eventsInPeriod,
+      cancelledInPeriod,
     };
   } catch (error) {
     console.error('Failed to fetch event stats:', error);
-    return { total: 0, cancelled: 0, rescheduled: 0, thisWeek: 0 };
+    return { total: 0, cancelled: 0, rescheduled: 0, thisWeek: 0, eventsInPeriod: 0, cancelledInPeriod: 0 };
   }
 }
 
 /**
  * Fetch user statistics
+ * Returns both all-time totals and period-scoped counts.
  */
 export async function fetchUserStats(period = '30d') {
   try {
     const usersCollection = collection(db, 'users');
     const { start } = getDateRange(period);
 
-    // Total users
+    // All-time totals
     const totalSnapshot = await getCountFromServer(usersCollection);
     const total = totalSnapshot.data().count;
 
-    // New users in period
+    // Period-scoped: new signups within selected range
     const newUsersQuery = query(
       usersCollection,
       where('createdAt', '>=', start),
@@ -246,7 +278,7 @@ export async function fetchUserStats(period = '30d') {
     const newUsersSnapshot = await getDocs(newUsersQuery);
     const newUsers = newUsersSnapshot.size;
 
-    // Users with settings (engaged users)
+    // Users with settings (engaged users — all-time)
     const engagedQuery = query(usersCollection, where('settings', '!=', null), limit(1000));
     const engagedSnapshot = await getDocs(engagedQuery);
     const engaged = engagedSnapshot.size;

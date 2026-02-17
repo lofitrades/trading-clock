@@ -1,6 +1,7 @@
 {
   "tooltip": {
     "startsIn": "Starts in",
+    "endsIn": "Ends in",
     "startedAgo": "Started",
     "endedAgo": "Ended",
     "ago": "ago"

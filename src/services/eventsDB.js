@@ -13,6 +13,11 @@
  *   - Index 'source' → Track which source each event came from
  *
  * Changelog:
+ * v1.1.0 - 2026-02-12 - BEP STALE CONNECTION FIX: Added retry logic for InvalidStateError when
+ *                        the cached IDB connection closes (page nav, browser cleanup). ensureDB()
+ *                        now detects stale connections and reopens. addEvents and getEventsByDateRange
+ *                        retry once on InvalidStateError before re-throwing. Prevents console errors
+ *                        from eventsStorageAdapter falling back to Firestore on stale connections.
  * v1.0.0 - 2026-01-29 - BEP PHASE 2.3: Initial IndexedDB implementation with indexes and batch operations.
  */
 
@@ -53,10 +58,16 @@ const eventsDB = {
   db: null,
 
   /**
-   * Ensure database is initialized
+   * Ensure database is initialized.
+   * BEP v1.1.0: Detects stale connections (db closed by browser) and reopens.
+   * @param {boolean} forceReopen - Force a fresh connection (retry path)
    * @returns {Promise<IDBPDatabase>}
    */
-  async ensureDB() {
+  async ensureDB(forceReopen = false) {
+    if (forceReopen && this.db) {
+      try { this.db.close(); } catch { /* already closing */ }
+      this.db = null;
+    }
     if (!this.db) {
       this.db = await initDB();
     }
@@ -75,21 +86,31 @@ const eventsDB = {
 
   /**
    * Add or update multiple events (batch)
+   * BEP v1.1.0: Retries once on InvalidStateError (stale connection)
    * @param {Array<Object>} events - Array of events
    * @returns {Promise<void>}
    */
-  async addEvents(events) {
-    const db = await this.ensureDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
+  async addEvents(events, _retry = false) {
+    try {
+      const db = await this.ensureDB();
+      const tx = db.transaction(STORE_NAME, 'readwrite');
 
-    await Promise.all(
-      events.map((event) => {
-        // Use put (upsert) instead of add to update existing events
-        return tx.store.put(event);
-      })
-    );
+      await Promise.all(
+        events.map((event) => {
+          // Use put (upsert) instead of add to update existing events
+          return tx.store.put(event);
+        })
+      );
 
-    await tx.done;
+      await tx.done;
+    } catch (error) {
+      // BEP v1.1.0: Retry once with fresh connection on InvalidStateError
+      if (!_retry && error?.name === 'InvalidStateError') {
+        this.db = null;
+        return this.addEvents(events, true);
+      }
+      throw error;
+    }
   },
 
   /**
@@ -104,18 +125,39 @@ const eventsDB = {
 
   /**
    * Query events by date range (fast index lookup)
-   * @param {Date|number} startDate - Milliseconds or Date object
-   * @param {Date|number} endDate
+   * BEP v1.1.0: Normalize inputs to Date objects for correct IDB key type matching.
+   * IDB stores event.date as Date objects (via structured clone). Date and Number
+   * are different IDB key types, so we must query with Date objects, not epoch ms.
+   * BEP v1.1.0: Retries once on InvalidStateError (stale connection).
+   *
+   * @param {Date|number|string} startDate - Date object, epoch ms, or ISO string
+   * @param {Date|number|string} endDate
    * @returns {Promise<Array>} Events matching date range
    */
-  async getEventsByDateRange(startDate, endDate) {
-    const db = await this.ensureDB();
-    const startMs = startDate instanceof Date ? startDate.getTime() : startDate;
-    const endMs = endDate instanceof Date ? endDate.getTime() : endDate;
+  async getEventsByDateRange(startDate, endDate, _retry = false) {
+    try {
+      const db = await this.ensureDB();
 
-    // Use index for O(log N) range query instead of O(N) scan
-    const index = db.transaction(STORE_NAME, 'readonly').store.index('date');
-    return index.getAll(IDBKeyRange.bound(startMs, endMs));
+      // Normalize to Date objects for correct IDB key type matching
+      const toDate = (v) => {
+        if (v instanceof Date) return v;
+        if (typeof v === 'number') return new Date(v);
+        return new Date(v);
+      };
+      const start = toDate(startDate);
+      const end = toDate(endDate);
+
+      // Use index for O(log N) range query instead of O(N) scan
+      const index = db.transaction(STORE_NAME, 'readonly').store.index('date');
+      return await index.getAll(IDBKeyRange.bound(start, end));
+    } catch (error) {
+      // BEP v1.1.0: Retry once with fresh connection on InvalidStateError
+      if (!_retry && error?.name === 'InvalidStateError') {
+        this.db = null;
+        return this.getEventsByDateRange(startDate, endDate, true);
+      }
+      throw error;
+    }
   },
 
   /**

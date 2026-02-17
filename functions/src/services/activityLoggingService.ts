@@ -10,12 +10,23 @@
  * - This prevents duplicate logs when Cloud Functions retry or are called multiple times
  *
  * Changelog:
+ * v1.5.0 - 2026-02-10 - BEP DEDUP FIX: generateActivityId no longer embeds UTC today in event-based
+ *                        activity IDs. Cloud Functions running across UTC midnight (e.g. 5 PM CST =
+ *                        Feb 10 UTC, 9 PM CST = Feb 11 UTC) were creating DUPLICATE documents for the
+ *                        same event reschedule because the UTC date differed. Fix: event-based IDs
+ *                        use {type}_{dedupeKey} only (no date). Sync-based IDs retain {type}_{today}
+ *                        for daily-granularity dedup. Also uses merge:true so re-runs update existing
+ *                        docs with latest visibility/insightKeys instead of failing on overwrites.
+ * v1.4.0 - 2026-02-10 - BEP P4: logBlogPublished accepts optional eventTags/currencyTags for insightKeys enrichment
+ * v1.3.0 - 2026-02-10 - BEP P2: logSyncCompleted accepts optional currencyTags for insightKeys enrichment
+ * v1.2.0 - 2026-02-09 - Phase 7: Added visibility field to all activity logs for role-based Insights filtering
  * v1.1.0 - 2026-02-05 - Added deduplication via deterministic document IDs for sync/event activities.
  * v1.0.0 - 2026-02-05 - Initial implementation with activity logging functions.
  */
 
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
+import { computeActivityInsightKeys, determineActivityVisibility } from "../utils/insightKeysUtils";
 
 export interface ActivityLog {
   type: string;
@@ -23,6 +34,8 @@ export interface ActivityLog {
   description: string;
   severity: "info" | "warning" | "error" | "success";
   metadata?: Record<string, any>;
+  insightKeys: string[];
+  visibility: "public" | "internal" | "admin";
   source: "backend" | "frontend";
   createdAt: admin.firestore.FieldValue;
 }
@@ -30,19 +43,28 @@ export interface ActivityLog {
 const ACTIVITY_COLLECTION = "systemActivityLog";
 
 /**
- * Generate a deterministic document ID for deduplication
- * Format: {type}_{source}_{date}_{hash} where hash is based on key identifiers
+ * Generate a deterministic document ID for deduplication.
+ *
+ * BEP v1.5.0 FIX: Event-based IDs no longer embed UTC today.
+ * Cloud Functions run at different UTC dates within the same local day
+ * (e.g. 5 PM CST = Feb 10 UTC, 9 PM CST = Feb 11 UTC). Embedding today
+ * in the ID caused DUPLICATE documents for the same event reschedule.
+ *
+ * Strategy:
+ *   - WITH dedupeKey (event changes): {type}_{dedupeKey} — one doc per event action, period.
+ *     Re-runs overwrite the same doc via merge:true, keeping data fresh.
+ *   - WITHOUT dedupeKey (sync summaries): {type}_{today} — one doc per type per UTC day.
  */
 function generateActivityId(
   type: string,
   dedupeKey?: string
 ): string {
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
   if (dedupeKey) {
-    // Use provided key for more granular deduplication (e.g., eventId)
-    return `${type}_${today}_${dedupeKey}`;
+    // Event-based: stable ID regardless of when the sync runs
+    return `${type}_${dedupeKey}`;
   }
-  // Default: one activity per type per day
+  // Sync-based: one per type per UTC day
+  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
   return `${type}_${today}`;
 }
 
@@ -67,13 +89,17 @@ export async function logActivity(
       description,
       severity,
       metadata,
+      insightKeys: computeActivityInsightKeys(type, metadata),
+      visibility: determineActivityVisibility(type),
       source: "backend",
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    // Use deterministic ID to prevent duplicates
+    // Use deterministic ID to prevent duplicates.
+    // BEP v1.5.0: merge:true ensures re-runs update existing docs with
+    // latest visibility/insightKeys/createdAt (fixes missing fields on old docs).
     const docId = generateActivityId(type, dedupeKey);
-    await db.collection(ACTIVITY_COLLECTION).doc(docId).set(activity, {merge: false});
+    await db.collection(ACTIVITY_COLLECTION).doc(docId).set(activity, {merge: true});
     logger.info(`✅ Activity logged: ${type}`, {title, severity, docId});
   } catch (error) {
     logger.error("❌ Failed to log activity", {type, title, error});
@@ -152,15 +178,23 @@ export async function logSyncCompleted(
   eventsCreated: number,
   eventsUpdated: number,
   rescheduledCount: number = 0,
-  cancelledCount: number = 0
+  cancelledCount: number = 0,
+  options?: { currencyTags?: string[] }
 ): Promise<void> {
   const dedupeKey = source.toLowerCase().replace(/\s+/g, "_");
+  const metadata: Record<string, any> = {
+    source, eventsProcessed, eventsCreated, eventsUpdated, rescheduledCount, cancelledCount,
+  };
+  // P2: Enrich sync metadata with currencies for insightKeys population
+  if (options?.currencyTags?.length) {
+    metadata.currencyTags = options.currencyTags;
+  }
   await logActivity(
     "sync_completed",
     `${source} sync completed`,
     `Processed ${eventsProcessed} events: ${eventsCreated} created, ${eventsUpdated} updated, ${rescheduledCount} rescheduled, ${cancelledCount} cancelled`,
     "success",
-    {source, eventsProcessed, eventsCreated, eventsUpdated, rescheduledCount, cancelledCount},
+    metadata,
     dedupeKey
   );
 }
@@ -187,19 +221,31 @@ export async function logSyncFailed(
 /**
  * Log blog post publication
  * Dedupe by post ID - only ONE log per post per day
+ * @param eventTags - Optional economic event tags for insightKeys enrichment
+ * @param currencyTags - Optional currency tags for insightKeys enrichment
  */
 export async function logBlogPublished(
   postTitle: string,
   postId: string,
-  languages: string[]
+  languages: string[],
+  eventTags?: string[],
+  currencyTags?: string[]
 ): Promise<void> {
   const dedupeKey = postId;
+  const metadata: Record<string, any> = {postTitle, postId, languages};
+  // P4: Enrich blog_published metadata with event+currency tags for insightKeys
+  if (eventTags?.length) {
+    metadata.eventTags = eventTags;
+  }
+  if (currencyTags?.length) {
+    metadata.currencyTags = currencyTags;
+  }
   await logActivity(
     "blog_published",
     `Blog post published: ${postTitle}`,
     `Published in ${languages.join(", ")}`,
     "success",
-    {postTitle, postId, languages},
+    metadata,
     dedupeKey
   );
 }

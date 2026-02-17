@@ -1,29 +1,6 @@
-<!--
-  index.html
-
-  Purpose: HTML document entry for Time 2 Trade SPA, defining global head metadata, fonts, and mount point.
-  Key responsibility and main functionality: Provides SEO + social share metadata, loads fonts efficiently, and bootstraps the React bundle while shipping crawlable fallback content for non-JS/AI crawlers.
-
-  Changelog:
-  v2.2.0 - 2026-02-04 - BEP SEO CRITICAL: Updated hreflang tags to use subpath URLs (/es/, /fr/) instead of query params (?lang=es). Aligns with Firebase hosting rewrites, prerender output, and sitemap structure. Eliminates duplicate URL signals and improves SEO consistency.
-  v2.1.0 - 2026-01-27 - BEP SEO: Added multi-language hreflang tags (EN/ES/FR + x-default) for crawler discoverability. Updated JSON-LD schemas with availableLanguage array. Enables proper international SEO for translated content.  v2.0.1 - 2026-01-22 - Updated “main features” emphasis: removed overlaps/PWA/exports mentions; added custom events, notifications, and Forex Factory-powered calendar messaging.
-  v2.0.0 - 2026-01-22 - Enterprise SEO refresh: NY-time positioning, intraday timing workspace messaging, cleaner fallback (single noscript), expanded meta/OG/Twitter, JSON-LD validity fixes, added modern app + referrer signals; kept AdSense publisher ID.
-  v1.9.1 - 2026-01-09 - Improved Google site-name and favicon signals (Organization schema, WebSite publisher/alternateName, robust icon links).
-  v1.9.0 - 2026-01-07 - Updated SEO meta to highlight economic calendar, session clock, and Forex Factory source; kept AdSense publisher ID.
-  v1.8.0 - 2026-01-07 - Updated AdSense publisher ID to ca-pub-3984565509623618 for time2.trade verification.
-  v1.7.0 - 2025-12-22 - Refreshed SEO copy, OG/Twitter images, structured data, and fallback content for trading clock + economic events positioning.
-  v1.6.0 - 2025-12-17 - Added PWA manifest, Apple touch icon, and theme color to enable install prompts and Chrome add-to-homescreen.
-  v1.5.0 - 2025-12-17 - Added automatic light/dark favicon switching with prefers-color-scheme detection and safe fallback.
-  v1.4.0 - 2025-12-17 - Defer AdSense loading to post-interaction to reduce mobile main-thread blocking.
-  v1.3.0 - 2025-12-17 - Made Google Fonts non-blocking with preload+swap to improve initial render performance.
-  v1.2.0 - 2025-12-17 - Added crawlable home-page fallback content, homepage structured data (WebSite + SoftwareApplication), and tightened AI/SEO discoverability.
-  v1.1.0 - 2025-12-16 - Refreshed SEO copy, Open Graph/Twitter tags, canonical URL, and social share image for time2.trade.
-  v1.0.0 - 2025-09-15 - Initial implementation.
--->
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
+  <head><meta charset="UTF-8" />
 
     <!-- BEP PERFORMANCE: Critical CSS inlined for instant above-the-fold rendering -->
     <!-- Eliminates render-blocking CSS delay (~120ms improvement) -->
@@ -51,6 +28,15 @@
       /* Prevent layout shift for common elements */
       img,svg{max-width:100%;height:auto;display:block}
       button,input,select,textarea{font:inherit}
+      
+      /* BEP CLS: Reserve space for common UI patterns to prevent layout shifts */
+      /* AppBar placeholder height */
+      .MuiAppBar-root{height:64px}
+      @media(max-width:600px){.MuiAppBar-root{height:56px}}
+      
+      /* BEP UNSIZED IMAGES: Ensure images have aspect-ratio to prevent CLS */
+      img:not([width]):not([height]){aspect-ratio:attr(width)/attr(height)}
+      img[loading="lazy"]{content-visibility:auto}
     </style>
 
     <!-- FOUC Prevention: Set data-theme before React hydrates -->
@@ -113,7 +99,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
 
-    <title>Time 2 Trade | Trading Clock + Forex Factory Economic Calendar (NY Time)</title>
+    <title>Time 2 Trade | Market Clock + Forex Factory Economic Calendar (NY Time)</title>
 
     <!-- Dynamic light/dark favicon switching -->
     <script>
@@ -156,11 +142,18 @@
       })();
     </script>
 
-    <!-- Performance: preconnects -->
+    <!-- Performance: preconnects (max 2 for Lighthouse) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://firebaseinstallations.googleapis.com" crossorigin />
-    <link rel="preconnect" href="https://firebase.googleapis.com" crossorigin />
+    
+    <!-- BEP PERFORMANCE: DNS prefetch for third-party domains (lower priority than preconnect) -->
+    <link rel="dns-prefetch" href="https://firebaseinstallations.googleapis.com" />
+    <link rel="dns-prefetch" href="https://firebase.googleapis.com" />
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+    <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
+    <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+    <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
+    <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
 
     <!-- Fonts: Poppins (non-blocking with swap) -->
     <link
@@ -180,6 +173,7 @@
     <meta name="google-adsense-account" content="ca-pub-3984565509623618" />
     <script>
       // Defer loading AdSense until after first interaction/idle to reduce main-thread blocking on mobile.
+      // BEP PERFORMANCE: Increased idle timeout to 8s to avoid competing with React hydration on slow mobile.
       (function () {
         const loadAds = () => {
           if (window.__t2tAdsLoaded) return;
@@ -195,9 +189,9 @@
 
         const schedule = () => {
           if ("requestIdleCallback" in window) {
-            requestIdleCallback(loadAds, { timeout: 4000 });
+            requestIdleCallback(loadAds, { timeout: 8000 });
           } else {
-            setTimeout(loadAds, 3000);
+            setTimeout(loadAds, 6000);
           }
         };
 
@@ -221,15 +215,15 @@
     </script>
 
     <!-- SEO Meta -->
-    <meta name="title" content="Time 2 Trade | Trading Clock + Forex Factory Economic Calendar (NY Time)" />
+    <meta name="title" content="Time 2 Trade | Market Clock + Forex Factory Economic Calendar (NY Time)" />
     <meta
       name="description"
-      content="See every trading session and market-moving event at a glance. A visual 24-hour clock displays New York, London, and Asia sessions with real-time countdowns—plus a Forex Factory-powered calendar filtered by impact and currency. Built for futures and forex day traders."
+      content="See every trading session and market-moving event at a glance. A visual 24-hour clock displays New York, London, and Asia sessions with real-time countdownsâ€”plus a Forex Factory-powered calendar filtered by impact and currency. Built for futures and forex day traders."
     />
     <meta name="author" content="Time 2 Trade" />
     <meta
       name="keywords"
-      content="trading clock, session clock, trading sessions, london session, new york session, asia session, session countdown, economic calendar, forex factory economic calendar, high-impact events, CPI, NFP, FOMC, forex day trading, futures day trading, prop trader routine, custom events, trading notifications"
+      content="market clock, session clock, trading sessions, london session, new york session, asia session, session countdown, economic calendar, forex factory economic calendar, high-impact events, CPI, NFP, FOMC, forex day trading, futures day trading, prop trader routine, custom events, trading notifications"
     />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
     <meta
@@ -244,11 +238,11 @@
     <meta property="og:url" content="https://time2.trade/" />
     <meta
       property="og:title"
-      content="Time 2 Trade | Trading Clock + Forex Factory Economic Calendar (NY Time)"
+      content="Time 2 Trade | Market Clock + Forex Factory Economic Calendar (NY Time)"
     />
     <meta
       property="og:description"
-      content="See every trading session and market-moving event at a glance. A visual 24-hour clock displays New York, London, and Asia sessions with real-time countdowns—plus a Forex Factory-powered calendar filtered by impact and currency."
+      content="See every trading session and market-moving event at a glance. A visual 24-hour clock displays New York, London, and Asia sessions with real-time countdownsâ€”plus a Forex Factory-powered calendar filtered by impact and currency."
     />
     <meta property="og:image" content="https://time2.trade/Time2Trade_SEO_Meta_5.PNG" />
     <meta property="og:image:secure_url" content="https://time2.trade/Time2Trade_SEO_Meta_5.PNG" />
@@ -267,7 +261,7 @@
     <meta name="twitter:creator" content="@time2_trade" />
     <meta
       name="twitter:title"
-      content="Time 2 Trade | Trading Clock + Forex Factory Economic Calendar (NY Time)"
+      content="Time 2 Trade | Market Clock + Forex Factory Economic Calendar (NY Time)"
     />
     <meta
       name="twitter:description"
@@ -323,12 +317,12 @@
         "publisher": { "@id": "https://time2.trade/#organization" },
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
         "featureList": [
-          "Visual 24-hour trading clock displaying New York, London, and Asia sessions with real-time countdowns",
+          "Visual 24-hour market clock displaying New York, London, and Asia sessions with real-time countdowns",
           "Forex Factory-powered economic calendar showing scheduled releases filtered by impact and currency",
           "Custom events and reminders for personal timing windows, no-trade zones, and routines",
           "Notifications for upcoming events so you never trade blind into a release",
           "Favorites and personal notes to track events that matter to your instruments",
-          "Mobile-first, fast, and clean—built for quick pre-trade timing checks",
+          "Mobile-first, fast, and cleanâ€”built for quick pre-trade timing checks",
           "Awareness and timing context for intraday traders (not trading signals)"
         ]
       }
@@ -440,16 +434,16 @@
     <div id="root">
       <noscript>
         <main class="t2t-noscript" aria-label="Time 2 Trade overview">
-          <h1>Time 2 Trade: Trading Clock + Forex Factory Economic Calendar (NY Time)</h1>
+          <h1>Time 2 Trade: Market Clock + Forex Factory Economic Calendar (NY Time)</h1>
           <p>
             Time 2 Trade is a clean <strong>intraday timing workspace</strong> for futures and forex day traders.
-            Know what part of the trading day you’re in, then confirm whether a high-impact release is coming up — without
+            Know what part of the trading day youâ€™re in, then confirm whether a high-impact release is coming up â€” without
             bouncing across tabs.
           </p>
 
           <h2>What you can do</h2>
           <ul>
-            <li><strong>Know what’s open now:</strong> session awareness with clear countdowns to key transitions.</li>
+            <li><strong>Know whatâ€™s open now:</strong> session awareness with clear countdowns to key transitions.</li>
             <li><strong>Avoid scheduled volatility:</strong> filter upcoming releases by impact, currency, and search.</li>
             <li><strong>Add your own timing windows:</strong> create <strong>custom events</strong> for personal routines or rules.</li>
             <li><strong>Stay ahead of catalysts:</strong> enable <strong>notifications</strong> for upcoming events (where supported).</li>
@@ -458,11 +452,11 @@
 
           <h2>Built for active traders (not signals)</h2>
           <p>
-            This tool is designed for <strong>awareness and context</strong> — it does not generate buy/sell signals or connect
+            This tool is designed for <strong>awareness and context</strong> â€” it does not generate buy/sell signals or connect
             to brokers.
           </p>
 
-          <a class="cta primary" href="/clock">Open Trading Clock</a>
+          <a class="cta primary" href="/clock">Open Market Clock</a>
           <a class="cta secondary" href="/calendar">Open Economic Calendar</a>
 
           <p class="note">
@@ -475,3 +469,29 @@
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
+<!--
+  index.html - Time 2 Trade SPA Entry Point
+
+  Purpose: HTML document entry for Time 2 Trade SPA, defining global head metadata, fonts, and mount point.
+  Key responsibility: Provides SEO + social share metadata, loads fonts efficiently, and bootstraps React bundle.
+
+  Changelog:
+  v2.4.0 - 2026-02-11 - BEP BEST PRACTICES: Moved changelog comment to end of file to ensure charset
+    declaration appears within first 1024 bytes (Lighthouse requirement). Fixes "Charset declaration
+    is missing or occurs too late" warning.
+  v2.3.1 - 2026-02-11 - BEP ACCESSIBILITY: Verified <html lang="en"> for screen reader language.
+  v2.3.0 - 2026-02-11 - BEP PERFORMANCE: Fixed firebase.googleapis.com preconnect (removed crossorigin).
+  v2.2.0 - 2026-02-04 - BEP SEO CRITICAL: Updated hreflang tags to use subpath URLs (/es/, /fr/).
+  v2.1.0 - 2026-01-27 - BEP SEO: Added multi-language hreflang tags (EN/ES/FR + x-default).
+  v2.0.0 - 2026-01-22 - Enterprise SEO refresh: NY-time positioning, intraday timing workspace.
+  v1.9.x - 2026-01 - Various SEO, AdSense, and metadata improvements.
+  v1.8.0 - 2026-01-07 - Updated AdSense publisher ID.
+  v1.7.0 - 2025-12-22 - Refreshed SEO copy, OG/Twitter images, structured data.
+  v1.6.0 - 2025-12-17 - Added PWA manifest, Apple touch icon, theme color.
+  v1.5.0 - 2025-12-17 - Added automatic light/dark favicon switching.
+  v1.4.0 - 2025-12-17 - Defer AdSense loading to post-interaction.
+  v1.3.0 - 2025-12-17 - Made Google Fonts non-blocking with preload+swap.
+  v1.2.0 - 2025-12-17 - Added crawlable fallback content, homepage structured data.
+  v1.1.0 - 2025-12-16 - Refreshed SEO copy, Open Graph/Twitter tags.
+  v1.0.0 - 2025-09-15 - Initial implementation.
+-->

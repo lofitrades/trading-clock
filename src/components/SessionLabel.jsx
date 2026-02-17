@@ -5,6 +5,37 @@
  * Minimal chip-based label optimized for the clock overlay.
  *
  * Changelog:
+ * v1.8.0 - 2026-02-13 - BEP SIZE ENHANCEMENT: Increased icon and font sizes for better visibility.
+ *                       titleSize increased from 0.875rem to 1.125rem base (14px → 18px), scales
+ *                       with clockSize. Icons now match title prominence. Chip padding increased
+ *                       to 8px for better spacing. Skeleton dimensions updated to match. Improved
+ *                       readability on clock overlay without breaking responsive scaling.
+ * v1.7.0 - 2026-02-13 - BEP ICON UNIFICATION: Added HighlightOffIcon (circled X) to inactive/next-session
+ *                       chip label, matching CheckCircleIcon positioning and styling in active session.
+ *                       Icon appears before session name for consistent visual hierarchy. Inactive and
+ *                       active session labels now both start with a session status icon.
+ * v1.6.0 - 2026-02-13 - BEP SKELETON UX: Added skeleton loading state using useTranslation ready flag.
+ *                       Shows a rounded Skeleton chip placeholder matching active/inactive dimensions
+ *                       while i18n translations load. Prevents layout shift and translation-key flash.
+ *                       Imported Skeleton from MUI. Maintained Fade wrapper for smooth transition.
+ * v1.5.0 - 2026-02-13 - BEP UI ACCESSIBILITY & UNIFICATION: (1) Active session now uses isDark()
+ *                       function for text contrast accessibility (always checks color darkness,
+ *                       not theme setting). (2) Unified UI format for both active and inactive:
+ *                       icon + Session Name + " - " + Timer. (3) Moved CheckCircleIcon to beginning
+ *                       of active session label with same font color and size as text (titleSize,
+ *                       color: inherit). Icon still pulses to show activity. (4) Removed "Ends in:"
+ *                       and "Starts in:" labels — now just timer value for brevity. Same visual
+ *                       hierarchy across both session states. Improved space efficiency.
+ * v1.4.0 - 2026-02-13 - BEP UI UNIFICATION: Updated active session chip to use merged single-line
+ *                       layout (matching inactive session UI). Session name and "ends in:" text now
+ *                       appear inline with CheckCircleIcon between them, rather than stacked vertically.
+ *                       Removed flexDirection: 'column' and nested Box wrappers. Consistent visual
+ *                       hierarchy between active and inactive session chips. Improved space efficiency.
+ * v1.3.0 - 2026-02-13 - BEP i18n AUDIT: Replaced all hardcoded English strings ('Ends in:', 'starts in:')
+ *                       with i18n translation keys from 'sessions' namespace (sessions:tooltip.endsIn,
+ *                       sessions:tooltip.startsIn). Added useTranslation hook with useSuspense: false
+ *                       for lazy-loaded namespace compatibility. Component now fully language-aware
+ *                       across EN/ES/FR. No timezone or theme changes needed (already BEP compliant).
  * v1.2.0 - 2026-01-29 - BEP THEME-AWARE: Replaced hardcoded colors with MUI theme tokens.
  *                       #757575 → text.disabled, #fff/#000 → common.white/common.black,
  *                       #0F172A → text.primary, #4B4B4B → text.secondary. Adaptive
@@ -16,8 +47,10 @@
  */
 
 import PropTypes from 'prop-types';
-import { Box, Chip, Stack, Fade, useTheme } from '@mui/material';
+import { Box, Chip, Skeleton, Stack, Fade, useTheme } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
+import { useTranslation } from 'react-i18next';
 import { isColorDark } from '../utils/clockUtils';
 
 // Smart time formatting: mm:ss if < 1h, hh:mm if >= 1h
@@ -44,25 +77,23 @@ export default function SessionLabel({
   timeToStart,
   clockSize,
   contrastTextColor,
-  backgroundBasedOnSession,
 }) {
   const theme = useTheme();
+  const { t, ready } = useTranslation('sessions', { useSuspense: false });
 
   // Responsive scaling based on clock size - clean minimal design
   const baseSize = 375;
   const scaleFactor = Math.min(Math.max(clockSize / baseSize, 0.7), 1.3);
 
   // Font sizes that scale smoothly
-  const titleSize = `${0.875 * scaleFactor}rem`; // 14px base
-  const iconSize = 12 * scaleFactor;
+  const titleSize = `${1.125 * scaleFactor}rem`; // 18px base (increased from 14px for better visibility)
 
   // Session color with adaptive text - use theme tokens for defaults
   const sessionColor = activeSession?.color || theme.palette.text.disabled;
-  // When backgroundBasedOnSession is disabled, always use theme text color
-  // When enabled, use isColorDark to determine contrast
-  const sessionTextColor = backgroundBasedOnSession
-    ? (isColorDark(sessionColor) ? theme.palette.common.white : theme.palette.common.black)
-    : theme.palette.text.primary;
+  // BEP: Use isColorDark for text contrast accessibility on both active and inactive
+  const sessionTextColor = isColorDark(sessionColor)
+    ? theme.palette.common.white
+    : theme.palette.common.black;
   const outlinedColor = contrastTextColor || theme.palette.text.secondary;
   const outlinedBorderColor = `${outlinedColor}66`;
 
@@ -71,8 +102,8 @@ export default function SessionLabel({
       <Box
         sx={{
           display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          alignItems: 'flex-start',
+          justifyContent: 'flex-start',
           margin: '8px auto',
           maxWidth: '90vw',
         }}
@@ -80,65 +111,57 @@ export default function SessionLabel({
         <Stack
           direction="row"
           spacing={1}
-          alignItems="center"
+          alignItems="flex-start"
           sx={{
             backgroundColor: 'transparent',
             padding: '4px 12px',
             transition: 'all 0.3s ease',
-            mt: 2,
+            mt: 1,
           }}
         >
-          {/* Session Status Indicator */}
-          {activeSession ? (
+          {/* Skeleton placeholder while i18n loads */}
+          {!ready ? (
+            <Skeleton
+              variant="rounded"
+              width={200 * scaleFactor}
+              height={40 * scaleFactor}
+              sx={{ borderRadius: '16px' }}
+            />
+          ) : activeSession ? (
             <>
-              {/* Active Session Chip with countdown inside */}
+              {/* Active Session Chip — icon + name + " - " + timer */}
               <Chip
                 label={
                   <Box
                     component="span"
                     sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 0.25,
+                      display: 'inline-flex',
                       alignItems: 'center',
+                      gap: 0.4,
                       py: 0.25,
                     }}
                   >
-                    <Box
-                      component="span"
-                      sx={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 0.5,
-                      }}
-                    >
-                      <span style={{ fontWeight: 600 }}>{activeSession.name}</span>
-                    </Box>
                     {showTimeToEnd && timeToEnd != null && (
-                      <Box
-                        component="span"
+                      <CheckCircleIcon
                         sx={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 0.3,
-                          fontSize: '0.75em',
-                          opacity: 0.9,
+                          fontSize: titleSize,
+                          color: 'inherit',
+                          animation: 'pulse 2s ease-in-out infinite',
+                          '@keyframes pulse': {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0.6 },
+                          },
                         }}
-                      >
-                        <CheckCircleIcon
-                          sx={{
-                            fontSize: `${iconSize * 0.85}px`,
-                            animation: 'pulse 2s ease-in-out infinite',
-                            '@keyframes pulse': {
-                              '0%, 100%': { opacity: 1 },
-                              '50%': { opacity: 0.6 },
-                            },
-                          }}
-                        />
+                      />
+                    )}
+                    <span style={{ fontWeight: 600 }}>{activeSession.name}</span>
+                    {showTimeToEnd && timeToEnd != null && (
+                      <>
+                        <span style={{ fontWeight: 500 }}> - </span>
                         <span style={{ fontWeight: 500 }}>
-                          Ends in: {formatTimeSmart(timeToEnd)}
+                          {t('tooltip.endsIn')}: {formatTimeSmart(timeToEnd)}
                         </span>
-                      </Box>
+                      </>
                     )}
                   </Box>
                 }
@@ -149,7 +172,7 @@ export default function SessionLabel({
                   fontWeight: 600,
                   fontSize: titleSize,
                   height: 'auto',
-                  padding: '6px 10px',
+                  padding: '8px 12px',
                   '& .MuiChip-label': {
                     padding: '0 4px',
                     width: '100%',
@@ -161,34 +184,31 @@ export default function SessionLabel({
             </>
           ) : (
             <>
-              {/* No Active Session - Merged chip with next session info */}
               <Chip
                 label={
                   <Box
                     component="span"
                     sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 0.25,
+                      display: 'inline-flex',
                       alignItems: 'center',
+                      gap: 0.4,
                       py: 0.25,
                     }}
                   >
                     {showTimeToStart && nextSession && timeToStart != null && (
-                      <Box
-                        component="span"
-                        sx={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 0.3,
-                          fontSize: '0.75em',
-                        }}
-                      >
+                      <>
+                        <HighlightOffIcon
+                          sx={{
+                            fontSize: titleSize,
+                            color: 'inherit',
+                          }}
+                        />
                         <span style={{ fontWeight: 600 }}>{nextSession.name}</span>
-                        <span style={{ fontWeight: 500, opacity: 0.9 }}>
-                          starts in: {formatTimeSmart(timeToStart)}
+                        <span style={{ fontWeight: 500 }}> - </span>
+                        <span style={{ fontWeight: 500 }}>
+                          {t('tooltip.startsIn')}: {formatTimeSmart(timeToStart)}
                         </span>
-                      </Box>
+                      </>
                     )}
                   </Box>
                 }
@@ -198,7 +218,7 @@ export default function SessionLabel({
                   fontSize: titleSize,
                   fontWeight: 500,
                   height: 'auto',
-                  padding: '6px 10px',
+                  padding: '8px 12px',
                   borderColor: outlinedBorderColor,
                   color: outlinedColor,
                   '& .MuiChip-label': {
@@ -230,5 +250,4 @@ SessionLabel.propTypes = {
   timeToStart: PropTypes.number,
   clockSize: PropTypes.number.isRequired,
   contrastTextColor: PropTypes.string,
-  backgroundBasedOnSession: PropTypes.bool,
 };

@@ -6,6 +6,11 @@
  * Reduces initial bundle size by ~500KB by eliminating 78 static JSON imports
  *
  * Changelog:
+ * v4.0.0 - 2026-02-11 - BEP PERFORMANCE CRITICAL: Reduced preload from 16 → 2 namespaces (common, pages).
+ *   Lighthouse audit showed 16 JSON files in network dependency chain causing ~1,500ms waterfall on initial load.
+ *   TBT was 2,290ms. Non-critical namespaces (clock, settings, calendar, events, auth, etc.) now lazy-load
+ *   via HTTP backend when route components mount and call useTranslation(). With useSuspense: false,
+ *   components render immediately and re-render when translations arrive (~50-100ms per namespace).
  * v3.0.4 - 2026-02-06 - BEP: Expanded preload to cover all public sitemap pages (/, /clock, /calendar, /about, /privacy, /terms, /contact) and components. Added: clock, settings, calendar, sessions, auth, actions namespaces to prevent fallback text flashing on any public route.
  * v3.0.3 - 2026-02-06 - Added 'blog' namespace to preload for BlogListPage/BlogPostPage to prevent fallback text flash on first load.
  * v3.0.2 - 2026-02-03 - Added 'dialogs' namespace to preload for AccountModal/NotificationPreferencesPanel.
@@ -43,11 +48,13 @@ i18n
   .init({
     fallbackLng: 'en',        // Fall back to English if language not found
     
-    // BEP PERFORMANCE v3.0.4: Preload all public sitemap page namespaces to prevent fallback text flashing
-    // Covers 7 public pages (landing, clock, calendar, about, privacy, terms, contact) + components
-    // Preload list: common, pages, filter, admin, reminders, dialogs, events, blog, clock, settings, calendar, sessions, auth, actions
-    // Remaining non-critical namespaces (tooltips, form, validation, etc.) still lazy-loaded on-demand
-    ns: ['common', 'pages', 'filter', 'admin', 'reminders', 'dialogs', 'events', 'blog', 'clock', 'settings', 'calendar', 'sessions', 'auth', 'actions', 'welcome'],
+    // BEP PERFORMANCE v4.0.0: Preload ONLY landing-page-critical namespaces
+    // Lighthouse audit: 16 preloaded namespaces caused ~1,500ms network waterfall on initial load.
+    // Reduced to 2: common (nav/footer) + pages (landing/marketing).
+    // ALL other namespaces lazy-load on-demand via HTTP backend when useTranslation('ns') is called.
+    // Route components mount → useTranslation triggers fetch → namespace loads in ~50-100ms.
+    // With useSuspense: false, components render immediately with fallback then re-render when loaded.
+    ns: ['common', 'pages'],
     defaultNS: 'common',
     
     // BEP: Enable true lazy loading for non-preloaded namespaces

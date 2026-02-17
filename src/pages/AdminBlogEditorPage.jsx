@@ -6,6 +6,7 @@
  * BEP: Full i18n, theme-aware, responsive, slug validation
  * 
  * Changelog:
+ * v2.4.0 - 2026-02-15 - BEP: Added CoverImageUploader component for direct Firebase Storage upload/replace/delete of cover images alongside existing URL fields
  * v2.3.0 - 2026-02-05 - Added activity logging for blog create/update/publish actions
  * v2.2.0 - 2026-02-05 - BEP: Added link to author management in empty authors helper text
  * v2.1.0 - 2026-02-04 - Phase 5.B: Added RelatedPostsPreview panel with scoring visualization
@@ -86,6 +87,7 @@ import {
 } from '../types/blogTypes';
 import BlogContentEditor from '../components/admin/BlogContentEditor';
 import RelatedPostsPreview from '../components/admin/RelatedPostsPreview';
+import CoverImageUploader from '../components/admin/CoverImageUploader';
 
 /**
  * Language tab panel
@@ -350,7 +352,8 @@ const AdminBlogEditorPage = () => {
             const primaryTitle = languages[DEFAULT_BLOG_LANGUAGE]?.title
                 || Object.values(languages).find(l => l.title)?.title
                 || 'Untitled';
-            const languageKeys = Object.keys(languages);
+            // BEP: Use activeLanguages for activity logging (all languages in the post, not just saved ones)
+            const languageKeys = activeLanguages;
 
             if (isEditMode) {
                 await updateBlogPost(postId, postData);
@@ -379,8 +382,13 @@ const AdminBlogEditorPage = () => {
                 setStatus(BLOG_POST_STATUS.PUBLISHED);
                 setSnackbar({ open: true, message: t('admin:blog.publishSuccess'), severity: 'success' });
 
-                // Log activity: blog published
-                await logBlogPublished(primaryTitle, postId, user.uid, languageKeys);
+                // BEP: Get fresh title from languageContent (most up-to-date)
+                const publishTitle = languageContent[DEFAULT_BLOG_LANGUAGE]?.title
+                    || Object.values(languageContent).find(l => l.title)?.title
+                    || primaryTitle;
+
+                // Log activity: blog published (with all active languages)
+                await logBlogPublished(publishTitle, postId, user.uid, languageKeys);
             }
         } catch (err) {
             console.error('Save error:', err);
@@ -676,6 +684,23 @@ const AdminBlogEditorPage = () => {
 
                                     {/* Cover Image */}
                                     <Typography variant="h6">{t('admin:blog.coverImage')}</Typography>
+
+                                    {/* Upload / Replace / Delete cover image */}
+                                    <CoverImageUploader
+                                        postId={postId}
+                                        lang={lang}
+                                        currentUrl={languageContent[lang]?.coverImage?.url || ''}
+                                        currentAlt={languageContent[lang]?.coverImage?.alt || ''}
+                                        onImageChange={(coverImage) =>
+                                            updateLanguageField(lang, 'coverImage', coverImage)
+                                        }
+                                        disabled={saving}
+                                    />
+
+                                    {/* Manual URL fields (kept for GPT JSON uploads / advanced use) */}
+                                    <Typography variant="caption" color="text.secondary">
+                                        {t('admin:blog.coverImageUploader.orEnterUrl')}
+                                    </Typography>
                                     <TextField
                                         fullWidth
                                         label={t('admin:blog.fields.coverImageUrl')}
@@ -685,6 +710,7 @@ const AdminBlogEditorPage = () => {
                                             url: e.target.value,
                                         })}
                                         placeholder="https://..."
+                                        size="small"
                                     />
                                     <TextField
                                         fullWidth
@@ -694,6 +720,7 @@ const AdminBlogEditorPage = () => {
                                             ...languageContent[lang]?.coverImage,
                                             alt: e.target.value,
                                         })}
+                                        size="small"
                                     />
                                 </Stack>
                             </TabPanel>

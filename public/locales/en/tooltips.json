@@ -13,6 +13,7 @@
   "admin": {
     "syncWeek": "Sync week (NFS)",
     "syncActuals": "Sync today's actuals (JBlanked)",
-    "syncForexFactory": "Backfill Forex Factory since 01/01/26"
+    "syncForexFactory": "Backfill Forex Factory since 01/01/26",
+    "backfillInsightKeys": "Backfill insightKeys for all documents"
   }
 }

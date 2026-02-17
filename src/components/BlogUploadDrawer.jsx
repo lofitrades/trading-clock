@@ -6,6 +6,12 @@
  * then creates post in Firestore via blogService.
  *
  * Changelog:
+ * v1.7.0 - 2026-02-10 - CRITICAL PROD FIX: Fixed "Cannot access O before initialization" TDZ error.
+ *                       Root cause: handleUploadClick referenced handleUpload in its dependency array
+ *                       but handleUpload was declared AFTER it. In production, Rollup/esbuild merges
+ *                       adjacent const declarations into a single expression, hitting the TDZ.
+ *                       Fix: Moved handleUpload declaration before handleUploadClick.
+ * v1.6.0 - 2026-02-10 - BEP ROUTING FIX: Preview navigation now uses prefix-free SPA route (/blog/:slug?preview=true) to avoid /es or /fr client-side 404. Language is preserved by choosing the current-language slug.
  * v1.5.0 - 2026-02-05 - BEP: Added "Preview Post" button in success dialog with language-aware URLs (?preview=true)
  * v1.4.0 - 2026-02-05 - BEP: Enhanced activity logging for published posts (logBlogPublished)
  * v1.3.0 - 2026-02-05 - Added activity logging for blog uploads
@@ -15,22 +21,6 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-
-// Default blog thumbnails for posts without cover image (randomly alternated)
-const DEFAULT_BLOG_THUMBNAILS = [
-    '/blog/Blog_Default_Thumbnail_1.png',
-    '/blog/Blog_Default_Thumbnail_2.png',
-    '/blog/Blog_Default_Thumbnail_3.png',
-];
-
-/**
- * Get a random default thumbnail URL
- * @returns {string} Random default thumbnail URL
- */
-const getRandomDefaultThumbnail = () => {
-    const randomIndex = Math.floor(Math.random() * DEFAULT_BLOG_THUMBNAILS.length);
-    return DEFAULT_BLOG_THUMBNAILS[randomIndex];
-};
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
@@ -76,6 +66,22 @@ import {
     BLOG_LIMITS,
     BLOG_LANGUAGES,
 } from '../types/blogTypes';
+
+// Default blog thumbnails for posts without cover image (randomly alternated)
+const DEFAULT_BLOG_THUMBNAILS = [
+    '/blog/Blog_Default_Thumbnail_1.png',
+    '/blog/Blog_Default_Thumbnail_2.png',
+    '/blog/Blog_Default_Thumbnail_3.png',
+];
+
+/**
+ * Get a random default thumbnail URL
+ * @returns {string} Random default thumbnail URL
+ */
+const getRandomDefaultThumbnail = () => {
+    const randomIndex = Math.floor(Math.random() * DEFAULT_BLOG_THUMBNAILS.length);
+    return DEFAULT_BLOG_THUMBNAILS[randomIndex];
+};
 
 const DRAWER_WIDTH = 500;
 
@@ -359,30 +365,8 @@ const BlogUploadDrawer = ({ open, onClose }) => {
         setUploadError('');
     }, [t]);
 
-    // Check if upload can proceed (may need image confirmation)
-    const handleUploadClick = useCallback(() => {
-        if (!jsonData || !validation?.valid) return;
-
-        // Check if we have a valid image (either uploaded or valid URL in JSON)
-        const { hasValidImage, hasPlaceholder } = checkCoverImages(jsonData);
-
-        // If user uploaded an image, proceed directly
-        if (imageFile) {
-            handleUpload(false);
-            return;
-        }
-
-        // If JSON has valid image URLs, proceed directly
-        if (hasValidImage && !hasPlaceholder) {
-            handleUpload(false);
-            return;
-        }
-
-        // Otherwise, show confirmation dialog
-        setNoImageConfirmDialog(true);
-    }, [jsonData, validation, imageFile]);
-
     // Upload to Firestore
+    // NOTE: Must be declared BEFORE handleUploadClick to avoid TDZ in production bundle
     const handleUpload = useCallback(async (useDefaultImage = false) => {
         if (!jsonData || !validation?.valid) return;
 
@@ -463,7 +447,30 @@ const BlogUploadDrawer = ({ open, onClose }) => {
         } finally {
             setUploading(false);
         }
-    }, [jsonData, validation, imageFile, user, t]);
+    }, [jsonData, validation, imageFile, user, t, i18n.language]);
+
+    // Check if upload can proceed (may need image confirmation)
+    const handleUploadClick = useCallback(() => {
+        if (!jsonData || !validation?.valid) return;
+
+        // Check if we have a valid image (either uploaded or valid URL in JSON)
+        const { hasValidImage, hasPlaceholder } = checkCoverImages(jsonData);
+
+        // If user uploaded an image, proceed directly
+        if (imageFile) {
+            handleUpload(false);
+            return;
+        }
+
+        // If JSON has valid image URLs, proceed directly
+        if (hasValidImage && !hasPlaceholder) {
+            handleUpload(false);
+            return;
+        }
+
+        // Otherwise, show confirmation dialog
+        setNoImageConfirmDialog(true);
+    }, [jsonData, validation, imageFile, handleUpload]);
 
     // Handle success dialog actions
     const handleSuccessClose = useCallback(() => {

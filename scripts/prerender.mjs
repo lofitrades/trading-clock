@@ -7,7 +7,7 @@
  * 
  * Changelog:
  * v1.8.0 - 2026-02-04 - BEP SEO CRITICAL: Fixed URL strategy mismatch. All language URLs now use subpath structure (/es/, /fr/) instead of query params (?lang=es) for canonical tags, hreflang tags, and structured data. Eliminates duplicate URLs (e.g., /es/clock vs /clock?lang=es), prevents conflicting canonicals, and improves Google indexing. Matches Firebase hosting rewrites and sitemap.xml structure.
- * v1.7.0 - 2026-02-03 - BEP SEO: Updated EN page metadata to match new hero messaging ("Trading Clock", benefit-driven descriptions, "never trade blind").
+ * v1.7.0 - 2026-02-03 - BEP SEO: Updated EN page metadata to match new hero messaging ("Market Clock", benefit-driven descriptions, "never trade blind").
  * v1.6.0 - 2026-02-02 - BEP SEO FIX: Added BreadcrumbList and WebPage structured data injection for event pages.
  *                       Addresses "Discovered - currently not indexed" GSC status by providing site hierarchy signals.
  *                       Event pages now have 3-level breadcrumbs: Home → Economic Calendar → [Event Name].
@@ -68,13 +68,13 @@ function getLocalizedEventContent(event, lang = 'en') {
  */
 const pages = {
   '/': {
-    title: 'Time 2 Trade | Trading Clock + Forex Factory Economic Calendar (NY Time)',
+    title: 'Time 2 Trade | Market Clock + Forex Factory Economic Calendar (NY Time)',
     description: 'See every trading session and market-moving event at a glance. A visual 24-hour clock displays New York, London, and Asia sessions with real-time countdowns—plus a Forex Factory-powered calendar filtered by impact and currency.',
     path: 'index.html',
   },
   '/clock': {
-    title: 'Trading Clock | Live NY, London, Asia Sessions with Countdowns',
-    description: 'Visual 24-hour trading clock for futures and forex day traders. See New York, London, and Asia sessions in real-time with countdowns to key transitions—never miss a session open again.',
+    title: 'Market Clock | Live NY, London, Asia Sessions with Countdowns',
+    description: 'Visual 24-hour market clock for futures and forex day traders. See New York, London, and Asia sessions in real-time with countdowns to key transitions—never miss a session open again.',
     path: 'clock/index.html',
   },
   '/calendar': {
@@ -83,8 +83,8 @@ const pages = {
     path: 'calendar/index.html',
   },
   '/about': {
-    title: 'About Time 2 Trade | Trading Clock for Futures & Forex',
-    description: 'About Time 2 Trade: a visual 24-hour trading clock displaying New York, London, and Asia sessions with real-time countdowns—plus a Forex Factory-powered economic calendar filtered by impact and currency.',
+    title: 'About Time 2 Trade | Market Clock for Futures & Forex',
+    description: 'About Time 2 Trade: a visual 24-hour market clock displaying New York, London, and Asia sessions with real-time countdowns—plus a Forex Factory-powered economic calendar filtered by impact and currency.',
     path: 'about/index.html',
   },
   '/privacy': {
@@ -111,8 +111,8 @@ const pages = {
 const noscriptContent = {
   '/': null, // Use default landing page content from index.html
   '/clock': `
-        <main class="t2t-noscript" aria-label="Trading Clock">
-          <h1>Trading Clock | Live Market Sessions for Forex & Futures</h1>
+        <main class="t2t-noscript" aria-label="Market Clock">
+          <h1>Market Clock | Live Market Sessions for Forex & Futures</h1>
           <p>
             Track global trading sessions in real-time with our free <strong>trading session clock</strong>.
             See when New York, London, Tokyo, and Sydney markets are open with visual overlaps and countdowns.
@@ -127,13 +127,13 @@ const noscriptContent = {
             <li><strong>Countdown timers:</strong> Know exactly when sessions open and close</li>
           </ul>
 
-          <h2>Why Use a Trading Clock?</h2>
+          <h2>Why Use a Market Clock?</h2>
           <p>
             Different trading sessions have different characteristics. The London-New York overlap often sees
             the highest volume and volatility. Our clock helps you time your trades with session awareness.
           </p>
 
-          <a class="cta primary" href="/clock">Open Trading Clock</a>
+          <a class="cta primary" href="/clock">Open Market Clock</a>
           <a class="cta secondary" href="/calendar">View Economic Calendar</a>
 
           <p class="note">
@@ -142,7 +142,7 @@ const noscriptContent = {
         </main>`,
   '/calendar': `
         <main class="t2t-noscript" aria-label="Economic Calendar">
-          <h1>Free Economic Calendar | Forex Factory Data + Trading Clock</h1>
+          <h1>Free Economic Calendar | Forex Factory Data + Market Clock</h1>
           <p>
             Access a comprehensive <strong>economic events calendar</strong> powered by Forex Factory data.
             Filter by impact level, currency, and timeframe to find the events that matter to your trading.
@@ -165,7 +165,7 @@ const noscriptContent = {
           </p>
 
           <a class="cta primary" href="/calendar">Open Economic Calendar</a>
-          <a class="cta secondary" href="/clock">View Trading Clock</a>
+          <a class="cta secondary" href="/clock">View Market Clock</a>
 
           <p class="note">
             JavaScript is required for the full interactive experience. Enable JavaScript and refresh.
@@ -173,7 +173,7 @@ const noscriptContent = {
         </main>`,
   '/about': `
         <main class="t2t-noscript" aria-label="About Time 2 Trade">
-          <h1>About Time 2 Trade | Trading Clock for Futures & Forex</h1>
+          <h1>About Time 2 Trade | Market Clock for Futures & Forex</h1>
           <p>
             <strong>Time 2 Trade</strong> is a free, lightweight trading tool built for futures and forex day traders.
             We combine a visual session clock with an economic events calendar — everything you need to know
@@ -188,7 +188,7 @@ const noscriptContent = {
 
           <h2>What We Offer</h2>
           <ul>
-            <li><strong>Trading Clock:</strong> Visual display of global market sessions and overlaps</li>
+            <li><strong>Market Clock:</strong> Visual display of global market sessions and overlaps</li>
             <li><strong>Economic Calendar:</strong> Forex Factory-powered event data with filters</li>
             <li><strong>Custom Events:</strong> Add your own trading reminders and routines</li>
             <li><strong>Notifications:</strong> Get alerted before important events</li>
@@ -201,7 +201,7 @@ const noscriptContent = {
             helping you make better timing decisions in your own trading strategy.
           </p>
 
-          <a class="cta primary" href="/clock">Try the Trading Clock</a>
+          <a class="cta primary" href="/clock">Try the Market Clock</a>
           <a class="cta secondary" href="/calendar">View Economic Calendar</a>
 
           <p class="note">
@@ -216,7 +216,7 @@ const noscriptContent = {
           </p>
           <p>
             This Privacy Policy explains how Time 2 Trade ("we", "us", "our") collects, uses, and protects
-            your personal information when you use our trading clock and economic calendar application.
+            your personal information when you use our market clock and economic calendar application.
           </p>
 
           <h2>Information We Collect</h2>
@@ -230,7 +230,7 @@ const noscriptContent = {
 
           <h2>How We Use Your Information</h2>
           <ul>
-            <li>To provide and improve our trading clock and calendar services</li>
+            <li>To provide and improve our market clock and calendar services</li>
             <li>To sync your settings across devices when logged in</li>
             <li>To analyze usage patterns and optimize performance</li>
             <li>To display relevant advertisements through Google AdSense</li>
@@ -258,7 +258,7 @@ const noscriptContent = {
             or reach out on X (Twitter).
           </p>
 
-          <a class="cta primary" href="/clock">Return to Trading Clock</a>
+          <a class="cta primary" href="/clock">Return to Market Clock</a>
           <a class="cta secondary" href="/contact">Contact Us</a>
         </main>`,
   '/terms': `
@@ -269,7 +269,7 @@ const noscriptContent = {
           </p>
           <p>
             By accessing and using Time 2 Trade, you agree to these Terms & Conditions. Please read them
-            carefully before using our trading clock and economic calendar application.
+            carefully before using our market clock and economic calendar application.
           </p>
 
           <h2>Service Description</h2>
@@ -312,7 +312,7 @@ const noscriptContent = {
             constitutes acceptance of the new terms.
           </p>
 
-          <a class="cta primary" href="/clock">Return to Trading Clock</a>
+          <a class="cta primary" href="/clock">Return to Market Clock</a>
           <a class="cta secondary" href="/contact">Contact Us</a>
         </main>`,
   '/contact': `
@@ -341,7 +341,7 @@ const noscriptContent = {
             We typically respond within 24-48 hours. For urgent issues, X (Twitter) DM is often fastest.
           </p>
 
-          <a class="cta primary" href="/clock">Return to Trading Clock</a>
+          <a class="cta primary" href="/clock">Return to Market Clock</a>
           <a class="cta secondary" href="/calendar">View Economic Calendar</a>
         </main>`,
 };
@@ -634,7 +634,7 @@ async function generateEventHTML(route, meta, lang, event, localizedContent) {
           </p>
 
           <a class="cta primary" href="/calendar">View Economic Calendar</a>
-          <a class="cta secondary" href="/clock">Open Trading Clock</a>
+          <a class="cta secondary" href="/clock">Open Market Clock</a>
 
           <p class="note">
             JavaScript is required for the full interactive experience. Enable JavaScript and refresh.

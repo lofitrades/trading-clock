@@ -12,6 +12,16 @@
  * - Add reminder button visible on all pages for both auth and non-auth users
  * 
  * Changelog:
+ * v1.0.56 - 2026-02-14 - BEP VISIBILITY PROP: Added onBottomNavVisibilityChange prop, threaded
+ *                        through to DashboardAppBar. Enables parent pages (e.g., Calendar2Page)
+ *                        to react to mobile bottom nav show/hide for synced FAB animations.
+ * v1.0.55 - 2026-02-14 - BEP BOTTOM BREATHING: Added pb (xs:2, sm:2.5) to the scroll container
+ *                        Box so the last Paper has visual breathing room from the viewport bottom.
+ *                        Without this, content sits flush against the bottom edge — not BEP.
+ * v1.0.54 - 2026-02-14 - BEP FULL VIEWPORT: Removed --t2t-bottom-nav-height subtraction from xs/sm
+ *                        maxHeight. Bottom AppBar now auto-hides on scroll (AppBar v1.5.11+), so
+ *                        content fills the entire visual viewport. The nav overlays on top when
+ *                        visible and slides away on scroll-down — no reserved space needed.
  * v1.0.53 - 2026-02-08 - BEP CRITICAL FIX: Fixed content overflowing behind bottom AppBar on mobile browsers (non-PWA). Root cause: maxHeight on main content used 100vh which on mobile Chrome/Safari includes the browser address bar and device navigation bar height — the visual viewport is shorter. Fix: Changed maxHeight from calc(100vh - ...) to calc(var(--t2t-vv-height, 100dvh) - ...) to use the visual viewport height set by clientEffects.js. This ensures the clock Paper and calendar content fit exactly within the visible screen on all mobile browsers. Fallback to 100dvh (dynamic viewport height) if the CSS variable is not set.
  * v1.0.52 - 2026-02-06 - BEP LAYOUT FIX: Changed main content justifyContent from 'center' to 'flex-start'. Content now anchors to top and scrolls naturally instead of vertically centering (which left dead space at bottom on xs/sm between MainLayout and bottom AppBar).
  * v1.0.51 - 2026-01-28 - BEP THEME-AWARE: Updated bgcolor from hardcoded '#F9F9F9' to 'theme.palette.background.default' for light/dark mode support. Light mode: #F9F9F9 (unchanged), Dark mode: #121212 (Material Design 3). Entire PublicLayout shell now respects user's light/dark theme preference with proper contrast and accessibility. Added useTheme hook import and call.
@@ -83,7 +93,7 @@ import { useAuth } from '../contexts/AuthContext';
 import useCustomEvents from '../hooks/useCustomEvents';
 import useCustomEventNotifications from '../hooks/useCustomEventNotifications';
 
-const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavOnMobile, notifications, unreadCount, onMarkRead, onMarkAllRead, onClearAll, mobileHeaderAction, onOpenAddReminder }) => {
+const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavOnMobile, notifications, unreadCount, onMarkRead, onMarkAllRead, onClearAll, mobileHeaderAction, onOpenAddReminder, onBottomNavVisibilityChange }) => {
     const theme = useTheme();
     const hasNavItems = useMemo(() => Array.isArray(navItems) && navItems.length > 0, [navItems]);
     const { user } = useAuth();
@@ -174,6 +184,7 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                                 onMarkAllRead={handleMarkAllRead}
                                 onClearAll={handleClearAll}
                                 notificationEvents={customEvents}
+                                onBottomNavVisibilityChange={onBottomNavVisibilityChange}
                             />
                         </Box>
                     </Box>
@@ -193,18 +204,15 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                         // BEP: Mobile header height is dynamic via CSS custom property set in MobileHeader
                         // Fallback to 48px if custom property unavailable
                         // Desktop: no top padding (AppBar mb handles gap)
-                        // Constrain height so inner content can scroll without hiding behind fixed bottom nav
-                        // NOTE: Only subtract bottom nav. The header clearance is already handled by pt above,
-                        // so subtracting it from maxHeight would double-count it and create a gap.
+                        // BEP v1.0.54: Bottom nav auto-hides on scroll (v1.5.11+), so content
+                        // fills the full visual viewport. No need to subtract --t2t-bottom-nav-height.
+                        // The nav overlays on top (position:fixed) and slides away on scroll-down.
                         // CRITICAL FIX (v1.0.53): Use var(--t2t-vv-height, 100dvh) instead of 100vh.
                         // On mobile browsers (Chrome, Safari) 100vh includes the address bar and device
-                        // navigation bar height — the visual viewport is shorter. Using the visual viewport
-                        // CSS variable (set by clientEffects.js) ensures the content area fits exactly
-                        // within the visible screen, preventing the clock Paper from overflowing behind
-                        // the fixed bottom AppBar on non-PWA mobile browsers.
+                        // navigation bar height — the visual viewport is shorter.
                         maxHeight: {
-                            xs: 'calc(var(--t2t-vv-height, 100dvh) - var(--t2t-bottom-nav-height, 64px))',
-                            sm: 'calc(var(--t2t-vv-height, 100dvh) - var(--t2t-bottom-nav-height, 64px))',
+                            xs: 'var(--t2t-vv-height, 100dvh)',
+                            sm: 'var(--t2t-vv-height, 100dvh)',
                             md: '100%', // md+ has sticky top AppBar, flex handles layout
                         },
                     }}
@@ -215,6 +223,7 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                     MainLayout handles all internal padding/gap via its own Paper and sx props.
                     This prevents double flex/width conflicts and works consistently on all breakpoints. */}
                     <Box
+                        data-t2t-scroll-container
                         sx={{
                             width: '100%',
                             maxWidth: 1560,
@@ -224,6 +233,10 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                             flex: 1,
                             overflowY: 'auto',
                             overflowX: 'hidden',
+                            /* BEP: Bottom padding on xs/sm so the last Paper/content
+                               has breathing room from the viewport edge. Without this,
+                               the Paper border sits flush against the bottom — not BEP. */
+                            pb: { xs: 2, sm: 2.5, md: 0 },
                         }}
                     >
                         {children}
@@ -263,6 +276,7 @@ PublicLayout.propTypes = {
     onClearAll: PropTypes.func,
     mobileHeaderAction: PropTypes.node,
     onOpenAddReminder: PropTypes.func,
+    onBottomNavVisibilityChange: PropTypes.func,
 };
 
 PublicLayout.defaultProps = {
@@ -275,6 +289,7 @@ PublicLayout.defaultProps = {
     onClearAll: null,
     mobileHeaderAction: null,
     onOpenAddReminder: null,
+    onBottomNavVisibilityChange: null,
 };
 
 export default PublicLayout;

@@ -263,7 +263,7 @@ Extract 1,860+ hardcoded strings and translate to Spanish/French.
   - (Optional) German translator
 
 - [ ] Provide translation brief:
-  - Context: Time 2 Trade trading clock + calendar app
+  - Context: Time 2 Trade market clock + calendar app
   - Audience: Futures/forex day traders
   - Style: Professional, concise, technical accuracy
   - Deadline: [+7 days]

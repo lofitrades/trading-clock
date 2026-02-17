@@ -6,6 +6,8 @@
  * and Firestore helpers to unify NFS weekly schedules with JBlanked actuals.
  *
  * Changelog:
+ * v1.7.0 - 2026-02-10 - BEP P0/P3: Removed console.info from reinstatement block; callers handle logging via logEventReinstatement().
+ * v1.6.0 - 2026-02-09 - BEP FIX: Removed undefined field defaults (createdBy, winnerSource, rescheduledFrom) from factory. Undefined is not a valid Firestore value; optional fields are now omitted and added via ...partial spread when provided.
  * v1.5.0 - 2026-02-05 - BEP: Reinstate cancelled events when they reappear in NFS feed (handles reschedule → un-cancel).
  * v1.4.0 - 2026-02-05 - BEP: Added detectStaleEvents() to mark cancelled future events not seen in NFS feed for 3+ days.
  * v1.3.0 - 2026-02-05 - BEP: Event reschedule detection with ±15 day identity matching, originalDatetimeUtc/rescheduledFrom/lastSeenInFeed fields, findByIdentityWindow() function.
@@ -131,14 +133,13 @@ export function createEmptyCanonicalEvent(
     actual: null,
     status: "scheduled",
     sources: {},
-    createdBy: undefined,
-    winnerSource: undefined,
+    // BEP: createdBy, winnerSource, rescheduledFrom intentionally omitted (optional fields).
+    // Setting them to `undefined` causes Firestore write errors. The ...partial spread adds them when provided.
     qualityScore: 0,
     createdAt: now,
     updatedAt: now,
     // Reschedule detection fields - set originalDatetimeUtc on creation
     originalDatetimeUtc: partial.datetimeUtc ?? now,
-    rescheduledFrom: undefined,
     lastSeenInFeed: now,
     ...partial,
   };
@@ -307,9 +308,9 @@ export function mergeProviderEvent(
 
   // If event was previously cancelled but now reappears in feed, reinstate it
   // This handles the case where an event was marked stale but later rescheduled
+  // BEP: Callers (NFS, GPT, JBlanked services) detect reinstatement and log via logEventReinstatement()
   if (merged.status === "cancelled" && incoming.status === "scheduled") {
     merged.status = "scheduled";
-    console.info(`📢 EVENT REINSTATED from cancelled: ${incoming.originalName} (${incoming.currency})`);
   }
 
   // NormalizedName reconciliation (for backwards compatibility with old events)

@@ -15,6 +15,7 @@
  * AboutPage.jsx and SettingsSidebar2.jsx use useTranslation('about') to look up keys.
  * 
  * Changelog:
+ * v2.0.1 - 2026-02-10 - Rename Market Clock branding in About page SEO metadata.
  * v2.0.0 - 2026-01-27 - CRITICAL BEP: Full i18n refactor. Removed all hardcoded strings.
  *                       Export key references only. Components use t() to translate.
  *                       Matches LanguageSwitcher.jsx best practice pattern.
@@ -229,7 +230,7 @@ export const aboutContent = {
  * Language-specific variants (es, fr) still serve this same English metadata.
  */
 export const aboutMeta = {
-  title: 'About Time 2 Trade | Trading Clock + Forex Factory Calendar (NY Time)',
+  title: 'About Time 2 Trade | Market Clock + Forex Factory Calendar (NY Time)',
   description:
     'Why Time 2 Trade exists: a NY-time-first session clock with countdowns plus a Forex Factory-powered economic calendar, custom events, and notifications for intraday futures and forex traders.',
   keywords:

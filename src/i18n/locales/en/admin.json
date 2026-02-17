@@ -350,6 +350,17 @@
     "slugTaken": "This slug is already taken",
     "seoSettings": "SEO Settings",
     "coverImage": "Cover Image",
+    "coverImageUploader": {
+      "dropZone": "Drag & drop an image here, or click to browse",
+      "browse": "Browse Files",
+      "acceptedFormats": "JPEG, PNG, WebP, GIF, SVG — Max {{maxSize}} MB",
+      "uploading": "Uploading… {{progress}}%",
+      "replace": "Replace image",
+      "delete": "Remove image",
+      "previewAlt": "Cover image preview",
+      "saveFirstToUpload": "Save the post first to upload a cover image to storage.",
+      "orEnterUrl": "Or enter an image URL manually:"
+    },
     "readingTime": "Est. reading time",
     "viewPublished": "View published post",
     "previewDraft": "Preview draft",
@@ -544,6 +555,27 @@
       "useDefaultImage": "Use Default Thumbnail"
     }
   },
+  "nav": {
+    "title": "T2T Admin",
+    "adminNavigation": "Admin navigation",
+    "openMenu": "Open admin menu",
+    "dashboard": "Dashboard",
+    "blog": "Blog",
+    "blogPosts": "Posts",
+    "blogNewPost": "New Post",
+    "blogEditPost": "Edit Post",
+    "blogAuthors": "Authors",
+    "blogGpt": "Blog GPT",
+    "magicPost": "Magic Post",
+    "events": "Events",
+    "manageEvents": "Manage Events",
+    "descriptions": "Descriptions",
+    "tools": "Tools",
+    "uploadDesc": "Upload Descriptions",
+    "exportEvents": "Export Events",
+    "gptUploader": "GPT Uploader",
+    "backToSite": "Back to Site"
+  },
   "dashboard": {
     "title": "Admin Dashboard",
     "subtitle": "Overview and quick actions for Time 2 Trade",
@@ -557,8 +589,12 @@
     "retry": "Retry",
     "quickActions": {
       "title": "Quick Actions",
+      "blogGroup": "Blog",
+      "eventsGroup": "Events",
+      "toolsGroup": "Tools",
       "blogCms": "Blog CMS",
       "blogCmsDesc": "Manage blog posts and drafts",
+      "blogNewPost": "New Post",
       "blogGpt": "Blog GPT",
       "blogGptDesc": "Upload GPT blog JSON",
       "openMagicPost": "Magic Post",

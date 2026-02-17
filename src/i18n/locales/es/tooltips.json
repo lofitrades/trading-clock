@@ -13,6 +13,7 @@
   "admin": {
     "syncWeek": "Sincronizar semana NFS",
     "syncActuals": "Sincronizar los datos reales de hoy (JBlanked)",
-    "syncForexFactory": "Rellenar Forex Factory desde el 01/01/26"
+    "syncForexFactory": "Completar Forex Factory desde 01/01/26",
+    "backfillInsightKeys": "Completar insightKeys para todos los documentos"
   }
 }

@@ -5,6 +5,19 @@
  * Handles create, read, update, delete, and publish/unpublish workflows.
  * 
  * Changelog:
+ * v2.5.0 - 2026-02-11 - BEP CRITICAL FIX: Restructured updateBlogPost transaction to perform
+ *                       ALL reads (post doc + all slug docs) before ANY writes (release/claim/update).
+ *                       Previous code interleaved reads and writes inside the slug-change loop:
+ *                       for each language it did transaction.get → releaseSlug → claimSlug, so the
+ *                       second language's get() came after the first language's writes, violating
+ *                       Firestore's "all reads before all writes" transaction rule. Now: Phase 1
+ *                       collects all reads into arrays, Phase 2 performs all writes from those arrays.
+ * v2.4.0 - 2026-02-10 - CRITICAL PROD FIX: Firestore transaction error "all reads before all writes".
+ *                       Removed incorrect async/await from claimSlug() and releaseSlug() functions.
+ *                       These are transaction-safe helpers that don't perform async operations -
+ *                       they synchronously manipulate transaction objects. The await keywords were
+ *                       causing Firestore to think async work was happening between reads and writes.
+ * v2.3.0 - 2026-02-09 - Phase 2 Insights: Compute insightKeys on create/update/publish/duplicate
  * v2.2.0 - 2026-02-07 - BEP ENGAGEMENT RELATED POSTS: getRelatedPosts() now accepts options.readPostIds to deprioritize already-read posts. Added engagement bonus scoring (viewCount + likeCount). Unread candidates are prioritized; read posts fill remaining slots only when needed.
  * v2.1.0 - 2026-02-07 - BEP FIX: Compute searchTokens in createBlogPost() for direct-published posts
  * v2.0.0 - 2026-02-06 - Phase 6: Added computeSearchTokens() for full-text search indexing
@@ -34,6 +47,7 @@ import {
   DEFAULT_LANGUAGE_CONTENT,
   estimateReadingTime,
 } from '../types/blogTypes';
+import { computeBlogInsightKeys } from '../utils/insightKeysUtils';
 
 // Collection references
 const BLOG_POSTS_COLLECTION = 'blogPosts';
@@ -111,9 +125,8 @@ export const isSlugAvailable = async (lang, slug, excludePostId = null) => {
  * @param {string} postId - Post ID
  * @param {string} lang - Language code
  * @param {string} slug - URL slug
- * @returns {Promise<void>}
  */
-const claimSlug = async (transaction, postId, lang, slug) => {
+const claimSlug = (transaction, postId, lang, slug) => {
   const slugKey = getSlugKey(lang, slug);
   const slugRef = doc(db, BLOG_SLUG_INDEX_COLLECTION, slugKey);
   transaction.set(slugRef, { postId, lang, slug, claimedAt: serverTimestamp() });
@@ -124,7 +137,7 @@ const claimSlug = async (transaction, postId, lang, slug) => {
  * @param {string} lang - Language code
  * @param {string} slug - URL slug
  */
-const releaseSlug = async (transaction, lang, slug) => {
+const releaseSlug = (transaction, lang, slug) => {
   const slugKey = getSlugKey(lang, slug);
   const slugRef = doc(db, BLOG_SLUG_INDEX_COLLECTION, slugKey);
   transaction.delete(slugRef);
@@ -164,6 +177,13 @@ export const createBlogPost = async (postData, author) => {
       }
     }
   }
+
+  // Phase 2 Insights: Compute insightKeys from eventTags + currencyTags
+  newPost.insightKeys = computeBlogInsightKeys({
+    id: postId,
+    eventTags: newPost.eventTags,
+    currencyTags: newPost.currencyTags,
+  });
 
   // Validate and claim slugs for each language in a transaction
   // IMPORTANT: Firestore transactions require ALL reads before ANY writes
@@ -234,6 +254,12 @@ export const updateBlogPost = async (postId, updates) => {
   const postRef = doc(db, BLOG_POSTS_COLLECTION, postId);
   
   await runTransaction(db, async (transaction) => {
+    // ================================================================
+    // PHASE 1: ALL READS — Firestore requires every transaction.get()
+    // to complete before the first write operation.
+    // ================================================================
+
+    // 1a. Read the current post
     const postDoc = await transaction.get(postRef);
     if (!postDoc.exists()) {
       throw new Error('Post not found');
@@ -257,43 +283,63 @@ export const updateBlogPost = async (postId, updates) => {
       }
     }
     
-    // Handle slug changes for each language
+    // 1b. Read ALL slug docs that need checking (new/changed slugs)
+    // Collect read results for Phase 2 decision-making
+    const slugChanges = []; // { lang, currentSlug, newSlug, slugDoc }
+    
     for (const [lang, newContent] of Object.entries(newLanguages)) {
       const currentContent = currentLanguages[lang] || {};
       const currentSlug = currentContent.slug;
       const newSlug = newContent.slug;
       
-      // If slug changed, release old and claim new
       if (newSlug && newSlug !== currentSlug) {
-        // Check if new slug is available
         const slugKey = getSlugKey(lang, newSlug);
-        const slugDoc = await transaction.get(doc(db, BLOG_SLUG_INDEX_COLLECTION, slugKey));
+        const slugRef = doc(db, BLOG_SLUG_INDEX_COLLECTION, slugKey);
+        const slugDoc = await transaction.get(slugRef);
         
-        if (slugDoc.exists() && slugDoc.data().postId !== postId) {
-          throw new Error(`Slug "${newSlug}" is already taken for language "${lang}"`);
-        }
-        
-        // Release old slug if it existed
-        if (currentSlug) {
-          await releaseSlug(transaction, lang, currentSlug);
-        }
-        
-        // Claim new slug
-        await claimSlug(transaction, postId, lang, newSlug);
+        slugChanges.push({ lang, currentSlug, newSlug, slugDoc });
       }
     }
     
-    // Handle removed languages (release their slugs)
+    // ================================================================
+    // PHASE 2: ALL WRITES — Now that every read is done, perform writes.
+    // ================================================================
+    
+    // 2a. Validate slug availability and apply slug changes
+    for (const { lang, currentSlug, newSlug, slugDoc } of slugChanges) {
+      if (slugDoc.exists() && slugDoc.data().postId !== postId) {
+        throw new Error(`Slug "${newSlug}" is already taken for language "${lang}"`);
+      }
+      
+      // Release old slug if it existed
+      if (currentSlug) {
+        releaseSlug(transaction, lang, currentSlug);
+      }
+      
+      // Claim new slug
+      claimSlug(transaction, postId, lang, newSlug);
+    }
+    
+    // 2b. Handle removed languages (release their slugs)
     for (const [lang, currentContent] of Object.entries(currentLanguages)) {
       if (!(lang in newLanguages) && currentContent.slug) {
-        await releaseSlug(transaction, lang, currentContent.slug);
+        releaseSlug(transaction, lang, currentContent.slug);
       }
     }
     
-    // Update the post
+    // 2c. Update the post
+    // Phase 2 Insights: Recompute insightKeys from merged data
+    const mergedPost = { ...currentData, ...updates, languages: newLanguages };
+    const insightKeys = computeBlogInsightKeys({
+      id: postId,
+      eventTags: mergedPost.eventTags,
+      currencyTags: mergedPost.currencyTags,
+    });
+
     transaction.update(postRef, {
       ...updates,
       languages: newLanguages,
+      insightKeys,
       updatedAt: serverTimestamp(),
     });
   });
@@ -318,7 +364,7 @@ export const deleteBlogPost = async (postId) => {
     // Release all slugs
     for (const [lang, content] of Object.entries(postData.languages || {})) {
       if (content.slug) {
-        await releaseSlug(transaction, lang, content.slug);
+        releaseSlug(transaction, lang, content.slug);
       }
     }
     
@@ -365,6 +411,12 @@ export const publishBlogPost = async (postId) => {
   const updates = {
     status: BLOG_POST_STATUS.PUBLISHED,
     languages: updatedLanguages,
+    // Phase 2 Insights: Compute insightKeys at publish time
+    insightKeys: computeBlogInsightKeys({
+      id: postId,
+      eventTags: postData.eventTags,
+      currencyTags: postData.currencyTags,
+    }),
     updatedAt: serverTimestamp(),
   };
   
@@ -845,12 +897,19 @@ export const duplicateBlogPost = async (postId, author) => {
   // Remove fields that shouldn't be copied
   delete newPost.viewCount;
 
+  // Phase 2 Insights: Compute insightKeys for the duplicated post
+  newPost.insightKeys = computeBlogInsightKeys({
+    id: newPostId,
+    eventTags: newPost.eventTags,
+    currencyTags: newPost.currencyTags,
+  });
+
   // Save the new post and claim slugs in a transaction
   await runTransaction(db, async (transaction) => {
     // Claim slugs for each language
     for (const [lang, content] of Object.entries(newLanguages)) {
       if (content.slug) {
-        await claimSlug(transaction, newPostId, lang, content.slug);
+        claimSlug(transaction, newPostId, lang, content.slug);
       }
     }
     

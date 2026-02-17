@@ -10,6 +10,40 @@
  * BEP: Mobile-first, responsive, compact layout.
  *
  * Changelog:
+ * v2.6.1 - 2026-02-11 - BUGFIX REVERT: Reverted height-first scaling approach (v2.6.0 mistake).
+ *                        User-visible flag sizing was incorrect with height 12/16. Root cause:
+ *                        flagcdn.com w40 endpoint needs width-based sizing for proper display.
+ *                        Fix: Restored width 18 (chips) and 24 (dropdown), height='auto'. This
+ *                        preserves original flag aspect ratios and displays consistently across
+ *                        all sizes. Flags now match Calendar2Page event table display.
+ * v2.7.0 - 2026-02-12 - BEP I18N SKELETON GUARD: Added i18n readiness detection via useTranslation
+ *                        ready flag. When translations not yet loaded, renders Skeleton rectangles
+ *                        matching each control's exact dimensions (favorites 40×40, date 140×40,
+ *                        currency/impact flex×40). Prevents translation key flash entirely.
+ *                        Skeleton layout preserves same flex direction, spacing, and wrapping.
+ * v2.6.1 - 2026-02-11 - BUGFIX REVERT: Reverted height-first scaling approach (v2.6.0 mistake).
+ * v2.6.0 - 2026-02-11 - BEP ASPECT RATIO PRESERVATION: Fixed flag aspect ratio distortion
+ *                        for non-3:2 flags (e.g., square Switzerland, different ratios). Root
+ *                        cause: Forced dimensions (18×12, 24×16) locked all flags to 3:2 ratio.
+ *                        Fix: Set width only, height='auto' — allows flags to scale proportionally
+ *                        and preserve original SVG/PNG aspect ratio from flagcdn API. All flags
+ *                        (rectangular, square, any ratio) now display with correct proportions.
+ *                        Removed objectFit:'cover' which was squashing flags to fit container.
+ * v2.5.0 - 2026-02-11 - BEP CURRENCY FLAG PROPORTIONS: Fixed currency chip flag distortion.
+ *                        Root cause: MUI Chip `avatar` prop forces content into a circular
+ *                        MuiChip-avatar container (24×24px), squashing the rectangular flag.
+ *                        Fix: (1) Switched from `avatar` to `icon` prop — icon slot renders
+ *                        content without circular clipping. (2) Applied explicit 3:2 dimensions
+ *                        via sx (chips: 18×12, dropdown: 24×16). (3) Tuned icon slot margins
+ *                        (ml:0.5 mr:-0.25) for tight visual alignment. (4) Upgraded CDN source
+ *                        from w20 to w40 for 2× retina sharpness. (5) Used px borderRadius('2px')
+ *                        for consistent rounding across sizes. Flags now match event table rows.
+ * v2.4.0 - 2026-02-11 - BEP TIMEZONE FIX: Replaced broken local calculateDateRange with shared
+ *                        import from dateUtils.js. Local copy had wrong argument order in thisMonth
+ *                        case (passing year into month position) and used .getDate() which returns
+ *                        system-local day instead of target-timezone day. All presets (today,
+ *                        tomorrow, thisWeek, nextWeek, thisMonth) now use the same single source
+ *                        of truth as useCalendarData. End-of-day precision improved from -1s to -1ms.
  * v2.3.0 - 2026-02-09 - BEP DEFAULT PRESET: Changed default datePreset fallback from 'today'
  *                        to 'thisWeek' for consistency with useCalendarData and to provide broader
  *                        market context. When user hasn't persisted a date preference, calendar
@@ -50,6 +84,7 @@ import {
     Select,
     MenuItem,
     Chip,
+    Skeleton,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -58,7 +93,7 @@ import ClearIcon from '@mui/icons-material/Clear';
 import { useSettingsSafe } from '../contexts/SettingsContext';
 import { getCurrencyFlag } from '../utils/currencyFlags';
 import { getEventCurrencies } from '../services/economicEventsService';
-import { getDatePartsInTimezone, getUtcDateForTimezone } from '../utils/dateUtils';
+import { calculateDateRange } from '../utils/dateUtils';
 
 // ============================================================================
 // CONSTANTS
@@ -90,43 +125,7 @@ const IMPACT_COLORS = {
     'Non-Economic': '#9e9e9e',
 };
 
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-/** Convert a date-preset key + timezone into { startDate, endDate } UTC range */
-const calculateDateRange = (preset, timezone) => {
-    const { year, month, day, dayOfWeek } = getDatePartsInTimezone(timezone);
-    const createDate = (y, m, d, endOfDay = false) => {
-        if (endOfDay) {
-            const nextDayStart = getUtcDateForTimezone(timezone, y, m, d + 1, { hour: 0, minute: 0, second: 0, millisecond: 0 });
-            return new Date(nextDayStart.getTime() - 1000);
-        }
-        return getUtcDateForTimezone(timezone, y, m, d, { endOfDay: false });
-    };
-    switch (preset) {
-        case 'today':
-            return { startDate: createDate(year, month, day), endDate: createDate(year, month, day, true) };
-        case 'tomorrow':
-            return { startDate: createDate(year, month, day + 1), endDate: createDate(year, month, day + 1, true) };
-        case 'thisWeek': {
-            const s = day - dayOfWeek;
-            return { startDate: createDate(year, month, s), endDate: createDate(year, month, s + 6, true) };
-        }
-        case 'nextWeek': {
-            const e = day + (6 - dayOfWeek);
-            const ns = e + 1;
-            return { startDate: createDate(year, month, ns), endDate: createDate(year, month, ns + 6, true) };
-        }
-        case 'thisMonth': {
-            const first = getUtcDateForTimezone(timezone, year, month === 12 ? year + 1 : year, month === 12 ? 1 : month + 1, 1);
-            const lastDay = new Date(first.getTime() - 86400000).getDate();
-            return { startDate: createDate(year, month, 1), endDate: createDate(year, month, lastDay, true) };
-        }
-        default:
-            return null;
-    }
-};
+// calculateDateRange imported from dateUtils.js (single source of truth)
 
 // ============================================================================
 // SUB-COMPONENTS
@@ -208,7 +207,7 @@ export default function ClockEventsFilters({
     disabled = false,
     ...stackProps
 }) {
-    const { t } = useTranslation(['filter', 'calendar', 'common']);
+    const { t, ready: isI18nReady } = useTranslation(['filter', 'calendar', 'common']);
     const theme = useTheme();
     const { eventFilters } = useSettingsSafe();
 
@@ -271,6 +270,27 @@ export default function ClockEventsFilters({
             onChange?.({ datePreset: preset, startDate: range.startDate, endDate: range.endDate });
         }
     };
+
+    // BEP v2.7.0: When translations aren't loaded yet, show skeleton placeholders
+    // matching each control's exact dimensions to prevent translation key flash.
+    // Rendered in the return block (not early return) to preserve hook call order.
+    if (!isI18nReady) {
+        return (
+            <Stack
+                direction="row"
+                spacing={{ xs: 1, sm: 1.5 }}
+                sx={{ mb: 2.5, overflowX: 'auto', overflowY: 'hidden' }}
+                flexWrap="wrap"
+                useFlexGap
+                {...stackProps}
+            >
+                <Skeleton variant="rounded" width={40} height={40} />
+                {showDateFilter && <Skeleton variant="rounded" width={140} height={40} />}
+                <Skeleton variant="rounded" sx={{ minWidth: { xs: 110, sm: 160 }, flex: 1, height: 40 }} />
+                <Skeleton variant="rounded" sx={{ minWidth: { xs: 110, sm: 160 }, flex: 1, height: 40 }} />
+            </Stack>
+        );
+    }
 
     return (
         <Stack
@@ -350,19 +370,28 @@ export default function ClockEventsFilters({
                                     key={code}
                                     label={code}
                                     size="small"
-                                    avatar={
+                                    icon={
                                         flag ? (
                                             <Box
                                                 component="img"
                                                 loading="lazy"
-                                                width="16"
-                                                height="12"
-                                                src={`https://flagcdn.com/w20/${flag}.png`}
+                                                src={`https://flagcdn.com/w40/${flag}.png`}
                                                 alt={code}
-                                                sx={{ borderRadius: 0.25 }}
+                                                sx={{
+                                                    width: 18,
+                                                    height: 'auto',
+                                                    borderRadius: '2px',
+                                                    flexShrink: 0,
+                                                }}
                                             />
                                         ) : undefined
                                     }
+                                    sx={{
+                                        '& .MuiChip-icon': {
+                                            ml: 0.5,
+                                            mr: -0.25,
+                                        },
+                                    }}
                                 />
                             );
                         })}
@@ -380,11 +409,15 @@ export default function ClockEventsFilters({
                                 <Box
                                     component="img"
                                     loading="lazy"
-                                    width="20"
-                                    height="15"
-                                    src={`https://flagcdn.com/w20/${flag}.png`}
+                                    src={`https://flagcdn.com/w40/${flag}.png`}
                                     alt={code}
-                                    sx={{ mr: 1, borderRadius: 0.25 }}
+                                    sx={{
+                                        width: 24,
+                                        height: 'auto',
+                                        mr: 1,
+                                        borderRadius: '2px',
+                                        flexShrink: 0,
+                                    }}
                                 />
                             )}
                             {code}

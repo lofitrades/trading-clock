@@ -1,0 +1,53 @@
+{
+  "tabs": {
+    "sessionOverview": "Aperçu",
+    "upcomingEvents": {
+      "label": "Événements",
+      "title": "Événements à Venir",
+      "description": "Bientôt disponible : chronologie des événements économiques. Visualisez et suivez les prochains événements à fort impact directement depuis la barre latérale de votre horloge.",
+      "noEvents": "Aucun événement prévu aujourd'hui.",
+      "todayCount": "{{count}} événements aujourd'hui"
+    }
+  },
+  "sidebar": {
+    "title": "Aperçu des Sessions",
+    "description": "Votre horloge de marché offre une vue en temps réel des sessions de trading actives, des événements économiques à venir et des chevauchements de sessions — le tout en un seul endroit.",
+    "comingSoon": "Bientôt Disponible",
+    "features": {
+      "feature1": "Analyses en direct des sessions",
+      "feature2": "Chronologie des événements à venir",
+      "feature3": "Notifications de chevauchement de sessions"
+    }
+  },
+  "guide": {
+    "heading": "Comment Ça Marche",
+    "dualCircle": {
+      "title": "Design Double Cercle",
+      "body": "L'anneau intérieur affiche les sessions AM (pré-marché, ouverture de Londres), l'anneau extérieur les sessions PM (après-midi NY, Asie). Les arcs superposés révèlent quand les marchés tradent simultanément."
+    },
+    "sessionArcs": {
+      "title": "Arcs de Session",
+      "body": "Chaque arc coloré représente une session de trading. La session active se remplit avec un indicateur de progression pour voir d'un coup d'œil où en est la session."
+    },
+    "eventMarkers": {
+      "title": "Marqueurs d'Événements",
+      "body": "De petits points sur le cadran marquent les prochaines publications économiques. Les événements à fort impact apparaissent plus prononcés pour ne jamais manquer un point de données clé."
+    },
+    "sessionLabel": {
+      "title": "Étiquette de Session",
+      "body": "La pastille ci-dessus affiche la session active et un compte à rebours en direct jusqu'à sa clôture — ou la prochaine session et son heure d'ouverture."
+    },
+    "filters": {
+      "title": "Filtres",
+      "body": "Utilisez les filtres de devise et d'impact pour contrôler quels marqueurs d'événements apparaissent sur l'horloge et dans l'onglet Événements."
+    },
+    "timezone": {
+      "title": "Fuseau Horaire",
+      "body": "Appuyez sur le bouton de fuseau horaire sous l'horloge pour basculer entre votre heure locale, New York, Londres ou tout fuseau horaire pris en charge."
+    },
+    "tip": {
+      "title": "Astuce Pro",
+      "body": "Touchez n'importe quel arc de session pour voir ses horaires exacts d'ouverture/fermeture. Utilisez l'icône d'engrenage dans la barre de navigation pour personnaliser les couleurs, basculer les éléments et synchroniser les paramètres entre appareils."
+    }
+  }
+}

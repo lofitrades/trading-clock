@@ -8,6 +8,15 @@
  * Includes economic event and currency taxonomy tags that link to hub pages.
  *
  * Changelog:
+ * v1.44.0 - 2026-02-15 - BEP SEO: Added article-specific OG meta tags (article:published_time,
+ *                        article:modified_time, article:section, article:tag), og:image dimensions
+ *                        (1200×630), og:image:type, twitter:image:alt for rich social previews.
+ *                        Ensured og:image is always absolute URL. Used absoluteOgImage in structured data.
+ * v1.43.0 - 2026-02-11 - BEP ICON THEME-AWARE: Replaced StorageIcon with official MUI InsightsIcon
+ *                        for Insights tab. InsightsIcon is semantically correct and auto-adapts to
+ *                        light/dark themes. More professional appearance, consistent with MUI design.
+ * v1.42.0 - 2026-02-10 - BEP ROUTING FIX: Fixed category/taxonomy chips causing 404 in ES/FR. Internal RouterLink targets now always use prefix-free SPA routes (/blog/...). Kept lang-prefixed paths only for SEO/canonical generation.
+ * v1.41.0 - 2026-02-10 - Phase 6 INTEGRATION: (1) Converted right sidebar from plain content to Chrome-like tabbed panel (TabbedStickyPanel via MainLayout rightTabs prop). (2) Tab 1: "Related Articles" — existing related posts sidebar content migrated to tab content. (3) Tab 2: "Insights" — InsightsPanel integrated with post context (postId, eventTags, currencyTags). (4) Tab persistence: session-level per-route (stored in TabbedStickyPanel memory). (5) Tab switching smooth with 0.2s animation. (6) Icons: LibraryBooksIcon for Related, InsightsIcon for Insights. (7) All related post rendering logic extracted to rightTabs useMemo hook (reactive to post/sidebarPosts/loading/lang/t). (8) Removed duplicate related articles JSX from old right={} prop.
  * v1.40.0 - 2026-02-07 - BEP JUMP TO TOP BUTTON: Added floating jump-to-top button in bottom-left corner for long blog posts. (1) Fixed positioning (bottom-left): 16px on md+, accounts for 64px mobile AppBar on xs/sm. (2) Shows/hides on scroll: visible after scrolling 300px down. (3) Smooth scroll animation with cubic-bezier easing. (4) Z-index 9 (below modals). (5) Icon button with upward arrow (KeyboardArrowUpIcon). (6) Tooltip shows 'Jump to top' key. (7) BEP: Improves UX for long-form content, especially on mobile.
  * v1.39.0 - 2026-02-07 - BEP ENGAGEMENT ANIMATION: Upgraded like button animation from jerky heartPop to Facebook-style facebookHeartLike. (1) New keyframes: spring bounce effect (0%: scale(0.2) → 50%: scale(1.4) → 100%: scale(1)) with smooth `translateY` reset. (2) Easing: cubic-bezier(0.34, 1.56, 0.64, 1) — spring curve with overshoot for organic feel. (3) Duration: 0.6s (40% slower than 0.45s) for luxury perception. (4) Hover scale: 1.15 → 1.2 for more responsive tactile feedback. (5) Applied to both post.category + !post.category branches. Animation triggers on each like click, providing immediate visual confirmation.
  * v1.38.0 - 2026-02-07 - BEP ENGAGEMENT SYSTEM: (1) Like button (heart icon) to left of share icon — auth-only, optimistic UI with FavoriteIcon/FavoriteBorderIcon toggle. (2) Post read tracking via usePostReadTracking hook — marks post as read on mount (localStorage for guests, Firestore for auth users). (3) View count increment on every page load via postEngagementService. (4) Dynamic related posts now filter out already-read posts and weight by engagement (views + likes). (5) Currency chip added to sidebar related posts metadata row. (6) Added i18n keys: like, unlike, likeLoginRequired in EN/ES/FR.
@@ -89,9 +98,13 @@ import IosShareIcon from '@mui/icons-material/IosShare';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import InsightsIcon from '@mui/icons-material/Insights';
+import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
+import { Helmet } from 'react-helmet-async';
 import SEO from '../components/SEO';
 import PublicLayout from '../components/PublicLayout';
 import MainLayout from '../components/layouts/MainLayout';
+import InsightsPanel from '../components/InsightsPanel';
 import useAppBarNavItems from '../hooks/useAppBarNavItems';
 import usePostLike from '../hooks/usePostLike';
 import usePostReadTracking from '../hooks/usePostReadTracking';
@@ -129,6 +142,7 @@ import {
 import { SITE_URL } from '../utils/seoMeta';
 import { getCurrencyFlag } from '../utils/currencyFlags';
 import { getDefaultBlogThumbnail } from '../utils/blogThumbnailFallback';
+import { loadFlagIconsCSS } from '../app/clientEffects';
 import { useAuth } from '../contexts/AuthContext';
 // Firebase removed - no longer needed for this component
 import AdUnit from '../components/AdUnit';
@@ -210,15 +224,13 @@ const RelatedPostCard = ({ post, lang }) => {
                 to={postUrl}
                 sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
             >
-                {content.coverImage?.url && (
-                    <CardMedia
-                        component="img"
-                        height="120"
-                        image={content.coverImage.url}
-                        alt={content.coverImage.alt || content.title}
-                        sx={{ objectFit: 'cover' }}
-                    />
-                )}
+                <CardMedia
+                    component="img"
+                    height="120"
+                    image={content.coverImage?.url || getDefaultBlogThumbnail(post.id, true)}
+                    alt={content.coverImage?.alt || content.title}
+                    sx={{ objectFit: 'cover' }}
+                />
                 <CardContent sx={{ flexGrow: 1 }}>
                     <Typography variant="subtitle2" component="h3" sx={{ fontWeight: 600 }}>
                         {content.title}
@@ -306,6 +318,9 @@ export default function BlogPostPage() {
         viewCountedRef.current = true;
         incrementPostViewCount(post.id);
     }, [post?.id]);
+
+    // BEP PERFORMANCE: Load flag-icons CSS on-demand for currency flag display
+    useEffect(() => { loadFlagIconsCSS(); }, []);
 
     // Modal states
     const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -562,6 +577,181 @@ export default function BlogPostPage() {
         return estimateReadingTime(content.contentHtml);
     }, [content.contentHtml]);
 
+    // Build rightTabs array for tabbed sidebar (Phase 6: InsightsPanel integration)
+    const rightTabs = useMemo(() => {
+        const tabs = [];
+
+        // Tab 1: Related Articles
+        tabs.push({
+            key: 'related-articles',
+            label: t('blog:postPage.relatedArticles', 'Related'),
+            icon: <LibraryBooksIcon sx={{ fontSize: 16 }} />,
+            content: (
+                <Box>
+                    {/* BEP: Show skeleton while post is loading OR related posts are loading */}
+                    {(loading || relatedPostsLoading) && <SidebarRelatedPostsSkeleton />}
+
+                    {!loading && !relatedPostsLoading && sidebarPosts.length > 0 && (
+                        <Stack spacing={2}>
+                            {sidebarPosts.map((relatedPost) => {
+                                const relContent = relatedPost.languages?.[currentLang] || relatedPost.languages?.[DEFAULT_BLOG_LANGUAGE] || {};
+                                const relSlug = relContent.slug;
+                                const relReadingTime = estimateReadingTime(relContent.contentHtml);
+
+                                return (
+                                    <Box
+                                        key={relatedPost.id}
+                                        component={RouterLink}
+                                        to={`/blog/${relSlug}`}
+                                        sx={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: 1,
+                                            p: 0,
+                                            cursor: 'pointer',
+                                            textDecoration: 'none',
+                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            '&:hover': {
+                                                transform: 'translateX(4px)',
+                                                '& .related-title': {
+                                                    color: 'primary.main',
+                                                },
+                                                '& .related-thumbnail': {
+                                                    filter: 'brightness(1.1)',
+                                                },
+                                            },
+                                        }}
+                                    >
+                                        {/* Clean thumbnail with subtle overlay — always show, fallback to default */}
+                                        <Box
+                                            className="related-thumbnail"
+                                            sx={{
+                                                width: '100%',
+                                                height: 140,
+                                                borderRadius: 1.5,
+                                                overflow: 'hidden',
+                                                position: 'relative',
+                                                transition: 'filter 0.3s ease',
+                                                backgroundImage: `url(${relContent.coverImage?.url || getDefaultBlogThumbnail(relatedPost.id, true)})`,
+                                                backgroundSize: 'cover',
+                                                backgroundPosition: 'center',
+                                                '&::after': {
+                                                    content: '""',
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    right: 0,
+                                                    bottom: 0,
+                                                    background: 'linear-gradient(135deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 100%)',
+                                                    pointerEvents: 'none',
+                                                },
+                                            }}
+                                        />
+
+                                        {/* Minimal metadata */}
+                                        <Box>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5, flexWrap: 'wrap' }}>
+                                                {/* Currency tag chips */}
+                                                {relatedPost.currencyTags?.length > 0 ? (
+                                                    relatedPost.currencyTags.slice(0, 2).map((currency) => {
+                                                        const countryCode = getCurrencyFlag(currency);
+                                                        return (
+                                                            <Chip
+                                                                key={currency}
+                                                                label={currency}
+                                                                size="small"
+                                                                sx={{
+                                                                    height: 20,
+                                                                    fontSize: '0.6rem',
+                                                                    fontWeight: 700,
+                                                                    letterSpacing: 0.3,
+                                                                    bgcolor: 'background.paper',
+                                                                    border: '1px solid',
+                                                                    borderColor: 'divider',
+                                                                    '& .MuiChip-icon': { ml: '4px' },
+                                                                }}
+                                                                icon={
+                                                                    countryCode ? (
+                                                                        <Box
+                                                                            component="span"
+                                                                            className={`fi fi-${countryCode}`}
+                                                                            sx={{ width: '1.5rem', height: '0.75rem', display: 'inline-block', transform: 'scale(1)', transformOrigin: 'left center', lineHeight: 1 }}
+                                                                        />
+                                                                    ) : undefined
+                                                                }
+                                                            />
+                                                        );
+                                                    })
+                                                ) : (
+                                                    /* Fallback: category chip if no currencies */
+                                                    relatedPost.category && (
+                                                        <Chip
+                                                            label={t(`blog:categories.${relatedPost.category}`, BLOG_CATEGORY_LABELS[relatedPost.category] || relatedPost.category)}
+                                                            size="small"
+                                                            sx={{
+                                                                height: 20,
+                                                                fontSize: '0.6rem',
+                                                                fontWeight: 700,
+                                                                letterSpacing: 0.3,
+                                                                bgcolor: 'primary.main',
+                                                                color: 'primary.contrastText',
+                                                            }}
+                                                        />
+                                                    )
+                                                )}
+                                                <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'text.secondary', letterSpacing: 0.3 }}>
+                                                    {relReadingTime > 0 && t('blog:postPage.readingTimeShort', { minutes: relReadingTime })}
+                                                </Typography>
+                                            </Box>
+
+                                            {/* Premium title with ellipsis */}
+                                            <Typography
+                                                className="related-title"
+                                                variant="subtitle2"
+                                                sx={{
+                                                    fontWeight: 700,
+                                                    fontSize: '0.9rem',
+                                                    lineHeight: 1.35,
+                                                    display: '-webkit-box',
+                                                    WebkitLineClamp: 2,
+                                                    WebkitBoxOrient: 'vertical',
+                                                    overflow: 'hidden',
+                                                    transition: 'color 0.3s ease',
+                                                    color: 'text.primary',
+                                                }}
+                                            >
+                                                {relContent.title}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                );
+                            })}
+                        </Stack>
+                    )}
+                </Box>
+            ),
+        });
+
+        // Tab 2: Insights (Phase 5 integration)
+        tabs.push({
+            key: 'insights',
+            label: t('insights:title', 'Insights'),
+            icon: <InsightsIcon sx={{ fontSize: 16 }} />,
+            content: post ? (
+                <InsightsPanel
+                    context={{
+                        postId: post.id,
+                        eventTags: post.eventTags || [],
+                        currencyTags: post.currencyTags || [],
+                    }}
+                    maxHeight={undefined}
+                />
+            ) : null,
+        });
+
+        return tabs;
+    }, [post, sidebarPosts, loading, relatedPostsLoading, currentLang, t]);
+
     // Format dates
     const publishedDate = post?.publishedAt?.toDate?.() || new Date();
     const modifiedDate = post?.updatedAt?.toDate?.() || publishedDate;
@@ -573,11 +763,18 @@ export default function BlogPostPage() {
 
     // SEO data
     const langPrefix = currentLang !== 'en' ? `/${currentLang}` : '';
+    // SEO prerender may include /es or /fr subpaths, but React Router is prefix-free.
+    // Never generate internal navigation links with language prefixes.
+    const routerBlogBasePath = '/blog';
     const blogBasePath = `${langPrefix}/blog`;
     const pageTitle = content.seoTitle || content.title || t('blog:postPage.defaultTitle', 'Blog Post');
     const pageDescription =
         content.seoDescription || content.excerpt || t('blog:postPage.defaultDescription', 'Read this article on Time 2 Trade');
     const ogImage = content.coverImage?.url || (post ? getDefaultBlogThumbnail(post.id) : undefined);
+    // Ensure og:image is always an absolute URL (social platforms require https://)
+    const absoluteOgImage = ogImage
+        ? (ogImage.startsWith('http') ? ogImage : `${SITE_URL}${ogImage}`)
+        : undefined;
 
     // BlogPosting structured data
     const structuredData = post
@@ -586,7 +783,7 @@ export default function BlogPostPage() {
             '@type': 'BlogPosting',
             headline: content.title,
             description: content.excerpt,
-            image: content.coverImage?.url || getDefaultBlogThumbnail(post.id),
+            image: absoluteOgImage || getDefaultBlogThumbnail(post.id),
             datePublished: publishedDate.toISOString(),
             dateModified: modifiedDate.toISOString(),
             author: authors.length > 0
@@ -626,9 +823,26 @@ export default function BlogPostPage() {
                 description={pageDescription}
                 path={`${blogBasePath}/${slug}`}
                 ogType="article"
-                ogImage={ogImage}
+                ogImage={absoluteOgImage}
                 structuredData={structuredData}
             />
+
+            {/* BEP SEO: Article-specific OG meta tags for rich social sharing */}
+            {post && (
+                <Helmet>
+                    <meta property="article:published_time" content={publishedDate.toISOString()} />
+                    <meta property="article:modified_time" content={modifiedDate.toISOString()} />
+                    {post.category && <meta property="article:section" content={post.category} />}
+                    {post.tags?.map((tag, i) => (
+                        <meta key={`tag-${i}`} property="article:tag" content={tag} />
+                    ))}
+                    {/* og:image dimensions hint for social platforms (standard blog cover) */}
+                    <meta property="og:image:width" content="1200" />
+                    <meta property="og:image:height" content="630" />
+                    <meta property="og:image:type" content="image/jpeg" />
+                    <meta name="twitter:image:alt" content={content.coverImage?.alt || content.title} />
+                </Helmet>
+            )}
 
             <PublicLayout
                 navItems={navItems}
@@ -647,7 +861,7 @@ export default function BlogPostPage() {
                                             <Link component={RouterLink} to="/" underline="hover" color="inherit">
                                                 {t('common:navigation.home', 'Home')}
                                             </Link>
-                                            <Link component={RouterLink} to={blogBasePath} underline="hover" color="inherit">
+                                            <Link component={RouterLink} to={routerBlogBasePath} underline="hover" color="inherit">
                                                 {t('blog:listPage.heading', 'Blog')}
                                             </Link>
                                             <Typography color="text.primary" noWrap sx={{ maxWidth: 200 }}>
@@ -687,7 +901,7 @@ export default function BlogPostPage() {
                                             <Button
                                                 variant="outlined"
                                                 startIcon={<ArrowBackIcon />}
-                                                onClick={() => navigate(blogBasePath)}
+                                                onClick={() => navigate(routerBlogBasePath)}
                                             >
                                                 {t('blog:postPage.backToBlog', 'Back to Blog')}
                                             </Button>
@@ -749,21 +963,19 @@ export default function BlogPostPage() {
                                                 </Alert>
                                             )}
 
-                                            {/* Cover image */}
-                                            {content.coverImage?.url && (
-                                                <Box
-                                                    component="img"
-                                                    src={content.coverImage.url}
-                                                    alt={content.coverImage.alt || content.title}
-                                                    sx={{
-                                                        width: '100%',
-                                                        height: { xs: 220, md: 380 },
-                                                        objectFit: 'cover',
-                                                        borderRadius: 2,
-                                                        mb: 2,
-                                                    }}
-                                                />
-                                            )}
+                                            {/* Cover image — always show, fallback to default thumbnail */}
+                                            <Box
+                                                component="img"
+                                                src={content.coverImage?.url || getDefaultBlogThumbnail(post.id, true)}
+                                                alt={content.coverImage?.alt || content.title}
+                                                sx={{
+                                                    width: '100%',
+                                                    height: { xs: 220, md: 380 },
+                                                    objectFit: 'cover',
+                                                    borderRadius: 2,
+                                                    mb: 2,
+                                                }}
+                                            />
 
                                             {/* Category Chip + Like & Share Buttons - Below Cover Image */}
                                             {post.category && (
@@ -774,7 +986,7 @@ export default function BlogPostPage() {
                                                             label={t(`blog:categories.${post.category}`, BLOG_CATEGORY_LABELS[post.category] || post.category)}
                                                             size="small"
                                                             component={RouterLink}
-                                                            to={`${blogBasePath}/category/${post.category}`}
+                                                            to={`${routerBlogBasePath}/category/${post.category}`}
                                                             clickable
                                                             sx={{
                                                                 height: 28,
@@ -905,7 +1117,7 @@ export default function BlogPostPage() {
                                                                 <Stack direction="row" spacing={-0.75} alignItems="center">
                                                                     {authors.slice(0, 2).map((author, index) => (
                                                                         <Tooltip key={author.id} title={author.displayName}>
-                                                                            <Link component={RouterLink} to={`${blogBasePath}/author/${author.slug}`} underline="none" sx={{ zIndex: authors.length - index }}>
+                                                                            <Link component={RouterLink} to={`${routerBlogBasePath}/author/${author.slug}`} underline="none" sx={{ zIndex: authors.length - index }}>
                                                                                 <Avatar
                                                                                     src={author.avatar?.url}
                                                                                     alt={author.displayName}
@@ -920,7 +1132,7 @@ export default function BlogPostPage() {
                                                                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
                                                                     {authors.length === 1 ? (
                                                                         <Tooltip title={t('blog:postPage.authorTooltip', { author: authors[0].displayName })}>
-                                                                            <Link component={RouterLink} to={`${blogBasePath}/author/${authors[0].slug}`} underline="hover" color="inherit">
+                                                                            <Link component={RouterLink} to={`${routerBlogBasePath}/author/${authors[0].slug}`} underline="hover" color="inherit">
                                                                                 {authors[0].displayName}
                                                                             </Link>
                                                                         </Tooltip>
@@ -928,7 +1140,7 @@ export default function BlogPostPage() {
                                                                         authors.slice(0, 2).map((a, i) => (
                                                                             <span key={a.id}>
                                                                                 <Tooltip title={t('blog:postPage.authorTooltip', { author: a.displayName })}>
-                                                                                    <Link component={RouterLink} to={`${blogBasePath}/author/${a.slug}`} underline="hover" color="inherit">{a.displayName}</Link>
+                                                                                    <Link component={RouterLink} to={`${routerBlogBasePath}/author/${a.slug}`} underline="hover" color="inherit">{a.displayName}</Link>
                                                                                 </Tooltip>
                                                                                 {i === 0 && authors.length > 1 && ', '}
                                                                             </span>
@@ -973,7 +1185,7 @@ export default function BlogPostPage() {
                                                                         size="small"
                                                                         variant="outlined"
                                                                         component={RouterLink}
-                                                                        to={`${blogBasePath}/event/${eventKey}`}
+                                                                        to={`${routerBlogBasePath}/event/${eventKey}`}
                                                                         clickable
                                                                         color="primary"
                                                                         sx={{
@@ -1010,7 +1222,7 @@ export default function BlogPostPage() {
                                                                         size="small"
                                                                         variant="outlined"
                                                                         component={RouterLink}
-                                                                        to={`${blogBasePath}/currency/${currency}`}
+                                                                        to={`${routerBlogBasePath}/currency/${currency}`}
                                                                         clickable
                                                                         color="success"
                                                                         sx={{
@@ -1121,7 +1333,7 @@ export default function BlogPostPage() {
                                                                     size="small"
                                                                     variant="outlined"
                                                                     component={RouterLink}
-                                                                    to={`${blogBasePath}/tag/${encodeURIComponent(tag.toLowerCase().replace(/\s+/g, '-'))}`}
+                                                                    to={`${routerBlogBasePath}/tag/${encodeURIComponent(tag.toLowerCase().replace(/\s+/g, '-'))}`}
                                                                     clickable
                                                                     sx={{
                                                                         height: 28,
@@ -1175,164 +1387,7 @@ export default function BlogPostPage() {
                                     )}
                                 </Box>
                             }
-                            right={
-                                <Box>
-                                    {/* BEP: Show skeleton while post is loading OR related posts are loading */}
-                                    {(loading || relatedPostsLoading) && <SidebarRelatedPostsSkeleton />}
-
-                                    {!loading && !relatedPostsLoading && sidebarPosts.length > 0 && (
-                                        <Box sx={{ mb: 4 }}>
-                                            {/* Premium header with subtle underline */}
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, pb: 1.5, borderBottom: '2px solid', borderColor: 'primary.main' }}>
-                                                <Typography variant="h6" sx={{ fontWeight: 800, fontSize: '0.95rem', letterSpacing: -0.5 }}>
-                                                    {t('blog:postPage.relatedArticles', 'Related')}
-                                                </Typography>
-                                            </Box>
-
-                                            {/* Minimal, high-engagement card stack */}
-                                            <Stack spacing={2}>
-                                                {sidebarPosts.map((relatedPost) => {
-                                                    const relContent = relatedPost.languages?.[currentLang] || relatedPost.languages?.[DEFAULT_BLOG_LANGUAGE] || {};
-                                                    const relSlug = relContent.slug;
-                                                    const relReadingTime = estimateReadingTime(relContent.contentHtml);
-
-                                                    return (
-                                                        <Box
-                                                            key={relatedPost.id}
-                                                            component={RouterLink}
-                                                            to={`/blog/${relSlug}`}
-                                                            sx={{
-                                                                display: 'flex',
-                                                                flexDirection: 'column',
-                                                                gap: 1,
-                                                                p: 0,
-                                                                cursor: 'pointer',
-                                                                textDecoration: 'none',
-                                                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                                '&:hover': {
-                                                                    transform: 'translateX(4px)',
-                                                                    '& .related-title': {
-                                                                        color: 'primary.main',
-                                                                    },
-                                                                    '& .related-thumbnail': {
-                                                                        filter: 'brightness(1.1)',
-                                                                    },
-                                                                },
-                                                            }}
-                                                        >
-                                                            {/* Clean thumbnail with subtle overlay */}
-                                                            {relContent.coverImage?.url && (
-                                                                <Box
-                                                                    className="related-thumbnail"
-                                                                    sx={{
-                                                                        width: '100%',
-                                                                        height: 140,
-                                                                        borderRadius: 1.5,
-                                                                        overflow: 'hidden',
-                                                                        position: 'relative',
-                                                                        transition: 'filter 0.3s ease',
-                                                                        backgroundImage: `url(${relContent.coverImage.url})`,
-                                                                        backgroundSize: 'cover',
-                                                                        backgroundPosition: 'center',
-                                                                        '&::after': {
-                                                                            content: '""',
-                                                                            position: 'absolute',
-                                                                            top: 0,
-                                                                            left: 0,
-                                                                            right: 0,
-                                                                            bottom: 0,
-                                                                            background: 'linear-gradient(135deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 100%)',
-                                                                            pointerEvents: 'none',
-                                                                        },
-                                                                    }}
-                                                                />
-                                                            )}
-
-                                                            {/* Minimal metadata */}
-                                                            <Box>
-                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5, flexWrap: 'wrap' }}>
-                                                                    {/* Currency tag chips — replace index badge with actual taxonomy */}
-                                                                    {relatedPost.currencyTags?.length > 0 ? (
-                                                                        relatedPost.currencyTags.slice(0, 2).map((currency) => {
-                                                                            const countryCode = getCurrencyFlag(currency);
-                                                                            return (
-                                                                                <Chip
-                                                                                    key={currency}
-                                                                                    label={currency}
-                                                                                    size="small"
-                                                                                    sx={{
-                                                                                        height: 20,
-                                                                                        fontSize: '0.6rem',
-                                                                                        fontWeight: 700,
-                                                                                        letterSpacing: 0.3,
-                                                                                        bgcolor: 'background.paper',
-                                                                                        border: '1px solid',
-                                                                                        borderColor: 'divider',
-                                                                                        '& .MuiChip-icon': { ml: '4px' },
-                                                                                    }}
-                                                                                    icon={
-                                                                                        countryCode ? (
-                                                                                            <Box
-                                                                                                component="span"
-                                                                                                className={`fi fi-${countryCode}`}
-                                                                                                sx={{ width: '1.5rem', height: '0.75rem', display: 'inline-block', transform: 'scale(1)', transformOrigin: 'left center', lineHeight: 1 }}
-                                                                                            />
-                                                                                        ) : undefined
-                                                                                    }
-                                                                                />
-                                                                            );
-                                                                        })
-                                                                    ) : (
-                                                                        /* Fallback: category chip if no currencies */
-                                                                        relatedPost.category && (
-                                                                            <Chip
-                                                                                label={t(`blog:categories.${relatedPost.category}`, BLOG_CATEGORY_LABELS[relatedPost.category] || relatedPost.category)}
-                                                                                size="small"
-                                                                                sx={{
-                                                                                    height: 20,
-                                                                                    fontSize: '0.6rem',
-                                                                                    fontWeight: 700,
-                                                                                    letterSpacing: 0.3,
-                                                                                    bgcolor: 'primary.main',
-                                                                                    color: 'primary.contrastText',
-                                                                                }}
-                                                                            />
-                                                                        )
-                                                                    )}
-                                                                    <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'text.secondary', letterSpacing: 0.3 }}>
-                                                                        {relReadingTime > 0 && t('blog:postPage.readingTimeShort', { minutes: relReadingTime })}
-                                                                    </Typography>
-                                                                </Box>
-
-                                                                {/* Premium title with ellipsis */}
-                                                                <Typography
-                                                                    className="related-title"
-                                                                    variant="subtitle2"
-                                                                    sx={{
-                                                                        fontWeight: 700,
-                                                                        fontSize: '0.9rem',
-                                                                        lineHeight: 1.35,
-                                                                        display: '-webkit-box',
-                                                                        WebkitLineClamp: 2,
-                                                                        WebkitBoxOrient: 'vertical',
-                                                                        overflow: 'hidden',
-                                                                        transition: 'color 0.3s ease',
-                                                                        color: 'text.primary',
-                                                                    }}
-                                                                >
-                                                                    {relContent.title}
-                                                                </Typography>
-                                                            </Box>
-                                                        </Box>
-                                                    );
-                                                })}
-                                            </Stack>
-                                        </Box>
-                                    )}
-
-                                    {/* BEP: No fallback text - sidebar is empty if no related posts (clean design) */}
-                                </Box>
-                            }
+                            rightTabs={rightTabs}
                             stickyTop={16}
                         />
                     </Box>

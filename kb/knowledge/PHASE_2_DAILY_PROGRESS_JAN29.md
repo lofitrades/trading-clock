@@ -79,7 +79,7 @@
 - 6 no-data & loading states (LOW-MEDIUM priority)
   - Empty calendar messages, loading indicators
 - 6 section headers & layout labels (MEDIUM priority)
-  - Trading Clock, Economic Calendar, filter labels
+  - Market Clock, Economic Calendar, filter labels
 - 4 timezone modal UI strings (LOW-MEDIUM priority)
 
 **Deliverable:** CALENDAREMBED_AUDIT_PHASE2_DAY6.md  

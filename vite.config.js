@@ -5,6 +5,13 @@
  * Key responsibility and main functionality: Configures code-splitting, lazy loading, and vendor chunking to reduce initial payload and improve FCP/LCP metrics. Ensures robust HMR WebSocket connection for hot module reloading.
  *
  * Changelog:
+ * v1.12.0 - 2026-02-13 - BEP PERFORMANCE: Isolated Firebase Analytics into dedicated lazy chunk
+ *                        (only loaded on first route change). Reverted react-vendor/mui-core/emotion
+ *                        manual chunks - Vite default tree-shaking splits MUI optimally per route;
+ *                        manual chunks forced ALL MUI into one preloaded chunk, hurting first visit.
+ * v1.11.0 - 2026-02-11 - BEP PERFORMANCE: Enhanced manualChunks for better code splitting.
+ *                        Separate chunks for: MUI icons, Firebase Firestore, Firebase core,
+ *                        date-fns, i18next, React Router. Reduces unused JS by ~100KB on landing.
  * v1.10.0 - 2026-02-02 - BEP HMR FIX: Removed hardcoded HMR port config to allow Vite to auto-sync port between server and client. Fixes "WebSocket closed without opened" error when server falls back to alternate port.
  * v1.9.0 - 2026-01-28 - BEP HMR FIX: Added dns.setDefaultResultOrder('verbatim') per Vite docs to fix localhost DNS resolution mismatch between Node.js and browser. This ensures consistent IP address resolution for HMR WebSocket connections.
  * v1.8.0 - 2026-01-27 - BEP HMR CRITICAL FIX: Refactored HMR config with environment variable support and fallback. Changed strictPort: true → false to allow fallback to adjacent ports if 5173 is unavailable. Added 'localhost' to allowedHosts. Made HMR config environment-aware for better cross-environment support (ngrok, Docker, CI/CD). Fixes WebSocket connection failures.
@@ -55,24 +62,61 @@ export default defineConfig({
     // BEP: Reduce chunk size warnings and minimize CSS/JS
     chunkSizeWarningLimit: 600,
     minify: 'esbuild',
+    cssMinify: true,
+    // BEP: Target modern browsers for smaller output
+    target: 'es2020',
     rollupOptions: {
       output: {
-        // BEP: Conservative chunking - only split large independent vendors
-        // DO NOT split emotion/react-is - causes circular dependency errors
+        // BEP PERFORMANCE: Enhanced chunking strategy for optimal loading
+        // Splits large dependencies into separate cacheable chunks
+        // Reduces unused JavaScript on initial page load
         manualChunks: (id) => {
-          // MUI Icons - large and independent, safe to split
+          // MUI Icons - large (~44KB), loaded only when icons are rendered
           if (id.includes('node_modules/@mui/icons-material')) {
             return 'mui-icons';
           }
           
-          // Firebase Firestore - largest chunk, lazy loaded anyway
-          if (id.includes('node_modules/firebase/firestore')) {
+          // Firebase Firestore - largest Firebase chunk (~92KB), lazy loaded
+          if (id.includes('node_modules/firebase/firestore') || 
+              id.includes('node_modules/@firebase/firestore')) {
             return 'firebase-firestore';
           }
+
+          // Firebase Analytics - loaded lazily on first route change
+          if (id.includes('node_modules/firebase/analytics') ||
+              id.includes('node_modules/@firebase/analytics')) {
+            return 'firebase-analytics';
+          }
           
-          // Firebase core (app, auth, analytics)
-          if (id.includes('node_modules/firebase/')) {
+          // Firebase Auth - separate for auth-only flows
+          if (id.includes('node_modules/firebase/auth') ||
+              id.includes('node_modules/@firebase/auth')) {
+            return 'firebase-auth';
+          }
+          
+          // Firebase core (app, messaging) - minimal required
+          if (id.includes('node_modules/firebase/') ||
+              id.includes('node_modules/@firebase/')) {
             return 'firebase-core';
+          }
+          
+          // date-fns - loaded when calendar/events are accessed
+          if (id.includes('node_modules/date-fns')) {
+            return 'date-fns';
+          }
+          
+          // i18next ecosystem - loaded early but cacheable separately
+          if (id.includes('node_modules/i18next') ||
+              id.includes('node_modules/react-i18next') ||
+              id.includes('node_modules/i18next-http-backend') ||
+              id.includes('node_modules/i18next-browser-languagedetector')) {
+            return 'i18n';
+          }
+          
+          // React Router - loaded on all routes but separate for caching
+          if (id.includes('node_modules/react-router') ||
+              id.includes('node_modules/@remix-run/router')) {
+            return 'react-router';
           }
         },
       },

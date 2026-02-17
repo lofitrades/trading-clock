@@ -110,7 +110,7 @@ Disallow: /app/login
 **LandingPage.jsx (/):**
 ```javascript
 useEffect(() => {
-  document.title = 'Time 2 Trade | Visual trading clock...';
+  document.title = 'Time 2 Trade | Visual market clock...';
   metaDesc.setAttribute('content', '...');
 }, []);
 ```

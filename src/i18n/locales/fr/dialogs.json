@@ -66,7 +66,7 @@
   "welcomeBack": "Bon retour!",
   "accountCreatedSuccessfully": "Votre compte a été créé avec succès",
   "signedInSuccessfully": "Vous êtes connecté avec succès",
-  "loadingTradingClock": "Chargement de votre Horloge de Trading...",
+  "loadingTradingClock": "Chargement de votre horloge du marché...",
   "confirmYourEmail": "Confirmez votre e-mail",
   "enterEmailUsedForLink": "Veuillez entrer l'adresse e-mail que vous avez utilisée pour demander ce lien de connexion.",
   "emailAddress": "Adresse e-mail",
@@ -118,6 +118,18 @@
     "title": "Source de Données",
     "description": "Ces données de trading utilisent des <strong>informations économiques en temps réel</strong> de Forex Factory, garantissant la précision et la fiabilité pour vos décisions de trading.",
     "updateNote": "Les événements sont mis à jour en continu tout au long de la journée de trading pour vous tenir informé des publications économiques importantes et des nouvelles qui font bouger le marché."
+  },
+  "clockInfo": {
+    "title": "À propos de l'Horloge du Marché",
+    "description": "L'<strong>Horloge du Marché</strong> est une visualisation à double cercle conçue pour les traders de contrats à terme et de forex. L'anneau intérieur représente les heures AM et l'anneau extérieur les heures PM, vous offrant une vue complète sur 24 heures en un coup d'œil.",
+    "features": {
+      "sessions": "<strong>Arcs de Session</strong> — Des arcs colorés indiquent quand chaque session (Tokyo, Londres, New York, etc.) est active.",
+      "overlaps": "<strong>Chevauchements de Sessions</strong> — Voyez exactement quand les sessions principales se chevauchent, mettant en évidence les fenêtres de liquidité maximale.",
+      "countdowns": "<strong>Comptes à Rebours en Direct</strong> — Des minuteries en temps réel indiquent le temps restant avant la fin de la session actuelle ou le début de la suivante.",
+      "events": "<strong>Événements Économiques</strong> — Les publications économiques clés sont tracées directement sur l'horloge pour que vous puissiez voir ce qui arrive.",
+      "timezone": "<strong>Fuseau Horaire Intelligent</strong> — Tous les horaires s'ajustent automatiquement à votre fuseau horaire sélectionné."
+    },
+    "tip": "Astuce : Utilisez le panneau de paramètres pour personnaliser les sessions, les aiguilles de l'horloge et les marqueurs d'événements visibles."
   },
   "cookies": {
     "heading": "Nous utilisons des cookies",

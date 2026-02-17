@@ -62,10 +62,10 @@ import '../App.css';
 const heroMeta = buildSeoMeta({
     title: 'Time 2 Trade | Live session clock for futures & forex day traders',
     description:
-        'Award-winning dual-circle trading clock built for futures and forex day traders, including ICT, TTrades, and AMTrades students. Track London, New York, and Asia sessions with live countdowns and economic catalysts.',
+        'Award-winning dual-circle market clock built for futures and forex day traders, including ICT, TTrades, and AMTrades students. Track London, New York, and Asia sessions with live countdowns and economic catalysts.',
     path: '/',
     keywords:
-        'futures trading clock, forex session clock, ICT killzones, TTrades, AMTrades, trading sessions, economic events overlay, timezone aware clock',
+        'futures market clock, forex session clock, ICT killzones, TTrades, AMTrades, trading sessions, economic events overlay, timezone aware clock',
 });
 
 const brandLogoSrc = '/logos/svg/Time2Trade_Logo_Secondary_White_Transparent_1080.svg';

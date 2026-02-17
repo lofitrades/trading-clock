@@ -430,7 +430,7 @@ const handleSaveCustomEvent = useCallback(() => {
  *
  * Purpose: Primary /calendar page — economic calendar with two-column layout.
  * Left column: date/currency/impact/search filters + compact MUI table with day dividers.
- * Right column: ClockPanelPaper (trading clock).
+ * Right column: ClockPanelPaper (market clock).
  * Filters sync bidirectionally with SettingsContext for cross-page/session persistence.
  *
  * Changelog:

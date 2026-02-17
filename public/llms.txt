@@ -4,7 +4,7 @@
 # v1.1.0 - 2026-01-16 - Updated routing to /calendar (primary), added /clock, removed /login.
 
 Time 2 Trade (https://time2.trade)
-One-liner: Free trading clock and economic calendar for futures and forex day traders, combining a dual-circle session visualization with live economic events and timezone-aware insights.
+One-liner: Free market clock and economic calendar for futures and forex day traders, combining a dual-circle session visualization with live economic events and timezone-aware insights.
 Who it's for: Traders who time entries/exits around global market sessions (London, New York, Asia) and need economic catalyst context.
 
 Key features:
@@ -19,7 +19,7 @@ Key features:
 Primary URLs:
 - Home/landing: https://time2.trade/
 - Economic calendar: https://time2.trade/calendar
-- Trading clock: https://time2.trade/clock
+- Market clock: https://time2.trade/clock
 - About: https://time2.trade/about
 - Privacy: https://time2.trade/privacy
 - Terms: https://time2.trade/terms

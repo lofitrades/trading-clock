@@ -12,6 +12,40 @@
  * 4. Firestore (150-300ms) - authoritative source
  * 
  * Changelog:
+ * v2.5.0 - 2026-02-13 - BEP ISOLATED DATE PRESET: Added `isolatedDatePreset` option. When set,
+ *                        date filters are fully isolated from SettingsContext — the hook always uses
+ *                        the locked preset for date range calculation, ignores SettingsContext datePreset
+ *                        changes, and never writes date fields back to SettingsContext. Currency/impact
+ *                        filters still sync bidirectionally. Designed for ClockEventsTable which must
+ *                        always show today's events regardless of Calendar page date selection.
+ *                        Backward-compatible: Calendar2Page (no isolatedDatePreset) works as before.
+ * v2.4.0 - 2026-02-12 - BEP DAY ROLLOVER: Added timezone-aware day change detection. Polls every
+ *                        60s, builds a YYYY-MM-DD dayKey in the user's timezone, and when the key
+ *                        changes (midnight in their timezone) recalculates startDate/endDate from
+ *                        the active datePreset. Clears stale events, shows skeleton, invalidates
+ *                        Zustand cache, and triggers re-fetch. Ensures "Today" preset automatically
+ *                        shows tomorrow's events when the day rolls over — no manual refresh needed.
+ *                        Also handles "thisWeek"/"thisMonth" transitions at week/month boundaries.
+ *                        Matches useClockEventsData dayKey pattern for consistency.
+ * v2.3.0 - 2026-02-12 - BEP REALTIME SYNC: Subscribe to systemJobs sync status to invalidate
+ *                        all cache layers (Zustand query cache + IndexedDB + lastFetchKey) when
+ *                        NFS/JBlanked cloud functions update Firestore. Previously, stale cached
+ *                        data was served indefinitely until manual cache clear. Now onSnapshot
+ *                        listener on economicEventsCalendarSync doc detects new syncs and triggers
+ *                        full re-fetch. Also added missing refreshEventsCache import (was used but
+ *                        never imported — refresh() callback would fail at runtime).
+ * v2.2.0 - 2026-02-12 - BEP STALE DATE FIX: On hook initialization and settings sync, recalculate
+ *                        startDate/endDate from the stored datePreset + current timezone instead of
+ *                        trusting stale persisted dates. Root cause: eventFilters stored computed
+ *                        startDate/endDate from previous session's "thisWeek" — on return visit,
+ *                        the stale dates took precedence over fresh defaultRange because they were
+ *                        non-null. Now datePreset is the source of truth; stored dates are only
+ *                        used as fallback when no preset exists.
+ * v2.1.0 - 2026-02-11 - BEP TIMEZONE FIX: Replaced local calculateDateRange with shared import
+ *                        from dateUtils.js. Previous local copy had a broken thisMonth case
+ *                        (month===12 guard never fired since month is 0-indexed, and .getDate()
+ *                        used system timezone instead of target). All date presets now use a
+ *                        single source of truth with precise -1ms end-of-day boundaries.
  * v2.0.0 - 2026-02-09 - BEP DEFAULT PRESET: Changed default date filter from 'today' to
  *                        'thisWeek' for better context when viewing economic calendar.
  *                        Users now see 7-day view on initial load for broader market perspective.
@@ -58,13 +92,25 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import { useSettingsSafe } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useFavorites } from './useFavorites';
-import { fetchEventsWithAdaptiveStorage } from '../services/eventsStorageAdapter';
+import { fetchEventsWithAdaptiveStorage, clearIdbTimestamp } from '../services/eventsStorageAdapter';
+import { subscribeToSyncUpdates, refreshEventsCache } from '../services/economicEventsService';
 import useEventsStore from '../stores/eventsStore';
+import eventsDB from '../services/eventsDB';
 import { sortEventsByTime } from '../utils/newsApi';
-import { getDatePartsInTimezone, getUtcDateForTimezone } from '../utils/dateUtils';
+import { calculateDateRange, getDatePartsInTimezone } from '../utils/dateUtils';
 import { getEventEpochMs, formatRelativeLabel, NOW_WINDOW_MS } from '../utils/eventTimeEngine';
 
 const MAX_DATE_RANGE_DAYS = 365;
+const DAY_ROLLOVER_POLL_MS = 60_000; // Check every 60 seconds
+
+/**
+ * Build a YYYY-MM-DD day key for the user's timezone.
+ * Used to detect midnight rollover without per-second re-renders.
+ */
+const buildDayKey = (timezone) => {
+  const { year, month, day } = getDatePartsInTimezone(timezone);
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+};
 
 // BEP v1.5.0: Removed convertUtcToTimezone - real-time timezone conversion removed
 // Data fetched via adapter is already correctly formatted for display
@@ -142,67 +188,53 @@ const buildFetchKey = (filters, newsSource) => {
   return `${sourceKey}-${startEpoch ?? 'na'}-${endEpoch ?? 'na'}-${impactsKey}-${currenciesKey}`;
 };
 
-const calculateDateRange = (preset, timezone) => {
-  const { year, month, day, dayOfWeek } = getDatePartsInTimezone(timezone);
-  const createDate = (y, m, d, endOfDay = false) => {
-    if (endOfDay) {
-      // Create start of NEXT day, then subtract 1 second to stay within the target day
-      // This ensures we don't bleed into the next calendar day in the target timezone
-      const nextDayStart = getUtcDateForTimezone(timezone, y, m, d + 1, { hour: 0, minute: 0, second: 0, millisecond: 0 });
-      return new Date(nextDayStart.getTime() - 1000); // End at 23:59:59 of target day
-    }
-    return getUtcDateForTimezone(timezone, y, m, d, { endOfDay: false });
-  };
-
-  switch (preset) {
-    case 'today':
-      return { startDate: createDate(year, month, day), endDate: createDate(year, month, day, true) };
-    case 'tomorrow':
-      return { startDate: createDate(year, month, day + 1), endDate: createDate(year, month, day + 1, true) };
-    case 'thisWeek': {
-      const startDay = day - dayOfWeek;
-      const endDay = day + (6 - dayOfWeek);
-      return { startDate: createDate(year, month, startDay), endDate: createDate(year, month, endDay, true) };
-    }
-    case 'nextWeek': {
-      // Start from the day after this week ends (next Sunday becomes Monday)
-      const thisWeekEndDay = day + (6 - dayOfWeek);
-      const nextWeekStartDay = thisWeekEndDay + 1;
-      const nextWeekEndDay = nextWeekStartDay + 6;
-      return { startDate: createDate(year, month, nextWeekStartDay), endDate: createDate(year, month, nextWeekEndDay, true) };
-    }
-    case 'thisMonth': {
-      // Start: First day of current month at 00:00:00
-      // End: Last day of current month at 23:59:59
-      const startDay = 1;
-      // Get last day of month: create first day of next month, then subtract 1 day
-      const firstOfNextMonth = month === 12 ? { year: year + 1, month: 1, day: 1 } : { year, month: month + 1, day: 1 };
-      const endDay = new Date(createDate(firstOfNextMonth.year, firstOfNextMonth.month, firstOfNextMonth.day).getTime() - 24 * 60 * 60 * 1000).getDate();
-      return { startDate: createDate(year, month, startDay), endDate: createDate(year, month, endDay, true) };
-    }
-    default:
-      return null;
-  }
-};
+// calculateDateRange imported from dateUtils.js (single source of truth)
 
 const ensureDate = (value) => {
   if (!value) return null;
   return value instanceof Date ? value : new Date(value);
 };
 
-export function useCalendarData({ defaultPreset = 'thisWeek' } = {}) {
+export function useCalendarData({ defaultPreset = 'thisWeek', isolatedDatePreset = null } = {}) {
   const { user } = useAuth();
   const { selectedTimezone, eventFilters, newsSource, updateEventFilters, updateNewsSource } = useSettingsSafe();
   const { isFavorite, toggleFavorite, favoritesLoading, isFavoritePending } = useFavorites();
 
+  // BEP v2.5.0: When isolatedDatePreset is set, dates are fully isolated from SettingsContext.
+  // The hook always uses the locked preset — ignores eventFilters.datePreset, never writes dates back.
+  const isDateIsolated = Boolean(isolatedDatePreset);
+  const effectiveDatePreset = isolatedDatePreset || defaultPreset;
+
   const defaultRange = useMemo(
-    () => calculateDateRange(defaultPreset, selectedTimezone),
-    [defaultPreset, selectedTimezone],
+    () => calculateDateRange(effectiveDatePreset, selectedTimezone),
+    [effectiveDatePreset, selectedTimezone],
+  );
+
+  // BEP v2.5.0: Isolated date range — always computed from locked preset, never from SettingsContext
+  const isolatedRange = useMemo(
+    () => isDateIsolated ? calculateDateRange(isolatedDatePreset, selectedTimezone) : null,
+    [isDateIsolated, isolatedDatePreset, selectedTimezone],
   );
 
   const [filters, setFilters] = useState(() => {
-    const startDate = ensureDate(eventFilters.startDate) || defaultRange?.startDate || null;
-    const endDate = ensureDate(eventFilters.endDate) || defaultRange?.endDate || null;
+    // BEP v2.5.0: When date-isolated, always use the locked preset range.
+    // When not isolated, use datePreset from SettingsContext (v2.2.0 source of truth).
+    if (isDateIsolated) {
+      const range = calculateDateRange(isolatedDatePreset, selectedTimezone);
+      return {
+        startDate: range?.startDate || null,
+        endDate: range?.endDate || null,
+        impacts: eventFilters.impacts || [],
+        currencies: eventFilters.currencies || [],
+        favoritesOnly: eventFilters.favoritesOnly || false,
+        searchQuery: eventFilters.searchQuery || '',
+      };
+    }
+    // Non-isolated: existing v2.2.0 logic — datePreset is source of truth
+    const preset = eventFilters.datePreset || defaultPreset;
+    const presetRange = calculateDateRange(preset, selectedTimezone);
+    const startDate = presetRange?.startDate || ensureDate(eventFilters.startDate) || defaultRange?.startDate || null;
+    const endDate = presetRange?.endDate || ensureDate(eventFilters.endDate) || defaultRange?.endDate || null;
     return {
       startDate,
       endDate,
@@ -222,8 +254,58 @@ export function useCalendarData({ defaultPreset = 'thisWeek' } = {}) {
   // BEP: Removed unused eventsCacheRef (legacy, replaced by Zustand/IndexedDB)
   const filtersRef = useRef(filters);
   const lastFetchKeyRef = useRef(null);
-  const fetchRequestIdRef = useRef(0);
   const abortControllerRef = useRef(null); // BEP v1.7.0: In-flight fetch deduplication
+
+  // ========================================================================
+  // BEP v2.4.0: Timezone-aware day rollover detection
+  // Polls every 60s to detect when the day changes in the user's timezone.
+  // When dayKey shifts (e.g., 2026-02-11 → 2026-02-12), recalculate date range
+  // from the active datePreset so "Today" shows the new day's events automatically.
+  // ========================================================================
+  const dayKeyRef = useRef(buildDayKey(selectedTimezone));
+
+  useEffect(() => {
+    const checkRollover = () => {
+      const currentDayKey = buildDayKey(selectedTimezone);
+      if (currentDayKey !== dayKeyRef.current) {
+        dayKeyRef.current = currentDayKey;
+
+        // Day changed — recalculate date range from the active preset
+        // BEP v2.5.0: When date-isolated, always use locked preset (never SettingsContext)
+        const preset = isDateIsolated ? isolatedDatePreset : (eventFilters.datePreset || defaultPreset);
+        const freshRange = calculateDateRange(preset, selectedTimezone);
+        if (freshRange) {
+          // Clear stale events and show skeleton (date range changed)
+          setEvents([]);
+          setInitialLoading(true);
+
+          // Invalidate Zustand query cache ("today" means a different day now)
+          const store = useEventsStore.getState();
+          store.onDayRollover?.();
+
+          // Reset fetch deduplication key so fetchEvents re-runs
+          lastFetchKeyRef.current = null;
+
+          // Update local filters with fresh range
+          const updated = {
+            ...filtersRef.current,
+            startDate: freshRange.startDate,
+            endDate: freshRange.endDate,
+          };
+          filtersRef.current = updated;
+          setFilters(updated);
+
+          // BEP v2.5.0: Only persist dates to SettingsContext when NOT date-isolated
+          if (!isDateIsolated) {
+            updateEventFilters(updated);
+          }
+        }
+      }
+    };
+
+    const id = setInterval(checkRollover, DAY_ROLLOVER_POLL_MS);
+    return () => clearInterval(id);
+  }, [selectedTimezone, eventFilters.datePreset, defaultPreset, updateEventFilters, isDateIsolated, isolatedDatePreset]);
 
   useEffect(() => {
     filtersRef.current = filters;
@@ -253,23 +335,26 @@ export function useCalendarData({ defaultPreset = 'thisWeek' } = {}) {
     // Recalculate default range and update filters
     prevTimezoneRef.current = selectedTimezone;
     
-    // Only auto-update if using a preset-based range (not custom dates)
-    // Check if current dates match the previous defaultRange (user was on a preset)
-    if (defaultRange) {
+    // BEP v2.5.0: When date-isolated, use isolated range; otherwise use default range
+    const rangeToUse = isDateIsolated ? isolatedRange : defaultRange;
+    if (rangeToUse) {
       setFilters((prev) => ({
         ...prev,
-        startDate: defaultRange.startDate,
-        endDate: defaultRange.endDate,
+        startDate: rangeToUse.startDate,
+        endDate: rangeToUse.endDate,
       }));
     }
-  }, [selectedTimezone, defaultRange]);
+  }, [selectedTimezone, defaultRange, isolatedRange, isDateIsolated]);
 
   useEffect(() => {
     // Skip if eventFilters haven't meaningfully changed (avoid infinite loops)
     const prev = prevEventFiltersRef.current;
-    const hasDatesChanged = 
+
+    // BEP v2.5.0: When date-isolated, ignore date changes from SettingsContext entirely
+    const hasDatesChanged = isDateIsolated ? false : (
       (eventFilters.startDate?.getTime?.() || null) !== (prev.startDate?.getTime?.() || null) ||
-      (eventFilters.endDate?.getTime?.() || null) !== (prev.endDate?.getTime?.() || null);
+      (eventFilters.endDate?.getTime?.() || null) !== (prev.endDate?.getTime?.() || null)
+    );
     const hasFiltersChanged = 
       JSON.stringify(eventFilters.impacts || []) !== JSON.stringify(prev.impacts || []) ||
       JSON.stringify(eventFilters.currencies || []) !== JSON.stringify(prev.currencies || []) ||
@@ -283,11 +368,19 @@ export function useCalendarData({ defaultPreset = 'thisWeek' } = {}) {
     prevEventFiltersRef.current = eventFilters;
     hasInitializedFromSettingsRef.current = true;
 
-    // Always sync from SettingsContext to local state
-    // If dates are saved, use them; otherwise, fall back to defaultRange (thisWeek)
-    // This ensures date range is NEVER unselected
-    const startDate = ensureDate(eventFilters.startDate) || defaultRange?.startDate || null;
-    const endDate = ensureDate(eventFilters.endDate) || defaultRange?.endDate || null;
+    // BEP v2.5.0: When date-isolated, keep locked date range — only sync non-date fields.
+    // When not isolated, recalculate dates from datePreset (v2.2.0 source of truth).
+    let startDate, endDate;
+    if (isDateIsolated) {
+      // Dates stay locked to isolated preset — use current local values
+      startDate = filtersRef.current.startDate;
+      endDate = filtersRef.current.endDate;
+    } else {
+      const preset = eventFilters.datePreset;
+      const presetRange = preset ? calculateDateRange(preset, selectedTimezone) : null;
+      startDate = presetRange?.startDate || ensureDate(eventFilters.startDate) || defaultRange?.startDate || null;
+      endDate = presetRange?.endDate || ensureDate(eventFilters.endDate) || defaultRange?.endDate || null;
+    }
     
     const syncedFilters = {
       startDate,
@@ -300,13 +393,20 @@ export function useCalendarData({ defaultPreset = 'thisWeek' } = {}) {
 
     setFilters(syncedFilters);
     filtersRef.current = syncedFilters;
-  }, [eventFilters, defaultRange]);
+  }, [eventFilters, defaultRange, selectedTimezone, isDateIsolated]);
 
   const persistFilters = useCallback(
     (nextFilters) => {
-      updateEventFilters(nextFilters);
+      if (isDateIsolated) {
+        // BEP v2.5.0: When date-isolated, only persist non-date fields to SettingsContext.
+        // Prevents /clock from overwriting Calendar page's datePreset.
+        const { startDate: _s, endDate: _e, datePreset: _d, ...nonDateFilters } = nextFilters;
+        updateEventFilters(nonDateFilters);
+      } else {
+        updateEventFilters(nextFilters);
+      }
     },
-    [updateEventFilters],
+    [updateEventFilters, isDateIsolated],
   );
 
   const fetchEvents = useCallback(
@@ -381,13 +481,26 @@ export function useCalendarData({ defaultPreset = 'thisWeek' } = {}) {
 
   const applyFilters = useCallback(
     (nextFilters) => {
+      // BEP v2.5.0: When date-isolated, strip any incoming date fields and force locked range
+      let effectiveNext = nextFilters;
+      if (isDateIsolated) {
+        // eslint-disable-next-line no-unused-vars
+        const { datePreset, startDate: _s, endDate: _e, ...nonDateNext } = nextFilters;
+        effectiveNext = nonDateNext;
+      }
+
       const merged = {
         ...filtersRef.current,
-        ...nextFilters,
+        ...effectiveNext,
       };
 
-      const startDate = ensureDate(merged.startDate) || defaultRange?.startDate;
-      const endDate = ensureDate(merged.endDate) || defaultRange?.endDate;
+      // BEP v2.5.0: When date-isolated, always use the locked date range
+      const startDate = isDateIsolated
+        ? (isolatedRange?.startDate || defaultRange?.startDate)
+        : (ensureDate(merged.startDate) || defaultRange?.startDate);
+      const endDate = isDateIsolated
+        ? (isolatedRange?.endDate || defaultRange?.endDate)
+        : (ensureDate(merged.endDate) || defaultRange?.endDate);
 
       // BEP v1.9.0: Detect date-range change — if startDate/endDate shifted,
       // clear stale events immediately and show full skeleton table. This prevents
@@ -416,7 +529,7 @@ export function useCalendarData({ defaultPreset = 'thisWeek' } = {}) {
       setFilters(resolved);
       persistFilters(resolved);
     },
-    [defaultRange, persistFilters],
+    [defaultRange, persistFilters, isDateIsolated, isolatedRange],
   );
 
   const handleFiltersChange = useCallback((nextFilters) => {
@@ -450,12 +563,41 @@ export function useCalendarData({ defaultPreset = 'thisWeek' } = {}) {
   }, [defaultRange, fetchEvents, fetchKey, filters.endDate, filters.startDate, persistFilters]);
 
   // ========================================================================
-  // BEP v1.5.0: Real-time Zustand subscription removed
-  // Reason: Timezone conversion complexity during real-time updates introduced display inaccuracies
-  // (events showed UTC time instead of user's timezone until page reload)
-  // Solution: Data refreshes reliably on page reload/remount with correct timezone handling
-  // Admin edits take effect when user refreshes or navigates to/from the page
+  // BEP v2.3.0: Subscribe to systemJobs sync status for real-time cache invalidation.
+  // When NFS/JBlanked cloud functions update Firestore, the sync doc timestamp changes.
+  // This listener detects new syncs and invalidates ALL cache layers:
+  //   1. Zustand query cache (immediate in-memory clear)
+  //   2. IndexedDB persistent cache (async clear)
+  //   3. lastFetchKeyRef (forces fetchEvents to re-execute)
+  // Then triggers a full re-fetch so users see updated data without manual refresh.
   // ========================================================================
+  useEffect(() => {
+    let unsubscribe;
+
+    subscribeToSyncUpdates(() => {
+      // Invalidate Zustand query cache
+      const store = useEventsStore.getState();
+      store.invalidateQueryCache?.();
+
+      // Invalidate IndexedDB persistent cache + TTL marker
+      clearIdbTimestamp();
+      eventsDB.clear().catch(() => {/* non-fatal */});
+
+      // Reset lastFetchKey so the fetch effect re-executes
+      lastFetchKeyRef.current = null;
+
+      // Re-fetch with current filters
+      fetchEvents(filtersRef.current);
+    }).then((unsub) => {
+      unsubscribe = unsub;
+    }).catch(() => {
+      // Graceful fallback — sync subscription not critical for basic operation
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [fetchEvents]);
 
   const deferredSearchQuery = useDeferredValue(filters.searchQuery || '');
 
@@ -490,7 +632,18 @@ export function useCalendarData({ defaultPreset = 'thisWeek' } = {}) {
     if (refreshing) return;
     setRefreshing(true);
     try {
+      // BEP v2.3.0: Invalidate ALL cache layers before re-fetching
+      // 1. Legacy localStorage cache (eventsCache.js)
       await refreshEventsCache(newsSource);
+      // 2. Zustand query cache (in-memory)
+      const store = useEventsStore.getState();
+      store.invalidateQueryCache?.();
+      // 3. IndexedDB persistent cache + TTL marker
+      clearIdbTimestamp();
+      await eventsDB.clear().catch(() => {/* non-fatal */});
+      // 4. Reset lastFetchKey to force re-execute
+      lastFetchKeyRef.current = null;
+      // 5. Re-fetch from Firestore
       await fetchEvents(filtersRef.current);
     } catch (err) {
       setError(err.message || 'Failed to refresh events.');

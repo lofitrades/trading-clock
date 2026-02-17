@@ -1,0 +1,59 @@
+{
+  "title": "Aperçus",
+  "filters": {
+    "sources": "Types de Source",
+    "timeframe": "Période"
+  },
+  "sourceChips": {
+    "article": "Articles",
+    "activity": "Activité",
+    "note": "Notes"
+  },
+  "timeframeSelector": {
+    "day": "Dernières 24h",
+    "week": "7 derniers jours",
+    "month": "30 derniers jours",
+    "all": "Tous les temps"
+  },
+  "infoModal": {
+    "title": "À propos des Aperçus",
+    "tooltip": "Que sont les Aperçus ?",
+    "description": "<strong>Aperçus</strong> affiche l'activité du marché en temps réel pertinente pour votre vue actuelle : modifications du calendrier des événements, nouvelles analyses du blog, état de synchronisation et plus encore. Cela vous aide à rester informé de ce qui se passe pour prendre des décisions de trading plus éclairées.",
+    "updateNote": "Les aperçus se rafraîchissent automatiquement et affichent les 24 dernières heures d'activité. La pertinence est classée par récence et sévérité."
+  },
+  "empty": {
+    "noResults": "Aucune activité récente dans les dernières 24 heures."
+  },
+  "loadMore": "Charger Plus d'Aperçus",
+  "summary": "{{articles}} articles • {{activities}} activités • {{notes}} notes",
+  "summaryActivity": "{{activities}} activités récentes",
+  "article": {
+    "readingTime": "{{minutes}} min de lecture"
+  },
+  "activity": {
+    "severity": {
+      "error": "Erreur",
+      "warning": "Avertissement",
+      "success": "Succès",
+      "info": "Information"
+    },
+    "types": {
+      "event_rescheduled": "Événement Reprogrammé",
+      "event_cancelled": "Événement Annulé",
+      "event_reinstated": "Événement Rétabli",
+      "blog_published": "Blog Publié",
+      "sync_completed": "Synchronisation Terminée",
+      "sync_failed": "Synchronisation Échouée",
+      "blog_created": "Blog Créé",
+      "gpt_upload": "Téléchargement GPT",
+      "user_signup": "Nouvel Utilisateur",
+      "unknown": "Activité"
+    }
+  },
+  "note": {
+    "note": "Note"
+  },
+  "card": {
+    "unknownType": "Type d'aperçu inconnu"
+  }
+}

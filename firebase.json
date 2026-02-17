@@ -3,6 +3,7 @@
     "path": "firebase.json",
     "purpose": "Firebase Hosting and Functions configuration for Time 2 Trade frontend/backend deployment.",
     "changelog": [
+      "v1.13.0 - 2026-02-11 - BEP PERFORMANCE: Added cache headers for image/icon files (7-day max-age with stale-while-revalidate) and JSON locale files (1-hour with stale-while-revalidate). Improves repeat-visit performance by caching favicon, icons, and i18n translation files. Fixed firebase.googleapis.com preconnect crossorigin mismatch.",
       "v1.12.0 - 2026-02-05 - BEP SEO FIX: Added explicit Content-Type headers for all sitemap files (sitemap-pages.xml, sitemap-events.xml, sitemap-blog.xml). Browsers were displaying plain text instead of XML because static files lacked Content-Type: application/xml header. Cloud Functions already set headers correctly, but static hosting needed explicit config.",
       "v1.11.0 - 2026-02-05 - BEP SEO SOCIAL: Fixed blog post sharing. /blog/* now routes to serveBlogHtml Cloud Function for pre-rendered HTML with OG meta tags. Social media crawlers (WhatsApp, Facebook, Twitter) will now see post-specific thumbnails, titles, and descriptions.",
       "v1.10.0 - 2026-02-04 - BEP SITEMAP: Added dynamic sitemap rewrites. /sitemap.xml → serveSitemapIndex, /sitemap-blog.xml → serveSitemapBlog. Static sitemap-pages.xml and sitemap-events.xml served directly. Enables auto-update of blog sitemap on publish.",
@@ -238,6 +239,24 @@
           {
             "key": "Cache-Control",
             "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(ico|png|svg|jpg|jpeg|webp|gif)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=604800, stale-while-revalidate=86400"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(json)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=3600, stale-while-revalidate=600"
           }
         ]
       },

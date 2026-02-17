@@ -10,7 +10,7 @@ v1.0.0 - 2025-09-15 - Initial audience specification.
 -->
 
 # TargetAudience.md
-Time 2 Trade (Trading Clock + Economic Events)
+Time 2 Trade (Market Clock + Economic Events)
 
 **Product URL:** https://time2.trade  
 **Blog URL:** https://time2.trade/blog  
@@ -177,7 +177,7 @@ They want **immediate context** before executing trades.
 ---
 
 ## 7) How product features map to audiences
-### Trading Clock (core)
+### Market Clock (core)
 Best for:
 - Futures/forex day traders
 - Students following session-based strategies

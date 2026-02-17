@@ -301,15 +301,26 @@ const AdminBlogPage = () => {
     return (
         <Container maxWidth="xl" sx={{ py: 3 }}>
             {/* Header */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Stack
+                direction={{ xs: 'column', md: 'row' }}
+                justifyContent="space-between"
+                alignItems={{ xs: 'flex-start', md: 'center' }}
+                spacing={2}
+                sx={{ mb: 3 }}
+            >
                 <Typography variant="h4" component="h1">
                     {t('admin:blog.title')}
                 </Typography>
-                <Stack direction="row" spacing={2}>
+                <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ flexWrap: 'wrap', gap: 1 }}
+                >
                     {/* Authors button - admin/superadmin only */}
                     {hasRole(['superadmin', 'admin']) && (
                         <Button
                             variant="outlined"
+                            size="small"
                             startIcon={<PeopleIcon />}
                             onClick={() => navigate('/admin/blog/authors')}
                         >
@@ -319,6 +330,7 @@ const AdminBlogPage = () => {
                     {/* Upload JSON button */}
                     <Button
                         variant="outlined"
+                        size="small"
                         startIcon={<UploadFileIcon />}
                         onClick={() => setUploadDrawerOpen(true)}
                     >
@@ -326,13 +338,14 @@ const AdminBlogPage = () => {
                     </Button>
                     <Button
                         variant="contained"
+                        size="small"
                         startIcon={<AddIcon />}
                         onClick={() => navigate('/admin/blog/new')}
                     >
                         {t('admin:blog.newPost')}
                     </Button>
                 </Stack>
-            </Box>
+            </Stack>
 
             {/* Filters */}
             <Paper sx={{ p: 2, mb: 3 }}>

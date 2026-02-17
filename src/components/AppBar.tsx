@@ -5,6 +5,59 @@
  * Renders a sticky sub-header on md+ and an Airbnb-style bottom navigation on xs/sm.
  * 
  * Changelog:
+ * v1.5.15 - 2026-02-14 - BEP VISIBILITY CALLBACK: Added onBottomNavVisibilityChange prop.
+ *                         Fires (visible: boolean) whenever mobile bottom nav shows/hides due to
+ *                         scroll direction. Enables sibling components (e.g., FAB buttons) to
+ *                         animate in sync with the bar's auto-hide transition.
+ * v1.5.14 - 2026-02-14 - BEP SUB-PIXEL GAP FIX: Changed mobile bottom nav transform from
+ *                         translateY(0) to 'none' when visible. GPU compositing from translateY(0)
+ *                         creates a fractional-pixel gap between the bar's bottom edge and the
+ *                         viewport, letting scrolled content bleed through. 'none' renders the
+ *                         element without a compositing layer, eliminating the gap. willChange
+ *                         now only set to 'transform' when hiding (avoids unnecessary layer
+ *                         promotion). CSS transition still fires correctly on none → translateY.
+ * v1.5.13 - 2026-02-14 - BEP iOS GLASSMORPHISM: Redesigned mobile bottom AppBar with Apple-style
+ *                         frosted glass effect. Translucent background (72% light / 65% dark alpha),
+ *                         24px blur + 1.8× saturation backdrop-filter, ultra-subtle top border,
+ *                         soft upward shadow. BottomNavigation background set to transparent so
+ *                         glass effect shows through. Inactive icons use 65% text opacity for
+ *                         hierarchy, selected items use primary.main. Removed elevation:6 (replaced
+ *                         with custom shadow). WebkitBackdropFilter added for Safari compatibility.
+ *                         Theme-aware: light mode uses background.default base, dark mode uses
+ *                         background.paper base with adjusted alpha. WCAG AA contrast maintained.
+ * v1.5.12 - 2026-02-14 - BUGFIX: Scroll listener was on window but PublicLayout uses
+ *                         overflow:hidden on outer shell — window.scrollY is always 0. Fixed
+ *                         by querying [data-t2t-scroll-container] (PublicLayout's inner Box)
+ *                         and listening on its scrollTop instead. Falls back to window for
+ *                         pages without PublicLayout. Auto-hide now works on Chrome DevTools
+ *                         mobile emulation and real devices.
+ * v1.5.11 - 2026-02-13 - BEP AUTO-HIDE BOTTOM NAV: Mobile bottom AppBar (xs/sm) now auto-hides
+ *                         on scroll down and auto-shows on scroll up, following modern app UX
+ *                         patterns (Instagram, X, TikTok). Uses scroll direction detection with
+ *                         8px dead-zone threshold to prevent micro-scroll jitter. Smooth 300ms
+ *                         cubic-bezier CSS transition on translateY. Always visible at page top
+ *                         (scrollY ≤ 10px). Desktop (md+) unaffected. Uses passive scroll listener
+ *                         for zero main-thread impact. willChange: transform for GPU compositing.
+ * v1.5.10 - 2026-02-13 - BEP MOBILE-FIRST: Hidden 'Market Clock' nav item from desktop
+ *                         AppBar (md+ breakpoints). Clock nav item only displays on mobile
+ *                         (xs/sm) bottom AppBar. Desktop users navigate to /clock via Calendar
+ *                         page right column tabs. Reduces desktop AppBar clutter, emphasizes
+ *                         Calendar as primary entry point for market data on large screens.
+ * v1.5.9 - 2026-02-12 - BEP CLS FIX: Added explicit width={40} height={40} attributes to logo
+ *                        <img> element. Prevents layout shift from unsized image (Lighthouse CLS
+ *                        culprit). Combined with sx width/height for MUI consistency.
+ * v1.5.8 - 2026-02-10 - BEP BADGE CLIPPING FIX: Root cause was parent Stack overflow:'hidden'
+ *                        clipping the badge positioned outside the icon bounds. (1) Wrapped badged
+ *                        icon in Box with overflow:'visible' and position:'relative'. (2) Changed
+ *                        Badge styling to slotProps.badge for direct DOM control. (3) Used
+ *                        'position: absolute !important' to override any parent constraints.
+ *                        (4) Changed parent Stacks from overflow:'hidden' to overflow:'visible'.
+ *                        Badge now fully visible at top-right of notification bell.
+ * v1.5.7 - 2026-02-10 - BEP BADGE STYLING: Fixed notification badge cropping by raising z-index to
+ *                        theme.zIndex.tooltip (1300). Set overflow:visible on badge container to
+ *                        prevent parent clipping. Removed default borders. Explicit position offset
+ *                        (top:-6, right:-6) ensures badge floats above icon without margin/padding
+ *                        interference. Badge now fully visible on all breakpoints and platforms.
  * v1.5.6 - 2026-02-06 - Added Blog nav handling so Blog items render between Calendar and About across desktop AppBar and mobile bottom nav for all users (auth and guests). Aligns with useAppBarNavItems hook addition.
  * v1.5.5 - 2026-01-28 - BEP: Removed ThemeToggle button from AppBar. Theme switching deferred to SettingsSidebar2 Settings tab only. Simplifies AppBar navigation chrome. Users access theme toggle via Settings gear button → General tab → Appearance section.
  * v1.5.4 - 2026-01-28 - BEP PHASE 3.4: Added ThemeToggle button to AppBar right-stack (between nav items and NotificationCenter). Quick theme cycling: light → dark → system → light. Icon adapts to current theme (LightModeIcon for light, DarkModeIcon for dark/system). Tooltip shows current mode. Circular icon-only button with hover effect. Available on all breakpoints for all users (auth and guests). Uses useThemeMode().toggleTheme() from ThemeContext for real-time switching.
@@ -20,7 +73,7 @@
  * v1.4.12 - 2026-01-22 - BEP UX: Added notificationEvents prop to pass custom events array to NotificationCenter. Enables EventModal opening on notification click for seamless reminder-to-event navigation.
  * v1.4.11 - 2026-01-22 - NOTIFICATION CENTER ON DESKTOP: Added NotificationCenter component to desktop nav (md+) positioned right of Settings button and left of user avatar. Accepts notification props (notifications, unreadCount, onMarkRead, onMarkAllRead, onClearAll) from PublicLayout. Enables global notification scope with consistent UI across all breakpoints: md+ in sticky AppBar nav, xs/sm in mobile header.
  * v1.4.10 - 2026-01-21 - Z-INDEX: Keep AppBar layers below modal overlays while aligning with the global stack.
- * v1.4.9 - 2026-01-16 - NAV ORDER: Reordered nav items so Trading Clock appears before Calendar on all breakpoints.
+ * v1.4.9 - 2026-01-16 - NAV ORDER: Reordered nav items so Market Clock appears before Calendar on all breakpoints.
  * v1.4.8 - 2026-01-15 - DESKTOP SETTINGS VISIBILITY: Show Settings button for non-auth users on md+ when AppBar is visible.
  * v1.4.7 - 2026-01-15 - CRITICAL CSS VARIABLE FIX: Changed isMobile from useMediaQuery(theme.breakpoints.down('sm'))
  * to useMediaQuery(theme.breakpoints.down('md')). The mobile bottom nav is displayed on xs AND sm (display: { xs: 'block', md: 'none' }),
@@ -59,7 +112,7 @@
  * v1.0.0 - 2026-01-12 - Created responsive calendar dashboard AppBar with 5-item max nav model.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -119,6 +172,9 @@ export type AppBarProps = {
   onMarkAllRead?: () => void;
   onClearAll?: () => void;
   notificationEvents?: any[];
+  /** BEP v1.5.15: Callback fired when mobile bottom nav visibility changes.
+   *  visible=true → bar is on-screen, visible=false → bar is hidden (scrolled away). */
+  onBottomNavVisibilityChange?: (visible: boolean) => void;
 };
 
 const clampItems = (items: AppBarNavItem[]) => {
@@ -165,7 +221,7 @@ const isItemActive = (pathname: string, item: AppBarNavItem) => {
   return pathname === item.to || pathname.startsWith(`${item.to}/`);
 };
 
-export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigation', sx, onOpenSettings, onOpenAuth, notifications, unreadCount, onMarkRead, onMarkAllRead, onClearAll, notificationEvents }: AppBarProps) {
+export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigation', sx, onOpenSettings, onOpenAuth, notifications, unreadCount, onMarkRead, onMarkAllRead, onClearAll, notificationEvents, onBottomNavVisibilityChange }: AppBarProps) {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -275,6 +331,69 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
     return undefined;
   }, [isMobile]);
 
+  // BEP v1.5.12: Auto-hide/show mobile bottom nav on scroll direction (modern app pattern).
+  // Scrolling down hides the bar (more content space), scrolling up reveals it.
+  // Uses a dead-zone threshold (8px) to prevent micro-scroll jitter.
+  // CRITICAL: PublicLayout uses overflow:hidden on the outer shell and overflowY:auto on
+  // an inner Box (data-t2t-scroll-container). window.scrollY is always 0 — we must listen
+  // on the actual scrollable container's scrollTop instead.
+  const [mobileNavHidden, setMobileNavHidden] = useState(false);
+  const lastScrollY = useRef(0);
+  const scrollDelta = useRef(0);
+  const SCROLL_THRESHOLD = 8; // px dead zone before toggling
+
+  useEffect(() => {
+    if (!isMobile) {
+      setMobileNavHidden(false);
+      return undefined;
+    }
+
+    // Find the actual scrollable container (PublicLayout's inner Box).
+    // Falls back to window for pages that don't use PublicLayout.
+    const scrollContainer = document.querySelector('[data-t2t-scroll-container]') as HTMLElement | null;
+
+    const getScrollTop = () => {
+      if (scrollContainer) return scrollContainer.scrollTop;
+      return window.scrollY;
+    };
+
+    const handleScroll = () => {
+      const currentY = getScrollTop();
+      const delta = currentY - lastScrollY.current;
+      lastScrollY.current = currentY;
+
+      // At the very top — always show
+      if (currentY <= 10) {
+        setMobileNavHidden(false);
+        scrollDelta.current = 0;
+        return;
+      }
+
+      // Accumulate scroll delta in same direction; reset on direction change
+      if ((delta > 0 && scrollDelta.current < 0) || (delta < 0 && scrollDelta.current > 0)) {
+        scrollDelta.current = 0;
+      }
+      scrollDelta.current += delta;
+
+      if (scrollDelta.current > SCROLL_THRESHOLD) {
+        setMobileNavHidden(true); // scrolling down → hide
+      } else if (scrollDelta.current < -SCROLL_THRESHOLD) {
+        setMobileNavHidden(false); // scrolling up → show
+      }
+    };
+
+    const target = scrollContainer || window;
+    target.addEventListener('scroll', handleScroll, { passive: true });
+    return () => target.removeEventListener('scroll', handleScroll);
+  }, [isMobile]);
+
+  // BEP v1.5.15: Notify parent when mobile bottom nav visibility changes
+  useEffect(() => {
+    if (onBottomNavVisibilityChange) {
+      onBottomNavVisibilityChange(!mobileNavHidden);
+    }
+  }, [mobileNavHidden, onBottomNavVisibilityChange]);
+
   const handleActivate = (item: AppBarNavItem) => {
     if (item.disabled) return;
 
@@ -293,14 +412,30 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
 
     const badgeContent = item.badge === 'dot' ? undefined : item.badge;
     return (
-      <Badge
-        color="primary"
-        variant={item.badge === 'dot' ? 'dot' : 'standard'}
-        badgeContent={badgeContent}
-        overlap="circular"
-      >
-        {item.icon}
-      </Badge>
+      <Box sx={{ display: 'flex', overflow: 'visible', position: 'relative' }}>
+        <Badge
+          color="primary"
+          variant={item.badge === 'dot' ? 'dot' : 'standard'}
+          badgeContent={badgeContent}
+          overlap="circular"
+          slotProps={{
+            badge: {
+              sx: {
+                // BEP v1.5.8: Fix badge clipping by ensuring it's not constrained
+                // by parent overflow. Set high z-index and remove default borders.
+                zIndex: theme.zIndex.tooltip,
+                border: 'none',
+                // Force the badge to render above all constraints
+                position: 'absolute !important',
+                right: '-6px',
+                top: '-6px',
+              },
+            },
+          }}
+        >
+          {item.icon}
+        </Badge>
+      </Box>
     );
   };
 
@@ -352,10 +487,12 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
                 component="img"
                 src={DEFAULT_BRAND_LOGO_SRC}
                 alt="Time 2 Trade logo"
+                width={40}
+                height={40}
                 sx={{
                   display: 'block',
                   height: 40,
-                  width: 'auto',
+                  width: 40,
                   maxWidth: '32vw',
                   objectFit: 'contain',
                   flexShrink: 0,
@@ -392,8 +529,8 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
               </Typography>
             </Stack>
 
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, justifyContent: 'flex-end', minWidth: 0, overflow: 'hidden' }}>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ justifyContent: 'flex-end', minWidth: 0, flex: 1, overflow: 'hidden' }}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, justifyContent: 'flex-end', minWidth: 0, overflow: 'visible' }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ justifyContent: 'flex-end', minWidth: 0, flex: 1, overflow: 'visible' }}>
                 {safeItems.map((item, index) => {
                 const variant = item.primary ? 'contained' : 'text';
                 const color = item.primary ? 'primary' : 'inherit';
@@ -424,13 +561,15 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
                       minWidth: 0,
                       flexShrink: 0,
                       whiteSpace: 'nowrap',
-                      display: item.id === 'settings'
-                        ? 'inline-flex'
-                        : item.id === 'unlock-md'
-                          ? { xs: 'none', md: 'inline-flex', lg: 'none' }
-                          : item.id === 'unlock-lg'
-                            ? { xs: 'none', md: 'none', lg: 'inline-flex' }
-                            : 'inline-flex',
+                      display: item.id === 'clock'
+                        ? { xs: 'inline-flex', md: 'none', lg: 'none' }
+                        : item.id === 'settings'
+                          ? 'inline-flex'
+                          : item.id === 'unlock-md'
+                            ? { xs: 'none', md: 'inline-flex', lg: 'none' }
+                            : item.id === 'unlock-lg'
+                              ? { xs: 'none', md: 'none', lg: 'inline-flex' }
+                              : 'inline-flex',
                       color: item.primary
                         ? 'primary.contrastText'
                         : active
@@ -515,9 +654,9 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
         </Paper>
       </Box>
 
-      {/* Mobile bottom nav (Airbnb-style) */}
+      {/* Mobile bottom nav (iOS frosted-glass style) */}
       <Paper
-        elevation={6}
+        elevation={0}
         component="nav"
         aria-label={ariaLabel}
         sx={{
@@ -527,11 +666,36 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
           right: 0,
           bottom: 0,
           zIndex: theme.zIndex.appBar,
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          bgcolor: alpha(theme.palette.background.paper, 0.98),
-          backdropFilter: 'blur(10px)',
+          /* BEP iOS GLASSMORPHISM: Translucent frosted-glass effect.
+             Low-alpha background lets content bleed through, saturated
+             backdrop-filter blur creates the characteristic Apple glass.
+             Border uses ultra-subtle divider opacity for depth without
+             heaviness. No elevation shadow — glass effect is the chrome. */
+          bgcolor: alpha(
+            theme.palette.mode === 'dark'
+              ? theme.palette.background.paper   // dark: slightly brighter base
+              : theme.palette.background.default, // light: neutral base
+            theme.palette.mode === 'dark' ? 0.65 : 0.72
+          ),
+          backdropFilter: 'blur(24px) saturate(1.8)',
+          WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
+          border: 'none',
+          borderTop: `1px solid ${alpha(
+            theme.palette.divider,
+            theme.palette.mode === 'dark' ? 0.15 : 0.12
+          )}`,
+          boxShadow: `0 -1px 3px 0 ${alpha(
+            theme.palette.common.black,
+            theme.palette.mode === 'dark' ? 0.2 : 0.06
+          )}`,
           pb: 'env(safe-area-inset-bottom)',
+          // BEP v1.5.14: Use 'none' when visible to avoid GPU compositing sub-pixel
+          // gap at the bottom edge. translateY(0) forces a compositing layer that can
+          // leave a fractional-pixel gap between the bar and the viewport bottom.
+          // 'none' → translateY(100%) still triggers the CSS transition correctly.
+          transform: mobileNavHidden ? 'translateY(100%)' : 'none',
+          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          willChange: mobileNavHidden ? 'transform' : undefined,
         }}
       >
         <BottomNavigation
@@ -552,6 +716,8 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
           }}
           sx={{
             height: MOBILE_BOTTOM_APPBAR_HEIGHT_PX,
+            // BEP: Transparent background so frosted-glass Paper shows through
+            bgcolor: 'transparent',
             '& .MuiBottomNavigationAction-root': {
               minWidth: 0,
               px: 0.75,
@@ -559,8 +725,14 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
+              // BEP ACCESSIBILITY: High contrast text on translucent glass
+              color: alpha(theme.palette.text.primary, 0.65),
+              transition: 'color 0.2s ease',
               '& .MuiSvgIcon-root': {
                 fontSize: '1.25rem',
+              },
+              '&.Mui-selected': {
+                color: 'primary.main',
               },
             },
             '& .MuiBottomNavigationAction-label': {
@@ -578,11 +750,6 @@ export default function DashboardAppBar({ items, ariaLabel = 'Calendar navigatio
               icon={renderIcon(item)}
               disabled={Boolean(item.disabled)}
               aria-label={item.ariaLabel || item.label}
-              sx={{
-                '&.Mui-selected': {
-                  color: 'primary.main',
-                },
-              }}
             />
           ))}
         </BottomNavigation>

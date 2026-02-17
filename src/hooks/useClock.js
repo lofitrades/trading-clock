@@ -1,10 +1,11 @@
 /**
  * src/hooks/useClock.js
  * 
- * Purpose: Calculate active session metadata for the trading clock using a timezone-aware time source.
+ * Purpose: Calculate active session metadata for the market clock using a timezone-aware time source.
  * Key responsibility and main functionality: Derive active/next sessions and countdowns from a provided or internal clock tick.
  * 
  * Changelog:
+ * v1.1.1 - 2026-02-10 - Rename Market Clock branding in header copy.
  * v1.1.0 - 2026-01-07 - Added optional external time engine and aligned fallback tick to second boundaries for tighter sync.
  * v1.0.0 - 2025-09-15 - Initial implementation
  */

@@ -22,6 +22,11 @@
  * v1.8.0 - 2026-01-23 - Migrated from AuthModal to AuthModal2 with proper open prop; removed legacy AuthModal.jsx dependency
  * v1.7.0 - 2026-01-08 - Extended magicLinkProcessing timeout to 8s to eliminate loading screen during welcome modal display; prevents auto-unmounting per enterprise best practices
  * v1.6.0 - 2026-01-08 - Added full-screen verifying modal with success confirmation following enterprise magic link UX patterns
+ * v1.5.2 - 2026-02-11 - BEP LINTING: Removed unused authComplete state variable. Fixed missing
+ *                        dependencies in useEffect: added i18n and processSignIn to dependency array.
+ *                        Resolves ESLint no-unused-vars and exhaustive-deps warnings.
+ * v1.5.1 - 2026-02-11 - BEP PERFORMANCE: Lazy-loaded AuthModal2 (conditionally rendered on
+ *                        magic link failure). Defers Firebase Auth SDK import until needed.
  * v1.5.0 - 2025-12-17 - Sign out existing sessions before magic link sign-in and create profiles for new users to prevent cross-account logins
  * v1.4.0 - 2025-12-16 - Added "Request New Link" button and AuthModal integration
  * v1.3.0 - 2025-12-16 - Added proper error handling and clean email confirmation UI
@@ -30,14 +35,14 @@
  * v1.0.0 - 2025-12-16 - Initial implementation
  */
 
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isSignInWithEmailLink, signInWithEmailLink, getAdditionalUserInfo, signOut, sendSignInLinkToEmail } from 'firebase/auth';
 import { auth } from '../firebase';
 import { getMagicLinkActionCodeSettings } from '../utils/authLinkSettings';
 import { Dialog, DialogContent, DialogTitle, TextField, Button, Typography, Alert, CircularProgress, Box } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import AuthModal2 from './AuthModal2';
+const AuthModal2 = lazy(() => import('./AuthModal2'));
 import { createUserProfileSafely } from '../utils/userProfileUtils';
 import { trackSignUp, trackLogin } from '../services/facebookPixelService';
 import { logUserSignup } from '../services/activityLogger';
@@ -56,7 +61,6 @@ export default function EmailLinkHandler() {
   const [isNewUser, setIsNewUser] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
   const [resendSending, setResendSending] = useState(false);
-  const [authComplete, setAuthComplete] = useState(false);
 
   // Loader is handled independently; modals render above loader using high z-index
 
@@ -430,7 +434,7 @@ export default function EmailLinkHandler() {
 
   // Show AuthModal2 if user needs to request new link
   if (showAuthModal) {
-    return <AuthModal2 open={true} onClose={() => setShowAuthModal(false)} />;
+    return <Suspense fallback={null}><AuthModal2 open={true} onClose={() => setShowAuthModal(false)} /></Suspense>;
   }
 
   // Show email confirmation dialog if needed

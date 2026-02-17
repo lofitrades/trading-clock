@@ -581,7 +581,7 @@ Create `public/404.html`:
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Trading Clock</title>
+    <title>Market Clock</title>
     <script>
       sessionStorage.redirect = location.href;
     </script>

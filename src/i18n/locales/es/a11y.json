@@ -29,8 +29,7 @@
     "sections": "Secciones de configuración",
     "syncWeek": "Sincronizar semana",
     "syncActuals": "Sincronizar los datos reales",
-    "syncForexFactory": "Rellenar Forex Factory",
-    "closeDrawer": "Cerrar configuración",
+    "syncForexFactory": "Rellenar Forex Factory",    "backfillInsightKeys": "Completar claves de insights",    "closeDrawer": "Cerrar configuración",
     "clearSession": "Limpiar sesión {{number}}"
   }
 }

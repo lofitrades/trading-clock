@@ -20,6 +20,10 @@
  * - /blog/author/:authorSlug (author pages)
  *
  * Changelog:
+ * v1.3.0 - 2026-02-11 - BEP CRITICAL FIX: Added safeToDate() helper to handle mixed date formats
+ *                       (Firestore Timestamp, string, number, serialized _seconds object).
+ *                       Fixes 'toDate is not a function' crash on /sitemap-blog.xml when
+ *                       publishedAt/updatedAt aren't native Firestore Timestamps.
  * v1.2.0 - 2026-02-05 - BEP: Emit hreflang only for available translations and set x-default to first available language.
  * v1.1.0 - 2026-02-04 - BEP: Added category, tag, and event+currency combo hub pages to blog sitemap
  * v1.0.0 - 2026-02-04 - Initial implementation (BEP Dynamic Sitemap)
@@ -66,6 +70,37 @@ interface BlogAuthor {
  */
 const formatDate = (date: Date): string => {
   return date.toISOString().split("T")[0];
+};
+
+/**
+ * Safely convert a Firestore field to a JS Date.
+ * Handles: Firestore Timestamp (.toDate()), Date object, ISO string,
+ * epoch number (ms), serialized Timestamp ({_seconds}), or null/undefined.
+ * Returns fallback (default: current date) if conversion fails.
+ */
+const safeToDate = (
+  value: unknown,
+  fallback: Date = new Date()
+): Date => {
+  if (!value) return fallback;
+  // Firestore Timestamp
+  if (typeof (value as { toDate?: () => Date }).toDate === "function") {
+    return (value as { toDate: () => Date }).toDate();
+  }
+  // Already a Date
+  if (value instanceof Date) return value;
+  // ISO string or other parseable string
+  if (typeof value === "string") {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? fallback : d;
+  }
+  // Epoch milliseconds
+  if (typeof value === "number") return new Date(value);
+  // Serialized Timestamp object ({_seconds, _nanoseconds})
+  if (typeof value === "object" && "_seconds" in (value as Record<string, unknown>)) {
+    return new Date((value as { _seconds: number })._seconds * 1000);
+  }
+  return fallback;
 };
 
 /**
@@ -143,7 +178,7 @@ export const generateBlogSitemap = async (): Promise<string> => {
 
   for (const doc of postsSnap.docs) {
     const post = { id: doc.id, ...doc.data() } as BlogPost;
-    const postDate = post.publishedAt?.toDate() || post.updatedAt?.toDate() || new Date();
+    const postDate = safeToDate(post.publishedAt, safeToDate(post.updatedAt));
     const lastmod = formatDate(postDate);
 
     // Track latest post date for sitemap index
@@ -304,10 +339,8 @@ export const generateSitemapIndex = async (): Promise<string> => {
 
     if (!latestPost.empty) {
       const post = latestPost.docs[0].data();
-      const postDate = post.publishedAt?.toDate() || post.updatedAt?.toDate();
-      if (postDate) {
-        blogLastmod = formatDate(postDate);
-      }
+      const postDate = safeToDate(post.publishedAt, safeToDate(post.updatedAt, new Date()));
+      blogLastmod = formatDate(postDate);
     }
   } catch (error) {
     logger.warn("Could not get latest blog post date for sitemap index", { error });

@@ -265,7 +265,7 @@ EventModal.jsx has been fully audited and refactored to eliminate all hardcoded 
 - French (FR): 100% complete
 
 ### ✅ Consistent Terminology
-- "Trading Clock" consistency maintained
+- "Market Clock" consistency maintained
 - "Reminders" terminology standardized
 - Economic event field naming aligned across locales
 - Action button labels consistent (Close, Edit, Save, etc.)

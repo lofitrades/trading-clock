@@ -5,6 +5,11 @@
  * Follows Material Design v7 best practices with proper spacing, typography hierarchy, and Airbnb-inspired design.
  *
  * Changelog:
+ * v1.1.37 - 2026-02-12 - BEP UX: Tooltip header shows single time when all events share the same
+ *   time, and shows an actual min–max range only when events within the grouping window have
+ *   different times. Previously always showed the ±2 min window range. Improves clarity for
+ *   same-time multi-event groups (e.g. 8:30 AM instead of 8:28 AM – 8:32 AM).
+ * v1.1.36 - 2026-02-12 - BEP UX/A11Y: Removed the extra custom impact (blue/star) chip from tooltip rows to reduce visual noise. Custom event chip now uses contrast-aware text/icon color via isColorDark() based on its background.
  * v1.1.35 - 2026-02-09 - UX: Renamed custom event label from 'CUS' to 'MINE' on tooltip badges. More intuitive and user-friendly across all languages.
  * v1.1.32 - 2026-01-29 - BEP i18n: Relative time labels ("In 2h 30m", "5m ago") now fully language-aware using events:relativeTime translations. Supports EN/ES/FR with proper preposition and time unit translations.
  * v1.1.31 - 2026-01-29 - BEP i18n: Footer event count and All Day/Tentative labels now fully language-aware. Event count uses plural-aware translations ("1 event" vs "N events") with full i18n support for EN/ES/FR. All hardcoded text now localized.
@@ -145,32 +150,54 @@ function EventMarkerTooltip({ events = [], timezone = 'UTC', nowEpochMs = Date.n
         const hasTentative = normalizedLabels.some((label) => label.includes('tentative'));
         const hasRegularTime = normalizedLabels.some((label) => !label.includes('all day') && !label.includes('tentative'));
 
-        const headerTime = hasRegularTime
-            ? (groupEpochMs !== null
-                ? (() => {
-                    const rangeStart = groupEpochMs - 2 * 60000;
-                    const rangeEnd = groupEpochMs + 2 * 60000;
-                    const startLabel = new Date(rangeStart).toLocaleTimeString(
-                        getLocale(),
-                        { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: timezone }
-                    );
-                    const endLabel = new Date(rangeEnd).toLocaleTimeString(
-                        getLocale(),
-                        { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: timezone }
-                    );
-                    return `${startLabel} – ${endLabel}`;
-                })()
-                : (primaryEvent.timeLabel || new Date(primaryEvent.date || primaryEvent.dateTime || primaryEvent.Date).toLocaleTimeString(
-                    getLocale(),
-                    { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: timezone }
-                )))
-            : (hasAllDay && hasTentative
-                ? t('calendar:tooltip.allDayAndTentative', { defaultValue: 'All Day / Tentative' })
-                : hasAllDay
-                    ? t('calendar:tooltip.allDay', { defaultValue: 'All Day' })
-                    : hasTentative
-                        ? t('calendar:tooltip.tentative', { defaultValue: 'Tentative' })
-                        : (timeLabels[0] || t('calendar:tooltip.time', { defaultValue: 'Time' })));
+        // BEP v1.1.37: Show single time when all events share same time,
+        // actual min–max range only when times differ within the grouping window.
+        const headerTime = (() => {
+            if (!hasRegularTime) {
+                if (hasAllDay && hasTentative) return t('calendar:tooltip.allDayAndTentative', { defaultValue: 'All Day / Tentative' });
+                if (hasAllDay) return t('calendar:tooltip.allDay', { defaultValue: 'All Day' });
+                if (hasTentative) return t('calendar:tooltip.tentative', { defaultValue: 'Tentative' });
+                return timeLabels[0] || t('calendar:tooltip.time', { defaultValue: 'Time' });
+            }
+
+            // Collect formatted times for regular (non-all-day/tentative) events
+            const timeFmt = { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: timezone };
+            const regularTimeLabels = events
+                .map((evt) => {
+                    const label = evt.timeLabel || new Date(evt.date || evt.dateTime || evt.Date).toLocaleTimeString(getLocale(), timeFmt);
+                    const norm = String(label).toLowerCase();
+                    if (norm.includes('all day') || norm.includes('tentative')) return null;
+                    return label;
+                })
+                .filter(Boolean);
+
+            const uniqueTimes = [...new Set(regularTimeLabels)];
+
+            // All events share the same formatted time → show it once
+            if (uniqueTimes.length <= 1) {
+                return uniqueTimes[0] || primaryEvent.timeLabel || new Date(primaryEvent.date || primaryEvent.dateTime || primaryEvent.Date).toLocaleTimeString(getLocale(), timeFmt);
+            }
+
+            // Different times → show actual earliest – latest range from event epochs
+            const regularEpochs = events
+                .map((evt) => {
+                    const label = evt.timeLabel || '';
+                    const norm = label.toLowerCase();
+                    if (norm.includes('all day') || norm.includes('tentative')) return null;
+                    return getEventEpochMs(evt);
+                })
+                .filter((epoch) => epoch !== null);
+
+            if (regularEpochs.length >= 2) {
+                const minEpoch = Math.min(...regularEpochs);
+                const maxEpoch = Math.max(...regularEpochs);
+                const startLabel = new Date(minEpoch).toLocaleTimeString(getLocale(), timeFmt);
+                const endLabel = new Date(maxEpoch).toLocaleTimeString(getLocale(), timeFmt);
+                return startLabel === endLabel ? startLabel : `${startLabel} – ${endLabel}`;
+            }
+
+            return uniqueTimes[0];
+        })();
 
         const eventEpochs = events
             .map((evt) => getEventEpochMs(evt))
@@ -730,36 +757,19 @@ function EventMarkerTooltip({ events = [], timezone = 'UTC', nowEpochMs = Date.n
                             {/* Impact Badge or Custom Event Badge with Impact Level */}
                             {evt.isCustom ? (
                                 (() => {
-                                    const customImpact = evt.impactValue || evt.impact || evt.strength || 'unknown';
                                     const Icon = getCustomEventIconComponent(evt.customIcon);
-                                    const impactMeta = evt.impactMeta || resolveImpactMeta(customImpact);
+                                    const customChipBg = resolveCustomEventColor(evt.customColor, theme);
+                                    const customChipFg = isColorDark(customChipBg) ? '#fff' : '#1f1f1f';
                                     return (
                                         <>
                                             <Chip
-                                                label={impactMeta.icon}
-                                                size="small"
-                                                sx={{
-                                                    height: 16,
-                                                    minWidth: 16,
-                                                    bgcolor: impactMeta.color,
-                                                    color: isColorDark(impactMeta.color) ? '#fff' : '#1f1f1f',
-                                                    fontWeight: 800,
-                                                    fontSize: '0.625rem',
-                                                    borderRadius: 999,
-                                                    '& .MuiChip-label': {
-                                                        px: 0.75,
-                                                        lineHeight: 1,
-                                                    },
-                                                }}
-                                            />
-                                            <Chip
                                                 icon={<Icon />}
-                                                label={t('calendar:tooltip.customEventLabel', { defaultValue: 'MY EVENT' })}
+                                                label={t('calendar:tooltip.customEventLabel', { defaultValue: 'CUSTOM EVENT' })}
                                                 size="small"
                                                 sx={{
                                                     height: 16,
-                                                    bgcolor: resolveCustomEventColor(evt.customColor, theme),
-                                                    color: '#fff',
+                                                    bgcolor: customChipBg,
+                                                    color: customChipFg,
                                                     fontWeight: 800,
                                                     fontSize: '0.6rem',
                                                     borderRadius: 999,
@@ -770,7 +780,7 @@ function EventMarkerTooltip({ events = [], timezone = 'UTC', nowEpochMs = Date.n
                                                     },
                                                     '& .MuiChip-icon': {
                                                         fontSize: '0.85rem',
-                                                        color: '#fff',
+                                                        color: customChipFg,
                                                         ml: 0.5,
                                                         mr: -0.5,
                                                     },

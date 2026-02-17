@@ -66,7 +66,7 @@
   "welcomeBack": "Welcome back!",
   "accountCreatedSuccessfully": "Your account has been created successfully",
   "signedInSuccessfully": "You're signed in successfully",
-  "loadingTradingClock": "Loading your trading clock...",
+  "loadingTradingClock": "Loading your market clock...",
   "confirmYourEmail": "Confirm Your Email",
   "enterEmailUsedForLink": "Please enter the email address you used to request this sign-in link.",
   "emailAddress": "Email Address",
@@ -118,6 +118,18 @@
     "title": "Data Source",
     "description": "This trading data uses <strong>real-time economic information</strong> from Forex Factory, ensuring accuracy and reliability for your trading decisions.",
     "updateNote": "Events are updated continuously throughout the trading day to keep you informed of important economic releases and market-moving news."
+  },
+  "clockInfo": {
+    "title": "About the Market Clock",
+    "description": "The <strong>Market Clock</strong> is a dual-circle visualization designed for futures and forex traders. The inner ring represents AM hours and the outer ring represents PM hours, giving you a full 24-hour view at a glance.",
+    "features": {
+      "sessions": "<strong>Session Arcs</strong> — Color-coded arcs show when each trading session (Tokyo, London, New York, etc.) is active.",
+      "overlaps": "<strong>Session Overlaps</strong> — See exactly when major sessions overlap, highlighting peak-liquidity windows.",
+      "countdowns": "<strong>Live Countdowns</strong> — Real-time timers show how long until the current session ends or the next one starts.",
+      "events": "<strong>Economic Events</strong> — Key economic releases are plotted directly on the clock so you can see what's coming.",
+      "timezone": "<strong>Timezone Aware</strong> — All times adjust automatically to your selected timezone."
+    },
+    "tip": "Tip: Use the settings panel to customize which sessions, clock hands, and event markers are visible."
   },
   "cookies": {
     "heading": "We use cookies",

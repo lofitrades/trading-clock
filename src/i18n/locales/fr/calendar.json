@@ -9,7 +9,7 @@
   "source": "Source",
   "date": "Date",
   "time": "Heure",
-  "noEvents": "Aucun événement trouvé",
+  "noEvents": "Aucun événement trouvé. Essayez d'ajuster vos filtres.",
   "loadingEvents": "Chargement des événements...",
   "errorLoading": "Erreur lors du chargement des événements",
   "viewToggle": {
@@ -80,7 +80,7 @@
     "removeFavorite": "Retirer des favoris",
     "addToFavorites": "Ajouter aux favoris",
     "customEvent": "Événement personnalisé",
-    "customEventLabel": "MON ÉVÉNEMENT",
+    "customEventLabel": "CUSTOM EVENT",
     "unknown": "Inconnu",
     "global": "Global",
     "allDay": "Toute la journée",
@@ -91,7 +91,7 @@
     "eventCount": "{{count}} événements"
   },
   "clock": {
-    "title": "Horloge de Trading",
+    "title": "Horloge du Marché",
     "subtitle": "Les sessions de marché d'aujourd'hui et les événements économiques.",
     "hidden": "Horloge masquée dans les paramètres.",
     "selectTimezone": "Sélectionner le fuseau horaire"
@@ -120,6 +120,10 @@
     "notLoaded": { "label": "Non Chargé" },
     "nonEconomic": { "label": "Non-Économique" },
     "unknown": { "label": "Inconnu" }
+  },
+  "tabs": {
+    "clock": "Horloge du Marché",
+    "insights": "Perspectives"
   }
 }
 

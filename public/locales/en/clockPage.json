@@ -1,0 +1,53 @@
+{
+  "tabs": {
+    "sessionOverview": "Overview",
+    "upcomingEvents": {
+      "label": "Events",
+      "title": "Upcoming Events",
+      "description": "Economic events timeline coming soon. View and track upcoming high-impact events directly from your clock sidebar.",
+      "noEvents": "No events scheduled for today.",
+      "todayCount": "{{count}} events today"
+    }
+  },
+  "sidebar": {
+    "title": "Session Overview",
+    "description": "Your market clock provides a real-time view of active trading sessions, upcoming economic events, and session overlaps — all in one place.",
+    "comingSoon": "Coming Soon",
+    "features": {
+      "feature1": "Live session insights & analytics",
+      "feature2": "Upcoming events timeline",
+      "feature3": "Session overlap notifications"
+    }
+  },
+  "guide": {
+    "heading": "How It Works",
+    "dualCircle": {
+      "title": "Dual-Circle Design",
+      "body": "The inner ring shows AM sessions (pre-market, London open), the outer ring shows PM sessions (NY afternoon, Asia). Overlapping arcs reveal when markets trade simultaneously."
+    },
+    "sessionArcs": {
+      "title": "Session Arcs",
+      "body": "Each colored arc represents a trading session. The active session fills with a progress indicator so you can see at a glance how far through the session you are."
+    },
+    "eventMarkers": {
+      "title": "Event Markers",
+      "body": "Small dots on the clock face mark upcoming economic releases. High-impact events appear bolder so you never miss a key data point."
+    },
+    "sessionLabel": {
+      "title": "Session Label",
+      "body": "The chip above shows the currently active session and a live countdown to its close — or the next session and when it opens."
+    },
+    "filters": {
+      "title": "Filters",
+      "body": "Use the currency and impact filters to control which event markers appear on the clock and in the Events tab."
+    },
+    "timezone": {
+      "title": "Timezone",
+      "body": "Tap the timezone button below the clock to switch between your local time, New York, London, or any supported timezone."
+    },
+    "tip": {
+      "title": "Pro Tip",
+      "body": "Tap any session arc to see its exact open/close times. Use the gear icon in the navigation bar to customize colors, toggle elements, and sync settings across devices."
+    }
+  }
+}

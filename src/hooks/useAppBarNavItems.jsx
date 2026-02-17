@@ -31,7 +31,7 @@ import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
 import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
-import InsightsIcon from '@mui/icons-material/Insights';
+import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
 
 export default function useAppBarNavItems({ onOpenAuth, onOpenSettings, onOpenContact }) {
   const { t } = useTranslation(['common']);
@@ -58,7 +58,7 @@ export default function useAppBarNavItems({ onOpenAuth, onOpenSettings, onOpenCo
       label: t('common:navigation.blog'),
       shortLabel: t('common:navigation.blog'),
       to: '/blog',
-      icon: <InsightsIcon fontSize="small" />,
+      icon: <ArticleRoundedIcon fontSize="small" />,
       ariaLabel: t('common:navigation.blog'),
     },
     {

@@ -5,6 +5,23 @@
  * Renders impact-based icons on AM (inner) and PM (outer) rings using current filters and news source.
  *
  * Changelog:
+ * v1.19.7 - 2026-02-12 - BEP PERFORMANCE: Removed all marker entry/exit CSS animations to fix
+ *   post-skeleton blink. Root cause: marker-pop animation (opacity 0→1) + 160ms opacity transition
+ *   + exiting marker lifecycle caused every marker to flash when isFilterLoading flipped false.
+ *   Removed: marker-pop keyframe, opacity/transform transition, appearedAtRef, exitingMarkersRef,
+ *   prevMarkersRef, MARKER_TRANSITION_MS, MARKER_EXIT_GRACE_MS, isNewMarker logic, exiting marker
+ *   lifecycle effect. Markers now render/unmount instantly. Kept: NOW/NEXT pulse animations for
+ *   real-time status feedback, tooltip show/hide animation, skeleton loaders during filter loading.
+ * v1.19.6 - 2026-02-12 - BEP ACCESSIBILITY: Reminder badge background changed to dark grey
+ *   (grey.900 active, rgba(97,97,97,0.8) past) with orange icon (#ff9800). Ensures WCAG AA
+ *   color contrast (4.5:1 ratio) between dark background and orange bell icon. Theme-aware
+ *   using MUI palette. Past reminders use muted brown text (#b0a896). Improves visual hierarchy
+ *   and accessibility across light/dark themes.
+ * v1.19.4 - 2026-02-11 - BEP PERFORMANCE: Hoisted getBoundingClientRect() and viewport dimension reads
+ *   BEFORE the markers .map() loop. Previously called N times per render (once per marker), causing N
+ *   forced reflows. Now computed once and shared across all markers. Also caches window.innerWidth/Height.
+ *   Reduces forced reflow time from ~26ms to near-zero for the overlay.
+ * v1.19.3 - 2026-02-10 - BEP NaN FIX: Added isValidSize guard to prevent rendering markers when effectiveSize is invalid (0, undefined, or NaN). Guards both skeleton loaders and event markers. Prevents NaN CSS left/top values during initial render. Markers only render once overlay has measured a valid size (> 20px).
  * v1.19.2 - 2026-02-09 - BEP ACCESSIBILITY: Impact badge text color now uses `isColorDark()` for contrast-aware coloring. Custom event impact badges use white text on dark backgrounds, dark text on light backgrounds. Ensures WCAG AA compliance for impact icons on all event marker badges.
  * v1.19.0 - 2026-02-02 - BEP: Removed real-time Firestore listener (timezone conversion complexity introduced inaccuracies). Data refreshes on page reload/remount for consistent, accurate results.
  * v1.18.26 - 2026-01-30 - BEP NOW WINDOW COLORING: Markers keep full colors during entire 10-minute NOW state. Only gray out after NOW window ends (badge, flag, border, color). Changed from isPastEvent check to isPastNowWindow (isTodayPast && !isNow). Improves UX by maintaining visual emphasis on NOW events throughout their entire active window. Follows enterprise pattern: active events remain prominent.
@@ -130,15 +147,16 @@ import useClockEventMarkers from '../hooks/useClockEventMarkers';
 import EventMarkerTooltip from './EventMarkerTooltip';
 import { useTooltipCoordinator } from '../contexts/useTooltipCoordinator';
 import { isColorDark } from '../utils/clockUtils';
+import { loadFlagIconsCSS } from '../app/clientEffects';
 // BEP: Real-time listeners removed (v1.19.0) - timezone conversion complexity introduced inaccuracies
 // Data refreshes on page reload/remount which provides consistent, accurate results
 
-const MARKER_TRANSITION_MS = 160; // Fast marker show/hide transition
-const MARKER_EXIT_GRACE_MS = MARKER_TRANSITION_MS + 80; // Keep exiting markers long enough to finish
 const TOOLTIP_ANIM_MS = 160; // Fast, Apple-like tooltip transition
 
 
 function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: providedEvents, onEventClick, onLoadingStateChange, suppressTooltipAutoscroll = false, disableTooltips = false }) {
+  // BEP PERFORMANCE: Load flag-icons CSS only when this overlay mounts (route-specific)
+  useEffect(() => { loadFlagIconsCSS(); }, []);
   const location = useLocation();
   const isCalendarPage = location.pathname === '/calendar';
   const { openTooltip, closeTooltip: closeGlobalTooltip, isTooltipActive } = useTooltipCoordinator();
@@ -156,9 +174,6 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
   const { isFavorite } = useFavorites();
   const { hasNotes } = useEventNotes();
   const { reminders } = useReminderActions();
-  const appearedAtRef = useRef(new Map());
-  const exitingMarkersRef = useRef(new Map());
-  const prevMarkersRef = useRef(new Map());
   const prevFiltersKeyRef = useRef('');
   const nowEpochMs = nowTick; // CRITICAL: Use absolute epoch milliseconds - timezone only affects display
 
@@ -357,11 +372,6 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
     if (requestKey === prevFiltersKeyRef.current) return;
     prevFiltersKeyRef.current = requestKey || '';
 
-    // Filter transition: clear marker lifecycle caches so stale markers never flash.
-    exitingMarkersRef.current.clear();
-    prevMarkersRef.current.clear();
-    appearedAtRef.current.clear();
-
     // Close any open tooltip tied to previous markers.
     if (openMarkerKey) {
       setOpenMarkerKey(null);
@@ -392,83 +402,19 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
     reminders,
   });
 
-  // Track marker lifecycle in refs to avoid setState render loops
-  // BEP: Memory leak prevention - limit ref sizes to prevent unbounded growth
-  const MAX_MARKER_HISTORY = 100; // Maximum markers to track in history
-
-  useEffect(() => {
-    const currentKeys = new Set(markers.map((m) => m.key));
-
-    // Mark exiting markers for keys that disappeared
-    prevMarkersRef.current.forEach((prevMarker, key) => {
-      if (!currentKeys.has(key) && !exitingMarkersRef.current.has(key)) {
-        exitingMarkersRef.current.set(key, {
-          ...prevMarker,
-          exiting: true,
-          exitAt: nowEpochMs,
-        });
-      }
-    });
-
-    // Update appearance timestamps and clear exits for active markers
-    markers.forEach((marker) => {
-      if (!appearedAtRef.current.has(marker.key)) {
-        appearedAtRef.current.set(marker.key, nowEpochMs);
-      }
-      exitingMarkersRef.current.delete(marker.key);
-    });
-
-    // Prune stale exiting markers
-    exitingMarkersRef.current.forEach((marker, key) => {
-      if (nowEpochMs - (marker.exitAt || 0) >= MARKER_EXIT_GRACE_MS) {
-        exitingMarkersRef.current.delete(key);
-        appearedAtRef.current.delete(key);
-      }
-    });
-
-    // BEP: Memory leak prevention - prune appearedAtRef if it grows too large
-    if (appearedAtRef.current.size > MAX_MARKER_HISTORY) {
-      // Keep only the most recent entries
-      const sorted = Array.from(appearedAtRef.current.entries())
-        .sort((a, b) => b[1] - a[1]) // Sort by timestamp descending (newest first)
-        .slice(0, MAX_MARKER_HISTORY);
-      appearedAtRef.current = new Map(sorted);
-    }
-
-    // Snapshot current markers for the next tick
-    const nextPrev = new Map();
-    markers.forEach((marker) => {
-      nextPrev.set(marker.key, marker);
-    });
-    prevMarkersRef.current = nextPrev;
-  }, [markers, nowEpochMs]);
-
-  // BEP v1.19.1: Removed nowEpochMs from dependencies to prevent marker blinking every second
-  // nowEpochMs is only used for fallback timestamps which don't need reactive updates
+  // BEP v1.19.7: Instant markers — no entry/exit animation lifecycle.
+  // During filter loading, return empty so skeleton loaders show.
+  // When loaded, return markers directly for instant rendering.
   const renderedMarkers = useMemo(() => {
-    const now = Date.now(); // Use fresh timestamp inside memo, not reactive dependency
-    if (isFilterLoading) {
-      const exitingOnFilter = Array.from(prevMarkersRef.current.values()).map((marker) => ({
-        ...marker,
-        exiting: true,
-        exitAt: now,
-        appeared: appearedAtRef.current.get(marker.key) || now,
-      }));
-      return exitingOnFilter;
-    }
-
-    const exiting = Array.from(exitingMarkersRef.current.values());
-    const staying = markers.map((marker) => ({
-      ...marker,
-      exiting: false,
-      appeared: appearedAtRef.current.get(marker.key) || now,
-    }));
-    return [...staying, ...exiting];
+    if (isFilterLoading) return [];
+    return markers;
   }, [markers, isFilterLoading]);
 
   const effectiveSize = measuredSize || size;
-  const center = effectiveSize / 2;
-  const radius = effectiveSize / 2 - 5;
+  // Guard against invalid sizes (0, undefined, or NaN) to prevent NaN CSS values
+  const isValidSize = effectiveSize && Number.isFinite(effectiveSize) && effectiveSize > 20;
+  const center = isValidSize ? effectiveSize / 2 : 0;
+  const radius = isValidSize ? effectiveSize / 2 - 5 : 0;
   // Match session arc radii from ClockCanvas (drawDynamicElements) for perfect alignment in responsive containers.
   const amRadius = radius * 0.47;
   const pmRadius = radius * 0.78;
@@ -478,7 +424,8 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
     const r = useAm ? amRadius : pmRadius;
     const x = center + r * Math.cos(angle);
     const y = center + r * Math.sin(angle);
-    return { x, y };
+    // BEP: Guard against NaN propagating to CSS left/top (installHook warning)
+    return { x: Number.isFinite(x) ? x : center, y: Number.isFinite(y) ? y : center };
   };
 
   // Fixed skeleton marker positions for loading state (5 positions across the clock)
@@ -498,8 +445,8 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
       ref={overlayRef}
       sx={{ position: 'absolute', inset: 0, pointerEvents: 'none', width: '100%', height: '100%', zIndex: 2 }}
     >
-      {/* Show skeleton loaders during filter transitions */}
-      {isFilterLoading && renderedMarkers.length === 0 && skeletonMarkers.map((skeleton) => {
+      {/* Show skeleton loaders during filter transitions — only if size is valid */}
+      {isValidSize && isFilterLoading && renderedMarkers.length === 0 && skeletonMarkers.map((skeleton) => {
         const isAm = skeleton.hour < 12;
         const { x, y } = getPosition(skeleton.hour, skeleton.minute, isAm);
         return (
@@ -585,296 +532,282 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
           </Box>
         );
       })}
-      {/* Show real event markers when not loading */}
-      {!isFilterLoading && renderedMarkers.map((marker, idx) => {
-        const isAm = marker.hour < 12;
-        const baseMarkerKey = marker.key || `${marker.hour}-${marker.minute}`;
-        const markerEventKey = (marker.events || [])
-          .map((item) => item?.evt?.id || item?.evt?.eventId || item?.evt?.EventId || item?.evt?.externalId || item?.evt?.name || item?.evt?.Name)
-          .filter(Boolean)
-          .map((value) => String(value).replace(/\s+/g, '').replace(/[^a-zA-Z0-9_-]/g, ''))
-          .filter(Boolean)
-          .sort()
-          .join('_');
-        const markerKey = markerEventKey ? `${baseMarkerKey}-${markerEventKey}` : `${baseMarkerKey}-${idx}`;
-        const isMarkerOpen = openMarkerKey === markerKey;
-        const isTooltipRendered = renderedMarkerKey === markerKey;
-        const isNewMarker = !marker.exiting && marker.appeared && Math.abs(nowEpochMs - marker.appeared) < 50;
-        const shouldAnimateNow = marker.isNow && !marker.isTodayPast;
-        const shouldAnimateNext = !hasActiveNowMarker && marker.isNext && !marker.isTodayPast;
-        const markerAnimations = [
-          isNewMarker ? `marker-pop ${MARKER_TRANSITION_MS}ms cubic-bezier(0.22, 1, 0.36, 1)` : null,
-          shouldAnimateNow ? 'marker-now 1800ms ease-in-out infinite' : null,
-          shouldAnimateNext ? 'marker-next 2200ms ease-in-out infinite' : null,
-        ].filter(Boolean);
-        const { x, y } = getPosition(marker.hour, marker.minute, isAm);
-        const overlayRect = overlayRef.current?.getBoundingClientRect();
-        const tooltipLeft = (overlayRect?.left ?? 0) + x;
-        const tooltipTop = (overlayRect?.top ?? 0) + y;
-        const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
-        const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 0;
-        const safePadding = 16;
-        const estimatedTooltipWidth = 260;
-        const spaceRight = viewportWidth > 0 ? viewportWidth - tooltipLeft - safePadding : 0;
-        const spaceLeft = viewportWidth > 0 ? tooltipLeft - safePadding : 0;
-        const prefersLeft = viewportWidth > 0 && (
-          (spaceRight > 0 && spaceRight < estimatedTooltipWidth && spaceLeft >= estimatedTooltipWidth) ||
-          tooltipLeft > viewportWidth * 0.6
-        );
-        const prefersUp = viewportHeight > 0 && tooltipTop > viewportHeight * 0.6;
-        const tooltipOffsetX = prefersLeft ? -10 : 10;
-        const tooltipOffsetY = prefersUp ? -10 : 10;
-        const tooltipTranslateX = prefersLeft ? '-100%' : '0%';
-        const tooltipTranslateY = prefersUp ? '-100%' : '0%';
+      {/* Show real event markers when not loading — only if size is valid */}
+      {/* BEP PERF v1.19.4: Hoist layout reads before .map() — one getBoundingClientRect instead of N */}
+      {(() => {
+        if (!isValidSize || isFilterLoading) return null;
+        const _overlayRect = overlayRef.current?.getBoundingClientRect();
+        const _viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
+        const _viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 0;
+        return renderedMarkers.map((marker, idx) => {
+          const isAm = marker.hour < 12;
+          const baseMarkerKey = marker.key || `${marker.hour}-${marker.minute}`;
+          const markerEventKey = (marker.events || [])
+            .map((item) => item?.evt?.id || item?.evt?.eventId || item?.evt?.EventId || item?.evt?.externalId || item?.evt?.name || item?.evt?.Name)
+            .filter(Boolean)
+            .map((value) => String(value).replace(/\s+/g, '').replace(/[^a-zA-Z0-9_-]/g, ''))
+            .filter(Boolean)
+            .sort()
+            .join('_');
+          const markerKey = markerEventKey ? `${baseMarkerKey}-${markerEventKey}` : `${baseMarkerKey}-${idx}`;
+          const isMarkerOpen = openMarkerKey === markerKey;
+          const isTooltipRendered = renderedMarkerKey === markerKey;
+          const shouldAnimateNow = marker.isNow && !marker.isTodayPast;
+          const shouldAnimateNext = !hasActiveNowMarker && marker.isNext && !marker.isTodayPast;
+          // BEP v1.19.7: Only NOW/NEXT pulse animations — no entry/exit animations
+          const markerAnimation = shouldAnimateNow
+            ? 'marker-now 1800ms ease-in-out infinite'
+            : shouldAnimateNext
+              ? 'marker-next 2200ms ease-in-out infinite'
+              : 'none';
+          const { x, y } = getPosition(marker.hour, marker.minute, isAm);
+          const tooltipLeft = (_overlayRect?.left ?? 0) + x;
+          const tooltipTop = (_overlayRect?.top ?? 0) + y;
+          const viewportWidth = _viewportWidth;
+          const viewportHeight = _viewportHeight;
+          const safePadding = 16;
+          const estimatedTooltipWidth = 260;
+          const spaceRight = viewportWidth > 0 ? viewportWidth - tooltipLeft - safePadding : 0;
+          const spaceLeft = viewportWidth > 0 ? tooltipLeft - safePadding : 0;
+          const prefersLeft = viewportWidth > 0 && (
+            (spaceRight > 0 && spaceRight < estimatedTooltipWidth && spaceLeft >= estimatedTooltipWidth) ||
+            tooltipLeft > viewportWidth * 0.6
+          );
+          const prefersUp = viewportHeight > 0 && tooltipTop > viewportHeight * 0.6;
+          const tooltipOffsetX = prefersLeft ? -10 : 10;
+          const tooltipOffsetY = prefersUp ? -10 : 10;
+          const tooltipTranslateX = prefersLeft ? '-100%' : '0%';
+          const tooltipTranslateY = prefersUp ? '-100%' : '0%';
 
-        const isCustomMarker = marker.events?.some((item) => item.evt?.isCustom);
-        const impactMeta = marker.impactMeta || marker.meta;
-        const impactKey = impactMeta?.key || marker.meta?.key;
+          const impactMeta = marker.impactMeta || marker.meta;
+          const impactKey = impactMeta?.key || marker.meta?.key;
+          // Guest/default "My Events" markers may not always carry evt.isCustom; treat impactKey as custom.
+          const isCustomMarker = Boolean(
+            marker.events?.some((item) => item.evt?.isCustom) ||
+            impactKey === 'my-events'
+          );
 
-        const isHovered = hoveredMarkerKey === markerKey;
+          const isHovered = hoveredMarkerKey === markerKey;
 
-        // Calculate z-index priority: NOW > NEXT > Custom > Favorite > Note > High > Medium > My Events > Low > Non-Economic > Other
-        let zIndex = 12; // Base z-index
-        if (marker.isNow) {
-          zIndex = 90;
-        } else if (marker.isNext) {
-          zIndex = 80;
-        } else if (!marker.isTodayPast && isCustomMarker) {
-          zIndex = 70;
-        } else if (!marker.isTodayPast && marker.isFavoriteMarker) {
-          zIndex = 60;
-        } else if (!marker.isTodayPast && marker.hasNoteMarker) {
-          zIndex = 50;
-        } else if (impactKey === 'strong') {
-          zIndex = 40;
-        } else if (impactKey === 'moderate') {
-          zIndex = 30;
-        } else if (impactKey === 'my-events') {
-          zIndex = 25;
-        } else if (impactKey === 'weak') {
-          zIndex = 22;
-        } else if (impactKey === 'non-economic') {
-          zIndex = 18;
-        } else {
-          zIndex = 14;
-        }
+          // Calculate z-index priority: NOW > NEXT > Custom > Favorite > Note > High > Medium > My Events > Low > Non-Economic > Other
+          let zIndex = 12; // Base z-index
+          if (marker.isNow) {
+            zIndex = 90;
+          } else if (marker.isNext) {
+            zIndex = 80;
+          } else if (!marker.isTodayPast && isCustomMarker) {
+            zIndex = 70;
+          } else if (!marker.isTodayPast && marker.isFavoriteMarker) {
+            zIndex = 60;
+          } else if (!marker.isTodayPast && marker.hasNoteMarker) {
+            zIndex = 50;
+          } else if (impactKey === 'strong') {
+            zIndex = 40;
+          } else if (impactKey === 'moderate') {
+            zIndex = 30;
+          } else if (impactKey === 'my-events') {
+            zIndex = 25;
+          } else if (impactKey === 'weak') {
+            zIndex = 22;
+          } else if (impactKey === 'non-economic') {
+            zIndex = 18;
+          } else {
+            zIndex = 14;
+          }
 
-        if (isMarkerOpen) {
-          zIndex += 2;
-        }
+          if (isMarkerOpen) {
+            zIndex += 2;
+          }
 
-        if (isHovered) {
-          zIndex = 100;
-        }
-        // BEP: NOW WINDOW COLORING - Keep colors during entire 10-min NOW state, only gray out after NOW window ends
-        const isPastNowWindow = marker.isTodayPast && !marker.isNow;
-        const impactBadgeColor = impactMeta?.color || marker.meta?.color || '#9e9e9e';
-        const impactBadgeTextColor = isColorDark(impactBadgeColor) ? '#fff' : '#1f1f1f';
-        const markerBackground = marker.isNow
-          ? '#0288d1'
-          : isPastNowWindow
-            ? '#bdbdbd'
-            : marker.meta.color;
-        const markerTextColor = isCustomMarker
-          ? (isColorDark(markerBackground) ? '#fff' : '#1f1f1f')
-          : (isPastNowWindow ? '#424242' : '#fff');
+          if (isHovered) {
+            zIndex = 100;
+          }
+          // BEP: NOW WINDOW COLORING - Keep colors during entire 10-min NOW state, only gray out after NOW window ends
+          const isPastNowWindow = marker.isTodayPast && !marker.isNow;
+          const markerBackground = marker.isNow
+            ? '#0288d1'
+            : isPastNowWindow
+              ? '#bdbdbd'
+              : marker.meta.color;
+          const markerTextColor = isCustomMarker
+            ? (isColorDark(markerBackground) ? '#fff' : '#1f1f1f')
+            : (isPastNowWindow ? '#424242' : '#fff');
 
-        const isMarkerInteractive = !disableTooltips || Boolean(onEventClick);
-        const markerStyle = {
-          position: 'absolute',
-          left: x,
-          top: y,
-          width: 24,
-          height: 24,
-          borderRadius: '50%',
-          transform: `translate(-50%, -50%) scale(${marker.exiting ? 0.96 : 1})`,
-          transformOrigin: 'center',
-          backgroundColor: markerBackground,
-          color: markerTextColor,
-          border: `2px solid ${isPastNowWindow ? '#7a7a7a' : alpha('#000', 0.32)}`,
-          boxShadow: isPastNowWindow ? 'none' : '0 4px 12px rgba(0,0,0,0.2)',
-          cursor: isMarkerInteractive ? 'pointer' : 'default',
-          userSelect: 'none',
-          opacity: marker.exiting ? 0 : 1,
-          transition: `transform ${MARKER_TRANSITION_MS}ms ease-in-out, opacity ${MARKER_TRANSITION_MS}ms ease-in-out`,
-          animation: markerAnimations.length ? markerAnimations.join(', ') : 'none',
-          zIndex,
-        };
+          const isMarkerInteractive = !disableTooltips || Boolean(onEventClick);
+          // BEP v1.19.7: No entry/exit transition — markers render/unmount instantly
+          const markerStyle = {
+            position: 'absolute',
+            left: x,
+            top: y,
+            width: 24,
+            height: 24,
+            borderRadius: '50%',
+            transform: 'translate(-50%, -50%)',
+            transformOrigin: 'center',
+            backgroundColor: markerBackground,
+            color: markerTextColor,
+            border: `2px solid ${isPastNowWindow ? '#7a7a7a' : alpha('#000', 0.32)}`,
+            boxShadow: isPastNowWindow ? 'none' : '0 4px 12px rgba(0,0,0,0.2)',
+            cursor: isMarkerInteractive ? 'pointer' : 'default',
+            userSelect: 'none',
+            animation: markerAnimation,
+            zIndex,
+          };
 
-        // BEP: Lazy-load tooltip content only when marker is clicked
-        const markerIcon = marker.meta?.icon;
-        const markerIconNode = React.isValidElement(markerIcon) ? (
-          (isCustomMarker
-            ? React.cloneElement(markerIcon, {
-              sx: {
-                ...(markerIcon.props?.sx || {}),
-                color: markerTextColor,
-              },
-            })
-            : markerIcon)
-        ) : (
-          <Typography
-            component="span"
-            variant="caption"
-            sx={{ fontWeight: 800, fontSize: '0.75rem', color: markerTextColor }}
-          >
-            {markerIcon}
-          </Typography>
-        );
-
-        const markerNode = (
-          <Box
-            className="clock-event-marker"
-            sx={{
-              ...markerStyle,
-              '@keyframes marker-pop': {
-                from: {
-                  opacity: 0,
-                  transform: 'translate(-50%, -50%) scale(0.96)',
+          // BEP: Lazy-load tooltip content only when marker is clicked
+          const markerIcon = marker.meta?.icon;
+          const markerIconNode = React.isValidElement(markerIcon) ? (
+            (isCustomMarker
+              ? React.cloneElement(markerIcon, {
+                sx: {
+                  ...(markerIcon.props?.sx || {}),
+                  color: markerTextColor,
                 },
-                to: {
-                  opacity: 1,
-                  transform: 'translate(-50%, -50%) scale(1)',
+              })
+              : markerIcon)
+          ) : (
+            <Typography
+              component="span"
+              variant="caption"
+              sx={{ fontWeight: 800, fontSize: '0.75rem', color: markerTextColor }}
+            >
+              {markerIcon}
+            </Typography>
+          );
+
+          const markerNode = (
+            <Box
+              className="clock-event-marker"
+              sx={{
+                ...markerStyle,
+                '@keyframes marker-now': {
+                  '0%, 100%': {
+                    transform: 'translate(-50%, -50%) scale(1)',
+                    boxShadow: '0 6px 16px rgba(2, 136, 209, 0.4)',
+                  },
+                  '50%': {
+                    transform: 'translate(-50%, -50%) scale(1.16)',
+                    boxShadow: '0 16px 36px rgba(2, 136, 209, 0.75)',
+                  },
                 },
-              },
-              '@keyframes marker-now': {
-                '0%, 100%': {
-                  transform: 'translate(-50%, -50%) scale(1)',
-                  boxShadow: '0 6px 16px rgba(2, 136, 209, 0.4)',
+                '@keyframes marker-next': {
+                  '0%, 100%': {
+                    transform: 'translate(-50%, -50%) scale(1)',
+                    boxShadow: '0 5px 14px rgba(0, 0, 0, 0.22)',
+                  },
+                  '50%': {
+                    transform: 'translate(-50%, -50%) scale(1.12)',
+                    boxShadow: '0 14px 28px rgba(0, 0, 0, 0.45)',
+                  },
                 },
-                '50%': {
-                  transform: 'translate(-50%, -50%) scale(1.16)',
-                  boxShadow: '0 16px 36px rgba(2, 136, 209, 0.75)',
-                },
-              },
-              '@keyframes marker-next': {
-                '0%, 100%': {
-                  transform: 'translate(-50%, -50%) scale(1)',
-                  boxShadow: '0 5px 14px rgba(0, 0, 0, 0.22)',
-                },
-                '50%': {
-                  transform: 'translate(-50%, -50%) scale(1.12)',
-                  boxShadow: '0 14px 28px rgba(0, 0, 0, 0.45)',
-                },
-              },
-            }}
-            style={{ pointerEvents: isMarkerInteractive ? 'auto' : 'none' }}
-            data-t2t-event-marker-key={markerKey}
-            onMouseEnter={isMarkerInteractive ? () => setHoveredMarkerKey(markerKey) : undefined}
-            onMouseLeave={isMarkerInteractive ? () => setHoveredMarkerKey((prev) => (prev === markerKey ? null : prev)) : undefined}
-            onFocus={undefined}
-            onBlur={undefined}
-            onClick={(() => {
-              if (disableTooltips && !onEventClick) return undefined;
-              return (e) => {
-                e.stopPropagation();
-                if (disableTooltips) {
-                  if (marker.events && marker.events.length > 0) {
-                    const targetEvent = marker.events[0].evt;
-                    onEventClick?.(targetEvent, {
-                      source: 'canvas-marker',
-                      isCalendarPage,
-                    });
+              }}
+              style={{ pointerEvents: isMarkerInteractive ? 'auto' : 'none' }}
+              data-t2t-event-marker-key={markerKey}
+              onMouseEnter={isMarkerInteractive ? () => setHoveredMarkerKey(markerKey) : undefined}
+              onMouseLeave={isMarkerInteractive ? () => setHoveredMarkerKey((prev) => (prev === markerKey ? null : prev)) : undefined}
+              onFocus={undefined}
+              onBlur={undefined}
+              onClick={(() => {
+                if (disableTooltips && !onEventClick) return undefined;
+                return (e) => {
+                  e.stopPropagation();
+                  if (disableTooltips) {
+                    if (marker.events && marker.events.length > 0) {
+                      const targetEvent = marker.events[0].evt;
+                      onEventClick?.(targetEvent, {
+                        source: 'canvas-marker',
+                        isCalendarPage,
+                      });
+                    }
+                    return;
                   }
-                  return;
-                }
-                handleMarkerSelect(marker, markerKey);
-              };
-            })()}
-          >
-            {(marker.hasNoteMarker || marker.hasNoteMarkerAny) && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -5,
-                  left: -5,
-                  width: 14,
-                  height: 14,
-                  borderRadius: '50%',
-                  bgcolor: (isPastNowWindow || !marker.hasNoteMarker) ? '#616161' : 'primary.main',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
-                  pointerEvents: 'none',
-                }}
-              >
-                <NoteAltIcon sx={{ fontSize: 10, color: '#fff', opacity: (isPastNowWindow || !marker.hasNoteMarker) ? 0.9 : 1 }} />
-              </Box>
-            )}
-            {(marker.isFavoriteMarker || marker.isFavoriteMarkerAny) && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -5,
-                  right: -5,
-                  width: 14,
-                  height: 14,
-                  borderRadius: '50%',
-                  bgcolor: (isPastNowWindow || !marker.isFavoriteMarker) ? '#616161' : 'error.main',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
-                  pointerEvents: 'none',
-                }}
-              >
-                <FavoriteIcon sx={{ fontSize: 10, color: '#fff', opacity: (isPastNowWindow || !marker.isFavoriteMarker) ? 0.9 : 1 }} />
-              </Box>
-            )}
-            {(marker.hasReminderMarker || marker.hasReminderMarkerAny) && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  bottom: -5,
-                  left: -5,
-                  width: 14,
-                  height: 14,
-                  borderRadius: '50%',
-                  bgcolor: (isPastNowWindow || !marker.hasReminderMarker) ? '#616161' : 'warning.main',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
-                  pointerEvents: 'none',
-                }}
-              >
-                <NotificationsActiveIcon sx={{ fontSize: 10, color: '#fff', opacity: (isPastNowWindow || !marker.hasReminderMarker) ? 0.9 : 1 }} />
-              </Box>
-            )}
-            {markerIconNode}
-            {marker.countryCode ? (
-              <span
-                className="clock-event-flag"
-                title={marker.currency}
-                style={{
-                  opacity: isPastNowWindow ? 0.75 : 1,
-                  filter: isPastNowWindow ? 'grayscale(1)' : 'none',
-                }}
-              >
-                <span className={`fi fi-${marker.countryCode}`} />
-              </span>
-            ) : (
-              <span
-                className="clock-event-flag clock-event-flag--icon"
-                title={isCustomMarker ? 'Impact' : 'Global'}
-                style={{
-                  backgroundColor: isCustomMarker
-                    ? impactBadgeColor
-                    : (isPastNowWindow ? 'rgba(255,255,255,0.65)' : '#fff'),
-                  opacity: isPastNowWindow ? 0.75 : 1,
-                  filter: isPastNowWindow ? 'grayscale(1)' : 'none',
-                }}
-              >
-                {isCustomMarker ? (
-                  React.isValidElement(impactMeta?.icon) ? (
-                    React.cloneElement(impactMeta.icon, { sx: { fontSize: 12, color: impactBadgeTextColor } })
-                  ) : (
-                    <Typography component="span" sx={{ fontSize: '0.6rem', fontWeight: 900, color: impactBadgeTextColor, lineHeight: 1 }}>
-                      {impactMeta?.icon || '~'}
-                    </Typography>
-                  )
-                ) : (
+                  handleMarkerSelect(marker, markerKey);
+                };
+              })()}
+            >
+              {(marker.hasNoteMarker || marker.hasNoteMarkerAny) && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: -5,
+                    left: -5,
+                    width: 14,
+                    height: 14,
+                    borderRadius: '50%',
+                    bgcolor: (isPastNowWindow || !marker.hasNoteMarker) ? '#616161' : 'primary.main',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <NoteAltIcon sx={{ fontSize: 10, color: '#fff', opacity: (isPastNowWindow || !marker.hasNoteMarker) ? 0.9 : 1 }} />
+                </Box>
+              )}
+              {(marker.isFavoriteMarker || marker.isFavoriteMarkerAny) && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: -5,
+                    right: -5,
+                    width: 14,
+                    height: 14,
+                    borderRadius: '50%',
+                    bgcolor: (isPastNowWindow || !marker.isFavoriteMarker) ? '#616161' : 'error.main',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <FavoriteIcon sx={{ fontSize: 10, color: '#fff', opacity: (isPastNowWindow || !marker.isFavoriteMarker) ? 0.9 : 1 }} />
+                </Box>
+              )}
+              {(marker.hasReminderMarker || marker.hasReminderMarkerAny) && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    bottom: -5,
+                    left: -5,
+                    width: 14,
+                    height: 14,
+                    borderRadius: '50%',
+                    // BEP v1.19.6: Dark background (theme-aware) with orange warning icon for accessibility
+                    bgcolor: (isPastNowWindow || !marker.hasReminderMarker) ? 'rgba(97, 97, 97, 0.8)' : 'grey.900',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <NotificationsActiveIcon sx={{ fontSize: 10, color: (isPastNowWindow || !marker.hasReminderMarker) ? '#b0a896' : '#fff', opacity: (isPastNowWindow || !marker.hasReminderMarker) ? 0.85 : 1 }} />
+                </Box>
+              )}
+              {markerIconNode}
+              {marker.countryCode ? (
+                <span
+                  className="clock-event-flag"
+                  title={marker.currency}
+                  style={{
+                    opacity: isPastNowWindow ? 0.75 : 1,
+                    filter: isPastNowWindow ? 'grayscale(1)' : 'none',
+                  }}
+                >
+                  <span className={`fi fi-${marker.countryCode}`} />
+                </span>
+              ) : isCustomMarker ? null : (
+                <span
+                  className="clock-event-flag clock-event-flag--icon"
+                  title={'Global'}
+                  style={{
+                    backgroundColor: isPastNowWindow ? 'rgba(255,255,255,0.65)' : '#fff',
+                    opacity: isPastNowWindow ? 0.75 : 1,
+                    filter: isPastNowWindow ? 'grayscale(1)' : 'none',
+                  }}
+                >
                   <PublicIcon
                     sx={{
                       fontSize: 14,
@@ -882,68 +815,68 @@ function ClockEventsOverlay({ size, timezone, eventFilters, newsSource, events: 
                       color: marker.isTodayPast ? 'text.secondary' : 'text.primary',
                     }}
                   />
-                )}
-              </span>
-            )}
-          </Box>
-        );
+                </span>
+              )}
+            </Box>
+          );
 
-        if (disableTooltips) {
+          if (disableTooltips) {
+            return (
+              <React.Fragment key={markerKey}>
+                {markerNode}
+              </React.Fragment>
+            );
+          }
+
+          // Render EventMarkerTooltip as a positioned overlay when marker is active
           return (
             <React.Fragment key={markerKey}>
               {markerNode}
+              {isTooltipRendered ? (
+                <Portal>
+                  <Box
+                    data-t2t-event-tooltip-key={markerKey}
+                    role="tooltip"
+                    sx={{
+                      position: 'fixed',
+                      left: tooltipLeft + tooltipOffsetX,
+                      top: tooltipTop + tooltipOffsetY,
+                      transform: `translate(${tooltipTranslateX}, ${tooltipTranslateY}) scale(${(tooltipVisible && isMarkerOpen) ? 1 : 0.96})`,
+                      opacity: (tooltipVisible && isMarkerOpen) ? 1 : 0,
+                      transition: 'opacity 160ms cubic-bezier(0.22, 1, 0.36, 1), transform 160ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      willChange: 'opacity, transform',
+                      zIndex: 1800, // Above AppBar/filters, below modals (10001+)
+                      pointerEvents: isMarkerOpen ? 'auto' : 'none',
+                    }}
+                  >
+                    <EventMarkerTooltip
+                      events={marker.events.map(e => e.evt)}
+                      timezone={timezone}
+                      nowEpochMs={nowEpochMs}
+                      groupEpochMs={marker.groupEpochMs ?? null}
+                      onClick={(eventOverride) => {
+                        // On /calendar page: auto-scroll to event (will be handled by parent)
+                        // On other pages: open event modal
+                        if (marker.events && marker.events.length > 0) {
+                          const targetEvent = eventOverride || marker.events[0].evt; // Extract event from wrapper
+                          onEventClick?.(targetEvent, {
+                            source: 'canvas-tooltip',
+                            isCalendarPage
+                          });
+                        }
+                        closeTooltip();
+                      }}
+                      onClose={closeTooltip}
+                      isFavoriteEvent={isFavorite}
+                      hasEventNotes={hasNotes}
+                    />
+                  </Box>
+                </Portal>
+              ) : null}
             </React.Fragment>
           );
-        }
-
-        // Render EventMarkerTooltip as a positioned overlay when marker is active
-        return (
-          <React.Fragment key={markerKey}>
-            {markerNode}
-            {isTooltipRendered ? (
-              <Portal>
-                <Box
-                  data-t2t-event-tooltip-key={markerKey}
-                  role="tooltip"
-                  sx={{
-                    position: 'fixed',
-                    left: tooltipLeft + tooltipOffsetX,
-                    top: tooltipTop + tooltipOffsetY,
-                    transform: `translate(${tooltipTranslateX}, ${tooltipTranslateY}) scale(${(tooltipVisible && isMarkerOpen) ? 1 : 0.96})`,
-                    opacity: (tooltipVisible && isMarkerOpen) ? 1 : 0,
-                    transition: 'opacity 160ms cubic-bezier(0.22, 1, 0.36, 1), transform 160ms cubic-bezier(0.22, 1, 0.36, 1)',
-                    willChange: 'opacity, transform',
-                    zIndex: 1800, // Above AppBar/filters, below modals (10001+)
-                    pointerEvents: isMarkerOpen ? 'auto' : 'none',
-                  }}
-                >
-                  <EventMarkerTooltip
-                    events={marker.events.map(e => e.evt)}
-                    timezone={timezone}
-                    nowEpochMs={nowEpochMs}
-                    groupEpochMs={marker.groupEpochMs ?? null}
-                    onClick={(eventOverride) => {
-                      // On /calendar page: auto-scroll to event (will be handled by parent)
-                      // On other pages: open event modal
-                      if (marker.events && marker.events.length > 0) {
-                        const targetEvent = eventOverride || marker.events[0].evt; // Extract event from wrapper
-                        onEventClick?.(targetEvent, {
-                          source: 'canvas-tooltip',
-                          isCalendarPage
-                        });
-                      }
-                      closeTooltip();
-                    }}
-                    onClose={closeTooltip}
-                    isFavoriteEvent={isFavorite}
-                    hasEventNotes={hasNotes}
-                  />
-                </Box>
-              </Portal>
-            ) : null}
-          </React.Fragment>
-        );
-      })}
+        });
+      })()}
     </Box>
   );
 }

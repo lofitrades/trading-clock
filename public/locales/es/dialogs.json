@@ -66,7 +66,7 @@
   "welcomeBack": "¡Bienvenido de nuevo!",
   "accountCreatedSuccessfully": "Tu cuenta ha sido creada exitosamente",
   "signedInSuccessfully": "Has iniciado sesión exitosamente",
-  "loadingTradingClock": "Cargando tu reloj de trading...",
+  "loadingTradingClock": "Cargando tu reloj de mercado...",
   "confirmYourEmail": "Confirma tu correo electrónico",
   "enterEmailUsedForLink": "Por favor ingresa la dirección de correo electrónico que utilizaste para solicitar este enlace de inicio de sesión.",
   "emailAddress": "Dirección de correo electrónico",
@@ -118,6 +118,18 @@
     "title": "Fuente de Datos",
     "description": "Este datos de trading utiliza <strong>información económica en tiempo real</strong> de Forex Factory, asegurando precisión y confiabilidad para tus decisiones de trading.",
     "updateNote": "Los eventos se actualizan continuamente durante el día de trading para mantenerte informado de lanzamientos económicos importantes y noticias que mueven el mercado."
+  },
+  "clockInfo": {
+    "title": "Sobre el Reloj de Mercado",
+    "description": "El <strong>Reloj de Mercado</strong> es una visualización de doble círculo diseñada para traders de futuros y forex. El anillo interior representa las horas AM y el anillo exterior las horas PM, brindándote una vista completa de 24 horas de un vistazo.",
+    "features": {
+      "sessions": "<strong>Arcos de Sesión</strong> — Arcos codificados por colores muestran cuándo cada sesión (Tokio, Londres, Nueva York, etc.) está activa.",
+      "overlaps": "<strong>Solapamiento de Sesiones</strong> — Observa exactamente cuándo las sesiones principales se superponen, destacando ventanas de máxima liquidez.",
+      "countdowns": "<strong>Cuentas Regresivas en Vivo</strong> — Temporizadores en tiempo real muestran cuánto falta para que termine la sesión actual o comience la siguiente.",
+      "events": "<strong>Eventos Económicos</strong> — Los eventos económicos clave se trazan directamente en el reloj para que puedas ver lo que se aproxima.",
+      "timezone": "<strong>Zona Horaria Inteligente</strong> — Todos los horarios se ajustan automáticamente a tu zona horaria seleccionada."
+    },
+    "tip": "Consejo: Usa el panel de configuración para personalizar qué sesiones, manecillas del reloj y marcadores de eventos son visibles."
   },
   "cookies": {
     "heading": "Usamos cookies",

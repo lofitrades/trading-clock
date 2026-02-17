@@ -5,6 +5,44 @@
  * Renders static background + dynamic session donuts + interactive tooltips.
  *
  * Changelog:
+ * v1.3.29 - 2026-02-12 - BEP UX: Re-added GSAP opacity fade for session arc tooltip show/hide
+ *   (0.15s in, 0.12s out). Restores smooth visual feedback on tooltip open/close while keeping
+ *   all mount animations removed (no hand tweens, no entry animation, no scale/zoom).
+ * v1.3.28 - 2026-02-12 - BEP UX: Re-added GSAP hover lineWidth animation (0.3s power2.out) for
+ *   smooth arc thickness feedback on session hover. Restores tactile interactivity while keeping
+ *   all other animations removed (no hand tweens, no tooltip fade, no entry animation).
+ * v1.3.27 - 2026-02-12 - BEP PERFORMANCE: Removed ALL GSAP animations for instant rendering.
+ *   Eliminates hover lineWidth tween, clock hand angle tweens (caused "small to big pop" on mount
+ *   as hands swept from 12 o'clock to current time), and tooltip show/hide opacity transitions.
+ *   Clock hands now set angles directly each tick. Hover lineWidth changes instantly. Tooltips
+ *   mount/unmount without fade. GSAP import removed entirely. Maximises loading speed and
+ *   immediate functionality — zero animation overhead.
+ * v1.3.26 - 2026-02-12 - BEP UX: Removed scale/y zoom animation from session arc tooltip show/hide.
+ *   Tooltip now uses opacity-only fade (0.15s in, 0.12s out). Eliminates the scale(0.96→1) zoom-in
+ *   effect for a cleaner, less distracting tooltip appearance. Hover line-width animation retained.
+ * v1.3.25 - 2026-02-12 - BEP PERFORMANCE: Removed GSAP staggered opacity fade-in entry animation.
+ *   Session arcs now render at full opacity immediately on mount. Eliminates the distracting
+ *   0.6s staggered fade-in that replayed every time ClockCanvas remounted (e.g. tab switching
+ *   in Calendar2Page). Hover/click animations retained. Only entry animation removed.
+ * v1.3.24 - 2026-02-12 - BEP MOBILE TOUCH: ClockPanelPaper now passes allowTouchScroll=true and
+ *   touchTooltipDelayMs=150. This enables normal page scrolling (swipe) over the clock canvas on
+ *   mobile while preserving tap-to-inspect session arc tooltips. touch-action:pan-y lets the
+ *   browser handle vertical scroll natively; 150ms delay cancels tooltips during swipe gestures.
+ * v1.3.23 - 2026-02-11 - BEP REACT HOOKS: Fixed react-hooks/exhaustive-deps warnings by wrapping
+ *   showTooltip and hideTooltip functions in useCallback. Both functions now have stable references
+ *   across renders. Added hideTooltip and showTooltip to event listener useEffect dependency array.
+ *   Prevents unnecessary effect re-runs and improves performance.
+ * v1.3.22 - 2026-02-11 - BEP TRANSPARENT FACE: Set faceColor to 'transparent' instead of background.paper.
+ *   v1.3.20 still drew a white circle because background.paper resolves to #fff in light mode. Now the
+ *   canvas draws no background circle at all — the container (Paper, Box, etc.) provides the surface color.
+ *   Fixes visible white circle on landing page and any other transparent-background context.
+ * v1.3.21 - 2026-02-10 - BEP RENDER PERF: Eliminated glitchy arc rendering. (1) Fixed entry animation: GSAP now
+ *   targets `targetLineWidth` (the property drawDynamicElements actually reads) instead of unused `lineWidth`.
+ *   (2) Moved time, hoveredSession, handColor, activeSession to refs so the rAF animation loop is NOT torn
+ *   down and rebuilt every second — prevents visible canvas flash from canvas.width reset. (3) Separated
+ *   canvas dimension setup (size-only dep) from the rAF draw loop (structural deps only). (4) Entry
+ *   animation uses opacity-only fade (0→1) with full width from start for clean, modern SaaS appearance.
+ * v1.3.20 - 2026-02-10 - BEP THEME-AWARE FACE: Pass theme.palette.background.paper as faceColor to drawStaticElements. Eliminates hardcoded #fff clock face circle visible on transparent backgrounds. Face color now adapts to light/dark theme.
  * v1.3.19 - 2026-01-28 - BEP UI FIX: Removed inline backgroundColor from canvas-container div. Background now fully transparent to eliminate visible gap between outer border and canvas content. Border masking handled by .hand-clock-wrapper in App.css.
  * v1.3.18 - 2026-01-28 - BEP THEME FIX: Added backgroundColor: theme.palette.background.default to canvas-container inline style. Ensures canvas background matches theme in both light and dark modes. Works with MUI theme system instead of CSS variables.
  * v1.3.15 - 2026-01-22 - BEP: Disable mobile tap highlight on the clock canvas.
@@ -35,7 +73,6 @@ import {
   drawStaticElements,
   drawDynamicElements,
   getLineWidthAndHoverArea,
-  isColorDark,
   drawClockNumbers
 } from '../utils/clockUtils';
 import { useSettings } from '../contexts/SettingsContext';
@@ -53,6 +90,10 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
 
   // Determine theme-aware clock numbers color: light numbers on dark mode, dark numbers on light mode
   const themeAwareNumbersColor = theme.palette.mode === 'dark' ? '#E0E0E0' : '#0F172A';
+  // BEP v1.3.22: Transparent clock face — no filled circle on canvas.
+  // Container background (Paper on /calendar, transparent on landing) provides the surface color.
+  // Eliminates the white circle artifact on pages with transparent/non-white backgrounds.
+  const themeAwareFaceColor = 'transparent';
   const staticCanvas = useRef(document.createElement('canvas'));
   const targetDprRef = useRef(1);
 
@@ -72,25 +113,29 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
   });
   const handAngles = handAnglesRef || internalHandAngles;
 
+  // BEP v1.3.21: Refs for fast-changing values — read inside rAF loop without restarting it
+  const timeRef = useRef(time);
+  const hoveredSessionRef = useRef(hoveredSession);
+  const handColorRef = useRef(handColor);
+  const activeSessionRef = useRef(activeSession);
+  useEffect(() => { timeRef.current = time; }, [time]);
+  useEffect(() => { hoveredSessionRef.current = hoveredSession; }, [hoveredSession]);
+  useEffect(() => { handColorRef.current = handColor; }, [handColor]);
+  useEffect(() => { activeSessionRef.current = activeSession; }, [activeSession]);
+
   // Initialize animation states for each session
   useEffect(() => {
+    const { lineWidth: targetLW } = getLineWidthAndHoverArea(size, clockStyle);
     sessions.forEach((session, index) => {
       if (!animationStates.current[index]) {
+        // BEP v1.3.25: No entry animation — arcs appear instantly at full opacity.
+        // Prevents distracting staggered fade-in on every tab-switch remount.
         animationStates.current[index] = {
-          lineWidth: 0,
-          opacity: 0,
-          targetLineWidth: 0,
+          lineWidth: targetLW,
+          opacity: 1,
+          targetLineWidth: targetLW,
           targetOpacity: 1
         };
-
-        // Animate session entry with staggered delay
-        gsap.to(animationStates.current[index], {
-          lineWidth: getLineWidthAndHoverArea(size, clockStyle).lineWidth,
-          opacity: 1,
-          duration: 0.8,
-          delay: index * 0.1,
-          ease: "power2.out"
-        });
       }
     });
   }, [sessions, size, clockStyle]);
@@ -105,10 +150,10 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     staticCtx.scale(dpr, dpr);
     staticCtx.imageSmoothingEnabled = true;
     staticCtx.imageSmoothingQuality = 'high';
-    drawStaticElements(staticCtx, size, showSessionNamesInCanvas, themeAwareNumbersColor);
-  }, [size, showSessionNamesInCanvas, themeAwareNumbersColor]);
+    drawStaticElements(staticCtx, size, showSessionNamesInCanvas, themeAwareNumbersColor, themeAwareFaceColor);
+  }, [size, showSessionNamesInCanvas, themeAwareNumbersColor, themeAwareFaceColor]);
 
-  // Animate hover effects
+  // BEP v1.3.28: Smooth hover line-width transition for tactile arc feedback
   useEffect(() => {
     const { lineWidth, hoverLineWidth } = getLineWidthAndHoverArea(size, clockStyle);
 
@@ -118,121 +163,80 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
       const isHovered = session === hoveredSession;
       const targetWidth = isHovered ? hoverLineWidth : lineWidth;
 
-      // Animate line width change on hover
       gsap.to(animationStates.current[index], {
         targetLineWidth: targetWidth,
         duration: 0.3,
-        ease: "power2.out"
+        ease: 'power2.out',
       });
     });
   }, [hoveredSession, size, sessions, clockStyle]);
 
-  // Animate clock hands smoothly
+  // BEP v1.3.27: Instant hand angle calculation — no GSAP tween.
+  // Eliminates the mount "pop" where hands swept from 12 o'clock to current time.
   useEffect(() => {
     const hours = time.getHours();
     const minutes = time.getMinutes();
     const seconds = time.getSeconds();
     const milliseconds = time.getMilliseconds();
 
-    // Calculate target angles (in degrees for easier math)
-    let secondAngle = (seconds + milliseconds / 1000) * 6; // 360/60 = 6 degrees per second
-    let minuteAngle = (minutes + seconds / 60) * 6; // Smooth minute hand
-    let hourAngle = ((hours % 12) + minutes / 60) * 30; // 360/12 = 30 degrees per hour
-
-    // Handle circular motion for second hand (prevent backward jump at 59->0)
-    const currentSecond = handAngles.current.second;
-    if (secondAngle < currentSecond && (currentSecond - secondAngle) > 180) {
-      // We crossed from 59s to 0s, add 360 to continue forward
-      secondAngle += 360;
-    }
-
-    // Handle circular motion for minute hand (prevent backward jump at 59->0)
-    const currentMinute = handAngles.current.minute;
-    if (minuteAngle < currentMinute && (currentMinute - minuteAngle) > 180) {
-      minuteAngle += 360;
-    }
-
-    // Handle circular motion for hour hand (prevent backward jump at 11->12)
-    const currentHour = handAngles.current.hour;
-    if (hourAngle < currentHour && (currentHour - hourAngle) > 180) {
-      hourAngle += 360;
-    }
-
-    // Animate second hand (fast but smooth, linear for constant speed)
-    gsap.to(handAngles.current, {
-      second: secondAngle,
-      duration: 0.3,
-      ease: "linear",
-      onUpdate: () => {
-        // Normalize angle to 0-360 range after animation
-        handAngles.current.second = handAngles.current.second % 360;
-      }
-    });
-
-    // Animate minute hand (medium speed)
-    gsap.to(handAngles.current, {
-      minute: minuteAngle,
-      duration: 0.5,
-      ease: "power1.out",
-      onUpdate: () => {
-        handAngles.current.minute = handAngles.current.minute % 360;
-      }
-    });
-
-    // Animate hour hand (slow, smooth)
-    gsap.to(handAngles.current, {
-      hour: hourAngle,
-      duration: 0.5,
-      ease: "power1.out",
-      onUpdate: () => {
-        handAngles.current.hour = handAngles.current.hour % 360;
-      }
-    });
+    handAngles.current.second = (seconds + milliseconds / 1000) * 6;   // 360/60 = 6°/s
+    handAngles.current.minute = (minutes + seconds / 60) * 6;          // smooth minute
+    handAngles.current.hour = ((hours % 12) + minutes / 60) * 30;    // 360/12 = 30°/h
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [time]);
 
+  // BEP v1.3.21: Canvas dimension setup — only runs on size change to avoid clearing
+  // the canvas on every dep change (setting canvas.width resets all canvas state).
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
+    if (!canvas) return;
     const dpr = targetDprRef.current || Math.min(Math.max(window.devicePixelRatio || 1, 1.2), 2.5);
-
-    // Reset transform each time before applying DPR scaling to avoid compounded scaling artifacts
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-
     canvas.width = Math.round(size * dpr);
     canvas.height = Math.round(size * dpr);
     canvas.style.width = '100%';
     canvas.style.height = '100%';
-    ctx.scale(dpr, dpr);
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+  }, [size]);
+
+  // BEP v1.3.21: Animation loop — reads fast-changing values (time, hoveredSession,
+  // handColor, activeSession) from refs so the rAF loop is NOT torn down and rebuilt
+  // every second. Only structural/settings changes restart the loop.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const dpr = targetDprRef.current || Math.min(Math.max(window.devicePixelRatio || 1, 1.2), 2.5);
 
     let animationId;
     const animate = () => {
+      // Reset transform each frame for correctness after any canvas resize
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
       ctx.clearRect(0, 0, size, size);
       ctx.drawImage(staticCanvas.current, 0, 0, size, size);
 
-      // Pass animation states and animated hand angles to draw function
+      // Read fast-changing values from refs (updated via separate effects)
       drawDynamicElements(
         ctx,
         size,
         sessions,
-        time,
-        hoveredSession,
-        handColor,
+        timeRef.current,
+        hoveredSessionRef.current,
+        handColorRef.current,
         clockStyle,
         animationStates.current,
         handAngles.current,
         showSessionNamesInCanvas,
         showPastSessionsGray,
-        activeSession,
+        activeSessionRef.current,
         backgroundBasedOnSession,
         renderHandsInCanvas,
         renderHandsInCanvas && showClockHands
       );
 
-      // Pass themeAwareNumbersColor as the text color for the clock numbers (independent of hand color)
-      // Light numbers (#E0E0E0) on dark theme, dark numbers (#0F172A) on light theme
+      // Numbers on top of arcs — theme-aware color
       if (showClockNumbers) {
         drawClockNumbers(ctx, size / 2, size / 2, size / 2 - 5, themeAwareNumbersColor, showSessionNamesInCanvas);
       }
@@ -241,7 +245,7 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     };
     animationId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationId);
-  }, [size, sessions, hoveredSession, handColor, themeAwareNumbersColor, clockStyle, showSessionNamesInCanvas, showPastSessionsGray, activeSession, backgroundBasedOnSession, showClockNumbers, showClockHands, renderHandsInCanvas, time, handAngles]);
+  }, [size, sessions, clockStyle, showSessionNamesInCanvas, showPastSessionsGray, backgroundBasedOnSession, showClockNumbers, showClockHands, renderHandsInCanvas, themeAwareNumbersColor, handAngles]);
 
   const detectHoveredSession = useCallback((canvas, mouseX, mouseY) => {
     const rect = canvas.getBoundingClientRect();
@@ -285,48 +289,44 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
     return null;
   }, [sessions, size, clockStyle]);
 
-  const showTooltip = (clientX, clientY, session) => {
-    // Kill any ongoing tooltip animation
+  // BEP: Wrap tooltip handlers in useCallback to prevent dependency changes on every render
+  // BEP v1.3.29: Opacity-only fade for tooltip show
+  const showTooltip = useCallback((clientX, clientY, session) => {
     if (tooltipAnimation.current) {
       tooltipAnimation.current.kill();
     }
-
     const tooltipId = `session-${session.name}`;
     setTooltip({ x: clientX, y: clientY, ...session });
-    openTooltip('session', tooltipId); // Register in global coordinator
+    openTooltip('session', tooltipId);
 
-    // Animate tooltip entrance
     if (tooltipRef.current) {
       tooltipAnimation.current = gsap.fromTo(tooltipRef.current,
-        { opacity: 0, scale: 0.96, y: 6 },
-        { opacity: 1, scale: 1, y: 0, duration: 0.18, ease: "power3.out" }
+        { opacity: 0 },
+        { opacity: 1, duration: 0.15, ease: 'power2.out' }
       );
     }
-  };
+  }, [openTooltip]);
 
-  const hideTooltip = () => {
-    // Kill any ongoing tooltip animation
+  // BEP v1.3.29: Opacity-only fade for tooltip hide
+  const hideTooltip = useCallback(() => {
     if (tooltipAnimation.current) {
       tooltipAnimation.current.kill();
     }
-
     if (tooltipRef.current) {
       tooltipAnimation.current = gsap.to(tooltipRef.current, {
         opacity: 0,
-        scale: 0.96,
-        y: 6,
-        duration: 0.14,
-        ease: "power2.in",
+        duration: 0.12,
+        ease: 'power2.in',
         onComplete: () => {
           setTooltip(null);
-          closeGlobalTooltip('session'); // Close in global coordinator
-        }
+          closeGlobalTooltip('session');
+        },
       });
     } else {
       setTooltip(null);
-      closeGlobalTooltip('session'); // Close in global coordinator
+      closeGlobalTooltip('session');
     }
-  };
+  }, [closeGlobalTooltip]);
 
   // Tick effect to update tooltip time labels every second
   useEffect(() => {
@@ -474,7 +474,7 @@ export default function ClockCanvas({ size, time, sessions, handColor, clockStyl
       canvas.removeEventListener('touchmove', handleTouchMove);
       clearTouchTooltipTimer();
     };
-  }, [allowTouchScroll, clockStyle, sessions, size, detectHoveredSession, touchTooltipDelayMs]);
+  }, [allowTouchScroll, clockStyle, sessions, size, detectHoveredSession, touchTooltipDelayMs, showTooltip, hideTooltip]);
 
   return (
     <div ref={containerRef} className="canvas-container" style={{ width: '100%', height: '100%', aspectRatio: '1 / 1', position: 'relative' }}>

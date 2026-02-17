@@ -6,6 +6,16 @@
  * and smooth transitions while maintaining all v1 features (reminders, recurrence, timezone, impact).
  * 
  * Changelog:
+ * v2.7.0 - 2026-02-17 - BUGFIX: Reminder scope ('series'/'event') now correctly persisted and displayed.
+ *                       handleSaveReminder now accepts scope (3rd arg from RemindersEditor2).
+ *                       Added reminderScope to form state, getDefaultForm, event loading, submit payload,
+ *                       and PropTypes. reminderScopes prop now reads from form state instead of hardcoding 'event'.
+ * v2.6.0 - 2026-02-12 - BUGFIX: Delete button now connected to onDelete prop. Previously delete button called
+ *                       onDelete?.(event) but Calendar2Page, ClockPage, NotificationCenter didn't pass onDelete handler
+ *                       to CustomEventDialog (only App.jsx did). Added handleDeleteCustomEvent to all three files with
+ *                       confirmation dialog and removeCustomEvent cleanup. All callers now have delete functionality.
+ *                       Also updated v2.5.0 timezone helperText changelog entry.
+ * v2.5.0 - 2026-02-12 - BEP UX: Added timezone helperText to time input so users know the time they enter is in the selected timezone, not device local time.
  * v2.4.0 - 2026-02-10 - BEP: Added showOnCalendar toggle (default: true) to Appearance section. Follows showOnClock pattern.
  * v2.3.0 - 2026-02-09 - BEP ACCESSIBILITY: Impact dropdown menu items now render as circular badge chips with background color and contrast-aware text color. Icons (including My Events star ★) now visible in both light and dark themes. Uses isColorDark() for WCAG AA compliant text contrast on all impact levels.
  * v2.1.1 - 2026-01-27 - BEP i18n migration COMPLETE: Replaced final 3 hardcoded strings (dialog title Edit/New, Hex Color label, Select Icon text) with t() calls. 100% i18n compliant for EN/ES/FR.
@@ -133,6 +143,7 @@ const getDefaultForm = (timezone, customColor, customIcon) => ({
     showOnCalendar: true,
     recurrence: getDefaultRecurrence(timezone),
     reminders: [],
+    reminderScope: 'event',
 });
 
 export default function CustomEventDialog({
@@ -212,6 +223,7 @@ export default function CustomEventDialog({
                 }
                 : getDefaultRecurrence(timezone);
 
+            const loadedScope = event.reminderScope || 'event';
             setForm({
                 title: event.title || event.name || '',
                 description: event.description || '',
@@ -225,6 +237,7 @@ export default function CustomEventDialog({
                 showOnCalendar: event.showOnCalendar !== false,
                 recurrence,
                 reminders: sanitizedReminders,
+                reminderScope: loadedScope,
             });
             setInitialForm({
                 title: event.title || event.name || '',
@@ -239,6 +252,7 @@ export default function CustomEventDialog({
                 showOnCalendar: event.showOnCalendar !== false,
                 recurrence,
                 reminders: sanitizedReminders,
+                reminderScope: loadedScope,
             });
         } else {
             const defaultForm = getDefaultForm(defaultTimezone, theme.palette.primary.main, DEFAULT_CUSTOM_EVENT_ICON);
@@ -407,7 +421,7 @@ export default function CustomEventDialog({
         }));
     };
 
-    const handleSaveReminder = async (index, reminderData) => {
+    const handleSaveReminder = async (index, reminderData, scopeValue) => {
         resetSavedState();
         setForm((prev) => {
             const updatedReminders = [...(prev.reminders || [])];
@@ -416,7 +430,11 @@ export default function CustomEventDialog({
             } else {
                 updatedReminders.push(reminderData);
             }
-            return { ...prev, reminders: updatedReminders };
+            return {
+                ...prev,
+                reminders: updatedReminders,
+                reminderScope: scopeValue || prev.reminderScope || 'event',
+            };
         });
     };
 
@@ -467,6 +485,7 @@ export default function CustomEventDialog({
             description: form.description.trim(),
             reminders: sanitizedReminders,
             recurrence: sanitizedRecurrence,
+            reminderScope: form.reminderScope || 'event',
         };
 
         onSave?.(savedData);
@@ -608,6 +627,7 @@ export default function CustomEventDialog({
                                                 value={form.localTime}
                                                 onChange={handleFieldChange('localTime')}
                                                 InputLabelProps={{ shrink: true }}
+                                                helperText={form.timezone.replace(/_/g, ' ')}
                                                 fullWidth
                                             />
                                         </Stack>
@@ -845,7 +865,7 @@ export default function CustomEventDialog({
                                     <RemindersEditor2
                                         reminders={form.reminders}
                                         savedCount={form.reminders?.length || 0}
-                                        reminderScopes={(form.reminders || []).map(() => 'event')}
+                                        reminderScopes={(form.reminders || []).map(() => form.reminderScope || 'event')}
                                         seriesKey={form.recurrence?.enabled && event?.seriesId ? `custom-series:${event.seriesId}` : null}
                                         seriesLabel={form.recurrence?.enabled ? form.title : null}
                                         recurrence={form.recurrence}
@@ -1125,6 +1145,7 @@ CustomEventDialog.propTypes = {
         reminders: PropTypes.arrayOf(PropTypes.object),
         showOnClock: PropTypes.bool,
         showOnCalendar: PropTypes.bool,
+        reminderScope: PropTypes.oneOf(['event', 'series']),
         customColor: PropTypes.string,
         customIcon: PropTypes.string,
         impact: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

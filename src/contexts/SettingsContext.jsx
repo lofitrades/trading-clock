@@ -5,6 +5,19 @@
  * Supplies clock visibility, styling, timezone, news source, and economic events overlay controls to the app.
  * 
  * Changelog:
+ * v1.12.0 - 2026-02-13 - BEP DEFAULT: Changed showSessionLabel default from false to true. Session label
+ *                        is now visible by default for new users and on reset, consistent with useSettings.js
+ *                        legacy hook. Updated useState init, useSettingsSafe fallback, reset flow, and
+ *                        Firestore new-user defaults.
+ * v1.11.0 - 2026-02-12 - BEP PERFORMANCE: Wrapped context value object in useMemo to prevent
+ *                        cascade re-renders. The 38-property value was recreated every render,
+ *                        causing all 15+ consumers to re-render on any settings change.
+ *                        Now only re-renders consumers when actual state values change.
+ * v1.10.1 - 2026-02-12 - BEP RACE FIX: Changed onSnapshot user doc creation from bare setDoc to
+ *                        setDoc with { merge: true } + try-catch. Prevents 'already-exists' error
+ *                        when AuthContext.createUserProfileSafely transaction creates the doc first.
+ *                        Both contexts fire on login — merge ensures whichever writes second merges
+ *                        gracefully instead of failing. Silently logs race condition (non-critical).
  * v1.10.0 - 2026-02-09 - BEP DEFAULT PRESET: Changed eventFilters.datePreset default from 'today' to 'thisWeek'
  *                        for consistency with Calendar2Page v3.0.0 and broader market context on first load.
  *                        Updated fallback in useState initialization, localStorage load, Firestore load, and
@@ -35,7 +48,7 @@
  * v1.0.0 - 2025-09-15 - Initial implementation of settings context with Firestore sync.
  */
 
-import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from './AuthContext';
 import { db } from '../firebase';
@@ -85,6 +98,7 @@ export function useSettings() {
  * Used for components that might render during SSR/prerendering before providers are mounted.
  * BEP: Falls back to default values instead of throwing error during prerender.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSettingsSafe() {
   const context = useContext(SettingsContext);
 
@@ -100,7 +114,7 @@ export function useSettingsSafe() {
       backgroundBasedOnSession: false,
       showHandClock: true,
       showDigitalClock: true,
-      showSessionLabel: false,
+      showSessionLabel: true,
       showTimezoneLabel: true,
       showTimeToEnd: true,
       showTimeToStart: true,
@@ -161,7 +175,7 @@ export function SettingsProvider({ children }) {
   const [backgroundBasedOnSession, setBackgroundBasedOnSession] = useState(false);
   const [showHandClock, setShowHandClock] = useState(true);
   const [showDigitalClock, setShowDigitalClock] = useState(true);
-  const [showSessionLabel, setShowSessionLabel] = useState(false);
+  const [showSessionLabel, setShowSessionLabel] = useState(true);
   const [showTimezoneLabel, setShowTimezoneLabel] = useState(true);
   const [showTimeToEnd, setShowTimeToEnd] = useState(true);
   const [showTimeToStart, setShowTimeToStart] = useState(true);
@@ -332,6 +346,8 @@ export function SettingsProvider({ children }) {
           applyFirestoreSettings(data);
         } else {
           // Create new user document with defaults
+          // BEP v1.10.1: Use merge:true + try-catch to prevent 'already-exists' race
+          // with AuthContext.createUserProfileSafely transaction that may create the doc first.
           const defaultSubscription = {
             plan: SUBSCRIPTION_PLANS.FREE,
             status: SUBSCRIPTION_STATUS.ACTIVE,
@@ -343,35 +359,43 @@ export function SettingsProvider({ children }) {
             subscriptionId: null,
           };
 
-          await setDoc(userRef, {
-            email: user.email,
-            role: USER_ROLES.USER,
-            subscription: defaultSubscription,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-            lastLoginAt: serverTimestamp(),
-            settings: {
-              clockStyle,
-              canvasSize,
-              clockSize,
-              sessions,
-              selectedTimezone,
-              backgroundBasedOnSession,
-              showHandClock,
-              showDigitalClock,
-              showSessionLabel,
-              showTimezoneLabel,
-              showTimeToEnd,
-              showTimeToStart,
-              showSessionNamesInCanvas,
-              showEventsOnCanvas,
-              showClockNumbers,
-              showClockHands,
-              showPastSessionsGray: false,
-              newsSource,
-              preferredSource: 'auto', themeMode: 'system',
-            },
-          });
+          try {
+            await setDoc(userRef, {
+              email: user.email,
+              role: USER_ROLES.USER,
+              subscription: defaultSubscription,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              lastLoginAt: serverTimestamp(),
+              settings: {
+                clockStyle,
+                canvasSize,
+                clockSize,
+                sessions,
+                selectedTimezone,
+                backgroundBasedOnSession,
+                showHandClock,
+                showDigitalClock,
+                showSessionLabel,
+                showTimezoneLabel,
+                showTimeToEnd,
+                showTimeToStart,
+                showSessionNamesInCanvas,
+                showEventsOnCanvas,
+                showClockNumbers,
+                showClockHands,
+                showPastSessionsGray: false,
+                newsSource,
+                preferredSource: 'auto', themeMode: 'system',
+              },
+            }, { merge: true });
+          } catch (docCreateError) {
+            // Non-critical: AuthContext likely created the doc first (race condition).
+            // The onSnapshot listener will fire again with the existing data.
+            if (docCreateError?.code !== 'already-exists') {
+              console.error('Error creating user settings doc:', docCreateError);
+            }
+          }
         }
         setIsLoading(false);
       },
@@ -669,7 +693,7 @@ export function SettingsProvider({ children }) {
     setBackgroundBasedOnSession(false);
     setShowHandClock(true);
     setShowDigitalClock(true);
-    setShowSessionLabel(false); // Default to hidden per v1.4.3
+    setShowSessionLabel(true); // Default to visible per v1.12.0
     setShowTimezoneLabel(true);
     setShowTimeToEnd(true);
     setShowTimeToStart(true);
@@ -707,7 +731,7 @@ export function SettingsProvider({ children }) {
           backgroundBasedOnSession: false,
           showHandClock: true,
           showDigitalClock: true,
-          showSessionLabel: false,
+          showSessionLabel: true,
           showTimezoneLabel: true,
           showTimeToEnd: true,
           showTimeToStart: true,
@@ -737,7 +761,14 @@ export function SettingsProvider({ children }) {
     }
   };
 
-  const value = {
+  // BEP PERFORMANCE v1.11.0: Memoize context value to prevent cascade re-renders.
+  // Without useMemo, this 38-property object is recreated on every render, causing
+  // ALL consumers (Calendar2Page, ClockPage, SettingsSidebar2, etc.) to re-render
+  // even when no settings actually changed. Now only re-renders when state values change.
+  // Note: Function references (toggle*, update*, reset*) are included but are recreated
+  // per-render since they close over current state — the state value deps below ensure
+  // the memo only busts when actual data changes, which is the correct trigger.
+  const value = useMemo(() => ({
     isLoading,
     clockStyle,
     canvasSize,
@@ -781,7 +812,15 @@ export function SettingsProvider({ children }) {
     updatePreferredSource,
     themeMode,
     updateThemeMode,
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [
+    // State value dependencies — memo busts only when actual settings data changes
+    isLoading, clockStyle, canvasSize, clockSize, sessions, selectedTimezone,
+    backgroundBasedOnSession, showHandClock, showDigitalClock, showSessionLabel,
+    showTimezoneLabel, showTimeToEnd, showTimeToStart, showSessionNamesInCanvas,
+    showEventsOnCanvas, showClockNumbers, showClockHands, showPastSessionsGray,
+    eventFilters, newsSource, preferredSource, themeMode,
+  ]);
 
   return (
     <SettingsContext.Provider value={value}>

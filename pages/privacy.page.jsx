@@ -11,7 +11,7 @@
  *                       hierarchy and prioritize crawling. Addresses "Discovered - currently not indexed" GSC status.
  * v2.2.0 - 2026-01-24 - Phase 2 i18n migration: all 280+ strings moved to pages.legal.privacy namespace (EN/ES/FR)
  * v2.1.0 - 2026-01-22 - BEP compliance refresh:
- *   - Align product language with "Trading Clock + Economic Calendar (NY Time)"
+ *   - Align product language with "Market Clock + Economic Calendar"
  *   - Clarify Forex Factory-powered events feed (no personal data shared)
  *   - Add Custom Events + Reminders/Notifications data handling
  *   - Add explicit cookie reset UX and consent update guidance

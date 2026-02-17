@@ -6,6 +6,7 @@
  * while keeping the payload lean for marketing routes.
  * 
  * Changelog:
+ * v1.0.2 - 2026-02-10 - Rename Market Clock branding in default SSR title/description fallbacks.
  * v1.0.1 - 2026-01-09 - Added robust favicon links (ico + sized PNG) for Google SERP compatibility.
  * v1.0.0 - 2025-12-18 - Initial SSR renderer with structured data support.
  */
@@ -108,8 +109,8 @@ export async function onRenderHtml(pageContext) {
     throw new Error('No Page component found for route: ' + urlPathname);
   }
 
-  const title = documentProps.title || 'Time 2 Trade | Trading Trading Clock & Events';
-  const description = documentProps.description || 'Visual trading intelligence with dual-circle session clock, live economic events overlay, and timezone-aware guidance for futures and forex day traders.';
+  const title = documentProps.title || 'Time 2 Trade | Market Clock & Events';
+  const description = documentProps.description || 'Visual market intelligence with a dual-circle market clock, live economic events overlay, and timezone-aware guidance for futures and forex day traders.';
   const canonical = documentProps.canonical || `${siteUrl}${urlPathname}`;
   const robots = documentProps.robots || 'index,follow';
   const ogImage = documentProps.ogImage || defaultOgImage;

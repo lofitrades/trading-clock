@@ -2,7 +2,7 @@
  * src/components/EventsTimeline2.jsx
  *
  * Purpose: Enterprise-grade timeline that renders economic events with timezone-aware NOW/NEXT/PAST states,
- * pagination, and rich event details (descriptions, impact, flags, values) for the trading clock experience.
+ * pagination, and rich event details (descriptions, impact, flags, values) for the market clock experience.
  * Key responsibility: display, group, and style events consistently with the clock overlay, including gray-out
  * for past events in the selected timezone.
  *

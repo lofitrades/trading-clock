@@ -8,7 +8,7 @@
   "source": "Source",
   "date": "Date",
   "time": "Time",
-  "noEvents": "No events found",
+  "noEvents": "No events found. Try adjusting your filters.",
   "loadingEvents": "Loading events...",
   "errorLoading": "Error loading events",
   "viewToggle": {
@@ -79,7 +79,7 @@
     "removeFavorite": "Remove favorite",
     "addToFavorites": "Add to favorites",
     "customEvent": "Custom event",
-    "customEventLabel": "MY EVENT",
+    "customEventLabel": "CUSTOM EVENT",
     "unknown": "Unknown",
     "global": "Global",
     "allDay": "All Day",
@@ -90,7 +90,7 @@
     "eventCount": "{{count}} events"
   },
   "clock": {
-    "title": "Trading Clock",
+    "title": "Market Clock",
     "subtitle": "Today's market sessions and economic events.",
     "hidden": "Clock hidden in settings.",
     "selectTimezone": "Select Timezone"
@@ -119,6 +119,10 @@
     "notLoaded": { "label": "Not Loaded" },
     "nonEconomic": { "label": "Non-Economic" },
     "unknown": { "label": "Unknown" }
+  },
+  "tabs": {
+    "clock": "Market Clock",
+    "insights": "Insights"
   }
 }
 

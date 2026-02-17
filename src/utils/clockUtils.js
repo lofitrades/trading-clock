@@ -5,6 +5,11 @@
  * Key responsibility and main functionality: Compute stroke widths and render static/dynamic clock layers with session arcs and labels.
  *
  * Changelog:
+ * v1.1.9 - 2026-02-10 - BEP RENDER PERF: Removed redundant clearRect from drawDynamicElements (caller already clears full canvas).
+ *   Fixed opacity fallback (|| 1 → != null check) so opacity=0 is respected during fade-in animation.
+ *   Fixed targetLineWidth fallback (|| → > 0 check) so width=0 doesn't jump to full width.
+ *   Both fixes enable the entry animation in ClockCanvas to actually produce a visible fade-in.
+ * v1.1.8 - 2026-02-10 - BEP THEME-AWARE FACE: drawStaticElements now accepts faceColor param (transparent by default). Eliminates hardcoded #fff circle that was visible on transparent backgrounds during load. Clock face inherits container bg unless explicitly colored.
  * v1.1.7 - 2026-01-13 - Add normalizeClockSize helper to keep canvas dimensions square-friendly and clamped before rendering.
  * v1.1.6 - 2026-01-08 - Add safety checks to prevent negative radius in drawStaticElements when canvas size is too small.
  * v1.1.5 - 2026-01-08 - Updated clock hands behavior: hour and minute hands always visible, seconds hand controlled by showSecondsHand toggle following enterprise best practices.
@@ -38,7 +43,7 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
     return Math.max(0, Math.round(size));
   };
   
-  export const drawStaticElements = (ctx, size, showSessionNamesInCanvas = false, numbersColor = '#333') => {
+  export const drawStaticElements = (ctx, size, showSessionNamesInCanvas = false, numbersColor = '#333', faceColor = 'transparent') => {
     // Safety: Ensure minimum size to prevent negative radius
     if (size < 20) {
       console.warn('[clockUtils] Canvas size too small:', size);
@@ -49,11 +54,13 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
           centerY = size / 2;
     const radius = Math.max(0, Math.min(size, size) / 2 - 5);
   
-    // Draw clock face
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.fillStyle = "#fff";
-    ctx.fill();
+    // Draw clock face — use provided face color (transparent by default to inherit container bg)
+    if (faceColor && faceColor !== 'transparent') {
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.fillStyle = faceColor;
+      ctx.fill();
+    }
   
     // Draw numbers
     drawClockNumbers(ctx, centerX, centerY, radius, numbersColor, showSessionNamesInCanvas);
@@ -81,17 +88,14 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
     const centerX = size / 2,
           centerY = size / 2;
     const radius = Math.min(size, size) / 2 - 5;
-    ctx.clearRect(
-      Math.floor(centerX - radius),
-      Math.floor(centerY - radius),
-      Math.ceil(radius * 2),
-      Math.ceil(radius * 2)
-    );
+    // Note: No clearRect here — the caller (ClockCanvas animate loop) already clears
+    // the full canvas before drawing. Removing the redundant inner clearRect prevents
+    // wiping the static canvas layer (face background) drawn just before this call.
     
     // Skip drawing sessions for minimalistic style
     if (clockStyle !== 'minimalistic') {
       const totalTime = 12 * 60;
-      const { lineWidth, hoverLineWidth } = getLineWidthAndHoverArea(size, clockStyle);
+      const { lineWidth } = getLineWidthAndHoverArea(size, clockStyle);
       
       // Compute once per frame for consistency and performance
       const nowHours = time.getHours();
@@ -135,12 +139,12 @@ export const getLineWidthAndHoverArea = (clockSize, clockStyle = 'normal') => {
           ));
         const isSessionPastGray = showPastSessionsGray && isSessionPast;
         
-        // Use animated line width with smooth interpolation
-        const currentWidth = animState.targetLineWidth || (kz === hoveredSession ? hoverLineWidth : lineWidth);
+        // Use animated line width — targetLineWidth is managed by GSAP (entry + hover)
+        const currentWidth = animState.targetLineWidth > 0 ? animState.targetLineWidth : lineWidth;
         
         // Apply opacity for fade-in effect
         ctx.save();
-        ctx.globalAlpha = animState.opacity || 1;
+        ctx.globalAlpha = animState.opacity != null ? animState.opacity : 1;
         
         // Calculate angular compensation for round cap at the end
         // Round cap extends as a semicircle with radius = lineWidth/2

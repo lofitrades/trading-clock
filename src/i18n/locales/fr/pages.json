@@ -2,7 +2,7 @@
   "landing": {
     "badge": "Alimenté par Forex Factory",
     "hero": {
-      "heading": "Horloge de Sessions de Trading + Calendrier Économique (Heure de New York)",
+      "heading": "Horloge du Marché + Calendrier Économique (Heure de New York)",
       "subheading": "Visualisez chaque session de trading et événement majeur du marché en un coup d'œil. Une horloge visuelle de 24 heures affiche les sessions de New York, Londres et Asie avec des comptes à rebours en temps réel—tandis qu'un calendrier Forex Factory intégré présente les publications à venir filtrées par impact et devise. Conçu pour les traders forex et contrats à terme intrajournaliers qui refusent de trader à l'aveugle.",
       "cta1": "Ouvrir l'horloge",
       "cta2": "Ouvrir le calendrier",
@@ -32,7 +32,7 @@
     "solutions": {
       "heading": "La solution",
       "points": [
-        "Une Horloge de Trading affiche les sessions de New York, Londres et Asie en temps réel",
+        "Une Horloge du Marché affiche les sessions de New York, Londres et Asie en temps réel",
         "Les comptes à rebours te disent exactement quand les transitions de session clés se produisent",
         "Événements alimentés par Forex Factory pour que tu vois les catalyseurs programmés avant qu'ils frappent",
         "Ajoute des événements personnalisés et active les notifications pour suivre tes propres règles et routines"
@@ -260,7 +260,7 @@
     "finalCta": {
       "heading": "Allez au calendrier avec le contexte de la session",
       "description": "Vérifiez les événements économiques d'aujourd'hui, confirmez le contexte de la session avec les comptes à rebours et définissez vos propres événements personnalisés et notifications. Alimenté par Forex Factory avec des filtres rapides, des favoris et des notes.",
-      "buttonOpenClock": "Ouvrir l'Horloge de Trading",
+      "buttonOpenClock": "Ouvrir l'Horloge du Marché",
       "disclaimer": "Pas un conseil financier. Le trading implique des risques."
     },
     "footer": {
@@ -449,7 +449,7 @@
     "header": {
       "logoAlt": "Accueil de Time 2 Trade",
       "openClock": "Ouvrir l'horloge",
-      "clockAlt": "Ouvrir l'horloge de trading",
+      "clockAlt": "Ouvrir l'horloge du marché",
       "openCalendar": "Ouvrir le calendrier",
       "calendarAlt": "Ouvrir le calendrier économique",
       "home": "Accueil",
@@ -492,7 +492,7 @@
       "heading": "Commencez par l'horloge, puis vérifiez le calendrier",
       "description": "En quelques secondes, répondez à trois questions : Dans quelle session suis-je ? Quel est le prochain catalyseur programmé ? Ce timing correspond-il à mon plan ?",
       "openClock": "Ouvrir l'horloge",
-      "clockAlt": "Ouvrir l'horloge de trading",
+      "clockAlt": "Ouvrir l'horloge du marché",
       "openCalendar": "Ouvrir le calendrier",
       "calendarAlt": "Ouvrir le calendrier économique",
       "backHome": "Retour à l'accueil",
@@ -501,7 +501,7 @@
     "footer": {
       "logoAlt": "Accueil de Time 2 Trade",
       "openClock": "Ouvrir l'horloge",
-      "clockAlt": "Ouvrir l'horloge de trading",
+      "clockAlt": "Ouvrir l'horloge du marché",
       "openCalendar": "Ouvrir le calendrier",
       "calendarAlt": "Ouvrir le calendrier économique",
       "home": "Accueil",

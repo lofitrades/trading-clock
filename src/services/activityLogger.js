@@ -22,6 +22,7 @@
  * });
  *
  * Changelog:
+ * v1.5.0 - 2026-02-09 - Phase 2 Insights: Compute insightKeys + visibility on every activity log write
  * v1.4.0 - 2026-02-06 - Added logGptReschedules() and logGptReinstate() for logging reschedule/reinstate events detected during GPT uploads.
  * v1.3.0 - 2026-02-05 - Added admin action logging functions for CRUD operations: canonical_event_updated, event_description_created/updated/deleted, blog_author_created/updated/deleted, events_exported (Phase 8.0).
  * v1.2.0 - 2026-02-05 - Added logEventUpdated() function for custom event edits with deduplication.
@@ -35,6 +36,10 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { auth } from '../firebase';
+import {
+  computeActivityInsightKeys,
+  determineActivityVisibility,
+} from '../utils/insightKeysUtils';
 
 // Activity type constants (mirrors backend ACTIVITY_TYPES)
 export const ACTIVITY_TYPES = {
@@ -117,6 +122,10 @@ export async function logActivity({
       description,
       severity,
       metadata,
+      // Phase 2 Insights: Compute insightKeys from metadata for cross-reference queries
+      insightKeys: computeActivityInsightKeys(type, metadata),
+      // Phase 2 Insights: Visibility level for role-based Insights feed filtering
+      visibility: determineActivityVisibility(type),
       source: 'frontend', // Distinguish from backend logs
       user: userContext,
       createdAt: serverTimestamp(),

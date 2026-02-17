@@ -218,7 +218,7 @@ src/i18n/
 ```json
 {
   "auth": {
-    "headline": "Trading Clock + Economic Calendar",
+    "headline": "Market Clock + Economic Calendar",
     "tagline": "Free account. Faster decisions. Fewer surprises.",
     "description": "See what's active now, what's next, and how much time is left — without timezone math.",
     "benefits": {
@@ -468,7 +468,7 @@ export default function AuthModal2({ open, onClose }) {
   return (
     <Dialog open={open} onClose={onClose}>
       <DialogTitle>
-        {t('auth:headline')}  {/* "Trading Clock + Economic Calendar" */}
+        {t('auth:headline')}  {/* "Market Clock + Economic Calendar" */}
       </DialogTitle>
       
       <DialogContent>

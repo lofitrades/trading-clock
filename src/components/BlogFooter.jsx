@@ -47,6 +47,7 @@ import {
     BLOG_CURRENCY_LABELS,
 } from '../types/blogTypes';
 import { getCurrencyFlag } from '../utils/currencyFlags';
+import { loadFlagIconsCSS } from '../app/clientEffects';
 
 /**
  * Brand logo matching AppBar.tsx
@@ -216,6 +217,8 @@ const BlogFooter = memo(({
     });
 
     // Fetch and aggregate taxonomy data from published posts
+    // BEP PERFORMANCE: Load flag-icons CSS on-demand for currency flag display
+    useEffect(() => { loadFlagIconsCSS(); }, []);
     useEffect(() => {
         let isMounted = true;
 
@@ -470,7 +473,7 @@ const BlogFooter = memo(({
                         color: 'text.primary',
                     }}
                 >
-                    {t('footer.exploreMore', 'Explore More Insights')}
+                    {t('footer.exploreMore', 'Explore More Articles')}
                 </Typography>
 
                 {/* Hub sections grid */}

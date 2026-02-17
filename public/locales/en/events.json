@@ -220,7 +220,7 @@
         },
         "showOnClock": {
           "label": "Show on clock",
-          "description": "Display this event on your trading clock"
+          "description": "Display this event on your market clock"
         },
         "showOnCalendar": {
           "label": "Show on calendar",

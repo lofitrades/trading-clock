@@ -350,6 +350,17 @@
     "slugTaken": "Ce slug est déjà utilisé",
     "seoSettings": "Paramètres SEO",
     "coverImage": "Image de Couverture",
+    "coverImageUploader": {
+      "dropZone": "Glissez-déposez une image ici, ou cliquez pour parcourir",
+      "browse": "Parcourir les Fichiers",
+      "acceptedFormats": "JPEG, PNG, WebP, GIF, SVG — Max {{maxSize}} Mo",
+      "uploading": "Téléversement… {{progress}} %",
+      "replace": "Remplacer l'image",
+      "delete": "Supprimer l'image",
+      "previewAlt": "Aperçu de l'image de couverture",
+      "saveFirstToUpload": "Enregistrez l'article d'abord pour téléverser une image de couverture.",
+      "orEnterUrl": "Ou saisissez une URL d'image manuellement :"
+    },
     "readingTime": "Temps de lecture est.",
     "viewPublished": "Voir l'article publié",
     "previewDraft": "Aperçu du brouillon",
@@ -544,6 +555,27 @@
       "useDefaultImage": "Utiliser la Miniature par Défaut"
     }
   },
+  "nav": {
+    "title": "T2T Admin",
+    "adminNavigation": "Navigation d'administration",
+    "openMenu": "Ouvrir le menu d'administration",
+    "dashboard": "Tableau de Bord",
+    "blog": "Blog",
+    "blogPosts": "Articles",
+    "blogNewPost": "Nouvel Article",
+    "blogEditPost": "Modifier Article",
+    "blogAuthors": "Auteurs",
+    "blogGpt": "Blog GPT",
+    "magicPost": "Magic Post",
+    "events": "Événements",
+    "manageEvents": "Gérer les Événements",
+    "descriptions": "Descriptions",
+    "tools": "Outils",
+    "uploadDesc": "Télécharger Descriptions",
+    "exportEvents": "Exporter Événements",
+    "gptUploader": "Téléchargeur GPT",
+    "backToSite": "Retour au Site"
+  },
   "dashboard": {
     "title": "Tableau de Bord Admin",
     "subtitle": "Aperçu et actions rapides pour Time 2 Trade",
@@ -557,8 +589,12 @@
     "retry": "Réessayer",
     "quickActions": {
       "title": "Actions Rapides",
+      "blogGroup": "Blog",
+      "eventsGroup": "Événements",
+      "toolsGroup": "Outils",
       "blogCms": "CMS du Blog",
       "blogCmsDesc": "Gérer les articles et brouillons",
+      "blogNewPost": "Nouvel Article",
       "blogGpt": "Blog GPT",
       "blogGptDesc": "Télécharger le JSON de blog depuis GPT",
       "openMagicPost": "Magic Post",

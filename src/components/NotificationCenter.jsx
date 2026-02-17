@@ -6,6 +6,17 @@
  * and provide quick actions to mark as read or clear.
  * 
  * Changelog:
+ * v1.6.0  - 2026-02-12 - BUGFIX: CustomEventDialog now has onDelete={handleDeleteCustomEvent} prop.
+ *                        Delete button was not connected — modal didn't call removeCustomEvent. Also
+ *                        added removeEvent to useCustomEvents destructure. Delete now works BEP.
+ * v1.5.0  - 2026-02-12 - BUGFIX: CustomEventDialog defaultTimezone now uses selectedTimezone from
+ *                        useSettingsSafe instead of Intl device timezone. Ensures custom event time is
+ *                        interpreted in the user's selected timezone, not the browser's local timezone.
+ * v1.4.0  - 2026-02-10 - BEP INTERACTION FEEDBACK: Mark notification as read on hover (desktop)
+ *                        or click/tap (mobile/desktop). Added handleNotificationHover() + 
+ *                        onMouseEnter handler to MenuItem. Unread notifications change from
+ *                        action.selected (highlighted) to transparent on interaction, providing
+ *                        immediate visual feedback that the message has been consumed.
  * v1.3.0  - 2026-02-10 - BUGFIX: onSave on CustomEventDialog now actually persists to Firestore via
  *                        useCustomEvents hook (createEvent/saveEvent). Previously used handleCloseCustomDialog
  *                        as onSave — dialog closed but data never saved.
@@ -58,6 +69,7 @@ import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { resolveImpactMeta } from '../utils/newsApi';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettingsSafe } from '../contexts/SettingsContext';
 import useCustomEvents from '../hooks/useCustomEvents';
 
 const EventModal = lazy(() => import('./EventModal'));
@@ -76,8 +88,9 @@ export default function NotificationCenter({
     closeSignal,
 }) {
     const { user, isAuthenticated } = useAuth();
+    const { selectedTimezone } = useSettingsSafe();
     // BEP v1.3.0: Custom event CRUD (no subscription needed — only mutation functions)
-    const { createEvent: createCustomEvent, saveEvent: saveCustomEvent } = useCustomEvents();
+    const { createEvent: createCustomEvent, saveEvent: saveCustomEvent, removeEvent: removeCustomEvent } = useCustomEvents();
     const { t } = useTranslation('notification');
     const theme = useTheme();
     const anchorRef = useRef(null);
@@ -125,7 +138,8 @@ export default function NotificationCenter({
         if (!anchorRef.current || !isAnchorValid) return;
         setMenuOpen(true);
         onMenuOpen?.();
-        onMarkAllRead?.();
+        // BEP v1.4.0: Do NOT mark all as read on menu open. Only mark as read when user
+        // actually hovers or clicks on individual notification items.
     };
 
     const handleClose = () => {
@@ -133,7 +147,19 @@ export default function NotificationCenter({
         onMenuClose?.();
     };
 
+    const handleNotificationHover = (notification) => {
+        // BEP v1.4.0: Mark as read on hover (desktop UX)
+        if (!notification.read) {
+            onMarkRead?.(notification.id);
+        }
+    };
+
     const handleNotificationClick = (notification) => {
+        // BEP v1.4.0: Mark as read on click/tap (mobile UX + desktop confirmation)
+        if (!notification.read) {
+            onMarkRead?.(notification.id);
+        }
+
         const event = events?.find((evt) => evt.id === notification.eventId);
         if (event) {
             setSelectedEvent(event);
@@ -150,7 +176,6 @@ export default function NotificationCenter({
                 // Ignore window.open failures
             }
         }
-        onMarkRead?.(notification.id);
     };
 
     const handleCloseEventModal = () => setSelectedEvent(null);
@@ -184,6 +209,18 @@ export default function NotificationCenter({
             setCustomEditingEvent(null);
         }
     }, [isAuthenticated, user, createCustomEvent, customEditingEvent, saveCustomEvent]);
+
+    const handleDeleteCustomEvent = useCallback(async (eventToDelete) => {
+        const eventId = eventToDelete?.seriesId || eventToDelete?.id;
+        if (!eventId) return;
+        const confirmed = window.confirm('Delete this reminder?');
+        if (!confirmed) return;
+        const result = await removeCustomEvent(eventId);
+        if (result?.success) {
+            setCustomDialogOpen(false);
+            setCustomEditingEvent(null);
+        }
+    }, [removeCustomEvent]);
 
     useEffect(() => {
         if (menuOpen && !isAnchorValid) {
@@ -313,6 +350,7 @@ export default function NotificationCenter({
                                 <MenuItem
                                     key={item.id}
                                     onClick={() => handleNotificationClick(item)}
+                                    onMouseEnter={() => handleNotificationHover(item)}
                                     sx={{
                                         alignItems: 'flex-start',
                                         whiteSpace: 'normal',
@@ -413,8 +451,9 @@ export default function NotificationCenter({
                         open={customDialogOpen}
                         onClose={handleCloseCustomDialog}
                         onSave={handleSaveCustomEvent}
+                        onDelete={handleDeleteCustomEvent}
                         event={customEditingEvent}
-                        defaultTimezone={Intl.DateTimeFormat().resolvedOptions().timeZone}
+                        defaultTimezone={selectedTimezone}
                         zIndexOverride={customEditingEvent ? 12003 : undefined}
                     />
                 </Suspense>

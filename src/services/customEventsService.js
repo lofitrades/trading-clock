@@ -6,6 +6,10 @@
  * while normalizing them for calendar + clock rendering and future calendar sync scalability.
  * 
  * Changelog:
+ * v1.6.0 - 2026-02-17 - BUGFIX: Added reminderScope field to buildCustomEventPayload, mapCustomEventDoc,
+ *                       addCustomEvent, and updateCustomEvent. Scope is now persisted to Firestore custom event
+ *                       documents and passed to normalizeEventForReminder so reminder documents use the correct
+ *                       eventKey (series key when scope='series', event key when scope='event').
  * v1.5.0 - 2026-02-10 - Added showOnCalendar field (default: true) to payload, mapping, display decoration, and metadata.
  * v1.4.1 - 2026-01-23 - Delete reminder doc when custom event reminders are removed.
  * v1.4.0 - 2026-01-23 - Add unified reminders sync to users/{uid}/reminders for custom events.
@@ -360,6 +364,7 @@ export const buildCustomEventPayload = (input = {}) => {
     impact,
     showOnClock: input.showOnClock !== false,
     showOnCalendar: input.showOnCalendar !== false,
+    reminderScope: input.reminderScope || 'event',
       reminders,
     recurrence,
     recurrenceEnabled: Boolean(recurrence?.enabled),
@@ -423,6 +428,7 @@ const mapCustomEventDoc = (docSnap, nowEpochMs) => {
     impact: data.impact || 'my-events',
     showOnClock: data.showOnClock !== false,
     showOnCalendar: data.showOnCalendar !== false,
+    reminderScope: data.reminderScope || 'event',
       reminders: normalizeRemindersWithEmail(data.reminders || []),
     recurrence,
     recurrenceEnabled: Boolean(recurrence?.enabled),
@@ -560,6 +566,7 @@ export const addCustomEvent = async (userId, payload = {}) => {
     source: CUSTOM_SOURCE,
     userId,
     reminders: data.reminders,
+    scope: data.reminderScope || 'event',
     metadata: {
       recurrence: data.recurrence,
       localDate: data.localDate,
@@ -571,6 +578,7 @@ export const addCustomEvent = async (userId, payload = {}) => {
       showOnCalendar: data.showOnCalendar,
       isCustom: true,
       seriesId: docRef.id,
+      scope: data.reminderScope || 'event',
     },
   });
   if (data.reminders.length > 0) {
@@ -594,6 +602,7 @@ export const updateCustomEvent = async (userId, eventId, payload = {}) => {
     source: CUSTOM_SOURCE,
     userId,
     reminders: data.reminders,
+    scope: data.reminderScope || 'event',
     metadata: {
       recurrence: data.recurrence,
       localDate: data.localDate,
@@ -605,6 +614,7 @@ export const updateCustomEvent = async (userId, eventId, payload = {}) => {
       showOnCalendar: data.showOnCalendar,
       isCustom: true,
       seriesId: eventId,
+      scope: data.reminderScope || 'event',
     },
   });
   if (data.reminders.length > 0) {

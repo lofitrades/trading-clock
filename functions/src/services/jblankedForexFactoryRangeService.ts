@@ -7,6 +7,8 @@
  * priority logic (NFS > JBlanked-FF > GPT > JBlanked-MT > JBlanked-FXStreet).
  *
  * Changelog:
+ * v1.2.0 - 2026-02-10 - BEP P1: Added logSyncCompleted/logSyncFailed/logEventReinstatement. P2: Pass currencyTags to logSyncCompleted.
+ * v1.1.0 - 2026-02-09 - BEP FIX: Strip undefined values before Firestore batch write (prevents rescheduledFrom crash).
  * v1.0.1 - 2026-01-21 - Fix Forex Factory range endpoint URL format.
  * v1.0.0 - 2026-01-21 - Initial implementation for manual Forex Factory range backfill.
  */
@@ -22,6 +24,11 @@ import {
   normalizeEventName,
 } from "../models/economicEvent";
 import {formatDateISO, parseJblankedDateToTimestamp} from "../utils/dateUtils";
+import {
+  logSyncCompleted,
+  logSyncFailed,
+  logEventReinstatement,
+} from "./activityLoggingService";
 
 const DEFAULT_FROM_DATE = "2026-01-01";
 
@@ -73,6 +80,7 @@ export async function syncJblankedForexFactorySince(
   const apiKey = getApiKey();
   if (!apiKey) {
     logger.error("❌ Missing JBlanked API key (JBLANKED_API_KEY)");
+    await logSyncFailed("JBlanked-FF-Range", "Missing JBLANKED_API_KEY");
     return;
   }
 
@@ -82,7 +90,9 @@ export async function syncJblankedForexFactorySince(
   try {
     payload = await fetchForexFactoryRange(fromDate, toDate, apiKey);
   } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
     logger.error("❌ Failed to fetch JBlanked Forex Factory range", {error});
+    await logSyncFailed("JBlanked-FF-Range", errMsg);
     return;
   }
 
@@ -94,6 +104,8 @@ export async function syncJblankedForexFactorySince(
   let mergedIntoExisting = 0;
   let createdNew = 0;
   let skipped = 0;
+  let reinstatedCount = 0;
+  const processedCurrencies = new Set<string>();
 
   for (const raw of payload) {
     processed += 1;
@@ -113,6 +125,9 @@ export async function syncJblankedForexFactorySince(
       const datetimeUtc = parseJblankedDateToTimestamp(String(raw.Date));
       const status: CanonicalEconomicEvent["status"] =
         raw.Actual != null && raw.Actual !== "" ? "released" : "scheduled";
+
+      // P2: Track processed currencies
+      if (currency) processedCurrencies.add(currency);
 
       let existingMatch:
         | {eventId: string; event: CanonicalEconomicEvent}
@@ -149,6 +164,16 @@ export async function syncJblankedForexFactorySince(
       const eventId = existingMatch?.eventId ?? collection.doc().id;
       const existingDoc = existingMatch?.event ??
         (await collection.doc(eventId).get()).data() as CanonicalEconomicEvent | undefined;
+
+      // P0/P3: Reinstatement detection — cancelled event reappearing in feed
+      if (existingDoc?.status === "cancelled" && status === "scheduled") {
+        logger.info("📢 JBlanked FF Range: EVENT REINSTATED from cancelled", {
+          eventName: rawName,
+          currency,
+        });
+        await logEventReinstatement(rawName, currency || "N/A");
+        reinstatedCount += 1;
+      }
 
       const merged = mergeProviderEvent(existingDoc, {
         provider: "jblanked-ff",
@@ -189,7 +214,11 @@ export async function syncJblankedForexFactorySince(
     const batch = db.batch();
     const slice = entries.slice(i, i + batchSize);
     for (const [eventId, canonical] of slice) {
-      batch.set(collection.doc(eventId), canonical, {merge: true});
+      // BEP: Strip undefined values — Firestore does not allow undefined
+      const cleaned = Object.fromEntries(
+        Object.entries(canonical).filter(([, v]) => v !== undefined)
+      ) as typeof canonical;
+      batch.set(collection.doc(eventId), cleaned, {merge: true});
     }
     await batch.commit();
   }
@@ -202,5 +231,17 @@ export async function syncJblankedForexFactorySince(
     mergedIntoExisting,
     createdNew,
     skipped,
+    reinstatedCount,
   });
+
+  // P1: Log sync completion for Insights dashboard
+  await logSyncCompleted(
+    "JBlanked-FF-Range",
+    processed,
+    createdNew,
+    mergedIntoExisting,
+    0,
+    0,
+    { currencyTags: Array.from(processedCurrencies) }
+  );
 }

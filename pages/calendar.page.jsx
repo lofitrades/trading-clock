@@ -9,7 +9,7 @@
  *                       structured data, and SEO metadata unchanged. Module import updated.
  * v1.3.0 - 2026-02-02 - BEP SEO FIX: Added BreadcrumbList schema to help Google understand site
  *                       hierarchy and prioritize crawling. Addresses "Discovered - currently not indexed" GSC status.
- * v1.2.0 - 2026-01-22 - BEP SEO/copy refresh: align with "Trading Clock + Economic Calendar (NY Time)",
+ * v1.2.0 - 2026-01-22 - BEP SEO/copy refresh: align with "Market Clock + Economic Calendar",
  *                       emphasize Forex Factory-powered events, custom events + notifications, remove "exports" from primary claims,
  *                       improve FAQ for trust + non-advice positioning, and add /clock + /calendar CTA parity.
  * v1.1.1 - 2026-01-16 - Updated calendar CTAs to point to /clock.

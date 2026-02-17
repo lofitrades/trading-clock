@@ -16,6 +16,10 @@
  * - Conversion: toLocaleString/toLocaleTimeString with timeZone parameter
  * 
  * Changelog:
+ * v1.3.0 - 2026-02-11 - Added shared calculateDateRange() — single source of truth for date preset
+ *                        range calculations. Used by ClockEventsFilters and useCalendarData.
+ *                        Fixes: thisMonth wrong-argument-order bug, .getDate() using system timezone
+ *                        instead of target, end-of-day precision improved from -1s to -1ms.
  * v1.2.0 - 2025-12-11 - Added timezone day-boundary helpers for accurate date ranges across all offsets.
  * v1.1.0 - 2025-12-01 - Added comprehensive logging to formatTime() for timezone debugging
  * v1.0.0 - 2025-12-01 - Initial implementation (extracted from EventModal & EventsTimeline2)
@@ -465,6 +469,80 @@ export function getUtcDayRangeForTimezone(timezone = DEFAULT_TIMEZONE, reference
   const startDate = getUtcDateForTimezone(timezone, year, month, day);
   const endDate = getUtcDateForTimezone(timezone, year, month, day, { endOfDay: true });
   return { startDate, endDate };
+}
+
+/**
+ * Calculate UTC date range for a date preset in a specific timezone.
+ * Single source of truth used by ClockEventsFilters, useCalendarData, and any
+ * other component that needs timezone-aware date preset ranges.
+ *
+ * IMPORTANT: Returns precise UTC Date objects representing timezone-correct
+ * boundaries. Do NOT convert these to YYYY-MM-DD strings — that strips the
+ * time component and breaks timezone accuracy.
+ *
+ * @param {string} preset - 'today' | 'tomorrow' | 'thisWeek' | 'nextWeek' | 'thisMonth'
+ * @param {string} timezone - IANA timezone string (e.g. 'America/New_York')
+ * @returns {{ startDate: Date, endDate: Date } | null} UTC date range or null
+ */
+export function calculateDateRange(preset, timezone) {
+  const { year, month, day, dayOfWeek } = getDatePartsInTimezone(timezone);
+
+  /**
+   * Create a UTC Date representing start or end of a wall-clock day.
+   * For endOfDay: creates start of next day minus 1 ms for precise boundary.
+   */
+  const createDate = (y, m, d, endOfDay = false) => {
+    if (endOfDay) {
+      const nextDayStart = getUtcDateForTimezone(timezone, y, m, d + 1, {
+        hour: 0, minute: 0, second: 0, millisecond: 0,
+      });
+      return new Date(nextDayStart.getTime() - 1);
+    }
+    return getUtcDateForTimezone(timezone, y, m, d);
+  };
+
+  switch (preset) {
+    case 'today':
+      return {
+        startDate: createDate(year, month, day),
+        endDate: createDate(year, month, day, true),
+      };
+    case 'tomorrow':
+      return {
+        startDate: createDate(year, month, day + 1),
+        endDate: createDate(year, month, day + 1, true),
+      };
+    case 'thisWeek': {
+      const weekStartDay = day - dayOfWeek;
+      const weekEndDay = weekStartDay + 6;
+      return {
+        startDate: createDate(year, month, weekStartDay),
+        endDate: createDate(year, month, weekEndDay, true),
+      };
+    }
+    case 'nextWeek': {
+      const thisWeekEndDay = day + (6 - dayOfWeek);
+      const nextWeekStartDay = thisWeekEndDay + 1;
+      const nextWeekEndDay = nextWeekStartDay + 6;
+      return {
+        startDate: createDate(year, month, nextWeekStartDay),
+        endDate: createDate(year, month, nextWeekEndDay, true),
+      };
+    }
+    case 'thisMonth': {
+      // JS Date.UTC auto-overflows: month 12 → Jan next year, etc.
+      const firstOfNextMonth = getUtcDateForTimezone(timezone, year, month + 1, 1);
+      const lastDayDate = new Date(firstOfNextMonth.getTime() - 86400000);
+      // Get day number in the TARGET timezone (not system or UTC)
+      const { day: lastDay } = getDatePartsInTimezone(timezone, lastDayDate);
+      return {
+        startDate: createDate(year, month, 1),
+        endDate: createDate(year, month, lastDay, true),
+      };
+    }
+    default:
+      return null;
+  }
 }
 
 /**

@@ -1,7 +1,7 @@
 # Time 2 Trade - Developer Knowledge Base
 
-**Last Updated:** February 4, 2026  
-**Version:** 4.0.77  
+**Last Updated:** February 11, 2026  
+**Version:** 4.4.1  
 **Maintainer:** Lofi Trades Development Team
 
 ---
@@ -2262,6 +2262,42 @@ whyDidYouRender(React, {
 ---
 
 ## 📝 Change Log
+
+### Version 4.5.1 - February 12, 2026
+**Onboarding Reliability: Default Custom Events**
+
+#### 🐛 Fixes
+- Default custom events (NY Open / Market Close) are now created only for genuinely new profiles and are idempotent via stable `externalId` checks.
+- Custom marker silhouette reverted to circular (clock overlay markers remain circles).
+
+### Version 4.5.0 - February 11, 2026
+**Performance Optimization: Lighthouse Audit Improvements**
+
+#### 🎯 Major Changes
+- **Firebase Lazy Loading**: Refactored `firebase.js` to export lazy-loading getters (`getAuthLazy`, `getDbLazy`, etc.) alongside synchronous exports for backward compatibility. Reduces initial JS parse time by ~200ms.
+- **Enhanced Vite Chunking**: Added granular `manualChunks` for Firebase Auth, date-fns, i18next ecosystem, and React Router. Reduces unused JS on landing page by ~100KB.
+- **DNS Prefetch Hints**: Added `dns-prefetch` for GTM, Google Analytics, AdSense, Firestore, and Identity Toolkit to reduce connection latency.
+- **Critical CSS Enhancement**: Extended inline critical CSS with AppBar height reservation and `aspect-ratio` fallback for unsized images to prevent CLS.
+
+#### 📁 Files Modified
+- `src/firebase.js` (v2.0.0): Added lazy initialization pattern with memoized getters.
+- `vite.config.js` (v1.11.0): Enhanced manualChunks for better code splitting, added ES2020 target and cssMinify.
+- `index.html` (v2.5.0): Added DNS prefetch hints and CLS prevention CSS.
+
+#### 📊 Expected Improvements
+- TBT reduction: ~100-200ms (Firebase lazy loading)
+- Unused JS reduction: ~100KB (better chunking)
+- LCP improvement: ~50-100ms (DNS prefetch)
+- CLS improvement: ~0.01 (height reservation)
+
+---
+
+### Version 4.4.1 - February 11, 2026
+**Brand Copy Standardization: Market Clock**
+
+#### ✅ Updates
+- Replaced remaining legacy clock-name references with "Market Clock" / "market clock" across i18n strings, SEO metadata, prerendered pages, and static HTML fallbacks.
+- Updated internal docs/instructions and sample content to reflect the new naming.
 
 ### Version 4.4.0 - February 7, 2026
 **Calendar 2.0 Migration: Route Swap & Filter Sync**

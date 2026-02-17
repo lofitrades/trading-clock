@@ -2,7 +2,7 @@
   "landing": {
     "badge": "Impulsado por datos de Forex Factory",
     "hero": {
-      "heading": "Reloj de Trading + Calendario Económico (Hora de Nueva York)",
+      "heading": "Reloj de Mercado + Calendario Económico (Hora de Nueva York)",
       "subheading": "Visualiza cada sesión de trading y evento que mueve el mercado de un vistazo. Un reloj visual de 24 horas muestra las sesiones de Nueva York, Londres y Asia con cuentas regresivas en tiempo real—mientras un calendario integrado de Forex Factory muestra los próximos lanzamientos filtrados por impacto y divisa. Creado para operadores de futuros y forex intradía que se niegan a operar a ciegas.",
       "cta1": "Abre el reloj",
       "cta2": "Abre el calendario",
@@ -32,7 +32,7 @@
     "solutions": {
       "heading": "La solución",
       "points": [
-        "Un Reloj de Trading muestra sesiones de Nueva York, Londres y Asia en tiempo real",
+        "Un Reloj de Mercado muestra sesiones de Nueva York, Londres y Asia en tiempo real",
         "Los temporizadores de cuenta regresiva te dicen exactamente cuándo ocurren transiciones de sesión clave",
         "Eventos impulsados por Forex Factory para que veas catalizadores programados antes de que golpeen",
         "Agrega eventos personalizados y habilita notificaciones para seguir tus propias reglas y rutinas"
@@ -213,7 +213,7 @@
       "signIn": "Inicia sesión"
     },    "highlights": {
       "product": {
-        "label": "Reloj de Trading",
+        "label": "Reloj de Mercado",
         "value": "NY + Londres + Asia",
         "hint": "Cuenta regresiva en tiempo real hasta transiciones clave"
       },
@@ -260,7 +260,7 @@
     "finalCta": {
       "heading": "Ve al calendario con contexto de sesión",
       "description": "Verifica los eventos económicos de hoy, confirma el contexto de la sesión con cuentas regresivas y establece tus propios eventos personalizados y notificaciones. Impulsado por Forex Factory con filtros rápidos, favoritos y notas.",
-      "buttonOpenClock": "Abre el Reloj de Trading",
+      "buttonOpenClock": "Abre el Reloj de Mercado",
       "disclaimer": "No es asesoramiento financiero. La negociación implica riesgo."
     },
     "footer": {

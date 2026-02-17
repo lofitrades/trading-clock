@@ -5,6 +5,11 @@
  * Presents a light, mobile-first surface with a primary CTA to allow ads or keep essential-only cookies.
  * 
  * Changelog:
+ * v1.7.0 - 2026-02-12 - BEP LAZY LOAD: Lazy-loaded via AppRoutes with Suspense fallback={null}.
+ *                       Also deferred with requestIdleCallback (setTimeout 500ms fallback) so
+ *                       CookiesBanner renders last — after clock canvas is interactive. Banner
+ *                       has internal 5s delay before showing anyway, so additional deferral
+ *                       is non-blocking. Zero UX impact (banner shows after user interaction).
  * v1.6.0 - 2026-02-02 - BEP GDPR: Trigger Meta Pixel load when user clicks "Allow all".
  *                       Imported loadMetaPixel from consent.js. Called after consent is set.
  *                       Pixel is now consent-gated and only loads after explicit user action.

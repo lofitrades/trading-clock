@@ -4,34 +4,11 @@
   "filter": "Filter Events",
   "search": "Search Events",
   "sort": "Sort by",
-  "impact": {
-    "high": {
-      "label": "High"
-    },
-    "medium": {
-      "label": "Medium"
-    },
-    "low": {
-      "label": "Low"
-    },
-    "myEvents": {
-      "label": "My Events"
-    },
-    "notLoaded": {
-      "label": "Not Loaded"
-    },
-    "nonEconomic": {
-      "label": "Non-Economic"
-    },
-    "unknown": {
-      "label": "Unknown"
-    }
-  },
   "currency": "Currency",
   "source": "Source",
   "date": "Date",
   "time": "Time",
-  "noEvents": "No events found",
+  "noEvents": "No events found. Try adjusting your filters.",
   "loadingEvents": "Loading events...",
   "errorLoading": "Error loading events",
   "viewToggle": {
@@ -95,10 +72,25 @@
     "awaitingSync": "Awaiting sync..."
   },
   "tooltip": {
-    "customEventLabel": "MY EVENT"
+    "loadingNotes": "Loading notes...",
+    "viewNotes": "View notes",
+    "addNote": "Add a note",
+    "addReminder": "Add reminder",
+    "removeFavorite": "Remove favorite",
+    "addToFavorites": "Add to favorites",
+    "customEvent": "Custom event",
+    "customEventLabel": "CUSTOM EVENT",
+    "unknown": "Unknown",
+    "global": "Global",
+    "allDay": "All Day",
+    "tentative": "Tentative",
+    "allDayAndTentative": "All Day / Tentative",
+    "time": "Time",
+    "singleEvent": "1 event",
+    "eventCount": "{{count}} events"
   },
   "clock": {
-    "title": "Trading Clock",
+    "title": "Market Clock",
     "subtitle": "Today's market sessions and economic events.",
     "hidden": "Clock hidden in settings.",
     "selectTimezone": "Select Timezone"
@@ -118,5 +110,32 @@
       "forecast": "FOR",
       "previous": "PRV"
     }
+  },
+  "impact": {
+    "high": {
+      "label": "High"
+    },
+    "medium": {
+      "label": "Medium"
+    },
+    "low": {
+      "label": "Low"
+    },
+    "myEvents": {
+      "label": "My Events"
+    },
+    "notLoaded": {
+      "label": "Not Loaded"
+    },
+    "nonEconomic": {
+      "label": "Non-Economic"
+    },
+    "unknown": {
+      "label": "Unknown"
+    }
+  },
+  "tabs": {
+    "clock": "Market Clock",
+    "insights": "Insights"
   }
 }

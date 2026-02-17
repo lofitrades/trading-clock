@@ -8,6 +8,8 @@
  * Note: Context and hook are exported from themeContextUtils.js to avoid React Fast Refresh issues.
  *
  * Changelog:
+ * v1.2.0 - 2026-02-12 - BEP PERFORMANCE: Wrapped context value in useMemo to prevent unnecessary
+ *                       re-renders of all theme consumers when unrelated state changes occur.
  * v1.1.0 - 2026-02-14 - BEP: Default themeMode to 'light' for first-time guests (was 'system').
  *                       Ensures light theme on first impression; authenticated users get 'system'
  *                       via Firestore settings sync from SettingsContext.
@@ -16,7 +18,7 @@
  *                       system preference detection, localStorage persistence, and useThemeMode hook.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { ThemeContext } from './themeContextUtils';
 
@@ -95,14 +97,17 @@ export function ThemeContextProvider({ children }) {
         }
     }, []);
 
-    const value = {
+    // BEP PERFORMANCE v1.2.0: Memoize context value to prevent cascade re-renders.
+    // Without useMemo, every state change recreates the value object, forcing all
+    // consumers to re-render even when theme hasn't changed.
+    const value = useMemo(() => ({
         themeMode,
         resolvedTheme,
         setThemeMode,
         toggleTheme,
         isDarkMode: resolvedTheme === 'dark',
         systemPreference,
-    };
+    }), [themeMode, resolvedTheme, setThemeMode, toggleTheme, systemPreference]);
 
     return (
         <ThemeContext.Provider value={value}>

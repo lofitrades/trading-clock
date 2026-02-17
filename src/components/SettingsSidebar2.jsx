@@ -5,6 +5,14 @@
  * Inspired by modern app shells (Airbnb/ChatGPT) with quick toggles, sectional pills, and responsive cards that mirror existing settings logic.
  *
  * Changelog:
+ * v2.2.0 - 2026-02-13 - BEP AUDIT: Re-enabled Session Label toggle inside Analog Hand Clock Visibility group
+ *                       (was hidden since v1.3.1 via sessionLabelControlsVisible=false). Session Label and its
+ *                       children (Countdown to Start/End) now render as child toggles of Analog Hand Clock,
+ *                       matching the nesting pattern of Events on Canvas, Session Names, etc. All hardcoded
+ *                       English strings replaced with i18n keys from settings namespace. Removed
+ *                       sessionLabelControlsVisible flag and legacy standalone section after Digital Clock.
+ * v2.1.6 - 2026-02-09 - BEP SUPERADMIN: Added BackfillProgressModal with real-time progress tracking showing 3-phase stepper (blogPosts → activityLog → eventNotes) and final results table with summary counts. Modal displays total, updated, skipped, and error counts per collection. Integrated into handleBackfillInsightKeys with phase timing for visual feedback. Temporary implementation (no i18n translations) for superadmin backfill operations.
+ * v2.1.5 - 2026-02-09 - BEP SUPERADMIN: Added backfillInsightKeys icon button to header for superadmins. Calls Cloud Function to backfill insightKeys/visibility across blogPosts, systemActivityLog, and eventNotes. Uses BuildIcon with rotating animation during sync. Displays success/error message and count of updated documents. Follows same pattern as NFS/JBlanked sync buttons with confirmation dialog and debouncing.
  * v2.1.4 - 2026-01-30 - BEP i18n: Updated unlock button copy from generic 'unlockAllFeatures' to context-specific 'settings:drawer.unlockButton' (Create free account to unlock all settings). Added i18n key to all 6 locale files (public/locales and src/i18n/locales for EN/ES/FR).
  * v2.1.3 - 2026-01-30 - BEP HEADER REFINEMENT: Reduced header padding from xs: 2, sm: 2.5 to xs: 1.5, sm: 2 for compact height following BEP standards. Added top border-radius (borderTopLeftRadius: md: 20) for rounded corners matching app's consistent design. Added conditional subtitle for non-auth users only (settings:drawer.subtitle key) inviting them to unlock features. Removed header box-shadow for cleaner look. Changed header flex layout to vertical stack with flex: 1 on title container.
  * v2.1.2 - 2026-01-29 - HOTFIX: Removed stale showAccountModal reference from Drawer open condition that caused ReferenceError in production. Variable was removed in v2.1.1 but reference in open prop was missed.
@@ -33,6 +41,8 @@
  * v1.3.6 - 2026-01-12 - Raise settings drawer z-index above top chrome (banner + app bar).
  * v1.3.3 - 2026-01-08 - Updated "Clock Hands" toggle label to "Seconds Hand" to clarify that only the seconds hand is toggled; hour and minute hands always visible (enterprise best practice).
  * v1.3.2 - 2026-01-08 - Allow guest/local toggling of gray past sessions and session name visibility; no auth gate for these canvas appearance toggles.
+ * v1.3.2 - 2026-02-11 - BEP PERFORMANCE: Lazy-loaded AuthModal2 (conditionally rendered for
+ *                        guest unlock flow). Wrapped in Suspense to defer Firebase Auth SDK.
  * v1.3.1 - 2026-01-07 - Temporarily hide session label toggles while keeping underlying setting wiring intact for future use.
  * v1.3.0 - 2026-01-06 - Remove timezone visibility toggle; timezone label is always shown.
  * v1.2.9 - 2025-12-17 - Refactored About tab to use shared aboutContent module and added "Read Full About Page" link for SEO route.
@@ -55,7 +65,7 @@
  */
 
 import PropTypes from 'prop-types';
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { Suspense, lazy, useMemo, useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
 	Alert,
@@ -81,17 +91,20 @@ import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
 import CalendarViewWeekIcon from '@mui/icons-material/CalendarViewWeek';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import HistoryIcon from '@mui/icons-material/History';
+import BuildIcon from '@mui/icons-material/Build';
 import LightModeIcon from '@mui/icons-material/LightModeRounded';
 import DarkModeIcon from '@mui/icons-material/DarkModeRounded';
 import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightnessRounded';
 import { signOut } from 'firebase/auth';
-import { auth } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
+import { auth, functions } from '../firebase';
 import { useSettings } from '../contexts/SettingsContext';
 import { useThemeMode } from '../contexts/themeContextUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { triggerNfsWeekSync, triggerJblankedActualsSync, triggerJblankedForexFactorySinceSync } from '../services/economicEventsService';
-import AuthModal2 from './AuthModal2';
+const AuthModal2 = lazy(() => import('./AuthModal2'));
 import ConfirmModal from './ConfirmModal';
+import BackfillProgressModal from './BackfillProgressModal';
 import SwitchComponent from './Switch';
 import TimezoneSelector from './TimezoneSelector';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -201,8 +214,6 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 
 	const { themeMode, setThemeMode } = useThemeMode();
 
-	const sessionLabelControlsVisible = false;
-
 	const [activeSection, setActiveSection] = useState('general');
 	const [showUnlockModal, setShowUnlockModal] = useState(false);
 	const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
@@ -213,7 +224,12 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 	const [syncingWeek, setSyncingWeek] = useState(false);
 	const [syncingActuals, setSyncingActuals] = useState(false);
 	const [syncingForexFactoryRange, setSyncingForexFactoryRange] = useState(false);
+	const [syncingBackfill, setSyncingBackfill] = useState(false);
 	const [syncSuccess, setSyncSuccess] = useState(null);
+	const [showBackfillModal, setShowBackfillModal] = useState(false);
+	const [backfillPhase, setBackfillPhase] = useState(null);
+	const [backfillResults, setBackfillResults] = useState(null);
+	const [backfillError, setBackfillError] = useState(null);
 
 	// Sync saved themeMode from SettingsContext to ThemeContext on mount
 	useEffect(() => {
@@ -285,6 +301,66 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 			setSyncingForexFactoryRange(false);
 		}
 	}, [syncingForexFactoryRange]);
+
+	const handleBackfillInsightKeys = useCallback(async () => {
+		if (syncingBackfill) return;
+		const confirmed = window.confirm('Backfill insightKeys for all documents (blogPosts, activity logs, event notes)? This may take several minutes.');
+		if (!confirmed) return;
+
+		setSyncingBackfill(true);
+		setShowBackfillModal(true);
+		setBackfillPhase('blogPosts');
+		setBackfillResults(null);
+		setBackfillError(null);
+		setSyncSuccess(null);
+
+		try {
+			const backfill = httpsCallable(functions, 'backfillInsightKeys');
+
+			// Simulate phase transitions for UX feedback (Cloud Function runs all phases)
+			const phaseTimings = {
+				blogPosts: 0,
+				activityLog: 5000,
+				eventNotes: 10000,
+			};
+
+			// Update UI phase based on time elapsed
+			const phaseTimer = setInterval(() => {
+				const now = Date.now();
+				const elapsed = now - startTime;
+
+				if (elapsed < phaseTimings.activityLog) {
+					setBackfillPhase('blogPosts');
+				} else if (elapsed < phaseTimings.eventNotes) {
+					setBackfillPhase('activityLog');
+				} else {
+					setBackfillPhase('eventNotes');
+				}
+			}, 500);
+
+			const startTime = Date.now();
+			const result = await backfill({});
+			clearInterval(phaseTimer);
+
+			if (result.data) {
+				const { blogPosts, activityLog, eventNotes } = result.data;
+				setBackfillResults({ blogPosts, activityLog, eventNotes });
+				setBackfillPhase(null);
+
+				const totalUpdated = (blogPosts?.updated || 0) + (activityLog?.updated || 0) + (eventNotes?.updated || 0);
+				setSyncSuccess(`✓ Backfilled insightKeys: ${totalUpdated} docs updated.`);
+			} else {
+				setBackfillError('Backfill completed but no response data.');
+				setSyncSuccess('Backfill completed but no response data.');
+			}
+		} catch (error) {
+			setBackfillError(error.message || 'Unknown error');
+			setSyncSuccess(`✗ Failed to backfill: ${error.message || 'Unknown error'}`);
+		} finally {
+			setTimeout(() => setSyncSuccess(null), 5000);
+			setSyncingBackfill(false);
+		}
+	}, [syncingBackfill]);
 
 	const handleLogout = async () => {
 		try {
@@ -601,6 +677,88 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 								onChange={toggleShowClockHands}
 							/>
 						</Box>
+
+						{/* Session Label toggle — child of Analog Hand Clock */}
+						<Box
+							sx={{
+								display: 'flex',
+								gap: 1.5,
+								alignItems: 'center',
+								borderLeft: '1px solid',
+								borderColor: 'divider',
+								pl: 1.5,
+								minHeight: 44,
+								flexWrap: 'wrap',
+							}}
+						>
+							<Box sx={{ flex: 1, minWidth: 0 }}>
+								<Typography variant="body2" sx={{ fontWeight: 600 }}>
+									{t('settings:general.visibility.sessionLabel.label')}
+								</Typography>
+								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+									{t('settings:general.visibility.sessionLabel.description')}
+								</Typography>
+							</Box>
+							<SwitchComponent
+								checked={showSessionLabel}
+								onChange={() => handleToggle(toggleShowSessionLabel)}
+							/>
+						</Box>
+
+						{/* Session Label children: Countdown to Start / End */}
+						{showSessionLabel && (
+							<Box
+								sx={{
+									display: 'flex',
+									flexDirection: 'column',
+									gap: 0.75,
+									pl: 3,
+									borderLeft: '1px solid',
+									borderColor: 'divider',
+									ml: 1.5,
+								}}
+							>
+								<Box
+									sx={{
+										display: 'flex',
+										gap: 1.5,
+										alignItems: 'center',
+										minHeight: 40,
+										flexWrap: 'wrap',
+									}}
+								>
+									<Box sx={{ flex: 1, minWidth: 0 }}>
+										<Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
+											{t('settings:general.visibility.timeToStart.label')}
+										</Typography>
+										<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+											{t('settings:general.visibility.timeToStart.description')}
+										</Typography>
+									</Box>
+									<SwitchComponent checked={showTimeToStart} onChange={handleToggleShowTimeToStart} />
+								</Box>
+
+								<Box
+									sx={{
+										display: 'flex',
+										gap: 1.5,
+										alignItems: 'center',
+										minHeight: 40,
+										flexWrap: 'wrap',
+									}}
+								>
+									<Box sx={{ flex: 1, minWidth: 0 }}>
+										<Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
+											{t('settings:general.visibility.timeToEnd.label')}
+										</Typography>
+										<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+											{t('settings:general.visibility.timeToEnd.description')}
+										</Typography>
+									</Box>
+									<SwitchComponent checked={showTimeToEnd} onChange={handleToggleShowTimeToEnd} />
+								</Box>
+							</Box>
+						)}
 					</Box>
 				)}
 
@@ -625,96 +783,6 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 					</Box>
 					<SwitchComponent checked={showDigitalClock} onChange={() => handleToggle(toggleShowDigitalClock)} />
 				</Box>
-
-				<Divider sx={{ width: '100%', mx: 'auto', borderColor: 'divider' }} />
-
-				{sessionLabelControlsVisible && (
-					<Box
-						sx={{
-							display: 'flex',
-							alignItems: 'center',
-							gap: 1.5,
-							px: 1.75,
-							py: 1.25,
-							bgcolor: 'background.paper',
-							borderColor: 'divider',
-						}}
-					>
-						<Box sx={{ flex: 1, minWidth: 0 }}>
-							<Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
-								Session Label
-							</Typography>
-							<Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-								Current session tag
-							</Typography>
-						</Box>
-						<SwitchComponent checked={showSessionLabel} onChange={() => handleToggle(toggleShowSessionLabel)} />
-					</Box>
-				)}
-
-				{sessionLabelControlsVisible && showSessionLabel && (
-					<Divider sx={{ width: '93%', mx: 'auto', borderColor: 'divider' }} />
-				)}
-
-				{sessionLabelControlsVisible && showSessionLabel && (
-					<Box
-						sx={{
-							display: 'flex',
-							flexDirection: 'column',
-							gap: 1,
-							px: 1.75,
-							py: 1.25,
-							bgcolor: 'background.paper',
-							borderColor: 'divider',
-						}}
-					>
-						<Box
-							sx={{
-								display: 'flex',
-								gap: 1.5,
-								alignItems: 'center',
-								borderLeft: '1px solid',
-								borderColor: 'divider',
-								pl: 1.5,
-								minHeight: 44,
-								flexWrap: 'wrap',
-							}}
-						>
-							<Box sx={{ flex: 1, minWidth: 0 }}>
-								<Typography variant="body2" sx={{ fontWeight: 600 }}>
-									Countdown to Start
-								</Typography>
-								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-									Display time until next session begins
-								</Typography>
-							</Box>
-							<SwitchComponent checked={showTimeToStart} onChange={handleToggleShowTimeToStart} />
-						</Box>
-
-						<Box
-							sx={{
-								display: 'flex',
-								gap: 1.5,
-								alignItems: 'center',
-								borderLeft: '1px solid',
-								borderColor: 'divider',
-								pl: 1.5,
-								minHeight: 44,
-								flexWrap: 'wrap',
-							}}
-						>
-							<Box sx={{ flex: 1, minWidth: 0 }}>
-								<Typography variant="body2" sx={{ fontWeight: 600 }}>
-									Countdown to End
-								</Typography>
-								<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-									Display remaining time until active session ends
-								</Typography>
-							</Box>
-							<SwitchComponent checked={showTimeToEnd} onChange={handleToggleShowTimeToEnd} />
-						</Box>
-					</Box>
-				)}
 			</Paper>
 			{toggleError && (
 				<Alert severity="error" sx={{ mt: 1.25 }}>
@@ -1260,6 +1328,24 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 										</IconButton>
 									</span>
 								</Tooltip>
+								<Tooltip title={t('tooltips:admin.backfillInsightKeys')} arrow>
+									<span>
+										<IconButton
+											size="small"
+											onClick={handleBackfillInsightKeys}
+											disabled={syncingBackfill}
+											sx={{ '&:hover': { bgcolor: 'action.hover' } }}
+											aria-label={t('a11y:settings.backfillInsightKeys')}
+										>
+											<BuildIcon
+												sx={{
+													animation: syncingBackfill ? 'spin 1s linear infinite' : 'none',
+													'@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } },
+												}}
+											/>
+										</IconButton>
+									</span>
+								</Tooltip>
 							</>
 						)}
 						<IconButton
@@ -1402,10 +1488,12 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 			</Drawer>
 
 			{showUnlockModal && (
-				<AuthModal2
-					open={showUnlockModal}
-					onClose={() => setShowUnlockModal(false)}
-				/>
+				<Suspense fallback={null}>
+					<AuthModal2
+						open={showUnlockModal}
+						onClose={() => setShowUnlockModal(false)}
+					/>
+				</Suspense>
 			)}
 			{showResetConfirmModal && (
 				<ConfirmModal
@@ -1441,6 +1529,20 @@ export default function SettingsSidebar2({ open, onClose, onOpenAuth, onOpenCont
 					slotProps={{ backdrop: { sx: { zIndex: 1699 } } }}
 				/>
 			)}
+
+			<BackfillProgressModal
+				open={showBackfillModal}
+				onClose={() => {
+					setShowBackfillModal(false);
+					setBackfillPhase(null);
+					setBackfillResults(null);
+					setBackfillError(null);
+				}}
+				currentPhase={backfillPhase}
+				results={backfillResults}
+				error={backfillError}
+				isLoading={syncingBackfill}
+			/>
 		</>
 	);
 }

@@ -1,7 +1,7 @@
 /**
  * src/App.jsx
  * 
- * Purpose: Main application component for the trading clock.
+ * Purpose: Main application component for the market clock.
  * Displays clock canvas, digital time, session labels, and economic events.
  * Now integrated with React Router for proper routing (routing removed from this file).
  * 
@@ -27,12 +27,15 @@
  * v2.7.10 - 2026-01-22 - BEP: Match xs/sm Add reminder button styling to md+ outlined button.
  * v2.7.9 - 2026-01-22 - BEP: Move xs/sm Add reminder button to mobile header, left of notifications.
  * v2.7.8 - 2026-01-22 - BEP: Align xs/sm Add reminder button below header, right-aligned with header padding.
- * v2.7.7 - 2026-01-22 - BEP: Align xs/sm floating Add reminder button with mobile avatar padding and Trading Clock title top edge.
+ * v2.7.7 - 2026-01-22 - BEP: Align xs/sm floating Add reminder button with mobile avatar padding and Market Clock title top edge.
  * v2.7.6 - 2026-01-22 - BEP: Custom events on clock markers now open in EventModal (view mode) instead of directly opening CustomEventDialog. Added Edit button in EventModal that opens CustomEventDialog at z-index 12003. Consistent view/edit flow for both clock markers and calendar rows.
  * v2.7.5 - 2026-01-22 - BEP: Add circular borders to Add reminder buttons on /clock page (md+ header button and xs/sm floating button) with hover states for enhanced visual hierarchy.
  * v2.7.4 - 2026-01-22 - BEP: Add custom event reminder button to /clock page header. On md+: Add icon button positioned to the right of EventsFilters3. On xs/sm: Floating button in top-right corner. Opens CustomEventDialog for creating reminders. Integrated useCustomEvents hook for CRUD operations. Auth-gated with fallback to AuthModal2 for unauthenticated users.
  * 
  * Changelog:
+ * v2.8.0 - 2026-02-12 - DOCUMENTATION: CustomEventDialog delete flow already implemented correctly in App.jsx.
+ *                       Added v3.11.0/v2.11.0/v1.6.0 entries to Calendar2Page/ClockPage/NotificationCenter for
+ *                       missing onDelete handler bug fix. App.jsx now serves as the reference implementation.
  * v2.7.3 - 2026-01-22 - GLOBAL NOTIFICATION SCOPE: Delegated notification wiring to PublicLayout so all public pages (calendar, clock, landing) share the same NotificationCenter placement on md+ and xs/sm. Removed local notification props from App.jsx.
  * v2.7.1 - 2026-01-21 - Persist clock event selection through auth so favorites state renders after login.
  * v2.7.0 - 2026-01-21 - Add favorites/notes wiring for clock event modal with notes dialog support.
@@ -46,7 +49,7 @@
  * v2.6.92 - 2026-01-17 - FULLSCREEN BROWSER API: Updated useClockFullscreenMode to integrate with browser's Fullscreen API. Now entering fullscreen mode also requests browser fullscreen via element.requestFullscreen() and exiting fullscreen exits both UI state and browser fullscreen. Matches enterprise full-viewport UX like SettingsSidebar2 fullscreen button. Immersive clock experience with no UI chrome and no browser toolbars.
  * v2.6.91 - 2026-01-17 - FULLSCREEN APPBAR HIDE: Pass isFullscreenMode prop to PublicLayout so the AppBar is also hidden when entering fullscreen mode. Now fullscreen hides: AppBar, EventsFilters3, headings, and timezone button for complete immersive experience.
  * v2.6.90 - 2026-01-17 - FULLSCREEN MODE: Added fullscreen icon button (fixed bottom-left) that hides AppBar, EventsFilters3, headings (h1, h2), and timezone button for immersive clock-only viewing. Imported useClockFullscreenMode hook and FullscreenModeButton component. Added isFullscreenMode state and display:none toggle to header Box. FullscreenModeButton renders at z-index:1050 above clock but below modals. Improves focus on the clock without navigation chrome distractions.
- * v2.6.89 - 2026-01-16 - RESPONSIVE HEADER LAYOUT: Reorganized header to display "Trading Clock" + "Today's Market Sessions" (left-aligned) and EventsFilters3 (right-aligned) on the same row for md+. On xs/sm, headings remain centered and stacked while filters stay fixed at bottom. Updated height calculation to account for new header row layout: headerHeightEstimate changed from 50px (stacked headings only) to 46px (headings + filters in same row on md+, or headings alone on xs/sm). Adjusted H2 mb from variable to 0 since it now sits in a flex row. Ensures content properly centers across all breakpoints.
+ * v2.6.89 - 2026-01-16 - RESPONSIVE HEADER LAYOUT: Reorganized header to display "Market Clock" + "Today's Market Sessions" (left-aligned) and EventsFilters3 (right-aligned) on the same row for md+. On xs/sm, headings remain centered and stacked while filters stay fixed at bottom. Updated height calculation to account for new header row layout: headerHeightEstimate changed from 50px (stacked headings only) to 46px (headings + filters in same row on md+, or headings alone on xs/sm). Adjusted H2 mb from variable to 0 since it now sits in a flex row. Ensures content properly centers across all breakpoints.
  * v2.6.85 - 2026-01-15 - LOADINGSCREEN REMOVAL: Removed LoadingScreen from root App.jsx level (import and both render calls). LoadingScreen is now handled by PublicLayout following enterprise layout best practices. Simplifies App.jsx to focus on clock content and modals, not loading chrome.
  * v2.6.88 - 2026-01-21 - MOBILE FULLSCREEN CTA: Matched inline fullscreen button size and right padding to mobile avatar.
  * v2.6.87 - 2026-01-21 - MOBILE FULLSCREEN CTA: Moved fullscreen button to header row on xs/sm only.

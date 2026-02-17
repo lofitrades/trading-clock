@@ -350,6 +350,17 @@
     "slugTaken": "Este slug ya está en uso",
     "seoSettings": "Configuración SEO",
     "coverImage": "Imagen de Portada",
+    "coverImageUploader": {
+      "dropZone": "Arrastra y suelta una imagen aquí, o haz clic para buscar",
+      "browse": "Buscar Archivos",
+      "acceptedFormats": "JPEG, PNG, WebP, GIF, SVG — Máx {{maxSize}} MB",
+      "uploading": "Subiendo… {{progress}}%",
+      "replace": "Reemplazar imagen",
+      "delete": "Eliminar imagen",
+      "previewAlt": "Vista previa de la imagen de portada",
+      "saveFirstToUpload": "Guarda la entrada primero para subir una imagen de portada al almacenamiento.",
+      "orEnterUrl": "O ingresa una URL de imagen manualmente:"
+    },
     "readingTime": "Tiempo de lectura est.",
     "viewPublished": "Ver entrada publicada",
     "previewDraft": "Vista previa del borrador",
@@ -544,6 +555,27 @@
       "useDefaultImage": "Usar Miniatura Predeterminada"
     }
   },
+  "nav": {
+    "title": "T2T Admin",
+    "adminNavigation": "Navegación de administración",
+    "openMenu": "Abrir menú de administración",
+    "dashboard": "Panel",
+    "blog": "Blog",
+    "blogPosts": "Entradas",
+    "blogNewPost": "Nueva Entrada",
+    "blogEditPost": "Editar Entrada",
+    "blogAuthors": "Autores",
+    "blogGpt": "Blog GPT",
+    "magicPost": "Magic Post",
+    "events": "Eventos",
+    "manageEvents": "Gestionar Eventos",
+    "descriptions": "Descripciones",
+    "tools": "Herramientas",
+    "uploadDesc": "Cargar Descripciones",
+    "exportEvents": "Exportar Eventos",
+    "gptUploader": "Cargador GPT",
+    "backToSite": "Volver al Sitio"
+  },
   "dashboard": {
     "title": "Panel de Administración",
     "subtitle": "Resumen y acciones rápidas para Time 2 Trade",
@@ -557,8 +589,12 @@
     "retry": "Reintentar",
     "quickActions": {
       "title": "Acciones Rápidas",
+      "blogGroup": "Blog",
+      "eventsGroup": "Eventos",
+      "toolsGroup": "Herramientas",
       "blogCms": "CMS del Blog",
       "blogCmsDesc": "Gestionar entradas y borradores",
+      "blogNewPost": "Nueva Entrada",
       "blogGpt": "Blog GPT",
       "blogGptDesc": "Subir JSON de blog de GPT",
       "openMagicPost": "Magic Post",

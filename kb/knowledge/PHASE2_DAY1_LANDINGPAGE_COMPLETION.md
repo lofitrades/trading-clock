@@ -23,7 +23,7 @@ Migrate the LandingPage component ([pages/index.page.jsx](pages/index.page.jsx))
 - **Status:** ✅ Created with complete landing section
 - **Strings Added:** 50+ new strings in pages.landing namespace
 - **Key Sections:**
-  - `landing.badge` - "Trading Clock • Economic Calendar • NY Time"
+   - `landing.badge` - "Market Clock • Economic Calendar • NY Time"
   - `landing.hero` (heading, subheading, cta1-3, chips array)
   - `landing.highlights` (product, events, custom, form objects with label/value/hint)
   - `landing.benefits` (heading, subheading)
@@ -35,7 +35,7 @@ Migrate the LandingPage component ([pages/index.page.jsx](pages/index.page.jsx))
 #### Spanish Translation - [src/i18n/locales/es/pages.json](src/i18n/locales/es/pages.json)
 - **Status:** ✅ Created with complete Spanish landing section
 - **Key Finance Terminology:**
-  - Trading Clock → "Reloj de Sesión"
+   - Market Clock → "Reloj de Mercado"
   - Economic Calendar → "Calendario Económico"
   - Forex Factory-powered → "Impulsado por Forex Factory"
   - NY Time → "Hora de Nueva York"
@@ -44,7 +44,7 @@ Migrate the LandingPage component ([pages/index.page.jsx](pages/index.page.jsx))
 #### French Translation - [src/i18n/locales/fr/pages.json](src/i18n/locales/fr/pages.json)
 - **Status:** ✅ Created with complete French landing section
 - **Key Finance Terminology:**
-  - Trading Clock → "Horloge de Session"
+   - Market Clock → "Horloge du Marché"
   - Economic Calendar → "Calendrier Économique"
   - Forex Factory-powered → "Alimenté par Forex Factory"
   - NY Time → "Heure de New York"
@@ -95,9 +95,9 @@ export default function Page() {
 - ✅ NEW: `<a href="/clock">{t('landing.navigation.openClock')}</a>`
 
 **Hero Section (badge, heading, subheading):**
-- ❌ OLD: `Trading Clock • Economic Calendar • NY Time`
+- ❌ OLD: `Market Clock • Economic Calendar • NY Time`
 - ✅ NEW: `{t('landing.badge')}`
-- ❌ OLD: `Trading Clock + Economic Calendar (NY Time)`
+- ❌ OLD: `Market Clock + Economic Calendar`
 - ✅ NEW: `{t('landing.hero.heading')}`
 
 **Hero Subheading (multi-line):**
@@ -262,7 +262,7 @@ This LandingPage migration establishes the standard pattern for all Phase 2 comp
 ### Pattern 1: Simple String Replacement
 ```javascript
 // Before
-<h1>Trading Clock + Economic Calendar (NY Time)</h1>
+<h1>Market Clock + Economic Calendar</h1>
 
 // After
 <h1>{t('landing.hero.heading')}</h1>

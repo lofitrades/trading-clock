@@ -89,16 +89,16 @@ export function LanguageProvider({ children }) {
                     localStorage.setItem('preferredLanguage', urlLang);
                 }
 
-                // BEP PERFORMANCE: Preload critical namespaces before changing language
+                // Apply language first
+                if (i18n.language !== savedLanguage) {
+                    await i18n.changeLanguage(savedLanguage);
+                }
+
+                // BEP PERFORMANCE: Preload critical namespaces AFTER language change
                 // Prevents translation flicker on initial load
                 await Promise.all([
                     i18n.loadNamespaces(['common', 'pages']),
                 ]);
-
-                // Apply language if different from current
-                if (i18n.language !== savedLanguage) {
-                    await i18n.changeLanguage(savedLanguage);
-                }
             } finally {
                 setIsLoadingLanguage(false);
             }

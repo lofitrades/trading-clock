@@ -1,0 +1,59 @@
+{
+  "title": "Perspectivas",
+  "filters": {
+    "sources": "Tipos de Fuente",
+    "timeframe": "Período"
+  },
+  "sourceChips": {
+    "article": "Artículos",
+    "activity": "Actividad",
+    "note": "Notas"
+  },
+  "timeframeSelector": {
+    "day": "Últimas 24h",
+    "week": "Últimos 7 días",
+    "month": "Últimos 30 días",
+    "all": "Todos los tiempos"
+  },
+  "infoModal": {
+    "title": "Acerca de Perspectivas",
+    "tooltip": "¿Qué son las Perspectivas?",
+    "description": "<strong>Perspectivas</strong> muestra la actividad del mercado en tiempo real relevante para tu vista actual: cambios en el calendario de eventos, nuevos análisis del blog, estado de sincronización y más. Te ayuda a mantenerte al tanto de lo que sucede para tomar decisiones de trading más informadas.",
+    "updateNote": "Las perspectivas se actualizan automáticamente y muestran las últimas 24 horas de actividad. La relevancia se clasifica por antigüedad y severidad."
+  },
+  "empty": {
+    "noResults": "Sin actividad reciente en las últimas 24 horas."
+  },
+  "loadMore": "Cargar Más Perspectivas",
+  "summary": "{{articles}} artículos • {{activities}} actividades • {{notes}} notas",
+  "summaryActivity": "{{activities}} actividades recientes",
+  "article": {
+    "readingTime": "{{minutes}} min de lectura"
+  },
+  "activity": {
+    "severity": {
+      "error": "Error",
+      "warning": "Advertencia",
+      "success": "Éxito",
+      "info": "Información"
+    },
+    "types": {
+      "event_rescheduled": "Evento Reprogramado",
+      "event_cancelled": "Evento Cancelado",
+      "event_reinstated": "Evento Reinstaurado",
+      "blog_published": "Blog Publicado",
+      "sync_completed": "Sincronización Completada",
+      "sync_failed": "Sincronización Fallida",
+      "blog_created": "Blog Creado",
+      "gpt_upload": "Carga GPT",
+      "user_signup": "Nuevo Usuario",
+      "unknown": "Actividad"
+    }
+  },
+  "note": {
+    "note": "Nota"
+  },
+  "card": {
+    "unknownType": "Tipo de perspectiva desconocido"
+  }
+}

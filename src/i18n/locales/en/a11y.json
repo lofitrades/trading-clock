@@ -30,6 +30,7 @@
     "syncWeek": "Sync week",
     "syncActuals": "Sync actuals",
     "syncForexFactory": "Backfill Forex Factory",
+    "backfillInsightKeys": "Backfill insight keys",
     "closeDrawer": "Close settings",
     "clearSession": "Clear session {{number}}"
   }

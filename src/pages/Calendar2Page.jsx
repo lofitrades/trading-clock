@@ -3,15 +3,104 @@
  *
  * Purpose: Primary /calendar page — economic calendar with two-column layout.
  * Left column: ClockEventsFilters (shared stateless component) + compact MUI table with day dividers.
- * Right column: ClockPanelPaper (trading clock).
+ * Right column: TabbedStickyPanel with Clock tab + Insights tab (Phase 8).
  * Filters read/write SettingsContext via ClockEventsFilters — no local filter state, no sync.
  * BEP: Mobile-first, responsive, NOW/NEXT badges, jump-to-now FAB, timezone-aware.
  *
  * Changelog:
+ * v3.17.0 - 2026-02-14 - BEP SYNCED FAB ANIMATION: Jump-to-now FAB on xs/sm now moves in sync
+ *                        with the auto-hiding bottom AppBar. When the bar hides (scroll down), the
+ *                        FAB slides from bottom:80px → bottom:24px. When the bar shows (scroll up),
+ *                        it slides back up. Uses the same 0.3s cubic-bezier(0.4,0,0.2,1) transition
+ *                        as the AppBar for perfectly matched motion. Powered by new
+ *                        onBottomNavVisibilityChange callback threaded through PublicLayout → AppBar.
+ *                        Desktop (md+) unaffected — FAB stays at bottom:24px.
+ * v3.16.0 - 2026-02-14 - BEP I18N SKELETON HEADER: Added TextSkeleton guards to header section
+ *                        (title, info tooltip, subtitle). Eliminates i18n key flash when page loads.
+ *                        Title wrapped with width={180}, Subtitle with width={240}. Tooltip text
+ *                        conditional: empty string until isReady, then "Powered by Forex Factory".
+ * v3.15.0 - 2026-02-13 - BEP SCROLL FIX + FLASH HIGHLIGHT: (1) Fixed jump-to-now FAB scrolling
+ *                        the entire page, causing title/filters to disappear above viewport.
+ *                        Root cause: scrollIntoView({ block:'center' }) scrolls nearest ancestor,
+ *                        which on md+ is the page — not the TableContainer. Fix: On desktop (md+),
+ *                        calculate scrollTop offset to center the target row WITHIN the TableContainer.
+ *                        On mobile (xs/sm), use scrollIntoView({ block:'nearest' }) for minimal scroll.
+ *                        (2) Added MUI keyframes flash/pulse animation on NOW/NEXT row when FAB is
+ *                        clicked. 3 pulses over 1.8s with theme-aware color (info for NOW, success for
+ *                        NEXT). Uses CSS custom property --flash-color for keyframe compatibility.
+ *                        highlightKey state increments to re-trigger animation via React key change.
+ * v3.9.0 - 2026-02-12 - BEP MOBILE FIX: Fixed jump-to-now FAB not working on mobile devices.
+ *                       Root cause: TableContainer has no maxHeight on xs/sm, so it expands to
+ *                       full content height and never scrolls. (1) handleJumpToNow now uses
+ *                       scrollIntoView (browser finds nearest scrollable ancestor automatically).
+ *                       (2) checkTargetRowVisibility now uses visual viewport instead of container
+ *                       bounds. (3) Scroll listener added to window for mobile page scroll.
+ * v3.8.3 - 2026-02-11 - BEP LINTING: Removed unused ViewListIcon import. Moved clockTabContent
+ *                        and insightsTabContent JSX definitions inside useMemo callback to fix
+ *                        exhaustive-deps ESLint warnings. Props now properly included in dependency
+ *                        array. Resolves 3 ESLint warnings.
+ * v3.8.2 - 2026-02-11 - BEP PERFORMANCE: Lazy-loaded SourceInfoModal and InsightsPanel (both
+ *                        conditionally rendered). SourceInfoModal defers until info button click.
+ *                        InsightsPanel defers until Insights tab is selected, wrapped in Suspense
+ *                        with LoadingAnimation fallback. Reduces initial JS parse/eval on /calendar.
+ * v3.8.1 - 2026-02-11 - BUGFIX REVERT: Reverted height-first scaling approach (v3.8.0 mistake).
+ *                        User-visible flag sizing was incorrect with height {{ xs: 9, sm: 12 }}.
+ *                        Root cause: flagcdn.com w20/w40 endpoints need width-based sizing for
+ *                        proper display. Fix: Restored width {{ xs: 14, sm: 18 }}, height='auto'.
+ *                        This preserves original flag aspect ratios and displays correctly at all
+ *                        breakpoints (xs, sm, md, lg). Flags now match event table display.
+ * v3.8.0 - 2026-02-11 - BEP ASPECT RATIO PRESERVATION: Fixed flag aspect ratio distortion
+ *                        for non-3:2 flags (e.g., square Switzerland). Root cause: Forced
+ *                        dimensions (xs:14×9, sm:18×12) locked all flags to 3:2 ratio.
+ *                        Fix: Set width only (xs:14, sm:18), height='auto' — allows flags to
+ *                        scale proportionally and preserve original aspect ratio from flagcdn.
+ *                        All flags (rectangular, square, any ratio) now display correctly.
+ *                        Removed objectFit:'cover' which was squashing flags to fit container.
+ * v3.7.0 - 2026-02-11 - BEP CURRENCY FLAG PROPORTIONS: Fixed CurrencyLabel component to use
+ *                        proper 3:2 aspect ratio for country flags (xs: 14×9, sm: 18×12).
+ *                        Previous 4:3 ratio (12×9, 16×12) distorted flag appearance. Added
+ *                        minHeight to Stack for consistent vertical alignment, increased spacing
+ *                        (0.25→0.4), improved font sizes (0.5rem→0.65rem xs, 0.7rem→0.75rem sm),
+ *                        added flexShrink:0 to prevent flag compression. Now flags display
+ *                        correctly in event table currency column and filter chips.
+ * v3.6.0 - 2026-02-11 - BEP ICON THEME-AWARE: Replaced StorageIcon with official MUI InsightsIcon
+ *                        for Insights tab. InsightsIcon is semantically correct and auto-adapts to
+ *                        light/dark themes. More professional appearance, consistent with MUI design.
+ * v3.5.0 - 2026-02-10 - BEP TRENDING INSIGHTS FIX: Insights tab now shows content for all users
+ *                        (auth and non-auth) even when no currency filter is applied. Root cause:
+ *                        InsightsPanel 24h timeframe was too narrow for trending mode, and service
+ *                        lacked cascading fallback. Fixes: InsightsPanel timeframe 24h→7d,
+ *                        insightsQueryService cascading fallback (constrained→unconstrained).
+ * v3.4.0 - 2026-02-10 - Phase 8 INTEGRATION: (1) Replaced Tab 2 placeholder with InsightsPanel.
+ *                        (2) Filter-aware context: uses calendar currency filters as context for Insights.
+ *                        (3) Tab label "Insights" with InsightsIcon. (4) rightTabs now memoized for performance.
+ *                        (5) Updated i18n keys: tabs.tab2 → tabs.insights (EN/ES/FR).
  * v3.3.0 - 2026-02-10 - BEP: Custom event click flow now checks authentication.
  *                        Non-auth users see AuthModal2 instead of EventModal.
  *                        Auth users skip EventModal and open CustomEventDialog directly
  *                        for custom events. Economic events still open EventModal normally.
+ * v3.14.0 - 2026-02-12 - BEP REVERT: Restored LoadingAnimation as clock tab Suspense fallback.
+ *                        Skeleton was too jarring. Real fix: ClockCanvas entry animation removed
+ *                        (arcs render at full opacity instantly, no GSAP fade-in on tab switch).
+ * v3.13.0 - 2026-02-12 - BUGFIX: Removed Suspense wrapper from insightsTabContent. TabbedStickyPanel
+ *                        already handles Suspense with LoadingAnimation fallback. Nested Suspense was
+ *                        causing loader conflicts. Now Insights tab loading is unified via parent layout.
+ * v3.12.0 - 2026-02-12 - FEATURE: Added notes support to EventModal. Imported useEventNotes hook,
+ *                        added EventNotesDialog lazy component, noteTarget state, and note handlers.
+ *                        EventModal now receives hasEventNotes, onOpenNotes, isEventNotesLoading props.
+ * v3.11.0 - 2026-02-12 - BUGFIX: CustomEventDialog now has onDelete={handleDeleteCustomEvent} prop.
+ *                        Delete button was not connected — modal didn't call removeCustomEvent. Also
+ *                        added removeEvent to useCustomEvents destructure. Delete now works BEP.
+ * v3.10.0 - 2026-02-12 - BUGFIX: CustomEventDialog defaultTimezone now uses settingsContext.selectedTimezone
+ *                        instead of Intl device timezone. Ensures custom event time is interpreted in the
+ *                        user's selected timezone, not the browser's local timezone.
+ * v3.10.0 - 2026-02-12 - BEP I18N SKELETON GUARD: Added isI18nReady state to prevent translation
+ *                        key flash on page load. All client-facing text now shows Skeleton until i18n
+ *                        translations are fully mounted. Used useTranslation('calendar').ready flag to
+ *                        detect when all 3 namespaces are loaded. Created TextSkeleton helper component
+ *                        for consistent conditional rendering (Skeleton if !ready, text if ready).
+ *                        Wrapped: page title, subtitle, all table headers, day labels, no-events message,
+ *                        event count, FAB tooltip. Eliminates i18n key flash entirely. v3.9.0 compat.
  * v3.2.0 - 2026-02-10 - BEP: showOnCalendar integration — custom events with showOnCalendar=true
  *                        now appear in the calendar table. Subscribes via useCustomEvents with the
  *                        active date range. Custom events respect impact/currency filters and sort
@@ -78,7 +167,6 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef, memo, lazy, Suspense, startTransition } from 'react';
 import PropTypes from 'prop-types';
-import { useTranslation } from 'react-i18next';
 import {
     Box,
     Typography,
@@ -96,31 +184,39 @@ import {
     Zoom,
     IconButton,
 } from '@mui/material';
-import { useTheme, alpha } from '@mui/material/styles';
+import { useTheme, alpha, keyframes } from '@mui/material/styles';
 import InfoIcon from '@mui/icons-material/Info';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import KeyboardDoubleArrowDownIcon from '@mui/icons-material/KeyboardDoubleArrowDown';
 import KeyboardDoubleArrowUpIcon from '@mui/icons-material/KeyboardDoubleArrowUp';
 import UpdateIcon from '@mui/icons-material/Update';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import InsightsIcon from '@mui/icons-material/Insights';
 import PublicLayout from '../components/PublicLayout';
 import MainLayout from '../components/layouts/MainLayout';
-import SourceInfoModal from '../components/SourceInfoModal';
+const SourceInfoModal = lazy(() => import('../components/SourceInfoModal'));
 import useAppBarNavItems from '../hooks/useAppBarNavItems';
 import { useCalendarData } from '../hooks/useCalendarData';
 import { useSettingsSafe } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useTimeEngine } from '../hooks/useTimeEngine';
 import useCustomEvents from '../hooks/useCustomEvents';
+import { useEventNotes } from '../hooks/useEventNotes';
+import { useTranslation } from 'react-i18next';
 import { preloadNamespaces } from '../i18n/config';
 import { parseDate } from '../utils/dateUtils';
 import { getEventEpochMs, computeNowNextState, NOW_WINDOW_MS } from '../utils/eventTimeEngine';
 import { getCurrencyFlag } from '../utils/currencyFlags';
 import LoadingAnimation from '../components/LoadingAnimation';
+import useI18nReady from '../hooks/useI18nReady';
+import TextSkeleton from '../components/TextSkeleton';
+const InsightsPanel = lazy(() => import('../components/InsightsPanel'));
 
 const AuthModal2 = lazy(() => import('../components/AuthModal2'));
 const SettingsSidebar2 = lazy(() => import('../components/SettingsSidebar2'));
 const ContactModal = lazy(() => import('../components/ContactModal'));
 const EventModal = lazy(() => import('../components/EventModal'));
+const EventNotesDialog = lazy(() => import('../components/EventNotesDialog'));
 const ClockPanelPaper = lazy(() => import('../components/ClockPanelPaper'));
 const CustomEventDialog = lazy(() => import('../components/CustomEventDialog'));
 const ClockEventsFilters = lazy(() => import('../components/ClockEventsFilters'));
@@ -152,9 +248,23 @@ const TABLE_COLUMNS = [
 
 const METRIC_CELL_SX = { display: { xs: 'none', lg: 'table-cell' } };
 
+/** BEP v3.15.0: Flash highlight keyframes for jump-to-now FAB.
+ *  3 pulses: transparent → highlight color → transparent. Uses theme-aware palette
+ *  via sx prop. Applied to EventRow when isHighlighted=true. */
+const flashHighlight = keyframes`
+  0%   { background-color: transparent; }
+  20%  { background-color: var(--flash-color); }
+  40%  { background-color: transparent; }
+  60%  { background-color: var(--flash-color); }
+  80%  { background-color: transparent; }
+  100% { background-color: var(--flash-color); }
+`;
+
 // ============================================================================
 // HELPERS
 // ============================================================================
+
+
 
 /** Build a YYYY-MM-DD day key in the user's timezone */
 const getDayKey = (value, timezone) => {
@@ -250,30 +360,30 @@ const ImpactDot = memo(({ strength }) => {
 ImpactDot.displayName = 'ImpactDot';
 ImpactDot.propTypes = { strength: PropTypes.string };
 
-/** Currency badge with flag */
+/** Currency badge with flag (BEP: 3:2 aspect ratio, proper alignment) */
 const CurrencyLabel = memo(({ currency }) => {
     const code = (currency || '').toUpperCase();
     const countryCode = getCurrencyFlag(code);
     if (countryCode) {
         return (
-            <Stack direction="row" spacing={0.25} alignItems="center" justifyContent="center">
+            <Stack direction="row" spacing={0.4} alignItems="center" justifyContent="center" sx={{ minHeight: 16 }}>
                 <Box
                     component="img"
                     loading="lazy"
-                    width={{ xs: 12, sm: 16 }}
-                    height={{ xs: 9, sm: 12 }}
+                    width={{ xs: 14, sm: 18 }}
+                    height="auto"
                     src={`https://flagcdn.com/w20/${countryCode}.png`}
                     alt={code}
-                    sx={{ borderRadius: 0.25, objectFit: 'cover' }}
+                    sx={{ borderRadius: 0.4, flexShrink: 0 }}
                 />
-                <Typography variant="caption" fontWeight={700} sx={{ fontSize: { xs: '0.5rem', sm: '0.7rem' } }}>
+                <Typography variant="caption" fontWeight={700} sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, whiteSpace: 'nowrap' }}>
                     {code}
                 </Typography>
             </Stack>
         );
     }
     return (
-        <Typography variant="caption" fontWeight={700} sx={{ fontSize: { xs: '0.5rem', sm: '0.7rem' } }}>
+        <Typography variant="caption" fontWeight={700} sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
             {code || '—'}
         </Typography>
     );
@@ -288,6 +398,7 @@ const EventRow = memo(function EventRow({
     isNow,
     isNext,
     isPast,
+    isHighlighted,
     onOpen,
     scrollRef,
 }) {
@@ -298,6 +409,11 @@ const EventRow = memo(function EventRow({
     const safeForecast = forecast && forecast !== '-' && forecast !== '' ? forecast : '—';
     const safePrevious = previous && previous !== '-' && previous !== '' ? previous : '—';
 
+    // BEP: Flash highlight color — info for NOW, success for NEXT
+    const flashColor = isNow
+        ? alpha(theme.palette.info.main, 0.18)
+        : alpha(theme.palette.success.main, 0.16);
+
     return (
         <TableRow
             ref={scrollRef}
@@ -305,6 +421,8 @@ const EventRow = memo(function EventRow({
             onClick={() => onOpen(event)}
             sx={{
                 cursor: 'pointer',
+                // BEP v3.15.0: CSS custom property for keyframe animation color
+                '--flash-color': flashColor,
                 bgcolor: isNow
                     ? alpha(theme.palette.info.main, 0.08)
                     : isNext
@@ -316,6 +434,10 @@ const EventRow = memo(function EventRow({
                     : isNext
                         ? `3px solid ${theme.palette.success.main}`
                         : 'none',
+                // BEP v3.15.0: Flash animation on jump-to-now
+                ...(isHighlighted && {
+                    animation: `${flashHighlight} 1.8s ease-in-out`,
+                }),
                 '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
             }}
             tabIndex={0}
@@ -387,6 +509,7 @@ EventRow.propTypes = {
     isNow: PropTypes.bool,
     isNext: PropTypes.bool,
     isPast: PropTypes.bool,
+    isHighlighted: PropTypes.bool,
     onOpen: PropTypes.func.isRequired,
     scrollRef: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
 };
@@ -478,18 +601,18 @@ DayDividerRow.propTypes = {
     eventCount: PropTypes.number,
 };
 
-/** Loading skeleton rows */
+/** Loading skeleton rows — align + padding matches EventRow cells exactly */
 const SkeletonRows = ({ count = 6 }) => (
     <>
         {Array.from({ length: count }).map((_, i) => (
             <TableRow key={i}>
-                <TableCell><Skeleton variant="text" width={50} /></TableCell>
-                <TableCell><Skeleton variant="text" width={30} /></TableCell>
-                <TableCell align="center"><Skeleton variant="circular" width={12} height={12} /></TableCell>
-                <TableCell><Skeleton variant="text" width="80%" /></TableCell>
-                <TableCell sx={METRIC_CELL_SX}><Skeleton variant="text" width={30} /></TableCell>
-                <TableCell sx={METRIC_CELL_SX}><Skeleton variant="text" width={30} /></TableCell>
-                <TableCell sx={METRIC_CELL_SX}><Skeleton variant="text" width={30} /></TableCell>
+                <TableCell align="center" sx={{ px: { xs: 0.3, sm: 0.5, md: 0.4 }, py: { xs: 0.75, md: 0.5 } }}><Skeleton variant="text" width={50} sx={{ mx: 'auto' }} /></TableCell>
+                <TableCell align="center" sx={{ px: { xs: 0.15, sm: 0.5, md: 0.3 }, py: { xs: 0.75, md: 0.5 } }}><Skeleton variant="text" width={30} sx={{ mx: 'auto' }} /></TableCell>
+                <TableCell align="center" sx={{ px: { xs: 0.15, sm: 0.3, md: 0.25 }, py: { xs: 0.75, md: 0.5 } }}><Skeleton variant="circular" width={12} height={12} sx={{ mx: 'auto' }} /></TableCell>
+                <TableCell sx={{ px: { xs: 0.4, sm: 0.75, md: 0.5 }, py: { xs: 0.75, md: 0.5 } }}><Skeleton variant="text" width="80%" /></TableCell>
+                <TableCell align="center" sx={{ ...METRIC_CELL_SX, px: { xs: 0.3, md: 0.25 }, py: { xs: 0.75, md: 0.5 } }}><Skeleton variant="text" width={30} sx={{ mx: 'auto' }} /></TableCell>
+                <TableCell align="center" sx={{ ...METRIC_CELL_SX, px: { xs: 0.3, md: 0.25 }, py: { xs: 0.75, md: 0.5 } }}><Skeleton variant="text" width={30} sx={{ mx: 'auto' }} /></TableCell>
+                <TableCell align="center" sx={{ ...METRIC_CELL_SX, px: { xs: 0.3, md: 0.25 }, py: { xs: 0.75, md: 0.5 } }}><Skeleton variant="text" width={30} sx={{ mx: 'auto' }} /></TableCell>
             </TableRow>
         ))}
     </>
@@ -504,9 +627,10 @@ SkeletonRows.propTypes = {
 // ============================================================================
 
 export default function Calendar2Page() {
-    const { t, i18n } = useTranslation(['calendar', 'filter', 'common']);
+    const { t, i18n, isReady } = useI18nReady(['calendar', 'filter', 'common']);
     const theme = useTheme();
     const isLg = useMediaQuery(theme.breakpoints.up('lg'));
+    const isMd = useMediaQuery(theme.breakpoints.up('md'));
     const settingsContext = useSettingsSafe(); // ensure settings context is available
     useAuth(); // ensure auth context is available
 
@@ -532,10 +656,22 @@ export default function Calendar2Page() {
     const timeEngine = useTimeEngine(settingsContext.selectedTimezone);
 
     // BEP v3.2.0: Custom event subscription with calendar date range for showOnCalendar integration
-    const { events: customEvents, createEvent: createCustomEvent, saveEvent: saveCustomEvent } = useCustomEvents({
+    const { events: customEvents, createEvent: createCustomEvent, saveEvent: saveCustomEvent, removeEvent: removeCustomEvent } = useCustomEvents({
         startDate: calendarFilters.startDate,
         endDate: calendarFilters.endDate,
     });
+
+    // BEP v3.12.0: Event notes support
+    const {
+        hasNotes,
+        ensureNotesStream,
+        stopNotesStream,
+        addNote,
+        removeNote,
+        isEventNotesLoading,
+        getNotesForEvent,
+    } = useEventNotes();
+    const [noteTarget, setNoteTarget] = useState(null);
 
     // BEP v3.2.0: Merge custom events (showOnCalendar + filter-aware) with economic events
     const events = useMemo(() => {
@@ -626,6 +762,35 @@ export default function Calendar2Page() {
 
     const handleCloseEvent = useCallback(() => setSelectedEvent(null), []);
 
+    // BEP v3.12.0: Notes handlers
+    const handleOpenNotes = useCallback((event) => {
+        const result = ensureNotesStream(event);
+        if (result?.requiresAuth) {
+            setAuthModalOpen(true);
+            return;
+        }
+        setNoteTarget(event);
+    }, [ensureNotesStream]);
+
+    const handleCloseNotes = useCallback(() => {
+        if (noteTarget) stopNotesStream(noteTarget);
+        setNoteTarget(null);
+    }, [noteTarget, stopNotesStream]);
+
+    const handleAddNote = useCallback(async (content) => {
+        if (!noteTarget) return { success: false, requiresAuth: false };
+        const result = await addNote(noteTarget, content);
+        if (result?.requiresAuth) setAuthModalOpen(true);
+        return result;
+    }, [addNote, noteTarget]);
+
+    const handleRemoveNote = useCallback(async (noteId) => {
+        if (!noteTarget) return { success: false, requiresAuth: false };
+        const result = await removeNote(noteTarget, noteId);
+        if (result?.requiresAuth) setAuthModalOpen(true);
+        return result;
+    }, [noteTarget, removeNote]);
+
     // ─── Jump to Now ref ───
     const nowRowRef = useRef(null);
     const nextRowRef = useRef(null);
@@ -633,51 +798,79 @@ export default function Calendar2Page() {
     const [targetRowVisible, setTargetRowVisible] = useState(false);
     const [targetRowAbove, setTargetRowAbove] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
+    // BEP v3.15.0: Flash highlight key — incremented on each FAB click to re-trigger animation
+    const [highlightKey, setHighlightKey] = useState(0);
 
     const handleJumpToNow = useCallback(() => {
         const target = nowRowRef.current || nextRowRef.current;
-        if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }, []);
+        if (!target) return;
 
-    // Check if target row is visible in viewport and position relative to viewport
-    // Memoized with useCallback to prevent infinite dependency loop
-    const checkTargetRowVisibility = useCallback(() => {
-        const target = nowRowRef.current || nextRowRef.current;
         const container = tableContainerRef.current;
 
-        if (!target || !container) {
+        if (isMd && container) {
+            // BEP v3.15.0: Desktop (md+) — scroll WITHIN the TableContainer only.
+            // The container has maxHeight and overflowY:auto. We calculate the offset
+            // to center the target row inside the container without moving the page.
+            const containerRect = container.getBoundingClientRect();
+            const targetRect = target.getBoundingClientRect();
+            const targetOffsetInContainer = targetRect.top - containerRect.top + container.scrollTop;
+            const centeredScroll = targetOffsetInContainer - (containerRect.height / 2) + (targetRect.height / 2);
+            container.scrollTo({ top: Math.max(0, centeredScroll), behavior: 'smooth' });
+        } else {
+            // BEP v3.15.0: Mobile (xs/sm) — the page scrolls. Use scrollIntoView
+            // with block:'nearest' so the browser scrolls just enough to make the row
+            // visible without pushing the title/filters off-screen.
+            target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // BEP v3.15.0: Trigger flash highlight animation on target row
+        setHighlightKey((k) => k + 1);
+    }, [isMd]);
+
+    // Check if target row is visible in viewport and position relative to viewport
+    // BEP v3.9.0: Uses visual viewport for detection instead of container bounds.
+    // On mobile (xs/sm), TableContainer has no maxHeight (fully expanded), so container-based
+    // detection always reports rows as "visible". Using window viewport works on all breakpoints.
+    const checkTargetRowVisibility = useCallback(() => {
+        const target = nowRowRef.current || nextRowRef.current;
+
+        if (!target) {
             setTargetRowVisible(false);
             return;
         }
 
-        const containerRect = container.getBoundingClientRect();
         const targetRect = target.getBoundingClientRect();
+        const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
 
-        // Check if target is within container viewport
+        // Check if target is within the visual viewport (works on both mobile and desktop)
         const isVisible = (
-            targetRect.top >= containerRect.top &&
-            targetRect.bottom <= containerRect.bottom
+            targetRect.top >= 0 &&
+            targetRect.bottom <= viewportHeight
         );
 
-        // Check if target is above the container viewport
-        const isAbove = targetRect.bottom < containerRect.top;
+        // Check if target is above the viewport
+        const isAbove = targetRect.bottom < 0;
 
         setTargetRowVisible(isVisible);
         setTargetRowAbove(isAbove);
     }, []);
 
-    // Listen to scroll events on the table container
+    // Listen to scroll events on BOTH the table container (desktop) and window (mobile)
+    // BEP v3.9.0: On mobile, TableContainer is fully expanded (no maxHeight), so the
+    // page itself scrolls. We listen on window to detect visibility changes on all devices.
     useEffect(() => {
         const container = tableContainerRef.current;
-        if (!container) return undefined;
 
         const handleScroll = () => {
             checkTargetRowVisibility();
         };
 
-        container.addEventListener('scroll', handleScroll, { passive: true });
+        // Desktop: container scrolls internally (has maxHeight on md+)
+        if (container) {
+            container.addEventListener('scroll', handleScroll, { passive: true });
+        }
+        // Mobile: the page scrolls, not the container
+        window.addEventListener('scroll', handleScroll, { passive: true });
 
         // Delay initial check until DOM is settled (after layout paint)
         const timerId = setTimeout(() => {
@@ -687,7 +880,10 @@ export default function Calendar2Page() {
 
         return () => {
             clearTimeout(timerId);
-            container.removeEventListener('scroll', handleScroll);
+            if (container) {
+                container.removeEventListener('scroll', handleScroll);
+            }
+            window.removeEventListener('scroll', handleScroll);
         };
     }, [checkTargetRowVisibility]);
 
@@ -744,6 +940,15 @@ export default function Calendar2Page() {
     const handleCloseInfo = useCallback(() => setInfoModalOpen(false), []);
     const handleOpenTimezone = useCallback(() => setSettingsOpen(true), []); // Open settings to change timezone
 
+    // BEP: Add custom event button handler — check auth and open appropriate dialog
+    const handleOpenAddEvent = useCallback(() => {
+        if (!isAuthenticated()) {
+            setAuthModalOpen(true);
+        } else {
+            setCustomDialogOpen(true);
+        }
+    }, [isAuthenticated]);
+
     // BEP: Auth check on CustomEventDialog save - show AuthModal2 if not authenticated
     const handleSaveCustomEvent = useCallback(async (payload) => {
         if (!isAuthenticated()) {
@@ -761,6 +966,24 @@ export default function Calendar2Page() {
         }
     }, [isAuthenticated, createCustomEvent, customEditingEvent, saveCustomEvent]);
 
+    const handleDeleteCustomEvent = useCallback(async (eventToDelete) => {
+        const eventId = eventToDelete?.seriesId || eventToDelete?.id;
+        if (!eventId) return;
+        const confirmed = window.confirm('Delete this reminder?');
+        if (!confirmed) return;
+        const result = await removeCustomEvent(eventId);
+        if (result?.success) {
+            setCustomDialogOpen(false);
+            setCustomEditingEvent(null);
+        }
+    }, [removeCustomEvent]);
+
+    // BEP v3.17.0: Track mobile bottom nav visibility for synced FAB animation
+    const [bottomNavVisible, setBottomNavVisible] = useState(true);
+    const handleBottomNavVisibilityChange = useCallback((visible) => {
+        setBottomNavVisible(visible);
+    }, []);
+
     const navItems = useAppBarNavItems({
         onOpenAuth: handleOpenAuth,
         onOpenSettings: handleOpenSettings,
@@ -770,12 +993,14 @@ export default function Calendar2Page() {
     // ─── Left column content ───
     const leftContent = (
         <Box>
-            {/* Title with Info Icon */}
+            {/* Title with Info Icon — BEP i18n skeleton guard */}
             <Stack direction="row" alignItems="center" sx={{ mb: 0.5, gap: 0.75 }}>
-                <Typography variant="h5" fontWeight={800}>
-                    {t('calendar:title')}
-                </Typography>
-                <Tooltip title="Powered by Forex Factory" placement="right">
+                <TextSkeleton ready={isReady} width={180}>
+                    <Typography variant="h5" fontWeight={800}>
+                        {t('calendar:title')}
+                    </Typography>
+                </TextSkeleton>
+                <Tooltip title={isReady ? 'Powered by Forex Factory' : ''} placement="right">
                     <IconButton
                         size="small"
                         onClick={handleOpenInfo}
@@ -796,10 +1021,12 @@ export default function Calendar2Page() {
                 </Tooltip>
             </Stack>
 
-            {/* Subtitle */}
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {t('calendar:subtitle')}
-            </Typography>
+            {/* Subtitle — BEP i18n skeleton guard */}
+            <TextSkeleton ready={isReady} width={240}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    {t('calendar:subtitle')}
+                </Typography>
+            </TextSkeleton>
 
             {/* Filters — shared stateless component */}
             <Suspense fallback={null}>
@@ -843,7 +1070,9 @@ export default function Calendar2Page() {
                                             whiteSpace: 'nowrap',
                                         }}
                                     >
-                                        {t(col.headerKey)}
+                                        <TextSkeleton ready={isReady} width={col.id === 'name' ? 50 : 30}>
+                                            {t(col.headerKey)}
+                                        </TextSkeleton>
                                     </TableCell>
                                 );
                             })}
@@ -859,7 +1088,9 @@ export default function Calendar2Page() {
                             <TableRow>
                                 <TableCell colSpan={visibleColCount} align="center" sx={{ py: 6 }}>
                                     <Typography variant="body2" color="text.secondary">
-                                        {t('calendar:noEvents')}
+                                        <TextSkeleton ready={isReady} width={200}>
+                                            {t('calendar:noEvents')}
+                                        </TextSkeleton>
                                     </Typography>
                                 </TableCell>
                             </TableRow>
@@ -889,14 +1120,18 @@ export default function Calendar2Page() {
                                                     : key === firstNextKey ? nextRowRef
                                                         : undefined;
 
+                                            // BEP v3.15.0: Flash highlight on FAB jump target rows only
+                                            const isJumpTarget = key === firstNowKey || key === firstNextKey;
+
                                             return (
                                                 <EventRow
-                                                    key={key}
+                                                    key={isJumpTarget ? `${key}-hl-${highlightKey}` : key}
                                                     event={event}
                                                     timezone={timezone}
                                                     isNow={isNow}
                                                     isNext={isNext}
                                                     isPast={isPast}
+                                                    isHighlighted={isJumpTarget && highlightKey > 0}
                                                     onOpen={handleOpenEvent}
                                                     scrollRef={refProp}
                                                 />
@@ -923,39 +1158,68 @@ export default function Calendar2Page() {
         </Box>
     );
 
-    // ─── Right column content (Clock Panel) ───
-    const rightContent = (
-        <Suspense fallback={
-            <Box sx={{ minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <LoadingAnimation clockSize={200} isLoading />
-            </Box>
-        }>
-            <ClockPanelPaper
-                timeEngine={timeEngine}
-                clockTimezone={settingsContext.selectedTimezone}
-                sessions={settingsContext.sessions}
-                clockStyle={settingsContext.clockStyle}
-                showSessionNamesInCanvas={settingsContext.showSessionNamesInCanvas}
-                showPastSessionsGray={settingsContext.showPastSessionsGray}
-                showClockNumbers={settingsContext.showClockNumbers}
-                showClockHands={settingsContext.showClockHands}
-                showHandClock={settingsContext.showHandClock}
-                showDigitalClock={settingsContext.showDigitalClock}
-                showSessionLabel={settingsContext.showSessionLabel}
-                showTimeToEnd={settingsContext.showTimeToEnd}
-                showTimeToStart={settingsContext.showTimeToStart}
-                showEventsOnCanvas={settingsContext.showEventsOnCanvas}
-                eventFilters={settingsContext.eventFilters}
-                newsSource={settingsContext.newsSource}
-                backgroundBasedOnSession={settingsContext.backgroundBasedOnSession}
-                selectedTimezone={settingsContext.selectedTimezone}
-                onOpenTimezone={handleOpenTimezone}
-                onOpenEvent={handleOpenEvent}
-                onOpenAddEvent={handleOpenAuth}
-                onLoadingStateChange={handleClockOverlayLoadingStateChange}
+    // ─── Right column tabs config ───
+    const rightTabs = useMemo(() => {
+        // Clock tab content
+        const clockTabContent = (
+            <Suspense fallback={
+                <Box sx={{ minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <LoadingAnimation clockSize={200} isLoading />
+                </Box>
+            }>
+                <ClockPanelPaper
+                    timeEngine={timeEngine}
+                    clockTimezone={settingsContext.selectedTimezone}
+                    sessions={settingsContext.sessions}
+                    clockStyle={settingsContext.clockStyle}
+                    showSessionNamesInCanvas={settingsContext.showSessionNamesInCanvas}
+                    showPastSessionsGray={settingsContext.showPastSessionsGray}
+                    showClockNumbers={settingsContext.showClockNumbers}
+                    showClockHands={settingsContext.showClockHands}
+                    showHandClock={settingsContext.showHandClock}
+                    showDigitalClock={settingsContext.showDigitalClock}
+                    showSessionLabel={settingsContext.showSessionLabel}
+                    showTimeToEnd={settingsContext.showTimeToEnd}
+                    showTimeToStart={settingsContext.showTimeToStart}
+                    showEventsOnCanvas={settingsContext.showEventsOnCanvas}
+                    eventFilters={settingsContext.eventFilters}
+                    newsSource={settingsContext.newsSource}
+                    backgroundBasedOnSession={settingsContext.backgroundBasedOnSession}
+                    selectedTimezone={settingsContext.selectedTimezone}
+                    onOpenTimezone={handleOpenTimezone}
+                    onOpenEvent={handleOpenEvent}
+                    onOpenAddEvent={handleOpenAddEvent}
+                    onLoadingStateChange={handleClockOverlayLoadingStateChange}
+                />
+            </Suspense>
+        );
+
+        // Insights tab content
+        const insightsContext = {
+            currencyTags: calendarFilters.currencies || [],
+        };
+        const insightsTabContent = (
+            <InsightsPanel
+                context={insightsContext}
+                maxHeight={undefined}
             />
-        </Suspense>
-    );
+        );
+
+        return [
+            {
+                key: 'clock',
+                label: t('calendar:tabs.clock'),
+                icon: <AccessTimeIcon sx={{ fontSize: 16 }} />,
+                content: clockTabContent,
+            },
+            {
+                key: 'insights',
+                label: t('calendar:tabs.insights'),
+                icon: <InsightsIcon sx={{ fontSize: 16 }} />,
+                content: insightsTabContent,
+            },
+        ];
+    }, [t, timeEngine, settingsContext, handleOpenTimezone, handleOpenEvent, handleOpenAddEvent, handleClockOverlayLoadingStateChange, calendarFilters.currencies]);
 
     return (
         <>
@@ -964,10 +1228,11 @@ export default function Calendar2Page() {
                 onOpenAuth={handleOpenAuth}
                 onOpenSettings={handleOpenSettings}
                 onOpenAddReminder={handleOpenCustomDialog}
+                onBottomNavVisibilityChange={handleBottomNavVisibilityChange}
             >
                 <MainLayout
                     left={leftContent}
-                    right={rightContent}
+                    rightTabs={rightTabs}
                     gap={3}
                     stickyTop={0}
                 />
@@ -982,9 +1247,16 @@ export default function Calendar2Page() {
                         onClick={handleJumpToNow}
                         sx={{
                             position: 'fixed',
-                            bottom: { xs: 80, md: 24 },
+                            // BEP v3.17.0: FAB slides down when bottom nav hides, up when it shows.
+                            // 80px = 64px AppBar + 16px gap. 24px = flush with viewport edge + gap.
+                            // Matches AppBar transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1).
+                            bottom: {
+                                xs: bottomNavVisible ? 80 : 24,
+                                md: 24,
+                            },
                             left: { xs: 16, md: 24 },
                             zIndex: 1100,
+                            transition: 'bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         }}
                         aria-label={t('calendar:badges.now')}
                     >
@@ -1005,6 +1277,9 @@ export default function Calendar2Page() {
                         onToggleFavorite={toggleFavorite}
                         isFavoritePending={isFavoritePending}
                         favoritesLoading={favoritesLoading}
+                        hasEventNotes={hasNotes}
+                        onOpenNotes={handleOpenNotes}
+                        isEventNotesLoading={isEventNotesLoading}
                         onEditCustomEvent={handleEditCustomEvent}
                     />
                 )}
@@ -1028,18 +1303,34 @@ export default function Calendar2Page() {
                     open={customDialogOpen}
                     onClose={handleCloseCustomDialog}
                     onSave={handleSaveCustomEvent}
+                    onDelete={handleDeleteCustomEvent}
                     event={customEditingEvent}
-                    defaultTimezone={Intl.DateTimeFormat().resolvedOptions().timeZone}
+                    defaultTimezone={settingsContext.selectedTimezone}
                     zIndexOverride={customEditingEvent ? 12003 : undefined}
                 />
             </Suspense>
 
             {/* Data Source Info Modal */}
-            <SourceInfoModal
-                open={infoModalOpen}
-                onClose={handleCloseInfo}
-                zIndex={(muiTheme) => Math.max(muiTheme.zIndex.modal, muiTheme.zIndex.appBar + 100, 1700)}
-            />
+            <Suspense fallback={null}>
+                <SourceInfoModal
+                    open={infoModalOpen}
+                    onClose={handleCloseInfo}
+                    zIndex={(muiTheme) => Math.max(muiTheme.zIndex.modal, muiTheme.zIndex.appBar + 100, 1700)}
+                />
+            </Suspense>
+
+            {/* BEP v3.12.0: Event Notes Dialog */}
+            <Suspense fallback={null}>
+                <EventNotesDialog
+                    open={Boolean(noteTarget)}
+                    onClose={handleCloseNotes}
+                    event={noteTarget}
+                    notes={noteTarget ? getNotesForEvent(noteTarget) : []}
+                    onAddNote={handleAddNote}
+                    onRemoveNote={handleRemoveNote}
+                    isLoading={noteTarget && isEventNotesLoading(noteTarget)}
+                />
+            </Suspense>
         </>
     );
 }

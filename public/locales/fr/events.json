@@ -220,7 +220,7 @@
         },
         "showOnClock": {
           "label": "Afficher sur l'horloge",
-          "description": "Afficher cet événement sur votre horloge de trading"
+          "description": "Afficher cet événement sur votre horloge du marché"
         },
         "showOnCalendar": {
           "label": "Afficher sur le calendrier",

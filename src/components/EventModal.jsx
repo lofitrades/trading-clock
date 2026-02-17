@@ -17,6 +17,18 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v2.11.0 - 2026-02-17 - BUGFIX: 1) Reminder delete now clears reminderDoc and reminderListMatch
+ *                        immediately after Firestore deletion so reminderBaseline updates and the
+ *                        deleted reminder disappears from UI without waiting for subscription round-trip.
+ *                        2) Custom events reminders section now passes computed seriesKey/seriesLabel
+ *                        to RemindersEditor2 (was hardcoded to null), enabling scope toggle visibility
+ *                        for recurring custom events.
+ * v2.10.1 - 2026-02-14 - BEP MOBILE VIEWPORT FIX: Replaced 100vh with var(--t2t-vv-height, 100dvh)
+ *                        for fullscreen Dialog Paper height/maxHeight. On mobile Chrome/Safari, 100vh
+ *                        includes the browser address bar and device navigation bar — the visual
+ *                        viewport is shorter. Using the CSS custom property (set by clientEffects.js)
+ *                        with 100dvh fallback ensures the modal fits exactly within the visible screen
+ *                        without content hidden behind browser chrome or device bars.
  * v2.10.0 - 2026-02-10 - BEP: Added showOnCalendar visibility Chip alongside showOnClock in custom event modal.
  * v2.9.0 - 2026-02-06 - BEP: Add reschedule/reinstate Chip badges in modal header after event title. Uses events:status i18n keys for EN/ES/FR with proper timezone-aware date formatting in tooltip.
  * v2.8.0 - 2026-02-04 - BEP MOBILE RESPONSIVENESS FIX: Fixed EventModal to be fully viewport height aware on mobile devices. DialogContent now has flex:1, minHeight:0, overflowY:auto with minimal scrollbar styling (6px, rgba(60,77,99,0.32)). DialogActions now has flexShrink:0 to stick to bottom. Paper has display:flex, flexDirection:column, height:100vh for full viewport coverage. Footer now correctly positions above mobile navbar instead of below it. Applied minimal scrollbar styling matching LandingPage pattern. Matches BEP patterns from AuthModal2 and SettingsSidebar2.
@@ -1183,6 +1195,11 @@ function EventModal({
         }
       }
 
+      // BEP FIX: Immediately clear local reminder state so reminderBaseline updates
+      // without waiting for Firestore subscription round-trip
+      setReminderDoc(null);
+      setReminderListMatch(null);
+
       setReminderSuccessMessage('Reminder deleted successfully');
       setHasUnsavedChanges(false);
       setTimeout(() => setReminderSuccessMessage(''), 3000);
@@ -1281,6 +1298,7 @@ function EventModal({
         '1h': 'hourly',
         '4h': 'every 4 hours',
         '1D': 'daily',
+        '1WD': 'weekdays',
         '1W': 'weekly',
         '1M': 'monthly',
         '1Q': 'quarterly',
@@ -1318,8 +1336,12 @@ function EventModal({
       PaperProps={{
         sx: {
           borderRadius: fullScreen ? 0 : 2,
-          height: fullScreen ? '100vh' : 'auto',
-          maxHeight: fullScreen ? '100vh' : '90vh',
+          /* BEP v2.10.1: On mobile, 100vh includes the browser address bar and device
+             bottom nav — the visual viewport is shorter. Use --t2t-vv-height (set by
+             clientEffects.js) with 100dvh fallback (dynamic viewport height) so the
+             dialog fits exactly within the visible screen area. */
+          height: fullScreen ? 'var(--t2t-vv-height, 100dvh)' : 'auto',
+          maxHeight: fullScreen ? 'var(--t2t-vv-height, 100dvh)' : '90vh',
           display: 'flex',
           flexDirection: 'column',
         },
@@ -1754,8 +1776,8 @@ function EventModal({
                       reminders={reminderBaseline}
                       savedCount={reminderBaseline.length}
                       reminderScopes={reminderScopes}
-                      seriesKey={null}
-                      seriesLabel={null}
+                      seriesKey={seriesKey}
+                      seriesLabel={seriesLabel}
                       recurrence={currentEvent.recurrence}
                       timezone={reminderTimezone}
                       disabled={remindersDisabled || reminderLoading}

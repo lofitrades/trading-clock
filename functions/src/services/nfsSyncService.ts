@@ -6,6 +6,8 @@
  * JBlanked and GPT sources enrich NFS data without overwriting core fields.
  *
  * Changelog:
+ * v1.7.0 - 2026-02-10 - BEP P0/P3: Added reinstatement detection + logEventReinstatement(). P2: Pass currencyTags to logSyncCompleted for insightKeys enrichment.
+ * v1.6.0 - 2026-02-09 - BEP FIX: Strip undefined values before Firestore batch write (prevents rescheduledFrom/winnerSource crash).
  * v1.5.0 - 2026-02-05 - Integrated activity logging for reschedules, cancellations, and sync completion.
  * v1.4.0 - 2026-02-05 - BEP: Added stale event detection after sync - marks future events not seen for 3+ days as cancelled.
  * v1.3.0 - 2026-02-05 - BEP: Two-phase matching for reschedule detection (±15 day identity match + ±5 min fallback), reschedule logging.
@@ -31,6 +33,7 @@ import {
   logSyncFailed,
   logEventReschedule,
   logEventCancellation,
+  logEventReinstatement,
 } from "./activityLoggingService";
 
 interface NfsEconomicEvent {
@@ -81,9 +84,11 @@ export async function syncWeekFromNfs(): Promise<void> {
   const db = admin.firestore();
   const collection = getCanonicalEventsCollection();
   const mergedMap = new Map<string, CanonicalEconomicEvent>();
+  const processedCurrencies = new Set<string>();
   let processed = 0;
   let createdOrUpdated = 0;
   let rescheduledCount = 0;
+  let reinstatedCount = 0;
 
   for (const raw of payload) {
     processed += 1;
@@ -97,6 +102,9 @@ export async function syncWeekFromNfs(): Promise<void> {
       }
       const datetimeUtc = parseNfsDateToTimestamp(raw.date);
       const status: "scheduled" = "scheduled";
+
+      // P2: Track processed currencies for enriched sync metadata
+      if (currency) processedCurrencies.add(currency);
 
       // ========== Two-Phase Matching for Reschedule Detection (v1.3.0) ==========
 
@@ -151,6 +159,16 @@ export async function syncWeekFromNfs(): Promise<void> {
         );
 
         rescheduledCount += 1;
+      }
+
+      // ========== Reinstatement Detection (P0/P3) ==========
+      if (existingMatch?.event?.status === "cancelled") {
+        logger.info("📢 EVENT REINSTATED from cancelled", {
+          eventName: rawName,
+          currency,
+        });
+        await logEventReinstatement(rawName, currency || "N/A");
+        reinstatedCount += 1;
       }
 
       // Use Firestore auto ID if no match found, otherwise use existing event ID
@@ -231,7 +249,11 @@ export async function syncWeekFromNfs(): Promise<void> {
       
       for (const [eventId, canonical] of slice) {
         const docRef = collection.doc(eventId);
-        batch.set(docRef, canonical, {merge: true});
+        // BEP: Strip undefined values — Firestore does not allow undefined
+        const cleaned = Object.fromEntries(
+          Object.entries(canonical).filter(([, v]) => v !== undefined)
+        ) as typeof canonical;
+        batch.set(docRef, cleaned, {merge: true});
         
         // Log first event for verification
         if (i === 0 && slice.indexOf([eventId, canonical]) === 0) {
@@ -270,7 +292,8 @@ export async function syncWeekFromNfs(): Promise<void> {
       createdOrUpdated - rescheduledCount,
       createdOrUpdated,
       rescheduledCount,
-      0 // Will be populated after stale detection
+      0, // Will be populated after stale detection
+      { currencyTags: Array.from(processedCurrencies) }
     );
 
     // ========== Phase 3: Stale Event Detection ==========

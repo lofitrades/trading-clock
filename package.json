@@ -4,6 +4,7 @@
     "purpose": "Project metadata, scripts, and dependencies for Time 2 Trade frontend.",
     "changelog": [
       "v1.2.0 - 2026-01-27 - Added overrides for react-helmet-async to support React 19 (fixes invalid hook call errors).",
+      "v1.3.0 - 2026-02-10 - BEP AdSense: Verify dist/ads.txt and other root artifacts after build to prevent deploys missing ads.txt.",
       "v1.1.0 - 2025-12-16 - Removed GitHub Pages homepage/deploy script and gh-pages devDependency for Firebase Hosting migration.",
       "v1.0.0 - 2025-12-16 - Initial package configuration."
     ]
@@ -38,7 +39,7 @@
     "generate-sitemap": "node scripts/generate-sitemap.mjs",
     "prebuild": "npm run sync-locales && npm run generate-sitemap",
     "build": "vite build",
-    "postbuild": "node scripts/prerender.mjs",
+    "postbuild": "node scripts/prerender.mjs && node scripts/verify-hosting-artifacts.mjs",
     "build:no-prerender": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",

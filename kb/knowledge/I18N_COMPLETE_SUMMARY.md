@@ -17,7 +17,7 @@
 
 ## 🎯 Project Overview
 
-**What:** Implement multilanguage support (English, Spanish, French) for Time 2 Trade trading clock SPA  
+**What:** Implement multilanguage support (English, Spanish, French) for Time 2 Trade market clock SPA  
 **Why:** Expand market reach, serve Spanish/French traders, support international growth  
 **Impact:** ~1,860 hardcoded strings across 50+ components will become translatable  
 **Technology:** i18next + react-i18next (industry standard for React i18n)

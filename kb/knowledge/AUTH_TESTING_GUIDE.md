@@ -20,7 +20,7 @@
 │            │   T2T   │  ← Blue circle│
 │            └─────────┘              │
 │      Login to Time 2 Trade          │
-│   Access your trading clock...      │
+│   Access your market clock...       │
 │                                      │
 │  ┌──────────────────────────────┐  │
 │  │ Continue with Google          │  │ ← Outlined buttons

@@ -5,6 +5,8 @@
  * Key responsibility and main functionality: Render the contact form in standalone or embedded contexts, validate inputs, and submit to Firestore with success feedback.
  * 
  * Changelog:
+ * v1.5.1 - 2026-02-11 - BEP PERFORMANCE: Replaced simple-icons barrel import (5 MB) with inline
+ *                        SVG path constant for X icon. Eliminates 5 MB parse overhead on initial load.
  * v1.5.0 - 2026-02-02 - BEP VIEWPORT FIX: Replaced 100vh with var(--t2t-vv-height, 100dvh) for xs/sm
  *                       minHeight and md height on non-embedded page to prevent content overflow behind
  *                       bottom AppBar on non-PWA mobile browsers. Matches PublicLayout, Calendar2Page, TermsPage, PrivacyPage pattern.
@@ -26,7 +28,8 @@ import { Alert, Box, Button, Container, Link, MenuItem, Paper, Stack, SvgIcon, T
 import { useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
-import { siX } from 'simple-icons';
+// Inline X (Twitter) SVG path — avoids importing 5 MB simple-icons barrel file
+const SI_X_PATH = 'M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z';
 import SEO from './SEO';
 import { buildSeoMeta } from '../utils/seoMeta';
 import { db } from '../firebase';
@@ -36,7 +39,7 @@ import { Link as RouterLink } from 'react-router-dom';
 
 const XIcon = (props) => (
     <SvgIcon viewBox="0 0 24 24" {...props}>
-        <path d={siX.path} />
+        <path d={SI_X_PATH} />
     </SvgIcon>
 );
 
@@ -387,7 +390,7 @@ export default function ContactPage() {
         title: t('seo.title'),
         description: t('seo.description'),
         path: '/contact',
-        keywords: 'contact, support, help, time 2 trade, trading clock, economic calendar',
+        keywords: 'contact, support, help, time 2 trade, market clock, economic calendar',
     }), [t]);
 
     return (

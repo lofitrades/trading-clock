@@ -6,6 +6,12 @@
  * Extracted from PublicLayout to improve separation of concerns and ensure consistency across all pages.
  * 
  * Changelog:
+ * v2.0.0 - 2026-02-14 - BEP iOS GLASSMORPHISM: Applied frosted-glass effect matching bottom
+ *                        AppBar (v1.5.13). Translucent background (72% light / 65% dark alpha),
+ *                        24px blur + 1.8× saturation backdrop-filter, ultra-subtle bottom border,
+ *                        soft downward shadow. WebkitBackdropFilter added for Safari. Added alpha
+ *                        + useTheme imports. Theme-aware: light uses background.default base,
+ *                        dark uses background.paper base. WCAG AA contrast maintained.
  * v1.9.0 - 2026-02-10 - BUGFIX: handleSaveCustomEvent now actually persists to Firestore via useCustomEvents
  *                        hook (createEvent). Previously ignored the payload parameter — dialog closed
  *                        but data never saved. Matches App.jsx reference implementation.
@@ -36,7 +42,8 @@
 import { useState, Suspense, lazy } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { Box, Typography, Button, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, Button, IconButton, Tooltip, useTheme } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { Link as RouterLink } from 'react-router-dom';
 import LockIcon from '@mui/icons-material/Lock';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
@@ -62,6 +69,7 @@ const MobileHeader = ({
     mobileHeaderAction,
     customEvents,
 }) => {
+    const theme = useTheme();
     const { t } = useTranslation(['common', 'reminders']);
     const { isAuthenticated } = useAuth();
     const { settings } = useSettings();
@@ -104,7 +112,17 @@ const MobileHeader = ({
                     gap: { xs: 1, sm: 1.5 },
                     width: '100%',
                     px: { xs: 2, sm: 2.5 },
-                    bgcolor: 'background.default',
+                    /* BEP v2.0.0 iOS GLASSMORPHISM: Translucent frosted-glass effect
+                       matching bottom AppBar. Low-alpha background + saturated
+                       backdrop-filter blur for characteristic Apple glass look. */
+                    bgcolor: alpha(
+                        theme.palette.mode === 'dark'
+                            ? theme.palette.background.paper
+                            : theme.palette.background.default,
+                        theme.palette.mode === 'dark' ? 0.65 : 0.72
+                    ),
+                    backdropFilter: 'blur(24px) saturate(1.8)',
+                    WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
                     py: { xs: 1, sm: 1.25 },
                     mb: 2,
                     position: 'fixed',
@@ -113,9 +131,15 @@ const MobileHeader = ({
                     zIndex: 100,
                     boxSizing: 'border-box',
                     justifyContent: 'space-between',
-                    borderBottom: '1px solid',
-                    borderColor: 'divider',
-                    boxShadow: (theme) => `0 1px 3px ${theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.05)'}`,
+                    border: 'none',
+                    borderBottom: `1px solid ${alpha(
+                        theme.palette.divider,
+                        theme.palette.mode === 'dark' ? 0.15 : 0.12
+                    )}`,
+                    boxShadow: `0 1px 3px 0 ${alpha(
+                        theme.palette.common.black,
+                        theme.palette.mode === 'dark' ? 0.2 : 0.06
+                    )}`,
                 }}
                 aria-label="Time 2 Trade home"
             >

@@ -12,6 +12,17 @@
  * - Auto-register on load updates lastSeenAt but respects enabled flag
  * 
  * Changelog:
+ * v1.8.2 - 2026-02-10 - CRITICAL PROD FIX: Coerce errCode/errName to String() before calling
+ *                       .includes(). err.code can be a number (e.g. 20) and Number.prototype
+ *                       has no .includes(), causing "f.includes is not a function" in production.
+ * v1.8.1 - 2026-02-10 - CRITICAL PROD FIX: Improved FCM transient error handling. Error code 20 and
+ *                       other temporary Firebase issues (AbortError, registration-failed) now log at
+ *                       debug level instead of warning/error. Prevents console spam from temporary
+ *                       network/quota issues while still capturing real errors. Status: fcm-temp.
+ * v1.8.0 - 2026-02-10 - CRITICAL PROD FIX: Handle FCM public key retrieval failures gracefully.
+ *                       AbortError: "Registration failed - could not retrieve the public key"
+ *                       now returns status='fcm-abort' instead of throwing unhandled error.
+ *                       Prevents app crash when FCM service is temporarily unavailable.
  * v1.7.0 - 2026-02-03 - BEP: Use enabled flag pattern instead of deleting tokens.
  *                       Added setDeviceEnabled(), renamed unregister to removeDevice.
  *                       Auto-register respects existing enabled=false state.
@@ -270,6 +281,26 @@ export const requestFcmTokenForUser = async (userId) => {
 
     return { token, status: 'granted', isNewDevice };
   } catch (err) {
+    // BEP v1.8.2: Handle FCM public key retrieval failures gracefully
+    // AbortError: "Registration failed - could not retrieve the public key"
+    // Error code 20: Transient Firebase error (network, quota, or temp service issue)
+    // These can happen due to network issues, service worker context issues, or temporary Firebase problems
+    const errCode = String(err?.code || err?.message || 'unknown');
+    const errName = String(err?.name || '');
+    
+    // Transient errors that should be logged as debug, not warning/error
+    const transientErrors = ['20', 'AbortError', 'registration-failed', 'service-unavailable'];
+    const isTransient = transientErrors.some(e => 
+      errCode.includes(e) || errName.includes(e)
+    );
+    
+    if (isTransient) {
+      // Don't spam console with transient FCM errors - just debug level
+      console.debug('[pushNotificationsService] FCM temporary unavailable:', errCode);
+      return { token: null, status: 'fcm-temp' };
+    }
+    
+    // Real errors - log as error
     console.error('[pushNotificationsService] FCM token error:', err);
     return { token: null, status: 'token-error' };
   }
@@ -349,6 +380,27 @@ export const refreshFcmTokenForUser = async (userId) => {
 
     return { token, status: 'refreshed', refreshed: true };
   } catch (err) {
+    // BEP v1.8.2: Handle FCM public key retrieval failures gracefully
+    // AbortError: "Registration failed - could not retrieve the public key"
+    // Error code 20: Transient Firebase error (network, quota, or temp service issue)
+    // These can happen due to network issues, service worker context issues, or temporary Firebase problems
+    // Silently fail and let the app continue - no need to crash on token refresh
+    const errCode = String(err?.code || err?.message || 'unknown');
+    const errName = String(err?.name || '');
+    
+    // Transient errors that should be logged as debug, not warning/error
+    const transientErrors = ['20', 'AbortError', 'registration-failed', 'service-unavailable'];
+    const isTransient = transientErrors.some(e => 
+      errCode.includes(e) || errName.includes(e)
+    );
+    
+    if (isTransient) {
+      // Don't spam console with transient FCM errors - just debug level
+      console.debug('[pushNotificationsService] FCM temporary unavailable (will retry):', errCode);
+      return { token: null, status: 'fcm-temp', refreshed: false };
+    }
+    
+    // Real errors - log as warning
     console.error('[pushNotificationsService] FCM token refresh error:', err);
     return { token: null, status: 'token-error', refreshed: false };
   }

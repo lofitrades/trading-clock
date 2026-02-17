@@ -32,7 +32,7 @@ import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
-import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded';
+import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
 import BoltRoundedIcon from '@mui/icons-material/BoltRounded';
 import ShieldRoundedIcon from '@mui/icons-material/ShieldRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
@@ -83,7 +83,7 @@ const ICON_COMPONENTS_MAP = {
     risk: ReportProblemRoundedIcon,
     protect: ShieldRoundedIcon,
     momentum: BoltRoundedIcon,
-    insights: InsightsRoundedIcon,
+    post: ArticleRoundedIcon,
     stats: AssessmentRoundedIcon,
     chart: ShowChartRoundedIcon,
     timeline: TimelineRoundedIcon,
@@ -133,7 +133,7 @@ export const getCustomEventIconOptions = (t) => [
     { value: 'risk', label: t('risk'), Icon: ICON_COMPONENTS_MAP.risk },
     { value: 'protect', label: t('protect'), Icon: ICON_COMPONENTS_MAP.protect },
     { value: 'momentum', label: t('momentum'), Icon: ICON_COMPONENTS_MAP.momentum },
-    { value: 'insights', label: t('insights'), Icon: ICON_COMPONENTS_MAP.insights },
+    { value: 'post', label: t('post'), Icon: ICON_COMPONENTS_MAP.post },
     { value: 'stats', label: t('stats'), Icon: ICON_COMPONENTS_MAP.stats },
     { value: 'chart', label: t('chart'), Icon: ICON_COMPONENTS_MAP.chart },
     { value: 'timeline', label: t('timeline'), Icon: ICON_COMPONENTS_MAP.timeline },
@@ -173,7 +173,7 @@ export const CUSTOM_EVENT_ICON_OPTIONS = [
     { value: 'risk', label: 'Risk', Icon: ICON_COMPONENTS_MAP.risk },
     { value: 'protect', label: 'Protect', Icon: ICON_COMPONENTS_MAP.protect },
     { value: 'momentum', label: 'Momentum', Icon: ICON_COMPONENTS_MAP.momentum },
-    { value: 'insights', label: 'Insights', Icon: ICON_COMPONENTS_MAP.insights },
+    { value: 'post', label: 'Post', Icon: ICON_COMPONENTS_MAP.post },
     { value: 'stats', label: 'Stats', Icon: ICON_COMPONENTS_MAP.stats },
     { value: 'chart', label: 'Chart', Icon: ICON_COMPONENTS_MAP.chart },
     { value: 'timeline', label: 'Timeline', Icon: ICON_COMPONENTS_MAP.timeline },

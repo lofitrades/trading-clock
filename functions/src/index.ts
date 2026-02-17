@@ -6,7 +6,10 @@
  * updates into the canonical economic events collection.
  *
  * Changelog:
- * v1.10.0 - 2026-02-06 - GPT ACTIONS: Added secured endpoints for blog CMS integration (list slugs, create draft).
+ * v1.14.0 - 2026-02-10 - BEP FIX: onBlogPostWrite used wrong Firestore field names (languageContent→languages, activeLanguages→derived from Object.keys)
+ * v1.13.0 - 2026-02-10 - BEP P0: Wired logBlogPublished (onBlogPostWrite), logGptUpload (uploadGptEvents), logUserSignup (onUserCreated trigger)
+ * v1.12.0 - 2026-02-09 - Phase 7 Security: Added backfillVisibility callable for one-time visibility migration
+ * v1.11.0 - 2026-02-09 - Phase 2 Insights: Added backfillInsightKeys callable for one-time migration
  * v1.9.0 - 2026-02-05 - BEP BLOG: Hardened blog HTML serving (taxonomy-safe routing, bot handling) and language-aware SPA responses.
  * v1.8.0 - 2026-02-04 - BEP SITEMAP: Updated sitemapService to include all blog hub pages (category, tag, event+currency combo)
  * v1.7.0 - 2026-02-04 - BEP SITEMAP: Added dynamic sitemap functions (serveSitemapIndex, serveSitemapBlog).
@@ -41,6 +44,13 @@ import {
   handleGptActionsCreateBlogDraft,
   handleGptActionsGetExistingBlogSlugs,
 } from "./services/gptBlogActionsService";
+import {backfillAllInsightKeys} from "./services/backfillInsightKeysService";
+import {backfillAllVisibility} from "./services/backfillVisibilityService";
+import {
+  logBlogPublished,
+  logGptUpload,
+  logUserSignup,
+} from "./services/activityLoggingService";
 
 const T2T_GPT_ACTIONS_API_KEY = defineSecret("T2T_GPT_ACTIONS_API_KEY");
 
@@ -297,6 +307,14 @@ export const uploadGptEvents = onCall(
 
     const result = await uploadGptEventsBatch(events);
     logger.info("✅ GPT upload batch complete", result);
+
+    // P0: Log GPT upload for Insights
+    await logGptUpload(
+      `${result.created} created, ${result.merged} merged`,
+      result.processed,
+      "GPT"
+    );
+
     return result;
   }
 );
@@ -361,7 +379,7 @@ export const sendCustomReminderEmailNow = onCall(
 // BLOG PUBLISHING PIPELINE (Phase 4)
 // ============================================================================
 
-import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import { onDocumentWritten, onDocumentCreated } from "firebase-functions/v2/firestore";
 import {
   renderBlogPost,
   removeRenderedBlogPost,
@@ -403,6 +421,22 @@ export const onBlogPostWrite = onDocumentWritten(
     if (afterStatus === "published" && beforeStatus !== "published") {
       logger.info(`[BlogTrigger] Post ${postId} published, generating renders`);
       await renderBlogPost(postId);
+
+      // P0: Log blog publication for Insights
+      // BEP: Firestore field is "languages" (not "languageContent"), no "activeLanguages" field exists
+      const langs = afterData?.languages || {};
+      const langKeys = Object.keys(langs).filter((lang: string) => langs[lang]?.title);
+      const publishedLanguages = langKeys.length ? langKeys : ["en"];
+      // BEP: Extract title from default lang (en) first, then first available
+      const publishedTitle =
+        langs?.en?.title ||
+        (Object.values(langs) as Array<{title?: string}>).find((l) => l?.title)?.title ||
+        afterData?.title ||
+        "(untitled)";
+      // P4: Extract event and currency tags for insightKeys enrichment
+      const eventTags = Array.isArray(afterData?.eventTags) ? afterData.eventTags : [];
+      const currencyTags = Array.isArray(afterData?.currencyTags) ? afterData.currencyTags : [];
+      await logBlogPublished(publishedTitle, postId, publishedLanguages, eventTags, currencyTags);
       return;
     }
 
@@ -415,9 +449,9 @@ export const onBlogPostWrite = onDocumentWritten(
 
     // Content updated while published (re-render)
     if (afterStatus === "published" && beforeStatus === "published") {
-      // Check if language content changed
-      const beforeContent = JSON.stringify(beforeData?.languageContent || {});
-      const afterContent = JSON.stringify(afterData?.languageContent || {});
+      // Check if language content changed (Firestore field is "languages")
+      const beforeContent = JSON.stringify(beforeData?.languages || {});
+      const afterContent = JSON.stringify(afterData?.languages || {});
       if (beforeContent !== afterContent) {
         logger.info(`[BlogTrigger] Post ${postId} content updated, re-rendering`);
         await renderBlogPost(postId);
@@ -735,5 +769,128 @@ export const reRenderAllBlogs = onRequest(
       logger.error("[ReRenderAll] Error:", error);
       res.status(500).send({ error: "Re-render failed" });
     }
+  }
+);
+
+/**
+ * HTTPS Callable - Backfill insightKeys for existing documents (superadmin only)
+ * One-time migration to add insightKeys to blogPosts, systemActivityLog, and eventNotes.
+ * Idempotent: Safe to re-run without duplicating data.
+ *
+ * Phase 2 Insights - v1.11.0
+ */
+export const backfillInsightKeys = onCall(
+  {
+    timeoutSeconds: 540,
+    memory: "512MiB",
+  },
+  async (request) => {
+    // Require authentication
+    const authContext = request.auth;
+    if (!authContext) {
+      throw new HttpsError("unauthenticated", "Authentication required");
+    }
+
+    // Require superadmin role
+    const token = authContext.token || {};
+    const uid = authContext.uid;
+    let isSuperadmin = token.role === "superadmin" || token.superadmin === true;
+
+    // Fallback: Check Firestore if custom claims not present
+    if (!isSuperadmin) {
+      try {
+        const userDoc = await admin.firestore().collection("users").doc(uid).get();
+        const userData = userDoc.data();
+        isSuperadmin = userData?.role === "superadmin";
+      } catch (error) {
+        logger.warn("[BackfillInsightKeys] Failed to check Firestore role", {uid});
+      }
+    }
+
+    if (!isSuperadmin) {
+      throw new HttpsError(
+        "permission-denied",
+        "Superadmin role required for backfill operations."
+      );
+    }
+
+    logger.info("[BackfillInsightKeys] Started by superadmin", {uid});
+
+    const results = await backfillAllInsightKeys();
+
+    logger.info("[BackfillInsightKeys] Complete", results);
+    return results;
+  }
+);
+
+/**
+ * Cloud Function: backfillVisibility
+ * One-time callable to backfill visibility field on existing systemActivityLog documents.
+ * Requires superadmin role via custom claims or Firestore role field.
+ * Timeout: 540s, Memory: 512MiB (allows ~500 MB of data processing)
+ */
+export const backfillVisibility = onCall(
+  {
+    timeoutSeconds: 540,
+    memory: "512MiB",
+  },
+  async (request) => {
+    // Require authentication
+    const authContext = request.auth;
+    if (!authContext) {
+      throw new HttpsError("unauthenticated", "Authentication required");
+    }
+
+    // Require superadmin role
+    const token = authContext.token || {};
+    const uid = authContext.uid;
+    let isSuperadmin = token.role === "superadmin" || token.superadmin === true;
+
+    // Fallback: Check Firestore if custom claims not present
+    if (!isSuperadmin) {
+      try {
+        const userDoc = await admin.firestore().collection("users").doc(uid).get();
+        const userData = userDoc.data();
+        isSuperadmin = userData?.role === "superadmin";
+      } catch (error) {
+        logger.warn("[BackfillVisibility] Failed to check Firestore role", {uid});
+      }
+    }
+
+    if (!isSuperadmin) {
+      throw new HttpsError(
+        "permission-denied",
+        "Superadmin role required for backfill operations."
+      );
+    }
+
+    logger.info("[BackfillVisibility] Started by superadmin", {uid});
+
+    const results = await backfillAllVisibility();
+
+    logger.info("[BackfillVisibility] Complete", results);
+    return results;
+  }
+);
+
+/**
+ * Firestore trigger: Watch users collection for new user document creation.
+ * Logs user signup activity to systemActivityLog for admin Insights dashboard.
+ * BEP P0: Fires when AuthContext creates a user doc after first sign-in.
+ */
+export const onUserCreated = onDocumentCreated(
+  {
+    document: "users/{uid}",
+    region: "us-central1",
+    memory: "128MiB",
+    timeoutSeconds: 30,
+  },
+  async (event) => {
+    const uid = event.params.uid;
+    const data = event.data?.data();
+    const email = data?.email || "unknown";
+
+    logger.info("[UserSignup] New user document created", { uid, email });
+    await logUserSignup(uid, email);
   }
 );

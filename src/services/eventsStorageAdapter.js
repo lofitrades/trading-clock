@@ -13,6 +13,28 @@
  * - All results: Update IndexedDB + Zustand store for future hits
  *
  * Changelog:
+ * v1.4.0 - 2026-02-12 - BEP IDB RANGE COVERAGE: Prevent partial IndexedDB hits from incorrectly
+ *                        satisfying wider date-range queries (e.g., clock caches today/tomorrow,
+ *                        calendar asks thisWeek and previously got only cached slice). Adds
+ *                        per-range coverage markers in localStorage and only returns from the
+ *                        IndexedDB layer when the requested range has been populated. Coverage
+ *                        is recorded on successful batch fetch + IDB write and cleared on cache
+ *                        invalidation.
+ * v1.3.0 - 2026-02-12 - BEP STALE IDB FIX: Added IndexedDB freshness TTL (30 min) to prevent
+ *                        serving stale data between sessions. When NFS/JBlanked cloud functions
+ *                        update Firestore, users who return after the sync would still get stale
+ *                        IndexedDB data (no TTL, no invalidation). Now tracks IDB population
+ *                        timestamp in localStorage and skips IDB layer when data is older than
+ *                        IDB_TTL_MS. During active sessions, sync subscription in useCalendarData
+ *                        clears IDB immediately. Between sessions, TTL ensures freshness.
+ * v1.2.0 - 2026-02-11 - BEP TIMEZONE PRECISION: Preserve full UTC timestamp precision when
+ *                        passing dates to all storage layers (IDB, batcher, Firestore).
+ *                        Previously dates were truncated to YYYY-MM-DD via toISOString().split('T')[0],
+ *                        which used midnight-UTC boundaries instead of timezone-correct boundaries.
+ *                        For EST (UTC-5) users, "today" queried 5 hours too early, leaking yesterday's
+ *                        events. Now uses epoch-ms cache keys and passes original Date objects to
+ *                        all layers. Fixes: today/tomorrow/thisWeek/nextWeek/thisMonth date filters
+ *                        across all timezones.
  * v1.1.0 - 2026-02-09 - BEP MULTI-FILTER: Accept currencies[] and impacts[] arrays instead of
  *                        single currency/impact. Apply all filter values in client-side filtering.
  *                        Cache key now includes sorted arrays for proper deduplication.
@@ -25,6 +47,94 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import useEventsStore from '@/stores/eventsStore';
 import { queryBatcher } from '@/services/queryBatcher';
 import eventsDB from '@/services/eventsDB';
+
+// ============================================================================
+// IDB FRESHNESS TTL
+// ============================================================================
+const IDB_TTL_MS = 30 * 60 * 1000; // 30 minutes — stale IDB data skipped
+const IDB_TIMESTAMP_KEY = 't2t_idb_populated_at';
+const IDB_COVERAGE_KEY = 't2t_idb_coverage_v1';
+const IDB_COVERAGE_MAX_ENTRIES = 50;
+
+/** Check if IndexedDB data is fresh enough to trust */
+const isIdbFresh = () => {
+  try {
+    const ts = localStorage.getItem(IDB_TIMESTAMP_KEY);
+    if (!ts) return false;
+    return Date.now() - Number(ts) < IDB_TTL_MS;
+  } catch { return false; }
+};
+
+/** Mark IndexedDB as freshly populated */
+const markIdbFresh = () => {
+  try { localStorage.setItem(IDB_TIMESTAMP_KEY, String(Date.now())); } catch { /* quota */ }
+};
+
+/** Clear IDB freshness marker (called when cache is invalidated) */
+export const clearIdbTimestamp = () => {
+  try {
+    localStorage.removeItem(IDB_TIMESTAMP_KEY);
+    localStorage.removeItem(IDB_COVERAGE_KEY);
+  } catch {
+    /* non-fatal */
+  }
+};
+
+// ============================================================================
+// IDB RANGE COVERAGE
+// ============================================================================
+
+const readCoverageMap = () => {
+  try {
+    const raw = localStorage.getItem(IDB_COVERAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const writeCoverageMap = (map) => {
+  try {
+    localStorage.setItem(IDB_COVERAGE_KEY, JSON.stringify(map));
+  } catch {
+    /* quota / disabled storage */
+  }
+};
+
+const pruneCoverageMap = (map) => {
+  const entries = Object.entries(map);
+  if (entries.length <= IDB_COVERAGE_MAX_ENTRIES) return map;
+  entries.sort((a, b) => (Number(a[1]) || 0) - (Number(b[1]) || 0));
+  const next = { ...map };
+  for (let i = 0; i < entries.length - IDB_COVERAGE_MAX_ENTRIES; i += 1) {
+    delete next[entries[i][0]];
+  }
+  return next;
+};
+
+const markIdbCoverage = (coverageKey) => {
+  if (!coverageKey) return;
+  const map = readCoverageMap();
+  map[coverageKey] = Date.now();
+  const pruned = pruneCoverageMap(map);
+  writeCoverageMap(pruned);
+};
+
+const hasFreshIdbCoverage = (coverageKey) => {
+  if (!coverageKey) return false;
+  const map = readCoverageMap();
+  const ts = Number(map[coverageKey]);
+  if (!ts) return false;
+  if (Date.now() - ts > IDB_TTL_MS) {
+    // Expired coverage marker — clean up lazily
+    delete map[coverageKey];
+    writeCoverageMap(map);
+    return false;
+  }
+  return true;
+};
 
 /**
  * Fetch events with adaptive storage strategy
@@ -64,26 +174,49 @@ export const fetchEventsWithAdaptiveStorage = async (
 
   const store = useEventsStore.getState();
 
-  // Normalize dates to ISO strings
-  const startStr = typeof startDate === 'string'
+  // BEP v1.2.0: Normalize to Date objects — preserve full UTC timestamp precision.
+  // CRITICAL: Do NOT truncate to YYYY-MM-DD strings. The time component encodes
+  // the timezone-correct day boundary (e.g. "today" in EST starts at 05:00 UTC,
+  // not 00:00 UTC). Stripping time causes events from adjacent days to leak in.
+  const startDateObj = startDate instanceof Date
     ? startDate
-    : startDate instanceof Date
-      ? startDate.toISOString().split('T')[0]
-      : startDate;
-
-  const endStr = typeof endDate === 'string'
+    : new Date(startDate);
+  const endDateObj = endDate instanceof Date
     ? endDate
-    : endDate instanceof Date
-      ? endDate.toISOString().split('T')[0]
-      : endDate;
+    : new Date(endDate);
 
-  // BEP v1.1.0: Cache key includes sorted arrays for proper deduplication
+  // BEP v1.2.0: Use epoch-ms for cache keys — precise and timezone-safe
+  const startMs = startDateObj.getTime();
+  const endMs = endDateObj.getTime();
+
+  // IDB coverage keys: only trust IndexedDB for ranges that have been populated.
+  // If the query is filtered, we can still reuse an unfiltered ("all") coverage marker
+  // for the same range/source.
+  const coverageKeyAll = skipCache
+    ? null
+    : JSON.stringify({
+        start: startMs,
+        end: endMs,
+        source,
+        scope: 'all',
+      });
+  const coverageKeyFiltered = skipCache
+    ? null
+    : JSON.stringify({
+        start: startMs,
+        end: endMs,
+        source,
+        scope: 'filtered',
+        currencies: [...currencyList].sort(),
+        impacts: [...impactList].sort(),
+      });
+
   const cacheKey = skipCache
     ? null
     : JSON.stringify({
         type: 'adaptive',
-        startStr,
-        endStr,
+        start: startMs,
+        end: endMs,
         currencies: [...currencyList].sort(),
         impacts: [...impactList].sort(),
         source,
@@ -131,11 +264,18 @@ export const fetchEventsWithAdaptiveStorage = async (
   try {
     // ========================================================================
     // LAYER 2: IndexedDB (fast, no serialization, O(log N) queries)
-    // BEP v1.1.0: Fetch full date range from IDB, then apply multi-filters client-side
+    // BEP v1.2.0: Pass Date objects for precise timezone-aware range queries
+    // BEP v1.3.0: Skip IDB when data is stale (TTL expired between sessions)
     // ========================================================================
-    if (eventsDB.isSupported()) {
+    const canUseIdb =
+      !skipCache &&
+      eventsDB.isSupported() &&
+      isIdbFresh() &&
+      (hasFreshIdbCoverage(coverageKeyFiltered) || hasFreshIdbCoverage(coverageKeyAll));
+
+    if (canUseIdb) {
       try {
-        const idbEvents = await eventsDB.getEventsByDateRange(startStr, endStr);
+        const idbEvents = await eventsDB.getEventsByDateRange(startDateObj, endDateObj);
 
         if (idbEvents.length > 0) {
           // BEP v1.1.0: Apply all filters client-side for full multi-select support
@@ -155,11 +295,11 @@ export const fetchEventsWithAdaptiveStorage = async (
 
     // ========================================================================
     // LAYER 3: Query Batcher (merges overlapping Firestore requests)
-    // BEP v1.1.0: Fetch full date range, client-side filter for multi-select
+    // BEP v1.2.0: Pass original Date objects for precise Firestore queries
     // ========================================================================
     const batchResults = await queryBatcher.fetch({
-      startDate: new Date(startStr),
-      endDate: new Date(endStr),
+      startDate: startDateObj,
+      endDate: endDateObj,
       currencies: currencyList,
       impacts: impactList,
       source,
@@ -175,6 +315,15 @@ export const fetchEventsWithAdaptiveStorage = async (
     if (eventsDB.isSupported() && batchResults.length > 0) {
       try {
         await eventsDB.addEvents(batchResults, { skipValidation: true });
+        markIdbFresh(); // BEP v1.3.0: Track IDB population time for TTL
+
+        // Mark coverage for the requested range.
+        // If this query is unfiltered, record "all" coverage so future filtered
+        // queries can be served from IDB without another Firestore roundtrip.
+        if (!skipCache) {
+          const isUnfiltered = currencyList.length === 0 && impactList.length === 0;
+          markIdbCoverage(isUnfiltered ? coverageKeyAll : coverageKeyFiltered);
+        }
       } catch (error) {
         console.warn('Failed to cache to IndexedDB:', error);
         // Non-fatal, continue

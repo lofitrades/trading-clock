@@ -6,6 +6,7 @@
  * BEP: Full scoring visualization, drag-to-reorder, i18n support.
  * 
  * Changelog:
+ * v1.1.0 - 2026-02-15 - BEP: Always show cover thumbnail with fallback to default (getDefaultBlogThumbnail)
  * v1.0.0 - 2026-02-04 - Initial implementation (Phase 5.B Blog - Related Posts Admin)
  */
 
@@ -49,6 +50,7 @@ import ArticleIcon from '@mui/icons-material/Article';
 
 import { getRelatedPostsPreview } from '../../services/blogService';
 import { BLOG_LIMITS, BLOG_CATEGORY_LABELS, BLOG_ECONOMIC_EVENTS } from '../../types/blogTypes';
+import { getDefaultBlogThumbnail } from '../../utils/blogThumbnailFallback';
 
 /**
  * Score breakdown tooltip content
@@ -158,19 +160,13 @@ const CandidateCard = ({ candidate, isSelected, onToggle, maxScore }) => {
                         sx={{ p: 0, mt: 0.5 }}
                     />
 
-                    {/* Thumbnail */}
-                    {candidate.coverImage?.url ? (
-                        <CardMedia
-                            component="img"
-                            image={candidate.coverImage.url}
-                            alt=""
-                            sx={{ width: 60, height: 45, borderRadius: 1, objectFit: 'cover', flexShrink: 0 }}
-                        />
-                    ) : (
-                        <Avatar variant="rounded" sx={{ width: 60, height: 45, bgcolor: 'grey.200' }}>
-                            <ArticleIcon sx={{ color: 'grey.400' }} />
-                        </Avatar>
-                    )}
+                    {/* Thumbnail — always show, fallback to default */}
+                    <CardMedia
+                        component="img"
+                        image={candidate.coverImage?.url || getDefaultBlogThumbnail(candidate.id, true)}
+                        alt=""
+                        sx={{ width: 60, height: 45, borderRadius: 1, objectFit: 'cover', flexShrink: 0 }}
+                    />
 
                     {/* Content */}
                     <Box sx={{ flex: 1, minWidth: 0 }}>

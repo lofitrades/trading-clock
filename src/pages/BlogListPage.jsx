@@ -6,6 +6,7 @@
  * Supports multi-language URLs via subpath routing.
  *
  * Changelog:
+ * v4.3.0 - 2026-02-15 - BEP: Always show cover image in PostCard with fallback to default thumbnail
  * v4.2.0 - 2026-02-08 - BEP UX: Added page-transition skeleton flash on pagination click. Since all posts
  *                       are pre-fetched and page changes are instant client-side slices, there was zero
  *                       visual feedback that content changed. Now shows 150ms skeleton overlay on page
@@ -77,7 +78,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import InsightsIcon from '@mui/icons-material/Insights';
+import ArticleIcon from '@mui/icons-material/Article';
 
 import SEO from '../components/SEO';
 import PublicLayout from '../components/PublicLayout';
@@ -87,6 +88,7 @@ import { searchBlogPosts, getBlogSearchFilters } from '../services/blogSearchSer
 import { BLOG_CATEGORY_LABELS, BLOG_ECONOMIC_EVENTS, DEFAULT_BLOG_LANGUAGE } from '../types/blogTypes';
 import { SITE_URL } from '../utils/seoMeta';
 import { getCurrencyFlag } from '../utils/currencyFlags';
+import { loadFlagIconsCSS } from '../app/clientEffects';
 import { getDefaultBlogThumbnail } from '../utils/blogThumbnailFallback';
 import AdUnit from '../components/AdUnit';
 import { AD_SLOTS } from '../constants/adSlots';
@@ -133,40 +135,38 @@ const PostCard = ({ post, lang }) => {
             }}
         >
             <CardActionArea component={RouterLink} to={postUrl} sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
-                {content.coverImage?.url && (
-                    <Box
-                        sx={{
-                            position: 'relative',
-                            height: 180,
-                            backgroundColor: 'action.hover',
-                            overflow: 'hidden',
-                        }}
-                    >
-                        {!imageLoaded && (
-                            <Skeleton
-                                variant="rectangular"
-                                width="100%"
-                                height="100%"
-                                sx={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}
-                            />
-                        )}
-                        <CardMedia
-                            component="img"
-                            height="180"
-                            image={content.coverImage?.url || getDefaultBlogThumbnail(post.id, true)}
-                            alt={content.coverImage?.alt || content.title}
-                            onLoad={() => setImageLoaded(true)}
-                            sx={{
-                                objectFit: 'cover',
-                                backgroundColor: 'action.hover',
-                                opacity: imageLoaded ? 1 : 0,
-                                transition: 'opacity 0.3s ease-in',
-                            }}
-                            loading="lazy"
-                            decoding="async"
+                <Box
+                    sx={{
+                        position: 'relative',
+                        height: 180,
+                        backgroundColor: 'action.hover',
+                        overflow: 'hidden',
+                    }}
+                >
+                    {!imageLoaded && (
+                        <Skeleton
+                            variant="rectangular"
+                            width="100%"
+                            height="100%"
+                            sx={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}
                         />
-                    </Box>
-                )}
+                    )}
+                    <CardMedia
+                        component="img"
+                        height="180"
+                        image={content.coverImage?.url || getDefaultBlogThumbnail(post.id, true)}
+                        alt={content.coverImage?.alt || content.title}
+                        onLoad={() => setImageLoaded(true)}
+                        sx={{
+                            objectFit: 'cover',
+                            backgroundColor: 'action.hover',
+                            opacity: imageLoaded ? 1 : 0,
+                            transition: 'opacity 0.3s ease-in',
+                        }}
+                        loading="lazy"
+                        decoding="async"
+                    />
+                </Box>
                 <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                     {/* Category chip */}
                     {post.category && (
@@ -387,6 +387,9 @@ export default function BlogListPage() {
         preloadNamespaces(['blog', 'common', 'auth', 'settings']);
     }, []);
 
+    // BEP PERFORMANCE: Load flag-icons CSS on-demand for currency flag display
+    useEffect(() => { loadFlagIconsCSS(); }, []);
+
     // Debounce search query (300ms for performance)
     useEffect(() => {
         if (debounceTimerRef.current) {
@@ -572,9 +575,9 @@ export default function BlogListPage() {
                             spacing={1.5}
                             sx={{ mb: 1 }}
                         >
-                            <InsightsIcon sx={{ fontSize: { xs: '2rem', md: '2.5rem' }, color: 'primary.main' }} />
+                            <ArticleIcon sx={{ fontSize: { xs: '2rem', md: '2.5rem' }, color: 'primary.main' }} />
                             <Typography variant="h1" component="h1" sx={{ fontSize: { xs: '2rem', md: '2.5rem' }, fontWeight: 700 }}>
-                                {t('blog:listPage.heading', 'Insights')}
+                                {t('blog:listPage.heading', 'Blog')}
                             </Typography>
                         </Stack>
                         <Typography variant="subtitle1" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto' }}>

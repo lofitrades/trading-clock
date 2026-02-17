@@ -11,6 +11,16 @@
  * - createDefaultCustomEventsForUser(): Creates two recurring weekday custom events with 10-min reminders
  *
  * Changelog:
+ * v1.2.0 - 2026-02-12 - BEP TIMEZONE RANGE FIX: buildGuestSampleEventsForRange now iterates by
+ *                        NY (market) days using timezone-aware UTC midnights and only includes
+ *                        events whose epochMs fall within the requested UTC range. Fixes cases
+ *                        where using system-local Date mutation (setHours/setDate) could leak
+ *                        "yesterday" sample events into the Today preset when the user's selected
+ *                        timezone differs from the device/browser timezone.
+ * v1.2.1 - 2026-02-12 - BEP UX: Updated non-auth default custom event marker styling: use near-black
+ *                        palette-aligned colors and swap Market Close icon from close (X) to lock.
+ * v1.2.2 - 2026-02-12 - BEP UX: Updated non-auth default custom event marker colors to white for cleaner
+ *                        contrast on the clock UI while preserving squircle silhouette + border.
  * v1.1.0 - 2026-02-10 - BEP: Added buildGuestSampleEventsForRange for Calendar2Page multi-day guest events.
  *                        Single source of truth: reuses DEFAULT_EVENTS definitions. Includes showOnCalendar
  *                        flag, _displayCache with correct strengthValue, and all fields matching clock overlay.
@@ -29,7 +39,8 @@ const DEFAULT_EVENTS = [
     title: 'NY Open',
     hour: 9,
     minute: 30,
-    color: '#018786',
+    // BEP: White guest marker color for clean contrast.
+    color: '#fafafa',
     icon: 'play',
     impact: 'my-events',
     description: 'New York Stock Exchange opening bell.',
@@ -38,8 +49,9 @@ const DEFAULT_EVENTS = [
     title: 'Market Close',
     hour: 17,
     minute: 0,
-    color: '#8B6CFF',
-    icon: 'close',
+    // BEP: White guest marker color for clean contrast.
+    color: '#3e3e3e',
+    icon: 'lock',
     impact: 'my-events',
     description: 'US equity and futures markets close.',
   },
@@ -138,20 +150,28 @@ export const buildGuestSampleEvents = () => {
 export const buildGuestSampleEventsForRange = (startDate, endDate) => {
   if (!startDate || !endDate) return [];
 
+  const startMs = startDate instanceof Date ? startDate.getTime() : new Date(startDate).getTime();
+  const endMs = endDate instanceof Date ? endDate.getTime() : new Date(endDate).getTime();
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return [];
+
+  // Iterate by NY (market) days to avoid device/browser timezone drift.
+  // Include only events whose epochMs land inside the requested UTC range.
+  const startParts = getDatePartsInTimezone(NY_TIMEZONE, new Date(startMs));
+  const endParts = getDatePartsInTimezone(NY_TIMEZONE, new Date(endMs));
+
+  let cursor = getUtcDateForTimezone(NY_TIMEZONE, startParts.year, startParts.month, startParts.day);
+  const endCursor = getUtcDateForTimezone(NY_TIMEZONE, endParts.year, endParts.month, endParts.day, { endOfDay: true });
+
   const events = [];
-  const current = new Date(startDate);
-  current.setHours(0, 0, 0, 0);
-  const end = new Date(endDate);
-  end.setHours(23, 59, 59, 999);
+  while (cursor.getTime() <= endCursor.getTime()) {
+    const { year, month, day, dayOfWeek } = getDatePartsInTimezone(NY_TIMEZONE, cursor);
 
-  while (current <= end) {
-    // Check day of week in NY timezone
-    const { year, month, day, dayOfWeek } = getDatePartsInTimezone(NY_TIMEZONE, current);
-
-    // Only weekdays (Mon-Fri)
+    // Only weekdays (Mon-Fri) in NY
     if (dayOfWeek >= 1 && dayOfWeek <= 5) {
       for (const def of DEFAULT_EVENTS) {
         const eventEpoch = epochForTime(year, month, day, def.hour, def.minute, NY_TIMEZONE);
+        if (eventEpoch < startMs || eventEpoch > endMs) continue;
+
         const localDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const localTime = `${String(def.hour).padStart(2, '0')}:${String(def.minute).padStart(2, '0')}`;
         const slug = def.title.replace(/\s+/g, '-').toLowerCase();
@@ -200,7 +220,8 @@ export const buildGuestSampleEventsForRange = (startDate, endDate) => {
       }
     }
 
-    current.setDate(current.getDate() + 1);
+    // Advance to next NY midnight using timezone-aware conversion (DST-safe)
+    cursor = getUtcDateForTimezone(NY_TIMEZONE, year, month, day + 1);
   }
 
   return events;

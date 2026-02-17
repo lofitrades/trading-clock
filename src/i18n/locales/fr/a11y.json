@@ -29,8 +29,7 @@
     "sections": "Sections des paramètres",
     "syncWeek": "Synchroniser la semaine",
     "syncActuals": "Synchroniser les données réelles",
-    "syncForexFactory": "Remplir Forex Factory",
-    "closeDrawer": "Fermer les paramètres",
+    "syncForexFactory": "Remplir Forex Factory",    "backfillInsightKeys": "Remplir les clés d'insight",    "closeDrawer": "Fermer les paramètres",
     "clearSession": "Effacer la session {{number}}"
   }
 }

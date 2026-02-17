@@ -5,8 +5,9 @@
  * Provides consistent OG/Twitter images, language-aware metadata, and schema objects across routes.
  *
  * Changelog:
+ * v1.5.1 - 2026-02-10 - Rename Market Clock branding across structured data featureList copy.
  * v1.5.0 - 2026-02-04 - BEP SEO CRITICAL: Migrated from query params (?lang=xx) to subpath URLs (/es/, /fr/) for all language variants. Updated buildHreflangUrls() and buildSeoMeta() to generate subpath-based URLs matching Firebase hosting rewrites and prerender output. Eliminates duplicate URLs and improves SEO crawlability.
- * v1.4.0 - 2026-02-03 - BEP SEO: Updated featureList copy to align with new hero messaging ("Trading clock" not "Session clock"), benefit-driven descriptions.
+ * v1.4.0 - 2026-02-03 - BEP SEO: Updated featureList copy to align with new hero messaging ("Market clock" not "Session clock"), benefit-driven descriptions.
  * v1.3.0 - 2026-01-27 - BEP SEO: Added multi-language support with SUPPORTED_LANGUAGES, getOgLocale(), buildHreflangUrls(), and language-aware schema builders. Enables proper international SEO crawlability for EN/ES/FR.
  * v1.2.0 - 2026-01-22 - SEO refresh aligned with index.html: stronger robots defaults, theme-color alignment, and updated featureList (custom events, notifications, Forex Factory-powered calendar). Removed overlaps/PWA/exports from "main features".
  * v1.1.0 - 2025-12-22 - Added robots/theme-color defaults, exported normalizer, and refreshed SoftwareApplication schema.
@@ -145,7 +146,7 @@ export const buildSoftwareApplicationSchema = ({ description, lang = DEFAULT_LAN
     url: `${SITE_URL}/`,
   },
   featureList: [
-    'Visual 24-hour trading clock displaying New York, London, and Asia sessions with real-time countdowns',
+    'Visual 24-hour market clock displaying New York, London, and Asia sessions with real-time countdowns',
     'Forex Factory-powered economic calendar showing scheduled releases filtered by impact and currency',
     'Custom events and reminders for personal timing windows, no-trade zones, and routines',
     'Notifications for upcoming events so you never trade blind into a release',

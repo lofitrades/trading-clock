@@ -1,0 +1,53 @@
+{
+  "tabs": {
+    "sessionOverview": "Resumen",
+    "upcomingEvents": {
+      "label": "Eventos",
+      "title": "Próximos Eventos",
+      "description": "Próximamente: cronología de eventos económicos. Visualiza y rastrea los próximos eventos de alto impacto directamente desde la barra lateral de tu reloj.",
+      "noEvents": "No hay eventos programados para hoy.",
+      "todayCount": "{{count}} eventos hoy"
+    }
+  },
+  "sidebar": {
+    "title": "Resumen de Sesiones",
+    "description": "Tu reloj de mercado ofrece una vista en tiempo real de las sesiones de trading activas, próximos eventos económicos y solapamientos de sesiones — todo en un solo lugar.",
+    "comingSoon": "Próximamente",
+    "features": {
+      "feature1": "Análisis en vivo de sesiones",
+      "feature2": "Cronología de próximos eventos",
+      "feature3": "Notificaciones de solapamiento de sesiones"
+    }
+  },
+  "guide": {
+    "heading": "Cómo Funciona",
+    "dualCircle": {
+      "title": "Diseño de Doble Círculo",
+      "body": "El anillo interior muestra sesiones AM (pre-mercado, apertura de Londres), el anillo exterior muestra sesiones PM (tarde de NY, Asia). Los arcos superpuestos revelan cuándo los mercados operan simultáneamente."
+    },
+    "sessionArcs": {
+      "title": "Arcos de Sesión",
+      "body": "Cada arco de color representa una sesión de trading. La sesión activa se llena con un indicador de progreso para ver de un vistazo cuánto ha avanzado la sesión."
+    },
+    "eventMarkers": {
+      "title": "Marcadores de Eventos",
+      "body": "Pequeños puntos en la esfera del reloj marcan próximas publicaciones económicas. Los eventos de alto impacto aparecen más prominentes para que no te pierdas ningún dato clave."
+    },
+    "sessionLabel": {
+      "title": "Etiqueta de Sesión",
+      "body": "El chip de arriba muestra la sesión activa y una cuenta regresiva en vivo hasta su cierre — o la próxima sesión y cuándo abre."
+    },
+    "filters": {
+      "title": "Filtros",
+      "body": "Usa los filtros de moneda e impacto para controlar qué marcadores de eventos aparecen en el reloj y en la pestaña de Eventos."
+    },
+    "timezone": {
+      "title": "Zona Horaria",
+      "body": "Toca el botón de zona horaria debajo del reloj para cambiar entre tu hora local, Nueva York, Londres o cualquier zona horaria compatible."
+    },
+    "tip": {
+      "title": "Consejo Pro",
+      "body": "Toca cualquier arco de sesión para ver sus horarios exactos de apertura/cierre. Usa el icono de engranaje en la barra de navegación para personalizar colores, alternar elementos y sincronizar ajustes entre dispositivos."
+    }
+  }
+}

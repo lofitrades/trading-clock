@@ -6,6 +6,7 @@
  * 
  * Changelog:
  * v1.3.6 - 2026-01-28 - BEP UI FIX: Removed border from .hand-clock-wrapper completely. Canvas and containers now fully transparent with no borders.
+ * v1.3.7 - 2026-02-12 - BEP UX: Restored circular marker silhouette by re-adding border-radius: 50% to .clock-event-marker.
  * v1.3.5 - 2026-01-28 - BEP UI FIX: .hand-clock-wrapper is now the single source for border styling. Inner elements (.canvas-container, canvas) have border: none to prevent pixel offset from nested borders.
  * v1.3.3 - 2026-01-21 - Increased flag badge size for clearer visibility.
  * v1.3.2 - 2026-01-21 - Removed fullscreen mode comment block after fullscreen toggle removal.

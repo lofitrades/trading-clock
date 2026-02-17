@@ -1,6 +1,7 @@
 {
   "tooltip": {
     "startsIn": "Comienza en",
+    "endsIn": "Termina en",
     "startedAgo": "Comenzó hace",
     "endedAgo": "Terminó hace",
     "ago": "atrás"

@@ -19,6 +19,21 @@
  * - Editor: Blog stats only, blog activity only, limited filters
  *
  * Changelog:
+ * v1.9.0 - 2026-02-17 - BEP: Extracted quick actions to standalone AdminQuickActions component
+ *                        with grouped sections (Blog/Events/Tools), compact chip-button layout,
+ *                        RBAC filtering. Removed inline QuickActionCard and getQuickActions config.
+ * v1.8.0 - 2026-02-17 - BEP: Added Blog GPT and GPT Event Uploader quick action links to their
+ *                        respective Overview stat cards, gated by RBAC (Blog GPT: author+; GPT Uploader:
+ *                        superadmin only). Extended StatCard with optional action prop.
+ * v1.7.0 - 2026-02-17 - BEP: Overview stats now filter by selected period toggle (7d/30d/all).
+ *                        Stat cards show period-scoped values with dynamic subtitles. Service layer
+ *                        updated to return period-filtered counts for blog, events, and users.
+ * v1.6.0 - 2026-02-12 - BEP CRITICAL FIX: Added visibility filter to activity feed query. Firestore
+ *                        rules enforce visibility-based read access (public/internal/admin) but the
+ *                        query had no where('visibility','in',[...]) clause. Firestore rejects queries
+ *                        that can't be proven to match security rules, causing "Missing or insufficient
+ *                        permissions" for all roles including superadmin. Fix: build allowed visibility
+ *                        list based on userRole and add where clause so Firestore can validate the query.
  * v1.5.0 - 2026-02-05 - BEP: Renamed editor → author role for semantic clarity.
  * v1.4.0 - 2026-02-05 - BEP: Fixed JBlanked sync filter (case-insensitive startsWith), added Blog GPT quick action with drawer.
  * v1.3.0 - 2026-02-05 - BEP: Added role-based visibility flags for all sections (superadmin/admin/editor).
@@ -31,14 +46,14 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 import {
     Box,
+    Button,
     Card,
     CardContent,
-    CardActionArea,
     Chip,
     CircularProgress,
     Divider,
@@ -60,8 +75,6 @@ import {
     Event as EventIcon,
     People as PeopleIcon,
     CloudUpload as CloudUploadIcon,
-    FileDownload as FileDownloadIcon,
-    Description as DescriptionIcon,
     Refresh as RefreshIcon,
     Schedule as ScheduleIcon,
     Cancel as CancelIcon,
@@ -81,10 +94,9 @@ import {
     CloudOff as CloudOffIcon,
     Storage as StorageIcon,
     Person as PersonIcon,
-    AutoAwesome as AutoAwesomeIcon,
     SmartToy as SmartToyIcon,
 } from '@mui/icons-material';
-import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -92,74 +104,7 @@ import {
     ACTIVITY_TYPES,
 } from '../services/adminActivityService';
 import BlogUploadDrawer from '../components/BlogUploadDrawer';
-
-// Quick action definitions (actions with 'path' navigate, actions with 'actionKey' trigger callbacks)
-const getQuickActions = (t) => [
-    {
-        title: t('dashboard.quickActions.blogCms'),
-        description: t('dashboard.quickActions.blogCmsDesc'),
-        icon: ArticleIcon,
-        path: '/admin/blog',
-        color: 'primary',
-        roles: ['admin', 'superadmin', 'author'],
-    },
-    {
-        title: t('dashboard.quickActions.blogGpt'),
-        description: t('dashboard.quickActions.blogGptDesc'),
-        icon: SmartToyIcon,
-        actionKey: 'openBlogUpload',
-        color: 'success',
-        roles: ['admin', 'superadmin', 'author'],
-    },
-    {
-        title: t('dashboard.quickActions.openMagicPost'),
-        description: t('dashboard.quickActions.openMagicPostDesc'),
-        icon: AutoAwesomeIcon,
-        actionKey: 'openMagicPost',
-        color: 'info',
-        roles: ['admin', 'superadmin', 'author'],
-    },
-    {
-        title: t('dashboard.quickActions.blogAuthors'),
-        description: t('dashboard.quickActions.blogAuthorsDesc'),
-        icon: PeopleIcon,
-        path: '/admin/blog/authors',
-        color: 'secondary',
-        roles: ['admin', 'superadmin'],
-    },
-    {
-        title: t('dashboard.quickActions.events'),
-        description: t('dashboard.quickActions.eventsDesc'),
-        icon: EventIcon,
-        path: '/admin/events',
-        color: 'warning',
-        roles: ['superadmin', 'admin'],
-    },
-    {
-        title: t('dashboard.quickActions.descriptions'),
-        description: t('dashboard.quickActions.descriptionsDesc'),
-        icon: DescriptionIcon,
-        path: '/admin/descriptions',
-        color: 'info',
-        roles: ['superadmin', 'admin'],
-    },
-    {
-        title: t('dashboard.quickActions.gptUploader'),
-        description: t('dashboard.quickActions.gptUploaderDesc'),
-        icon: CloudUploadIcon,
-        path: '/admin/fft2t',
-        color: 'success',
-        roles: ['superadmin'],
-    },
-    {
-        title: t('dashboard.quickActions.exportEvents'),
-        description: t('dashboard.quickActions.exportEventsDesc'),
-        icon: FileDownloadIcon,
-        path: '/admin/export',
-        color: 'error',
-        roles: ['superadmin'],
-    },
-];
+import AdminQuickActions from '../components/admin/AdminQuickActions';
 
 // Activity icon mapping
 const getActivityIcon = (type) => {
@@ -219,7 +164,7 @@ const formatRelativeTime = (date) => {
 };
 
 // Stat Card Component
-function StatCard({ title, value, subtitle, icon: Icon, color, trend }) {
+function StatCard({ title, value, subtitle, icon: Icon, color, trend, action }) {
     const themeRef = useTheme();
 
     return (
@@ -264,6 +209,32 @@ function StatCard({ title, value, subtitle, icon: Icon, color, trend }) {
                         </Typography>
                     </Stack>
                 )}
+                {action && (() => {
+                    const ActionIcon = action.icon;
+                    return (
+                        <Button
+                            size="small"
+                            variant="text"
+                            startIcon={ActionIcon ? <ActionIcon sx={{ fontSize: 16 }} /> : null}
+                            onClick={action.onClick}
+                            {...(action.to ? { component: RouterLink, to: action.to } : {})}
+                            sx={{
+                                mt: 1,
+                                px: 1,
+                                py: 0.25,
+                                fontSize: '0.7rem',
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                color: `${action.color || color}.main`,
+                                '&:hover': {
+                                    bgcolor: alpha(themeRef.palette[action.color || color]?.main || themeRef.palette.primary.main, 0.08),
+                                },
+                            }}
+                        >
+                            {action.label}
+                        </Button>
+                    );
+                })()}
             </CardContent>
         </Card>
     );
@@ -276,63 +247,16 @@ StatCard.propTypes = {
     icon: PropTypes.elementType.isRequired,
     color: PropTypes.string.isRequired,
     trend: PropTypes.string,
+    action: PropTypes.shape({
+        label: PropTypes.string.isRequired,
+        icon: PropTypes.elementType,
+        onClick: PropTypes.func,
+        to: PropTypes.string,
+        color: PropTypes.string,
+    }),
 };
 
-// Quick Action Card Component
-function QuickActionCard({ title, description, icon: Icon, path, color, onClick }) {
-    const nav = useNavigate();
-    const themeRef = useTheme();
 
-    const handleClick = () => {
-        if (onClick) {
-            onClick();
-        } else if (path) {
-            nav(path);
-        }
-    };
-
-    return (
-        <Card
-            sx={{
-                height: '100%',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-                '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: themeRef.shadows[8],
-                },
-            }}
-        >
-            <CardActionArea onClick={handleClick} sx={{ height: '100%', p: 2 }}>
-                <Stack spacing={1} alignItems="center" textAlign="center">
-                    <Box
-                        sx={{
-                            p: 1.5,
-                            borderRadius: 2,
-                            bgcolor: alpha(themeRef.palette[color]?.main || themeRef.palette.primary.main, 0.1),
-                        }}
-                    >
-                        <Icon sx={{ fontSize: 28, color: `${color}.main` }} />
-                    </Box>
-                    <Typography variant="subtitle2" fontWeight={700}>
-                        {title}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                        {description}
-                    </Typography>
-                </Stack>
-            </CardActionArea>
-        </Card>
-    );
-}
-
-QuickActionCard.propTypes = {
-    title: PropTypes.string.isRequired,
-    description: PropTypes.string.isRequired,
-    icon: PropTypes.elementType.isRequired,
-    path: PropTypes.string,
-    color: PropTypes.string.isRequired,
-    onClick: PropTypes.func,
-};
 
 // Activity Feed Item Component
 function ActivityItem({ activity }) {
@@ -669,16 +593,6 @@ export default function AdminDashboardPage() {
         },
     }), [magicPostUrl]);
 
-    // Filter quick actions based on role and attach onClick handlers
-    const availableActions = useMemo(() => {
-        return getQuickActions(t)
-            .filter((action) => action.roles.includes(userRole))
-            .map((action) => ({
-                ...action,
-                onClick: action.actionKey ? actionHandlers[action.actionKey] : undefined,
-            }));
-    }, [userRole, actionHandlers, t]);
-
     // Filter activity type filters based on role
     const availableTypeFilters = useMemo(() => {
         return ACTIVITY_TYPE_FILTERS.filter((filter) => filter.roles.includes(userRole));
@@ -770,10 +684,21 @@ export default function AdminDashboardPage() {
         loadStats();
     }, [loadStats]);
 
+    // BEP v1.6.0: Build allowed visibility levels based on role for Firestore query filter.
+    // Firestore rules enforce per-document visibility checks — the query MUST include a
+    // matching where('visibility','in',[...]) clause so Firestore can validate the query
+    // against security rules. Without it, the query is rejected outright.
+    const allowedVisibilities = useMemo(() => {
+        if (isSuperadmin) return ['public', 'internal', 'admin'];
+        if (isAdmin) return ['public', 'internal'];
+        return ['public']; // author
+    }, [isSuperadmin, isAdmin]);
+
     // Real-time activity feed listener
     useEffect(() => {
         const q = query(
             collection(db, 'systemActivityLog'),
+            where('visibility', 'in', allowedVisibilities),
             orderBy('createdAt', 'desc'),
             limit(30)
         );
@@ -808,13 +733,26 @@ export default function AdminDashboardPage() {
         );
 
         return () => unsubscribe();
-    }, []);
+    }, [allowedVisibilities]);
 
     const handlePeriodChange = (event, newPeriod) => {
         if (newPeriod !== null) {
             setPeriod(newPeriod);
         }
     };
+
+    // Human-readable period label for Overview subtitles
+    const periodLabel = useMemo(() => {
+        const labels = {
+            '7d': t('dashboard.stats.period7d'),
+            '30d': t('dashboard.stats.period30d'),
+            'all': t('dashboard.stats.periodAll'),
+        };
+        return labels[period] || period;
+    }, [period, t]);
+
+    // Whether the toggle is "All Time" (show totals directly, no period subtitle)
+    const isAllTime = period === 'all';
 
     return (
         <Box
@@ -829,9 +767,9 @@ export default function AdminDashboardPage() {
                 <Stack spacing={3}>
                     {/* Header */}
                     <Stack
-                        direction={{ xs: 'column', sm: 'row' }}
+                        direction={{ xs: 'column', md: 'row' }}
                         justifyContent="space-between"
-                        alignItems={{ xs: 'flex-start', sm: 'center' }}
+                        alignItems={{ xs: 'flex-start', md: 'center' }}
                         spacing={2}
                     >
                         <Box>
@@ -852,9 +790,9 @@ export default function AdminDashboardPage() {
                                 onChange={handlePeriodChange}
                                 size="small"
                             >
-                                <ToggleButton value="7d">7 Days</ToggleButton>
-                                <ToggleButton value="30d">30 Days</ToggleButton>
-                                <ToggleButton value="all">All Time</ToggleButton>
+                                <ToggleButton value="7d">{t('dashboard.stats.period7d')}</ToggleButton>
+                                <ToggleButton value="30d">{t('dashboard.stats.period30d')}</ToggleButton>
+                                <ToggleButton value="all">{t('dashboard.stats.periodAll')}</ToggleButton>
                             </ToggleButtonGroup>
                             <Tooltip title="Refresh">
                                 <span>
@@ -873,31 +811,17 @@ export default function AdminDashboardPage() {
                     )}
 
                     {/* Quick Actions */}
-                    <Box>
-                        <Typography variant="h6" fontWeight={700} gutterBottom>
-                            {t('dashboard.quickActions.title')}
-                        </Typography>
-                        <Box
-                            sx={{
-                                display: 'grid',
-                                gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(6, 1fr)' },
-                                gap: 2,
-                            }}
-                        >
-                            {availableActions.map((action) => (
-                                <Box key={action.path || action.actionKey}>
-                                    <QuickActionCard {...action} />
-                                </Box>
-                            ))}
-                        </Box>
-                    </Box>
+                    <AdminQuickActions
+                        userRole={userRole}
+                        actionHandlers={actionHandlers}
+                    />
 
                     <Divider />
 
                     {/* Stats Overview */}
                     <Box>
                         <Typography variant="h6" fontWeight={700} gutterBottom>
-                            Overview
+                            {t('dashboard.stats.title')}
                         </Typography>
                         {loading ? (
                             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -915,15 +839,25 @@ export default function AdminDashboardPage() {
                                     gap: 2,
                                 }}
                             >
-                                {/* Blog Stats - visible to all */}
+                                {/* Blog Stats - visible to all (author/admin/superadmin) */}
                                 <Box>
                                     <StatCard
-                                        title="Blog Posts"
-                                        value={stats?.blog?.total || 0}
-                                        subtitle={`${stats?.blog?.published || 0} published, ${stats?.blog?.drafts || 0} drafts`}
+                                        title={t('dashboard.stats.blogPosts')}
+                                        value={isAllTime ? (stats?.blog?.total || 0) : (stats?.blog?.recentCount || 0)}
+                                        subtitle={
+                                            isAllTime
+                                                ? `${stats?.blog?.published || 0} ${t('dashboard.stats.publishedPosts').toLowerCase()}, ${stats?.blog?.drafts || 0} ${t('dashboard.stats.draftPosts').toLowerCase()}`
+                                                : `${stats?.blog?.publishedInPeriod || 0} ${t('dashboard.stats.publishedPosts').toLowerCase()} · ${stats?.blog?.total || 0} total`
+                                        }
                                         icon={ArticleIcon}
                                         color="primary"
-                                        trend={stats?.blog?.recentCount > 0 ? `+${stats?.blog?.recentCount} new` : null}
+                                        trend={!isAllTime && stats?.blog?.recentCount > 0 ? `+${stats?.blog?.recentCount} ${periodLabel}` : null}
+                                        action={{
+                                            label: t('dashboard.quickActions.blogGpt'),
+                                            icon: SmartToyIcon,
+                                            onClick: actionHandlers.openBlogUpload,
+                                            color: 'success',
+                                        }}
                                     />
                                 </Box>
 
@@ -931,11 +865,22 @@ export default function AdminDashboardPage() {
                                 {canViewAllStats && (
                                     <Box>
                                         <StatCard
-                                            title="Economic Events"
-                                            value={stats?.events?.total || 0}
-                                            subtitle={`${stats?.events?.thisWeek || 0} this week`}
+                                            title={t('dashboard.stats.events')}
+                                            value={isAllTime ? (stats?.events?.total || 0) : (stats?.events?.eventsInPeriod || 0)}
+                                            subtitle={
+                                                isAllTime
+                                                    ? `${stats?.events?.thisWeek || 0} this week`
+                                                    : `${stats?.events?.thisWeek || 0} this week · ${stats?.events?.total || 0} total`
+                                            }
                                             icon={EventIcon}
                                             color="warning"
+                                            trend={!isAllTime && stats?.events?.eventsInPeriod > 0 ? `${stats?.events?.eventsInPeriod} ${periodLabel}` : null}
+                                            action={isSuperadmin ? {
+                                                label: t('dashboard.quickActions.gptUploader'),
+                                                icon: CloudUploadIcon,
+                                                to: '/admin/fft2t',
+                                                color: 'success',
+                                            } : undefined}
                                         />
                                     </Box>
                                 )}
@@ -944,9 +889,17 @@ export default function AdminDashboardPage() {
                                 {canViewAllStats && (
                                     <Box>
                                         <StatCard
-                                            title="Event Changes"
-                                            value={(stats?.events?.rescheduled || 0) + (stats?.events?.cancelled || 0)}
-                                            subtitle={`${stats?.events?.rescheduled || 0} rescheduled, ${stats?.events?.cancelled || 0} cancelled`}
+                                            title={`${t('dashboard.stats.rescheduled')} / ${t('dashboard.stats.cancelled')}`}
+                                            value={
+                                                isAllTime
+                                                    ? (stats?.events?.rescheduled || 0) + (stats?.events?.cancelled || 0)
+                                                    : (stats?.events?.cancelledInPeriod || 0)
+                                            }
+                                            subtitle={
+                                                isAllTime
+                                                    ? `${stats?.events?.rescheduled || 0} ${t('dashboard.stats.rescheduled').toLowerCase()}, ${stats?.events?.cancelled || 0} ${t('dashboard.stats.cancelled').toLowerCase()}`
+                                                    : `${stats?.events?.cancelledInPeriod || 0} ${t('dashboard.stats.cancelled').toLowerCase()} ${periodLabel} · ${stats?.events?.rescheduled || 0} ${t('dashboard.stats.rescheduled').toLowerCase()} total`
+                                            }
                                             icon={ScheduleIcon}
                                             color="info"
                                         />
@@ -957,12 +910,16 @@ export default function AdminDashboardPage() {
                                 {canViewAllStats && (
                                     <Box>
                                         <StatCard
-                                            title="Users"
-                                            value={stats?.users?.total || 0}
-                                            subtitle={`${stats?.users?.engaged || 0} engaged`}
+                                            title={t('dashboard.stats.users')}
+                                            value={isAllTime ? (stats?.users?.total || 0) : (stats?.users?.newUsers || 0)}
+                                            subtitle={
+                                                isAllTime
+                                                    ? `${stats?.users?.engaged || 0} ${t('dashboard.stats.activeUsers').toLowerCase()}`
+                                                    : `${stats?.users?.newUsers || 0} ${t('dashboard.stats.newUsers').toLowerCase()} · ${stats?.users?.total || 0} total`
+                                            }
                                             icon={PeopleIcon}
                                             color="success"
-                                            trend={stats?.users?.newUsers > 0 ? `+${stats?.users?.newUsers} new` : null}
+                                            trend={stats?.users?.newUsers > 0 ? `+${stats?.users?.newUsers} ${periodLabel}` : null}
                                         />
                                     </Box>
                                 )}

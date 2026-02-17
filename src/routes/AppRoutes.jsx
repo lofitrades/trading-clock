@@ -12,6 +12,11 @@
  * - Premium Routes: Require specific subscription plans
  * 
  * Changelog:
+ * v3.0.0 - 2026-02-17 - BEP ADMIN LAYOUT: Wrapped all /admin/* routes in AdminLayout with RBAC AdminNavBar.
+ *                       Nested routes via <Outlet />. AdminLayout provides consistent nav chrome across admin pages.
+ * v2.3.0 - 2026-02-17 - BEP RBAC: Restricted /admin/upload-desc and /admin/export to superadmin only (was admin+superadmin).
+ * v2.2.0 - 2026-02-13 - BEP PERFORMANCE: Lazy-loaded EmailLinkHandler. Made analytics.js
+ *                       imports fully dynamic. Reduces main bundle critical path.
  * v2.1.0 - 2026-02-07 - MIGRATION: Calendar2Page became primary /calendar route. Removed /calendar2 route.
  * v2.0.0 - 2026-02-05 - BEP: Added /admin dashboard with stats overview, quick actions, activity feed.
  * v1.9.0 - 2026-02-04 - BEP Blog Phase 5.C: Added /blog/category/:category and /blog/tag/:tagSlug routes
@@ -27,7 +32,7 @@
  * v1.3.0 - 2026-02-02 - Added /events/:eventId route for SEO-discoverable event pages (53 events × 3 languages = 159 pages).
  * v1.2.2 - 2026-02-02 - Added /admin/descriptions route for event descriptions management (superadmin only).
  * v1.2.1 - 2026-02-02 - Added /admin/events route for event management (superadmin only).
- * v1.2.0 - 2026-01-16 - Added /clock public route for the trading clock UI and retained /app as noindex app shell.
+ * v1.2.0 - 2026-01-16 - Added /clock public route for the market clock UI and retained /app as noindex app shell.
  * v1.2.0 - 2026-02-05 - BEP: Moved /fft2t → /admin/fft2t (admin routing structure).
  * v1.1.8 - 2026-01-16 - Added /fft2t superadmin route for GPT event uploader.
  * v1.1.7 - 2026-01-09 - Added /contact route using ContactPage component.
@@ -41,22 +46,27 @@
  * v1.0.0 - 2025-11-30 - Initial implementation with RBAC and subscription support
  */
 
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { Box } from '@mui/material';
-import EmailLinkHandler from '../components/EmailLinkHandler';
+
+// BEP PERFORMANCE v2.2.0: Lazy load EmailLinkHandler - only active for magic link callbacks,
+// no need to parse its Firebase auth dependencies on every page load.
+const EmailLinkHandler = lazy(() => import('../components/EmailLinkHandler'));
+
+// BEP PERFORMANCE: analytics imports are now fully dynamic inside analytics.js
 import { initAnalytics, logPageView } from '../utils/analytics';
 
 // Route Guards
 import PrivateRoute from '../components/routes/PrivateRoute';
 import PublicRoute from '../components/routes/PublicRoute';
-import CookiesBanner from '../components/CookiesBanner';
+const CookiesBanner = lazy(() => import('../components/CookiesBanner'));
 import { usePushPermissionPrompt } from '../hooks/usePushPermissionPrompt';
 
 // Lazy load components for code splitting
 const LandingPage = lazy(() => import('../components/LandingPage'));
 const HomePage = lazy(() => import('../components/HomePage'));
-const ClockPage = lazy(() => import('../components/ClockPage'));
+const ClockPage = lazy(() => import('../pages/ClockPage2'));
 const AboutPage = lazy(() => import('../components/AboutPage'));
 const LoginPage = lazy(() => import('../components/LoginPage'));
 const UploadDescriptions = lazy(() => import('../components/UploadDescriptions'));
@@ -85,7 +95,8 @@ const BlogCategoryHubPage = lazy(() => import('../pages/BlogCategoryHubPage'));
 const BlogTagHubPage = lazy(() => import('../pages/BlogTagHubPage'));
 // Calendar 2.0 (fast table layout)
 const Calendar2Page = lazy(() => import('../pages/Calendar2Page'));
-// Admin Dashboard
+// Admin Dashboard + Layout
+const AdminLayout = lazy(() => import('../components/admin/AdminLayout'));
 const AdminDashboardPage = lazy(() => import('../pages/AdminDashboardPage'));
 
 /**
@@ -119,8 +130,14 @@ const NotFound = () => (
 function AnalyticsInitializer() {
   const location = useLocation();
 
+  // BEP PERFORMANCE: Defer analytics initialization to idle time.
+  // Analytics is non-critical and should not block first paint or interactivity.
   useEffect(() => {
-    initAnalytics();
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => initAnalytics(), { timeout: 3000 });
+    } else {
+      setTimeout(() => initAnalytics(), 2000);
+    }
   }, []);
 
   useEffect(() => {
@@ -143,7 +160,7 @@ function AnalyticsInitializer() {
  * 
  * 1. PUBLIC ROUTES (accessible to everyone)
  *    - / - Marketing landing page
- *    - /clock - Public trading clock experience
+ *    - /clock - Public market clock experience
  *    - /app - Noindex app shell for users who prefer the legacy route
  * 
  * 2. PRIVATE ROUTES (require authentication)
@@ -185,12 +202,43 @@ function PushPermissionHandler() {
   );
 }
 
+/**
+ * BEP: Deferred CookiesBanner - renders last after clock canvas
+ * Uses requestIdleCallback to defer banner mount until main thread is idle
+ * Banner has internal 5s delay before showing anyway
+ */
+function DeferredCookiesBanner() {
+  const [showBanner, setShowBanner] = useState(false);
+
+  useEffect(() => {
+    if (typeof requestIdleCallback !== 'undefined') {
+      const idleCallback = requestIdleCallback(() => {
+        setShowBanner(true);
+      }, { timeout: 500 });
+      return () => cancelIdleCallback(idleCallback);
+    } else {
+      const timer = setTimeout(() => {
+        setShowBanner(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  if (!showBanner) return null;
+
+  return (
+    <Suspense fallback={null}>
+      <CookiesBanner />
+    </Suspense>
+  );
+}
+
 export default function AppRoutes() {
   return (
     <>
-      <EmailLinkHandler />
+      <Suspense fallback={null}><EmailLinkHandler /></Suspense>
       <AnalyticsInitializer />
-      <CookiesBanner />
+      <DeferredCookiesBanner />
       <PushPermissionHandler />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
@@ -206,7 +254,7 @@ export default function AppRoutes() {
             }
           />
 
-          {/* Public Trading Clock - Interactive clock UI */}
+          {/* Public Market Clock - Interactive clock UI */}
           <Route
             path="/clock"
             element={
@@ -366,106 +414,88 @@ export default function AppRoutes() {
           />
 
           {/* ==================== ADMIN ROUTES ==================== */}
-
-          {/* Admin Dashboard - Central admin hub */}
+          {/* All admin routes wrapped in AdminLayout (AdminNavBar + Outlet) */}
+          {/* PrivateRoute on parent ensures auth; per-child PrivateRoute enforces RBAC */}
           <Route
             path="/admin"
             element={
               <PrivateRoute roles={['superadmin', 'admin', 'author']} redirectTo="/login">
-                <AdminDashboardPage />
+                <AdminLayout />
               </PrivateRoute>
             }
-          />
+          >
+            {/* Admin Dashboard - index route */}
+            <Route index element={<AdminDashboardPage />} />
 
-          {/* Admin Blog CMS - List all posts */}
-          <Route
-            path="/admin/blog"
-            element={
-              <PrivateRoute roles={['superadmin', 'admin', 'author']} redirectTo="/login">
-                <AdminBlogPage />
-              </PrivateRoute>
-            }
-          />
+            {/* Blog CMS - List all posts */}
+            <Route path="blog" element={<AdminBlogPage />} />
 
-          {/* Admin Blog CMS - Create new post */}
-          <Route
-            path="/admin/blog/new"
-            element={
-              <PrivateRoute roles={['superadmin', 'admin', 'author']} redirectTo="/login">
-                <AdminBlogEditorPage />
-              </PrivateRoute>
-            }
-          />
+            {/* Blog CMS - Create new post */}
+            <Route path="blog/new" element={<AdminBlogEditorPage />} />
 
-          {/* Admin Blog CMS - Edit existing post */}
-          <Route
-            path="/admin/blog/edit/:postId"
-            element={
-              <PrivateRoute roles={['superadmin', 'admin', 'author']} redirectTo="/login">
-                <AdminBlogEditorPage />
-              </PrivateRoute>
-            }
-          />
+            {/* Blog CMS - Edit existing post */}
+            <Route path="blog/edit/:postId" element={<AdminBlogEditorPage />} />
 
-          {/* Admin Blog CMS - Manage authors (admin/superadmin only, not editors) */}
-          <Route
-            path="/admin/blog/authors"
-            element={
-              <PrivateRoute roles={['superadmin', 'admin']} redirectTo="/login">
-                <AdminBlogAuthorsPage />
-              </PrivateRoute>
-            }
-          />
+            {/* Blog CMS - Manage authors (admin/superadmin only) */}
+            <Route
+              path="blog/authors"
+              element={
+                <PrivateRoute roles={['superadmin', 'admin']} redirectTo="/admin">
+                  <AdminBlogAuthorsPage />
+                </PrivateRoute>
+              }
+            />
 
-          {/* Admin Event Management - Admin and Superadmin */}
-          <Route
-            path="/admin/events"
-            element={
-              <PrivateRoute roles={['superadmin', 'admin']} redirectTo="/login">
-                <AdminEventsPage />
-              </PrivateRoute>
-            }
-          />
+            {/* Event Management - Admin and Superadmin */}
+            <Route
+              path="events"
+              element={
+                <PrivateRoute roles={['superadmin', 'admin']} redirectTo="/admin">
+                  <AdminEventsPage />
+                </PrivateRoute>
+              }
+            />
 
-          {/* Admin Descriptions Management - Admin and Superadmin */}
-          <Route
-            path="/admin/descriptions"
-            element={
-              <PrivateRoute roles={['superadmin', 'admin']} redirectTo="/login">
-                <AdminDescriptionsPage />
-              </PrivateRoute>
-            }
-          />
+            {/* Descriptions Management - Admin and Superadmin */}
+            <Route
+              path="descriptions"
+              element={
+                <PrivateRoute roles={['superadmin', 'admin']} redirectTo="/admin">
+                  <AdminDescriptionsPage />
+                </PrivateRoute>
+              }
+            />
 
-          {/* Upload Economic Event Descriptions - Admin only */}
-          <Route
-            path="/admin/upload-desc"
-            element={
-              <PrivateRoute roles={['admin', 'superadmin']}>
-                <UploadDescriptions />
-              </PrivateRoute>
-            }
-          />
+            {/* Upload Event Descriptions - Superadmin only */}
+            <Route
+              path="upload-desc"
+              element={
+                <PrivateRoute roles={['superadmin']} redirectTo="/admin">
+                  <UploadDescriptions />
+                </PrivateRoute>
+              }
+            />
 
-          {/* Export Events - Admin only */}
-          <Route
-            path="/admin/export"
-            element={
-              <PrivateRoute roles={['admin', 'superadmin']}>
-                <ExportEvents />
-              </PrivateRoute>
-            }
-          />
+            {/* Export Events - Superadmin only */}
+            <Route
+              path="export"
+              element={
+                <PrivateRoute roles={['superadmin']} redirectTo="/admin">
+                  <ExportEvents />
+                </PrivateRoute>
+              }
+            />
 
-          {/* FF-T2T GPT Uploader - Superadmin only */}
-          <Route
-            path="/admin/fft2t"
-            element={
-              <PrivateRoute roles={['superadmin']} redirectTo="/login">
-                <FFTTUploader />
-              </PrivateRoute>
-            }
-          />
+            {/* FF-T2T GPT Uploader - Superadmin only */}
+            <Route
+              path="fft2t"
+              element={
+                <PrivateRoute roles={['superadmin']} redirectTo="/admin">
+                  <FFTTUploader />
+                </PrivateRoute>
+              }
+            />
+          </Route>
 
           {/* ==================== PRIVATE ROUTES ==================== */}
 
