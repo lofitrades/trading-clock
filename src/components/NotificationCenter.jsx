@@ -6,6 +6,10 @@
  * and provide quick actions to mark as read or clear.
  * 
  * Changelog:
+ * v1.7.0  - 2026-02-20 - BUGFIX: Removed `channel` from dedup key in visibleNotifications.
+ *                        inApp + browser notifications for the same event occurrence shared a
+ *                        different key (channel suffix), causing two entries in the UI. Now
+ *                        dedup key is eventKey+eventEpochMs only — one row per occurrence.
  * v1.6.0  - 2026-02-12 - BUGFIX: CustomEventDialog now has onDelete={handleDeleteCustomEvent} prop.
  *                        Delete button was not connected — modal didn't call removeCustomEvent. Also
  *                        added removeEvent to useCustomEvents destructure. Delete now works BEP.
@@ -102,13 +106,14 @@ export default function NotificationCenter({
     const lastCloseSignalRef = useRef(closeSignal || 0);
     const visibleNotifications = useMemo(
         () => {
-            // BEP v1.1.0: Defense-in-depth dedup — one notification per event+occurrence+channel
+            // BEP v1.1.0: Defense-in-depth dedup — one notification per event+occurrence
+            // (channel excluded: inApp + browser for same occurrence must not show twice in UI)
             const seen = new Map();
             return notifications
                 .filter((item) => !item.deleted)
                 .filter((item) => {
                     const dedupeKey = item.eventKey && Number.isFinite(item.eventEpochMs)
-                        ? `${item.eventKey}__${item.eventEpochMs}__${item.channel || 'inApp'}`
+                        ? `${item.eventKey}__${item.eventEpochMs}`
                         : item.id;
                     if (seen.has(dedupeKey)) return false;
                     seen.set(dedupeKey, true);

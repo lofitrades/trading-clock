@@ -5,6 +5,7 @@
  * and AdSense/Meta Pixel disclosure required for Time 2 Trade.
  * 
  * Changelog:
+ * v1.5.0 - 2026-02-21 - BEP: Changed primary CTA from /clock to /calendar (nav and CTA button).
  * v1.4.0 - 2026-02-02 - BEP: Updated to reference Meta Pixel in Third-Party Services via i18n terms.json.
  * v1.3.0 - 2026-02-02 - BEP SEO FIX: Added BreadcrumbList schema and enhanced robots directive.
  *                       Addresses "Discovered - currently not indexed" GSC status.
@@ -89,7 +90,7 @@ export default function Page() {
                     <span>Time 2 Trade</span>
                 </div>
                 <nav className="nav">
-                    <a href="/clock">{t('common:nav.openClock')}</a>
+                    <a href="/calendar">{t('common:nav.openClock')}</a>
                     <a href="/">{t('common:nav.home')}</a>
                 </nav>
             </header>
@@ -125,7 +126,7 @@ export default function Page() {
                     {t('terms:ctaText')}
                 </p>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    <a className="btn btn-primary" href="/clock" aria-label={t('terms:openClockAriaLabel')}>
+                    <a className="btn btn-primary" href="/calendar" aria-label={t('terms:openClockAriaLabel')}>
                         {t('common:nav.openClock')}
                     </a>
                     <a className="btn btn-secondary" href="/privacy" aria-label={t('terms:privacyPolicyAriaLabel')}>

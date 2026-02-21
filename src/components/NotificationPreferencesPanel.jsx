@@ -17,6 +17,11 @@
  * - Mobile-first responsive design
  * 
  * Changelog:
+ * v2.7.0 - 2026-02-19 - BEP FIX: Add dedicated handleRegisterDevice() for "Register This Device"
+ *                       button (permission already granted). Old code reused handleEnable() which
+ *                       called requestPermission() redundantly and showed a generic error for all
+ *                       failure modes. New handler skips the permission call and maps result.status
+ *                       (service-worker, unsupported, etc.) to specific user-facing error messages.
  * v2.6.0 - 2026-02-03 - BEP: Add customizable quiet hours with enable/disable toggle
  *                       and start/end time pickers. Persists to Firestore.
  * v2.5.0 - 2026-02-03 - BEP: Show native browser prompt first on enable/retry.
@@ -578,6 +583,38 @@ export default function NotificationPreferencesPanel({
         }
     };
 
+    // Handle registering this device when permission is already granted ("Register This Device" flow).
+    // Separate from handleEnable to skip the redundant requestPermission() call and provide
+    // status-specific error messages for common failure modes (SW not found, config error, etc.).
+    const handleRegisterDevice = async () => {
+        if (!user?.uid) return;
+
+        setIsEnabling(true);
+        setInternalError('');
+        setInternalMessage('');
+
+        try {
+            const result = await requestFcmTokenForUser(user.uid);
+
+            if (result.status === 'granted' || result.token) {
+                setBrowserPermission('granted');
+                setMessage(t('dialogs:notifications.registered'));
+                await loadDevices();
+            } else if (result.status === 'service-worker') {
+                setError(t('dialogs:notifications.swError'));
+            } else if (result.status === 'unsupported') {
+                setError(t('dialogs:notifications.unsupported'));
+            } else {
+                setError(t('dialogs:notifications.enableError'));
+            }
+        } catch (err) {
+            console.error('[NotificationPreferencesPanel] Register device failed:', err);
+            setError(t('dialogs:notifications.enableError'));
+        } finally {
+            setIsEnabling(false);
+        }
+    };
+
     // Handle renaming a device
     const handleRename = async (token, newName) => {
         if (!user?.uid) return false;
@@ -819,7 +856,7 @@ export default function NotificationPreferencesPanel({
                             variant="outlined"
                             color="primary"
                             startIcon={isEnabling ? <CircularProgress size={16} /> : <NotificationsActiveIcon />}
-                            onClick={handleEnable}
+                            onClick={browserPermission === 'granted' ? handleRegisterDevice : handleEnable}
                             disabled={isEnabling}
                             fullWidth
                             sx={{ textTransform: 'none', justifyContent: 'flex-start' }}

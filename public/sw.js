@@ -6,6 +6,13 @@
  * Key responsibility and main functionality: Caches core assets on install, cleans up old caches on activate, and serves cached responses with a network-first strategy.
  * 
  * Changelog:
+ * v1.4.0 - 2026-02-19 - BEP CRITICAL FIX: Prevent MIME-type crash when JS chunks are not found.
+ *                       Versioned assets (JS/CSS with content hashes) now bypass the SW entirely —
+ *                       the browser's Cache-Control: immutable header handles them. Navigation
+ *                       requests (HTML) use network-first with index.html fallback. Non-navigation
+ *                       requests that fail now return a 404 instead of index.html so the browser
+ *                       throws a proper JS load error instead of a "wrong MIME type" module crash.
+ *                       Bumped cache to v3 to force SW refresh on all clients.
  * v1.3.0 - 2026-02-04 - BEP FIX: Bump cache version to v2 to force PWA cache invalidation.
  *                       Old cached bundles were still writing push triggers to Firestore,
  *                       blocking server-side FCM delivery. This forces fresh bundle download.
@@ -16,7 +23,7 @@
  * v1.0.0 - 2025-12-17 - Initial service worker with cache priming and network-first fetch handler.
  */
 
-const CACHE_NAME = 't2t-shell-v2';
+const CACHE_NAME = 't2t-shell-v3';
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -122,38 +129,72 @@ self.addEventListener('fetch', (event) => {
 
   const requestUrl = new URL(event.request.url);
 
+  // BEP: Don't intercept cross-origin requests (Firebase, Google, CDNs)
   if (requestUrl.origin !== self.location.origin) {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match('/index.html'))
-    );
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+  // BEP CRITICAL FIX v1.4.0: Versioned static assets (JS chunks, CSS, fonts) must NEVER
+  // fall back to index.html. Their URLs contain content hashes and are served with
+  // Cache-Control: immutable — the browser's HTTP cache handles them efficiently.
+  // Intercepting these and returning index.html causes a "wrong MIME type" module crash
+  // because the browser enforces strict MIME checking for <script type="module"> imports.
+  const isVersionedAsset = requestUrl.pathname.startsWith('/assets/');
+  if (isVersionedAsset) {
+    // Pass through completely — let the browser's HTTP cache + network handle it
+    return;
+  }
 
-      return fetch(event.request)
+  // BEP: Determine if this is a navigation (HTML page) request
+  const isNavigation =
+    event.request.mode === 'navigate' ||
+    requestUrl.pathname === '/' ||
+    requestUrl.pathname.endsWith('.html');
+
+  if (isNavigation) {
+    // Navigation: network-first with cached shell fallback for offline support
+    event.respondWith(
+      fetch(event.request)
         .then((response) => {
-          if (
-            !response ||
-            response.status !== 200 ||
-            response.type !== 'basic'
-          ) {
+          if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
           }
-
+          // Cache fresh HTML pages for offline fallback
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
           });
-
           return response;
         })
-        .catch(() => caches.match('/index.html'));
-    })
+        .catch(() =>
+          caches.match(event.request).then(
+            (cached) => cached || caches.match('/index.html')
+          )
+        )
+    );
+    return;
+  }
+
+  // BEP: For all other same-origin requests (locale JSON, icons, manifest, etc.)
+  // network-first, cache on success — but NEVER fall back to index.html on failure.
+  // Falling back to index.html would return text/html for non-HTML requests.
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response;
+        }
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache);
+        });
+        return response;
+      })
+      .catch(() =>
+        caches.match(event.request).then(
+          (cached) => cached || new Response('Not found', { status: 404, statusText: 'Not Found' })
+        )
+      )
   );
 });
 

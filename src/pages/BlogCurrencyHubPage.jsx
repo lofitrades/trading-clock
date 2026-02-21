@@ -7,6 +7,7 @@
  * Routes: /blog/currency/{currency}, /{lang}/blog/currency/{currency}
  * 
  * Changelog:
+ * v1.2.0 - 2026-02-21 - BEP: Changed AuthModal2 redirectPath from /clock to /calendar. Calendar is now the primary post-auth destination.
  * v1.1.0 - 2026-02-15 - BEP: Always show cover image with fallback to default thumbnail
  * v1.0.1 - 2026-02-04 - Fixed Temporal Dead Zone issue: moved PostCard.propTypes assignment after component definition
  * v1.0.0 - 2026-02-04 - Initial implementation (Phase 5.B Blog)
@@ -343,7 +344,7 @@ export default function BlogCurrencyHubPage() {
 
             {/* Modals */}
             <Suspense fallback={null}>
-                <AuthModal2 open={authModalOpen} onClose={handleCloseAuth} redirectPath="/clock" />
+                <AuthModal2 open={authModalOpen} onClose={handleCloseAuth} redirectPath="/calendar" />
             </Suspense>
             <Suspense fallback={null}>
                 <SettingsSidebar2 open={settingsOpen && !authModalOpen} onClose={handleCloseSettings} onOpenAuth={handleOpenAuth} />

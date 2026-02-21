@@ -21,6 +21,14 @@
  * ✅ All three services (reminders, favorites, notes) use identical matching
  * 
  * Changelog:
+ * v1.3.0 - 2026-02-20 - BEP CRITICAL FIX: Add '1WD' (weekday) interval to expandReminderOccurrences.
+ *                       ROOT CAUSE: CustomEventDialog offers 'Weekdays' as a recurrence option
+ *                       (interval='1WD'). customEventsService.js handles it correctly for display,
+ *                       but expandReminderOccurrences had no entry for '1WD' → intervalMeta was
+ *                       undefined → returned [] immediately → zero notifications fired for ALL
+ *                       custom events using weekday recurrence (in-app, browser, push).
+ *                       FIX: Added '1WD' to RECURRENCE_INTERVALS and weekday-aware expansion
+ *                       logic (advance day-by-day, skip Saturday+Sunday).
  * v1.2.1 - 2026-02-06 - BEP CRITICAL FIX: Rescheduled events now preserve user reminders. Uses updated buildEventIdentity() from favoritesService which uses originalDatetimeUtc for stable composite keys. Reminders stay attached to events after reschedules.
  * v1.2.0 - 2026-01-23 - Enforce max reminders per event for unified reminder normalization.
  * v1.1.0 - 2026-01-23 - Add series key helpers for non-custom reminder matching.
@@ -189,10 +197,18 @@ const RECURRENCE_INTERVALS = {
     '1h': { unit: 'hour', step: 1, ms: 60 * 60 * 1000 },
     '4h': { unit: 'hour', step: 4, ms: 4 * 60 * 60 * 1000 },
     '1D': { unit: 'day', step: 1 },
+    '1WD': { unit: 'weekday', step: 1 }, // Mon–Fri only, skips weekends
     '1W': { unit: 'week', step: 1 },
     '1M': { unit: 'month', step: 1 },
     '1Q': { unit: 'quarter', step: 1 },
     '1Y': { unit: 'year', step: 1 },
+};
+
+// BEP: UTC day-of-week weekday check (0=Sunday, 6=Saturday)
+const isWeekday = (dateParts) => {
+    const date = new Date(Date.UTC(dateParts.year, dateParts.month, dateParts.day));
+    const dow = date.getUTCDay();
+    return dow !== 0 && dow !== 6;
 };
 
 const parseLocalDateParts = (localDate) => {
@@ -318,16 +334,32 @@ export const expandReminderOccurrences = ({ reminder, rangeStartMs, rangeEndMs, 
     const rangeStartUtc = new Date(Date.UTC(rangeStartParts.year, rangeStartParts.month, rangeStartParts.day));
     const dayMs = 24 * 60 * 60 * 1000;
 
+    // BEP v1.3.0: Weekday-only recurrence (Mon–Fri) — advance one calendar day at a time,
+    // skip Saturday+Sunday. currentIndex is an absolute day-offset from base, not a step multiplier.
+    const isWeekdayInterval = intervalMeta.unit === 'weekday';
+
     let stepDays = 0;
     let stepMonths = 0;
     if (intervalMeta.unit === 'day') stepDays = intervalMeta.step;
+    if (intervalMeta.unit === 'weekday') stepDays = 1; // advance 1 cal-day at a time; weekends filtered below
     if (intervalMeta.unit === 'week') stepDays = intervalMeta.step * 7;
     if (intervalMeta.unit === 'month') stepMonths = intervalMeta.step;
     if (intervalMeta.unit === 'quarter') stepMonths = intervalMeta.step * 3;
     if (intervalMeta.unit === 'year') stepMonths = intervalMeta.step * 12;
 
     let startIndex = 0;
-    if (stepDays > 0) {
+    if (isWeekdayInterval) {
+        // Find the first weekday calendar-day >= rangeStart
+        const maxSearch = 365 * 2;
+        for (let d = 0; d < maxSearch; d += 1) {
+            const parts = addDaysToLocalDateParts(localDateParts, d);
+            const testEpoch = buildEpochFromLocalParts(timezone, { ...parts, ...timeParts });
+            if (testEpoch >= rangeStartMs && isWeekday(parts)) {
+                startIndex = d;
+                break;
+            }
+        }
+    } else if (stepDays > 0) {
         const diffDays = Math.floor((rangeStartUtc.getTime() - baseDateUtc.getTime()) / dayMs);
         startIndex = diffDays > 0 ? Math.floor(diffDays / stepDays) : 0;
     } else if (stepMonths > 0) {
@@ -336,12 +368,19 @@ export const expandReminderOccurrences = ({ reminder, rangeStartMs, rangeEndMs, 
     }
 
     let currentIndex = Math.max(0, startIndex);
+    let countGenerated = 0; // tracks actual emissions for 'after' end type
     while (generated < maxOccurrences) {
         let nextDateParts = localDateParts;
-        if (stepDays > 0) {
+        if (isWeekdayInterval) {
+            // For weekday recurrence currentIndex is the absolute day-offset from base
+            nextDateParts = addDaysToLocalDateParts(localDateParts, currentIndex);
+            if (!isWeekday(nextDateParts)) {
+                currentIndex += 1;
+                continue;
+            }
+        } else if (stepDays > 0) {
             nextDateParts = addDaysToLocalDateParts(localDateParts, currentIndex * stepDays);
-        }
-        if (stepMonths > 0) {
+        } else if (stepMonths > 0) {
             nextDateParts = addMonthsToLocalDateParts(localDateParts, currentIndex * stepMonths);
         }
 
@@ -352,7 +391,10 @@ export const expandReminderOccurrences = ({ reminder, rangeStartMs, rangeEndMs, 
         }
         if (occurrenceEpochMs > rangeEndMs) break;
         if (untilEpochMs !== null && occurrenceEpochMs > untilEpochMs) break;
-        if (Number.isFinite(maxCount) && currentIndex >= maxCount) break;
+        // For 'after' end type, countGenerated tracks actual weekday emissions
+        if (Number.isFinite(maxCount) && countGenerated >= maxCount) break;
+        // For non-weekday intervals, also gate on currentIndex vs maxCount
+        if (!isWeekdayInterval && Number.isFinite(maxCount) && currentIndex >= maxCount) break;
 
         occurrences.push({
             occurrenceEpochMs,
@@ -360,6 +402,7 @@ export const expandReminderOccurrences = ({ reminder, rangeStartMs, rangeEndMs, 
         });
 
         generated += 1;
+        countGenerated += 1;
         currentIndex += 1;
     }
 

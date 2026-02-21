@@ -8,6 +8,7 @@
  * Responsive vertical scrolling with proper height constraints per BEP standards.
  * 
  * Changelog:
+ * v2.5.0 - 2026-02-21 - BEP: Changed footer "Open App" link from /clock to /calendar.
  * v2.4.0 - 2026-02-02 - BEP VIEWPORT FIX: Replaced 100vh with var(--t2t-vv-height, 100dvh) for xs/sm
  *                       height calc to prevent content overflow behind bottom AppBar on non-PWA mobile browsers.
  * v2.3.0 - 2026-01-29 - BEP THEME-AWARE: Replaced all hardcoded hex colors with MUI theme tokens.
@@ -240,7 +241,7 @@ function PrivacyPageContent() {
                         <Link href="/" underline="hover" sx={{ fontWeight: 700 }}>
                             {t('footer.home')}
                         </Link>
-                        <Link href="/clock" underline="hover" sx={{ fontWeight: 700 }}>
+                        <Link href="/calendar" underline="hover" sx={{ fontWeight: 700 }}>
                             {t('footer.openApp')}
                         </Link>
                         <Link href="/terms" underline="hover" sx={{ fontWeight: 700 }}>

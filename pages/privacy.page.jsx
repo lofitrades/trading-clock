@@ -7,6 +7,7 @@
  * Phase 2 i18n migration: all strings now sourced from i18n pages.legal.privacy.*
  *
  * Changelog:
+ * v2.4.0 - 2026-02-21 - BEP: Changed CTA link from /clock to /calendar.
  * v2.3.0 - 2026-02-02 - BEP SEO FIX: Added BreadcrumbList schema to help Google understand site
  *                       hierarchy and prioritize crawling. Addresses "Discovered - currently not indexed" GSC status.
  * v2.2.0 - 2026-01-24 - Phase 2 i18n migration: all 280+ strings moved to pages.legal.privacy namespace (EN/ES/FR)
@@ -381,7 +382,7 @@ const PrivacyPage = () => {
                     <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
                         Ready to get started?
                     </Typography>
-                    <Link href="/clock" sx={{ textDecoration: 'none' }}>
+                    <Link href="/calendar" sx={{ textDecoration: 'none' }}>
                         <Typography
                             variant="body1"
                             sx={{

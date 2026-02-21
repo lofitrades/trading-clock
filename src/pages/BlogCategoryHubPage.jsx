@@ -7,6 +7,7 @@
  * Routes: /blog/category/{category}, /{lang}/blog/category/{category}
  * 
  * Changelog:
+ * v1.1.0 - 2026-02-21 - BEP: Changed AuthModal2 redirectPath from /clock to /calendar. Calendar is now the primary post-auth destination.
  * v1.0.0 - 2026-02-04 - Initial implementation (Phase 5.C Blog)
  */
 
@@ -330,7 +331,7 @@ export default function BlogCategoryHubPage() {
 
             {/* Modals */}
             <Suspense fallback={null}>
-                <AuthModal2 open={authModalOpen} onClose={handleCloseAuth} redirectPath="/clock" />
+                <AuthModal2 open={authModalOpen} onClose={handleCloseAuth} redirectPath="/calendar" />
             </Suspense>
             <Suspense fallback={null}>
                 <SettingsSidebar2 open={settingsOpen && !authModalOpen} onClose={handleCloseSettings} onOpenAuth={handleOpenAuth} />

@@ -1,17 +1,29 @@
 /**
  * functions/src/services/fcmReminderScheduler.ts
- * 
+ *
  * Purpose: Server-side FCM push scheduler for reminder notifications.
  * Key responsibility and main functionality: Expand reminder occurrences, dedupe triggers,
  * enforce daily caps/quiet hours, and send push notifications via Firebase Admin SDK.
- * 
+ *
  * BEP Token Handling:
  * - Invalid tokens (registration-token-not-registered, invalid-registration-token) are automatically
  *   deleted from Firestore when FCM returns an error for them.
  * - This ensures stale/unregistered devices don't accumulate in the database.
  * - Combined with client-side lastSeenAt tracking, allows for robust device management.
- * 
+ *
  * Changelog:
+ * v4.0.0 - 2026-02-19 - BEP CRITICAL FIX: Series reminder support for NFS/canonical events.
+ *                       ROOT CAUSE: Series reminders (scope=series) with no recurrence metadata
+ *                       had stale eventEpochMs (past occurrence). expandReminderOccurrences()
+ *                       treated them as one-time past events → 0 occurrences → 0 push sent.
+ *                       FIX: After expandReminderOccurrences() returns 0 for a series reminder,
+ *                       query Firestore economicEvents collection for upcoming matching events.
+ *                       Match by normalized name + currency (ignoring impact/category to avoid
+ *                       client-server impact label mismatch: 'strong data' vs 'High').
+ *                       Canonical events collection is loaded ONCE per scheduler run for all
+ *                       users — not per user — to avoid redundant Firestore reads.
+ *                       Also adds diagnostic logging (eventEpochMs, recurrence, scope) when
+ *                       0 occurrences found to aid future debugging.
  * v3.1.0 - 2026-02-07 - BEP: Stale device token expiration (30 days). Tokens with
  *                       lastSeenAt older than 30 days are pruned inline during scheduler
  *                       execution. Reduces wasted FCM sends to dead devices, eliminates
@@ -41,6 +53,23 @@
  * v1.3.0 - 2026-02-03 - BEP FIX: Add Android PWA push support.
  * v1.2.0 - 2026-02-03 - BEP: Document automatic invalid token cleanup.
  * v1.1.0 - 2026-02-03 - BEP FIX: Only send push for individual reminder offsets that have push enabled.
+ * v4.2.0 - 2026-02-20 - BEP CRITICAL PERF: Fix 10+ minute Chrome PWA push delay.
+ *                       ROOT CAUSE 1: Missing Urgency:high + TTL headers on webpush config.
+ *                       Chrome/Android batches web push to save battery unless told otherwise.
+ *                       FIX: Added headers: { Urgency:"high", TTL:"60" } to webpush payload.
+ *                       Urgency:high bypasses Chrome delivery queue for instant delivery.
+ *                       TTL:60 drops stale pushes not delivered within 60s (no late noise).
+ *                       ROOT CAUSE 2: windowEnd=nowEpochMs (0 forward buffer). If scheduler
+ *                       fires 1-2s before reminder time, reminder was missed for a full minute.
+ *                       FIX: windowEnd = nowEpochMs + 30s (WINDOW_FORWARD_MS). Dedup prevents
+ *                       double-sends from the wider window.
+ * v4.1.0 - 2026-02-20 - BEP CRITICAL FIX: Add '1WD' (weekday) interval to expandReminderOccurrences.
+ *                       ROOT CAUSE: CustomEventDialog offers 'Weekdays' recurrence (interval='1WD').
+ *                       customEventsService correctly saves it to Firestore, but
+ *                       expandReminderOccurrences had no entry for '1WD' → intervalMeta undefined
+ *                       → returned [] → zero push notifications fired for weekday-recurring events.
+ *                       FIX: Added '1WD' to RECURRENCE_INTERVALS and weekday-aware expansion
+ *                       logic (advance day-by-day, skip Saturday+Sunday).
  * v1.0.0 - 2026-01-23 - Initial FCM reminder scheduler for push notifications.
  */
 
@@ -51,6 +80,103 @@ const TOKENS_COLLECTION = "deviceTokens";
 const REMINDERS_COLLECTION = "reminders";
 const TRIGGERS_COLLECTION = "notificationTriggers";
 const STATS_COLLECTION = "notificationStats";
+
+// BEP v4.0.0: Canonical events collection path for NFS series reminder matching.
+// Path: economicEvents (collection) → events (document) → events (sub-collection)
+const CANONICAL_EVENTS_ROOT = "economicEvents";
+const CANONICAL_EVENTS_CONTAINER = "events";
+
+// BEP v4.0.0: NFS/canonical source prefixes that can be matched against the
+// canonical events Firestore collection. 'jblanked' events are enriched into
+// the canonical collection so they're included as well.
+const CANONICAL_SOURCE_PREFIXES = new Set(["nfs", "canonical", "jblanked"]);
+
+/**
+ * BEP v4.0.0: Normalize a string for series key matching.
+ * Mirrors the client-side normalizeKey() function: trim + lowercase.
+ * Does NOT apply normalizeEventName()'s m/m→mom transform because
+ * series keys stored in Firestore were built with the simpler normalizeKey().
+ */
+const normalizeKeyForMatch = (value: string | null | undefined): string => {
+  if (!value) return "";
+  return String(value).trim().toLowerCase();
+};
+
+/**
+ * BEP v4.0.0: Parse a series key into its components.
+ * Series key format: source:series:name:currency:impact:category
+ * e.g. "nfs:series:fomc meeting minutes:usd:strong data:na"
+ * Returns null if the key is not a valid series key.
+ */
+const parseSeriesKey = (key: string): { source: string; name: string; currency: string | null } | null => {
+  if (!key) return null;
+  const parts = key.split(":");
+  // Minimum: source:series:name:currency = 4 parts
+  if (parts.length < 4 || parts[1] !== "series") return null;
+  const source = parts[0];
+  const name = parts[2]; // Already normalized (client used normalizeKey before building key)
+  const currencyRaw = parts[3]; // Already normalized
+  const currency = currencyRaw === "na" || !currencyRaw ? null : currencyRaw;
+  return { source, name, currency };
+};
+
+/**
+ * BEP v4.0.0: A canonical event entry for series matching.
+ */
+interface CanonicalEventEntry {
+  name: string;        // normalized (trim+lowercase) from event.name
+  currency: string | null; // normalized currency, or null
+  epochMs: number;     // UTC epoch milliseconds from datetimeUtc Timestamp
+}
+
+/**
+ * BEP v4.0.0: Load upcoming scheduled canonical events from Firestore.
+ * Queries the economicEvents collection for events in [rangeStart, rangeEnd].
+ * Called ONCE per scheduler run, shared across all users.
+ *
+ * Matching uses event.name (not event.normalizedName) so that client-side
+ * normalizeKey(event.name) produces the same value as the stored series key name.
+ * Example: normalizeKey("Core CPI m/m") = "core cpi m/m" which matches series key.
+ *          normalizedName uses normalizeEventName which converts m/m→mom (different!).
+ */
+const loadUpcomingCanonicalEvents = async (
+  db: FirebaseFirestore.Firestore,
+  rangeStart: number,
+  rangeEnd: number
+): Promise<CanonicalEventEntry[]> => {
+  try {
+    const snapshot = await db
+      .collection(CANONICAL_EVENTS_ROOT)
+      .doc(CANONICAL_EVENTS_CONTAINER)
+      .collection(CANONICAL_EVENTS_CONTAINER)
+      .where("datetimeUtc", ">=", admin.firestore.Timestamp.fromMillis(rangeStart))
+      .where("datetimeUtc", "<=", admin.firestore.Timestamp.fromMillis(rangeEnd))
+      .get();
+
+    const entries: CanonicalEventEntry[] = [];
+    snapshot.docs.forEach((docSnap) => {
+      const data = docSnap.data();
+      // Skip cancelled events
+      if (data.status === "cancelled") return;
+      const rawDatetime = data.datetimeUtc;
+      const epochMs: number | null = typeof rawDatetime?.toMillis === "function"
+        ? rawDatetime.toMillis()
+        : null;
+      if (!epochMs) return;
+      entries.push({
+        name: normalizeKeyForMatch(data.name || data.normalizedName || ""),
+        currency: data.currency ? normalizeKeyForMatch(data.currency) : null,
+        epochMs,
+      });
+    });
+
+    logger.info(`📚 Loaded ${entries.length} canonical event(s) in range for series matching`);
+    return entries;
+  } catch (error) {
+    logger.warn("⚠️ Failed to load canonical events for series matching", { error: String(error) });
+    return [];
+  }
+};
 
 // BEP v3.0.0: Window looks 5 minutes BACK to handle Cloud Scheduler jitter, Pub/Sub
 // delivery latency, and cold starts. Previous 90s was too tight — reminders could be
@@ -94,10 +220,18 @@ const RECURRENCE_INTERVALS: Record<string, { unit: string; step: number; ms?: nu
   "1h": { unit: "hour", step: 1, ms: 60 * 60 * 1000 },
   "4h": { unit: "hour", step: 4, ms: 4 * 60 * 60 * 1000 },
   "1D": { unit: "day", step: 1 },
+  "1WD": { unit: "weekday", step: 1 }, // Mon–Fri only, skips weekends
   "1W": { unit: "week", step: 1 },
   "1M": { unit: "month", step: 1 },
   "1Q": { unit: "quarter", step: 1 },
   "1Y": { unit: "year", step: 1 },
+};
+
+// BEP v4.1.0: UTC weekday check (0=Sunday, 6=Saturday)
+const isWeekday = (dateParts: { year: number; month: number; day: number }): boolean => {
+  const date = new Date(Date.UTC(dateParts.year, dateParts.month, dateParts.day));
+  const dow = date.getUTCDay();
+  return dow !== 0 && dow !== 6;
 };
 
 const parseLocalDateParts = (localDate?: string | null) => {
@@ -282,16 +416,32 @@ const expandReminderOccurrences = (reminder: any, rangeStartMs: number, rangeEnd
   const rangeStartUtc = new Date(Date.UTC(rangeStartParts.year, rangeStartParts.month, rangeStartParts.day));
   const dayMs = 24 * 60 * 60 * 1000;
 
+  // BEP v4.1.0: Weekday-only recurrence (Mon–Fri) — advance one calendar day at a time,
+  // skip Saturday+Sunday. currentIndex is an absolute day-offset, not a step multiplier.
+  const isWeekdayInterval = intervalMeta.unit === "weekday";
+
   let stepDays = 0;
   let stepMonths = 0;
   if (intervalMeta.unit === "day") stepDays = intervalMeta.step;
+  if (intervalMeta.unit === "weekday") stepDays = 1; // advance 1 cal-day at a time; weekends filtered below
   if (intervalMeta.unit === "week") stepDays = intervalMeta.step * 7;
   if (intervalMeta.unit === "month") stepMonths = intervalMeta.step;
   if (intervalMeta.unit === "quarter") stepMonths = intervalMeta.step * 3;
   if (intervalMeta.unit === "year") stepMonths = intervalMeta.step * 12;
 
   let startIndex = 0;
-  if (stepDays > 0) {
+  if (isWeekdayInterval) {
+    // Find the first weekday calendar-day >= rangeStart
+    const maxSearch = 365 * 2;
+    for (let d = 0; d < maxSearch; d += 1) {
+      const parts = addDaysToLocalDateParts(localDateParts, d);
+      const testEpoch = buildEpochFromLocalParts(timezone, { ...parts, ...timeParts });
+      if (testEpoch >= rangeStartMs && isWeekday(parts)) {
+        startIndex = d;
+        break;
+      }
+    }
+  } else if (stepDays > 0) {
     const diffDays = Math.floor((rangeStartUtc.getTime() - baseDateUtc.getTime()) / dayMs);
     startIndex = diffDays > 0 ? Math.floor(diffDays / stepDays) : 0;
   } else if (stepMonths > 0) {
@@ -300,12 +450,19 @@ const expandReminderOccurrences = (reminder: any, rangeStartMs: number, rangeEnd
   }
 
   let currentIndex = Math.max(0, startIndex);
+  let countGenerated = 0; // tracks actual emissions for 'after' end type
   while (generated < 5000) {
     let nextDateParts = localDateParts;
-    if (stepDays > 0) {
+    if (isWeekdayInterval) {
+      // For weekday recurrence currentIndex is the absolute day-offset from base
+      nextDateParts = addDaysToLocalDateParts(localDateParts, currentIndex);
+      if (!isWeekday(nextDateParts)) {
+        currentIndex += 1;
+        continue;
+      }
+    } else if (stepDays > 0) {
       nextDateParts = addDaysToLocalDateParts(localDateParts, currentIndex * stepDays);
-    }
-    if (stepMonths > 0) {
+    } else if (stepMonths > 0) {
       nextDateParts = addMonthsToLocalDateParts(localDateParts, currentIndex * stepMonths);
     }
 
@@ -316,7 +473,8 @@ const expandReminderOccurrences = (reminder: any, rangeStartMs: number, rangeEnd
     }
     if (occurrenceEpochMs > rangeEndMs) break;
     if (untilEpochMs !== null && occurrenceEpochMs > untilEpochMs) break;
-    if (Number.isFinite(maxCount) && currentIndex >= maxCount) break;
+    if (Number.isFinite(maxCount) && countGenerated >= maxCount) break;
+    if (!isWeekdayInterval && Number.isFinite(maxCount) && currentIndex >= maxCount) break;
 
     occurrences.push({
       occurrenceEpochMs,
@@ -324,6 +482,7 @@ const expandReminderOccurrences = (reminder: any, rangeStartMs: number, rangeEnd
     });
 
     generated += 1;
+    countGenerated += 1;
     currentIndex += 1;
   }
 
@@ -405,7 +564,14 @@ const sendPushToTokens = async (
         },
       },
       // Web push (PWA) specific options
+      // BEP v4.2.0: Urgency:high bypasses Chrome/Android delivery batching (battery opt).
+      // Without it Chrome queues web push for 5-15+ min. TTL:60 drops stale pushes
+      // that arrive after the event started instead of delivering them late.
       webpush: {
+        headers: {
+          Urgency: "high",
+          TTL: "60", // drop if undelivered after 60 s — prefer silence over late noise
+        },
         notification: {
           icon: "https://time2.trade/icons/icon-192.png",
           badge: "https://time2.trade/icons/icon-72.png",
@@ -451,8 +617,12 @@ export const runFcmReminderScheduler = async () => {
   const db = admin.firestore();
   const nowEpochMs = Date.now();
   // BEP v3.0.0: 5-minute lookback — safe due to trigger dedup, handles scheduler jitter
+  // BEP v4.2.0: +30 s forward buffer on windowEnd so the scheduler running at T-1 s
+  // still catches a reminder at exactly T instead of waiting a full extra minute.
+  // Trigger dedup in Firestore ensures no double-sends from the wider window.
+  const WINDOW_FORWARD_MS = 30 * 1000; // 30-second forward tolerance
   const windowStart = nowEpochMs - WINDOW_BACK_MS;
-  const windowEnd = nowEpochMs; // NOW - not in the future!
+  const windowEnd = nowEpochMs + WINDOW_FORWARD_MS;
   const rangeStart = nowEpochMs - WINDOW_BACK_MS;
   const rangeEnd = nowEpochMs + LOOKAHEAD_MS;
 
@@ -464,6 +634,11 @@ export const runFcmReminderScheduler = async () => {
     logger.info('⏭️  No users found, exiting');
     return;
   }
+
+  // BEP v4.0.0: Pre-load canonical events ONCE for all users — avoids redundant
+  // Firestore reads per user. Used for NFS series reminder matching fallback.
+  // rangeEnd = now + 24h, so this captures all events that could fire today.
+  const upcomingCanonicalEvents = await loadUpcomingCanonicalEvents(db, rangeStart, rangeEnd);
 
   // BEP v3.0.0: Process users in parallel batches for faster execution
   // Uses concurrency limiter to avoid overwhelming Firestore with too many parallel reads
@@ -542,11 +717,54 @@ export const runFcmReminderScheduler = async () => {
       }
       logger.debug(`✅ Processing reminder: ${reminder.eventKey}`);
 
-      const occurrences = expandReminderOccurrences(reminder, rangeStart, rangeEnd);
+      let occurrences = expandReminderOccurrences(reminder, rangeStart, rangeEnd);
       logger.info(`📅 Found ${occurrences.length} occurrence(s) for ${reminder.eventKey}`, {
         rangeStart: new Date(rangeStart).toISOString(),
         rangeEnd: new Date(rangeEnd).toISOString(),
       });
+
+      // BEP v4.0.0: Diagnostic log when 0 occurrences found — helps identify missing data
+      if (occurrences.length === 0) {
+        logger.info(`🔍 Zero occurrences diagnostic for ${reminder.eventKey}`, {
+          eventEpochMs: reminder.eventEpochMs,
+          recurrenceEnabled: reminder?.metadata?.recurrence?.enabled ?? null,
+          recurrenceInterval: reminder?.metadata?.recurrence?.interval ?? null,
+          scope: reminder.scope ?? null,
+          hasSeriesKey: Boolean(reminder.seriesKey),
+          timezone: reminder.timezone ?? null,
+        });
+      }
+
+      // BEP v4.0.0: Series reminder fallback — match NFS/canonical series against
+      // the canonical Firestore events loaded at the start of this run.
+      // ROOT CAUSE: Series reminders (scope=series) for NFS events have no recurrence
+      // metadata, so expandReminderOccurrences() treats them as one-time past events.
+      // FIX: After 0 occurrences from expansion, if this is a series reminder from
+      // an NFS-compatible source, find matching canonical events in the time range.
+      // Matching ignores impact (client labels 'strong data' ≠ Firestore 'High') and
+      // category — only requires name + currency match.
+      if (occurrences.length === 0 && reminder.scope === "series") {
+        const parsed = parseSeriesKey(reminder.eventKey || reminder.seriesKey || "");
+        if (parsed && CANONICAL_SOURCE_PREFIXES.has(parsed.source)) {
+          const matches = upcomingCanonicalEvents.filter((entry) => {
+            const nameMatch = entry.name === parsed.name;
+            // Currency: null in parsed means "na" (no currency) — match any currency;
+            // otherwise require exact (lowercased) currency match
+            const currencyMatch = parsed.currency === null || entry.currency === parsed.currency;
+            return nameMatch && currencyMatch;
+          });
+          if (matches.length > 0) {
+            logger.info(`📅 Series fallback: found ${matches.length} canonical match(es) for ${reminder.eventKey}`);
+            occurrences = matches.map((entry) => ({
+              occurrenceEpochMs: entry.epochMs,
+              occurrenceKey: `${reminder.eventKey}__${entry.epochMs}`,
+            }));
+          } else {
+            logger.debug(`⏭️  Series fallback: no canonical matches for ${reminder.eventKey} (name="${parsed.name}", currency="${parsed.currency ?? "na"}")`);
+          }
+        }
+      }
+
       if (occurrences.length === 0) continue;
 
       for (const occurrence of occurrences) {

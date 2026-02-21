@@ -17,6 +17,7 @@
  * - Ensures AuthModal2 renders above ALL UI including WelcomeModal (11000), EmailLinkHandler verification (9998-10000), drawers (1600), and AppBar (1400) on all breakpoints.
  * 
  * Changelog:
+ * v2.1.0 - 2026-02-21 - BEP: Changed default redirectPath from /clock to /calendar. Calendar is now the primary post-auth destination.
  * v2.0.0 - 2026-02-06 - BEP CRO AUDIT: Fixed CloudSyncIcon crash (missing import in VerifyingModal). Fixed invalid variant="h7". Narrowed maxWidth md→sm for focused single-column. Removed forgot-password flow (meaningless in magic-link auth). Removed 100dvh mobile takeover. Cleaned dead code and stale header.
  * v1.9.0 - 2026-02-06 - BEP CRO: Removed hero/benefits column (green background) to reduce cognitive load and focus user attention on signup form. Single-column clean white background design for maximum conversion. Removed unused icon imports (AccessTime, TrendingUp, Public, CloudSync) and list components.
  * v1.8.0 - 2026-02-05 - ACTIVITY LOGGING: Log user_signup to systemActivityLog when new users register via Google OAuth. Includes email, userId, and source='google' for admin audit trail (Phase 6).
@@ -232,7 +233,7 @@ function VerifyingModal({ onClose }) {
   );
 }
 
-export default function AuthModal2({ open, onClose, initialMode = 'signup', forceOpen = false, redirectPath = '/clock' }) {
+export default function AuthModal2({ open, onClose, initialMode = 'signup', forceOpen = false, redirectPath = '/calendar' }) {
   const [email, setEmail] = useState('');
   const [isSignup, setIsSignup] = useState(initialMode === 'signup');
   const [errorMsg, setErrorMsg] = useState('');

@@ -10,6 +10,10 @@
  * - Manifest: blogRenders/{postId} tracks generated paths for cleanup
  *
  * Changelog:
+ * v1.3.0 - 2026-02-20 - FIX: Converted module-level admin.firestore()/admin.storage() calls to
+ *                       lazy getters (getDb/getBucket) to prevent Firebase Functions deploy
+ *                       probe timeout. Module-level SDK calls ran before admin.initializeApp()
+ *                       in index.ts (imports hoist before module body), causing 10s hang.
  * v1.2.0 - 2026-02-11 - BEP CRITICAL FIX: Added safeToDate() helper to handle mixed date formats.
  *                       Prevents 'toDate is not a function' crash during HTML generation when
  *                       publishedAt/updatedAt aren't native Firestore Timestamps.
@@ -20,9 +24,10 @@
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 
-const db = admin.firestore();
-const storage = admin.storage();
-const bucket = storage.bucket();
+// Lazy getters — avoids calling admin SDK before initializeApp() when the
+// module is imported at deploy-probe time (prevents 10-second timeout).
+const getDb = () => admin.firestore();
+const getBucket = () => admin.storage().bucket();
 
 // Types
 interface CoverImage {
@@ -343,7 +348,7 @@ export const renderBlogPost = async (postId: string): Promise<void> => {
   logger.info(`[BlogRender] Rendering post: ${postId}`);
 
   // Get post data
-  const postDoc = await db.collection("blogPosts").doc(postId).get();
+  const postDoc = await getDb().collection("blogPosts").doc(postId).get();
   if (!postDoc.exists) {
     throw new Error(`Post not found: ${postId}`);
   }
@@ -370,7 +375,7 @@ export const renderBlogPost = async (postId: string): Promise<void> => {
 
     try {
       // Upload to Storage
-      const file = bucket.file(storagePath);
+      const file = getBucket().file(storagePath);
       await file.save(html, {
         contentType: "text/html; charset=utf-8",
         metadata: {
@@ -400,7 +405,7 @@ export const renderBlogPost = async (postId: string): Promise<void> => {
     updatedAt: admin.firestore.Timestamp.now(),
   };
 
-  await db.collection(BLOG_RENDERS_COLLECTION).doc(postId).set(manifest);
+  await getDb().collection(BLOG_RENDERS_COLLECTION).doc(postId).set(manifest);
   logger.info(`[BlogRender] Manifest saved for ${postId}, ${renderedPaths.length} files`);
 };
 
@@ -411,7 +416,7 @@ export const renderBlogPost = async (postId: string): Promise<void> => {
 export const reRenderAllPublishedPosts = async (): Promise<{ success: number; failed: string[] }> => {
   logger.info("[BlogRender] Starting re-render of all published posts...");
   
-  const postsSnapshot = await db.collection("blogPosts")
+  const postsSnapshot = await getDb().collection("blogPosts")
     .where("status", "==", "published")
     .get();
   
@@ -441,7 +446,7 @@ export const removeRenderedBlogPost = async (postId: string): Promise<void> => {
   logger.info(`[BlogRender] Removing renders for post: ${postId}`);
 
   // Get manifest
-  const manifestDoc = await db.collection(BLOG_RENDERS_COLLECTION).doc(postId).get();
+  const manifestDoc = await getDb().collection(BLOG_RENDERS_COLLECTION).doc(postId).get();
   if (!manifestDoc.exists) {
     logger.warn(`[BlogRender] No manifest found for ${postId}, nothing to remove`);
     return;
@@ -452,7 +457,7 @@ export const removeRenderedBlogPost = async (postId: string): Promise<void> => {
   // Delete each rendered file
   for (const path of manifest.paths) {
     try {
-      await bucket.file(path).delete();
+      await getBucket().file(path).delete();
       logger.info(`[BlogRender] Deleted: ${path}`);
     } catch (error: unknown) {
       // Ignore "not found" errors (file already deleted)
@@ -465,7 +470,7 @@ export const removeRenderedBlogPost = async (postId: string): Promise<void> => {
   }
 
   // Delete manifest
-  await db.collection(BLOG_RENDERS_COLLECTION).doc(postId).delete();
+  await getDb().collection(BLOG_RENDERS_COLLECTION).doc(postId).delete();
   logger.info(`[BlogRender] Manifest deleted for ${postId}`);
 };
 
@@ -496,10 +501,10 @@ export const getRenderedBlogHtml = async (
       const languagesToTry = [lang, ...SUPPORTED_LANGUAGES.filter((l) => l !== lang)];
       for (const tryLang of languagesToTry) {
         const slugKey = `${tryLang}_${slug}`;
-        const doc = await db.collection("blogSlugIndex").doc(slugKey).get();
+        const doc = await getDb().collection("blogSlugIndex").doc(slugKey).get();
         if (doc.exists) {
           const { postId } = doc.data() as { postId: string };
-          const postDoc = await db.collection("blogPosts").doc(postId).get();
+          const postDoc = await getDb().collection("blogPosts").doc(postId).get();
           if (postDoc.exists) {
             const post = postDoc.data() as BlogPost;
             const content = post.languages?.[tryLang] || post.languages?.["en"];
@@ -521,14 +526,14 @@ export const getRenderedBlogHtml = async (
   };
 
   try {
-    const file = bucket.file(storagePath);
+    const file = getBucket().file(storagePath);
     const [exists] = await file.exists();
 
     if (!exists) {
       // Try fallback to English pre-rendered
       if (lang !== "en") {
         const enPath = `blog-render/en/blog/${slug}/index.html`;
-        const enFile = bucket.file(enPath);
+        const enFile = getBucket().file(enPath);
         const [enExists] = await enFile.exists();
 
         if (enExists) {
@@ -570,7 +575,7 @@ const renderOnTheFly = async (
 
     for (const tryLang of languagesToTry) {
       const slugKey = `${tryLang}_${slug}`;
-      const doc = await db.collection("blogSlugIndex").doc(slugKey).get();
+      const doc = await getDb().collection("blogSlugIndex").doc(slugKey).get();
       if (doc.exists) {
         slugIndexDoc = doc;
         foundLang = tryLang;
@@ -587,7 +592,7 @@ const renderOnTheFly = async (
     const { postId } = slugIndexDoc.data() as { postId: string };
 
     // Get post data
-    const postDoc = await db.collection("blogPosts").doc(postId).get();
+    const postDoc = await getDb().collection("blogPosts").doc(postId).get();
     if (!postDoc.exists) {
       logger.warn(`[BlogRender] Post not found: ${postId}`);
       return { html: "", found: false };

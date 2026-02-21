@@ -6,6 +6,27 @@
  * and optionally trigger browser notifications with permission checks.
  * 
  * Changelog:
+ * v4.5.0 - 2026-02-20 - BEP CRITICAL FIX: occurrenceSources routing broke scope=series
+ *                       recurring custom events in-app+browser channels.
+ *                       ROOT CAUSE: v4.4.0 correctly populated `occurrences` via
+ *                       expandReminderOccurrences() for series+hasStoredRecurrence, but
+ *                       `occurrenceSources` was still gated on `scope === 'series'` and
+ *                       always routed those reminders through `seriesMatches` (empty for
+ *                       custom events). `occurrences` was computed but never consumed.
+ *                       FIX: occurrenceSources uses `occurrences` whenever hasStoredRecurrence
+ *                       is true — only falls back to seriesMatches for pure NFS series
+ *                       reminders (no recurrence metadata).
+ * v4.4.0 - 2026-02-19 - BEP CRITICAL FIX: Custom recurring series reminders (my-events)
+ *                       never fired for in-app/browser channels.
+ *                       ROOT CAUSE: scope=series reminders were forced to occurrences=[]
+ *                       and relied on NFS API upcomingEvents series matching. Custom
+ *                       my-events events don't appear in the NFS API, so seriesMatches
+ *                       was always empty for custom series (NY Open, Market Close, etc.).
+ *                       FIX: If a series reminder has stored recurrence metadata
+ *                       (enabled=true + valid interval + valid eventEpochMs), use
+ *                       expandReminderOccurrences() instead of forcing occurrences=[].
+ *                       NFS series reminders (no recurrence config) continue to use the
+ *                       existing API-based series matching via upcomingEvents.
  * v4.3.0 - 2026-02-10 - BEP CRITICAL FIX: Recurring custom event notification duplication (25→1).
  *                       ROOT CAUSE: customEventsService expands recurring events into N occurrence
  *                       objects for display (30 for daily over 30 days). Each occurrence has a
@@ -435,7 +456,23 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
               return;
             }
 
-            const occurrences = reminderRecord.scope === 'series'
+            // BEP v4.4.0: Custom recurring series reminders use expandReminderOccurrences.
+            // ROOT CAUSE: scope=series reminders were forced to occurrences=[] then relied on
+            // NFS API series matching (upcomingEvents). Custom my-events series are NOT in the
+            // NFS API — their events don't appear in upcomingEvents — so seriesMatches was
+            // always empty and they never fired.
+            // FIX: If the series reminder has stored recurrence (enabled=true + valid interval)
+            // AND a valid eventEpochMs, use expandReminderOccurrences. This handles recurring
+            // custom events (NY Open, Market Close) stored with scope=series.
+            // NFS series reminders have no recurrence config so they still use series matching.
+            const hasStoredRecurrence = (
+              reminderRecord?.metadata?.recurrence?.enabled === true
+              && reminderRecord?.metadata?.recurrence?.interval
+              && reminderRecord?.metadata?.recurrence?.interval !== 'none'
+              && Number.isFinite(reminderRecord?.eventEpochMs)
+            );
+
+            const occurrences = (reminderRecord.scope === 'series' && !hasStoredRecurrence)
               ? []
               : expandReminderOccurrences({
                 reminder: reminderRecord,
@@ -451,7 +488,11 @@ export const useCustomEventNotifications = ({ events = [] } = {}) => {
               ? upcomingEvents.filter((event) => buildSeriesKey({ event, eventSource: event.source || event.sourceKey || 'canonical' }) === reminderRecord.seriesKey)
               : [];
 
-            const occurrenceSources = reminderRecord.scope === 'series'
+            // BEP v4.5.0: Use occurrences (from expandReminderOccurrences) whenever the
+            // reminder has stored recurrence metadata — this covers ALL custom recurring events
+            // regardless of their scope. Only fall back to seriesMatches (NFS API) for pure
+            // NFS series reminders that have no recurrence config stored.
+            const occurrenceSources = (reminderRecord.scope === 'series' && !hasStoredRecurrence)
               ? seriesMatches.map((event) => ({
                 occurrenceEpochMs: getEventEpochMs(event),
                 event,

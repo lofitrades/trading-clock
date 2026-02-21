@@ -8,6 +8,7 @@
  * Includes economic event and currency taxonomy tags that link to hub pages.
  *
  * Changelog:
+ * v1.45.0 - 2026-02-21 - BEP: Changed AuthModal2 redirectPath from /clock to /calendar. Calendar is now the primary post-auth destination.
  * v1.44.0 - 2026-02-15 - BEP SEO: Added article-specific OG meta tags (article:published_time,
  *                        article:modified_time, article:section, article:tag), og:image dimensions
  *                        (1200×630), og:image:type, twitter:image:alt for rich social previews.
@@ -1388,6 +1389,7 @@ export default function BlogPostPage() {
                                 </Box>
                             }
                             rightTabs={rightTabs}
+                            pageScroll
                             stickyTop={16}
                         />
                     </Box>
@@ -1431,7 +1433,7 @@ export default function BlogPostPage() {
 
             {/* Modals */}
             <Suspense fallback={null}>
-                <AuthModal2 open={authModalOpen} onClose={handleCloseAuth} redirectPath="/clock" />
+                <AuthModal2 open={authModalOpen} onClose={handleCloseAuth} redirectPath="/calendar" />
             </Suspense>
             <Suspense fallback={null}>
                 <SettingsSidebar2

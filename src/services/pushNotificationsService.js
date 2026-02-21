@@ -12,6 +12,17 @@
  * - Auto-register on load updates lastSeenAt but respects enabled flag
  * 
  * Changelog:
+ * v2.0.0 - 2026-02-19 - BEP FIX: Call deleteToken() before getToken() in requestFcmTokenForUser.
+ *                       After server-side token pruning (registration-token-not-registered FCM
+ *                       response), the browser's push subscription may be in a stale/inconsistent
+ *                       state. deleteToken() clears the cached FCM subscription from IndexedDB,
+ *                       forcing getToken() to create a fresh push subscription. Fixes "Failed to
+ *                       enable notifications" error after tokens are auto-pruned by the scheduler.
+ * v1.9.0 - 2026-02-19 - BEP FIX: Replace getServiceWorkerRegistration() polling loop with
+ *                       navigator.serviceWorker.ready as primary strategy. Old approach using
+ *                       getRegistration() + manual retries failed when SW was in waiting/installing
+ *                       state on Chrome Desktop — navigator.serviceWorker.ready is the canonical
+ *                       Web API that handles all SW lifecycle states correctly.
  * v1.8.2 - 2026-02-10 - CRITICAL PROD FIX: Coerce errCode/errName to String() before calling
  *                       .includes(). err.code can be a number (e.g. 20) and Number.prototype
  *                       has no .includes(), causing "f.includes is not a function" in production.
@@ -46,6 +57,7 @@
  */
 
 import {
+  deleteToken,
   getMessaging,
   getToken,
   isSupported,
@@ -126,70 +138,37 @@ const isBrowserSupported = async () => {
   }
 };
 
-const waitForServiceWorkerReady = async (timeoutMs = 5000) => {
+const getServiceWorkerRegistration = async () => {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null;
+
+  // PRIMARY STRATEGY: navigator.serviceWorker.ready is the canonical Web API for this.
+  // Resolves immediately when a SW is active+controlling, or waits until one activates.
+  // More reliable than getRegistration() + polling — handles waiting/installing states correctly.
   try {
-    const ready = await Promise.race([
+    const registration = await Promise.race([
       navigator.serviceWorker.ready,
-      new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+      new Promise((resolve) => setTimeout(() => resolve(null), 10000)),
     ]);
-    return ready || null;
+    if (registration?.active) return registration;
+  } catch {
+    // Fall through to explicit registration attempt
+  }
+
+  // FALLBACK: Explicitly register /sw.js (handles: fresh install, crashed SW, or race conditions).
+  const isSecure = typeof window !== 'undefined'
+    && (window.location.protocol === 'https:' || window.location.hostname === 'localhost');
+  if (!isSecure) return null;
+
+  try {
+    await navigator.serviceWorker.register('/sw.js');
+    const registration = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((resolve) => setTimeout(() => resolve(null), 5000)),
+    ]).catch(() => null);
+    return registration || null;
   } catch {
     return null;
   }
-};
-
-const getServiceWorkerRegistration = async (retries = 2) => {
-  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null;
-
-  // Try to get existing registration first
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const existing = await navigator.serviceWorker.getRegistration();
-      if (existing?.active) return existing;
-      
-      // Wait for ready if we have a registration but it's not active yet
-      if (existing) {
-        const ready = await waitForServiceWorkerReady();
-        if (ready?.active) return ready;
-      }
-    } catch {
-      // Continue to registration attempt
-    }
-
-    // Only try to register on first attempt
-    if (attempt === 0) {
-      const isSecure = typeof window !== 'undefined'
-        && (window.location.protocol === 'https:' || window.location.hostname === 'localhost');
-
-      if (!isSecure) return null;
-
-      try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
-        
-        // Wait for the service worker to be ready
-        const ready = await waitForServiceWorkerReady();
-        if (ready?.active) return ready;
-        if (registration?.active) return registration;
-        
-        // On mobile PWA, may need extra time - wait a bit and check again
-        if (getPlatformInfo().isMobile) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          const retryReady = await waitForServiceWorkerReady(3000);
-          if (retryReady?.active) return retryReady;
-        }
-      } catch {
-        // Will retry on next loop iteration
-      }
-    }
-
-    // Small delay before retry
-    if (attempt < retries) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-  }
-
-  return null;
 };
 
 const getMessagingInstance = async () => {
@@ -247,6 +226,15 @@ export const requestFcmTokenForUser = async (userId) => {
   }
 
   try {
+    // BEP v2.0.0: Clear any stale FCM push subscription before requesting a fresh token.
+    // After server-side pruning (registration-token-not-registered), the browser's push
+    // subscription in IndexedDB may be inconsistent — deleteToken() forces a clean slate.
+    try {
+      await deleteToken(messaging);
+    } catch {
+      // No existing token to delete — safe to ignore, proceed with fresh getToken()
+    }
+
     const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
     if (!token) {
       console.warn('[pushNotificationsService] getToken returned null');

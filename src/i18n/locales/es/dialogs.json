@@ -172,6 +172,8 @@
     "enabled": "Notificaciones push habilitadas para este dispositivo.",
     "disabled": "Este dispositivo ha sido desregistrado de las notificaciones push.",
     "enableError": "Error al habilitar notificaciones. Por favor, inténtalo de nuevo.",
+    "swError": "No se pudo conectar al servicio de notificaciones. Por favor, recarga la página e inténtalo de nuevo.",
+    "registered": "Este dispositivo ahora está registrado para recibir notificaciones push.",
     "disableError": "Error al desregistrar dispositivo. Por favor, inténtalo de nuevo.",
     "deniedError": "Denegaste el permiso de notificaciones. Para habilitarlo, ve a la configuración del navegador.",
     "deniedInstructions": "Para habilitar las notificaciones, ve a la configuración de tu navegador y permite las notificaciones para este sitio.",

@@ -6,7 +6,10 @@
  * 
  * Routes: /blog/author/{authorSlug}, /{lang}/blog/author/{authorSlug}
  * 
- * Changelog: * v1.0.1 - 2026-02-04 - Fixed Temporal Dead Zone issue: moved PostCard.propTypes assignment after component definition * v1.0.0 - 2026-02-04 - Initial implementation (Phase 5.B Blog)
+ * Changelog:
+ * v1.1.0 - 2026-02-21 - BEP: Changed AuthModal2 redirectPath from /clock to /calendar. Calendar is now the primary post-auth destination.
+ * v1.0.1 - 2026-02-04 - Fixed Temporal Dead Zone issue: moved PostCard.propTypes assignment after component definition
+ * v1.0.0 - 2026-02-04 - Initial implementation (Phase 5.B Blog)
  */
 
 import PropTypes from 'prop-types';
@@ -382,7 +385,7 @@ export default function BlogAuthorPage() {
 
             {/* Modals */}
             <Suspense fallback={null}>
-                <AuthModal2 open={authModalOpen} onClose={handleCloseAuth} redirectPath="/clock" />
+                <AuthModal2 open={authModalOpen} onClose={handleCloseAuth} redirectPath="/calendar" />
             </Suspense>
             <Suspense fallback={null}>
                 <SettingsSidebar2 open={settingsOpen && !authModalOpen} onClose={handleCloseSettings} onOpenAuth={handleOpenAuth} />

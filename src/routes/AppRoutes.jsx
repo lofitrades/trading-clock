@@ -12,6 +12,7 @@
  * - Premium Routes: Require specific subscription plans
  * 
  * Changelog:
+ * v3.1.0 - 2026-02-21 - BEP: Changed login page restricted redirect from /clock to /calendar. Calendar is now the primary post-auth destination.
  * v3.0.0 - 2026-02-17 - BEP ADMIN LAYOUT: Wrapped all /admin/* routes in AdminLayout with RBAC AdminNavBar.
  *                       Nested routes via <Outlet />. AdminLayout provides consistent nav chrome across admin pages.
  * v2.3.0 - 2026-02-17 - BEP RBAC: Restricted /admin/upload-desc and /admin/export to superadmin only (was admin+superadmin).
@@ -407,7 +408,7 @@ export default function AppRoutes() {
           <Route
             path="/login"
             element={
-              <PublicRoute restricted={true} redirectTo="/clock">
+              <PublicRoute restricted={true} redirectTo="/calendar">
                 <LoginPage />
               </PublicRoute>
             }

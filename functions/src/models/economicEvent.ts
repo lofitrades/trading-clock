@@ -6,6 +6,10 @@
  * and Firestore helpers to unify NFS weekly schedules with JBlanked actuals.
  *
  * Changelog:
+ * v1.8.0 - 2026-02-20 - BEP FIX: findByIdentityWindow now correctly skips weekly recurring events.
+ *   Guard 1: released/revised events cannot be rescheduled (they already happened).
+ *   Guard 2: time diff ≈ N×7 days (±1 day tolerance) is weekly cadence, not a reschedule.
+ *   Both guards prevent "Jobless Claims Feb 20" from being overwritten by "Jobless Claims Feb 27".
  * v1.7.0 - 2026-02-10 - BEP P0/P3: Removed console.info from reinstatement block; callers handle logging via logEventReinstatement().
  * v1.6.0 - 2026-02-09 - BEP FIX: Removed undefined field defaults (createdBy, winnerSource, rescheduledFrom) from factory. Undefined is not a valid Firestore value; optional fields are now omitted and added via ...partial spread when provided.
  * v1.5.0 - 2026-02-05 - BEP: Reinstate cancelled events when they reappear in NFS feed (handles reschedule → un-cancel).
@@ -421,6 +425,13 @@ export async function findExistingCanonicalEvent(params: {
  * Use case: NFP scheduled for Feb 7 gets rescheduled to Feb 12.
  * Standard ±5 min window won't find it, but ±15 day identity match will.
  *
+ * Weekly recurring events are explicitly excluded via two guards:
+ * - Guard 1: If the matched event is already released/revised, it cannot
+ *   be rescheduled — it already happened. Return undefined so the caller
+ *   creates a fresh document for the new weekly occurrence.
+ * - Guard 2: If timeDiff ≈ N × 7 days (±1 day, N = 1..4), the pattern is
+ *   a weekly cadence, not a genuine reschedule. Return undefined.
+ *
  * @param params.normalizedName - Normalized event name for fuzzy matching
  * @param params.currency - Currency code (exact match required)
  * @param params.datetimeUtc - New scheduled datetime from feed
@@ -478,7 +489,36 @@ export async function findByIdentityWindow(params: {
   });
 
   if (bestMatch) {
-    // Determine if this is a reschedule (datetime differs by more than 5 minutes)
+    // ---- Guard 1: Released/revised events cannot be rescheduled ----
+    // An event that already published actual values has already occurred.
+    // The incoming event at a different datetime is a new weekly/monthly
+    // occurrence of the same series — it must get its own document.
+    if (
+      bestMatch.event.status === "released" ||
+      bestMatch.event.status === "revised"
+    ) {
+      return undefined;
+    }
+
+    // ---- Guard 2: Weekly cadence detection ----
+    // If the time difference between the matched event and the incoming event
+    // is approximately N × 7 days (N = 1..4, covering up to ~4 weeks), this is
+    // a regularly recurring event (e.g., Jobless Claims, NFP, FOMC Minutes).
+    // A genuine reschedule moves an event by days — not by exactly 7/14/21 days.
+    // Tolerance: ±1 day around the exact week multiple.
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+    const weeksApprox = Math.round(bestMatch.timeDiffMs / WEEK_MS);
+    if (weeksApprox >= 1 && weeksApprox <= 4) {
+      const remainder = Math.abs(bestMatch.timeDiffMs - weeksApprox * WEEK_MS);
+      if (remainder <= ONE_DAY_MS) {
+        // Time diff is within ±1 day of a whole number of weeks → weekly cadence.
+        // Treat as no match so the caller creates a fresh document for this occurrence.
+        return undefined;
+      }
+    }
+
+    // Determine if this is a genuine reschedule (datetime differs by more than 5 minutes)
     const isReschedule = bestMatch.timeDiffMs > 5 * 60 * 1000;
     return {
       eventId: bestMatch.eventId,
@@ -575,5 +615,125 @@ export async function detectStaleEvents(options?: {
     detected: staleEvents.length,
     updated,
     events: staleEvents,
+  };
+}
+
+/**
+ * BEP repair: scan all events that have rescheduledFrom set and clear
+ * any that were false-positives caused by the weekly cadence bug.
+ *
+ * A false-positive reschedule is identified when:
+ *   |datetimeUtc − rescheduledFrom| ≈ N × 7 days (N = 1..8, ±1 day tolerance)
+ *
+ * For each false-positive:
+ *   - rescheduledFrom is deleted (FieldValue.delete())
+ *   - originalDatetimeUtc is cleared if it equals rescheduledFrom (meaning
+ *     it was set solely by the false reschedule and not by a real first-creation)
+ *
+ * The current datetimeUtc is left unchanged — it holds the most recent NFS
+ * datetime and should be correct (it IS this week's scheduled datetime).
+ *
+ * @param options.dryRun - If true, only count without writing (default: false)
+ * @returns Summary of detected and repaired events
+ */
+export async function repairWeeklyEventReschedules(options?: {
+  dryRun?: boolean;
+}): Promise<{
+  scanned: number;
+  detected: number;
+  repaired: number;
+  events: Array<{
+    eventId: string;
+    name: string;
+    currency: string | null;
+    datetimeUtc: string;
+    rescheduledFrom: string;
+    weeksApart: number;
+  }>;
+}> {
+  const dryRun = options?.dryRun ?? false;
+  const collection = getCanonicalEventsCollection();
+  const db = admin.firestore();
+  const now = admin.firestore.Timestamp.now();
+
+  // Fetch all events — we filter in-memory because Firestore cannot query
+  // "field exists" without a composite index that may not be present.
+  const snapshot = await collection.get();
+
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+  const falseReschedules: Array<{
+    eventId: string;
+    name: string;
+    currency: string | null;
+    datetimeUtc: string;
+    rescheduledFrom: string;
+    weeksApart: number;
+    clearOriginal: boolean;
+  }> = [];
+
+  snapshot.forEach((doc) => {
+    const data = doc.data() as CanonicalEconomicEvent;
+    if (!data.rescheduledFrom) return;
+
+    const timeDiffMs = Math.abs(
+      data.datetimeUtc.toMillis() - data.rescheduledFrom.toMillis()
+    );
+    const weeksApprox = Math.round(timeDiffMs / WEEK_MS);
+
+    if (weeksApprox >= 1 && weeksApprox <= 8) {
+      const remainder = Math.abs(timeDiffMs - weeksApprox * WEEK_MS);
+      if (remainder <= ONE_DAY_MS) {
+        // originalDatetimeUtc should be cleared only if it was set to the same
+        // value as rescheduledFrom (meaning it was stamped by the false reschedule).
+        const clearOriginal =
+          !!data.originalDatetimeUtc &&
+          data.originalDatetimeUtc.toMillis() === data.rescheduledFrom.toMillis();
+
+        falseReschedules.push({
+          eventId: doc.id,
+          name: data.name || data.normalizedName || "Unknown",
+          currency: data.currency,
+          datetimeUtc: data.datetimeUtc.toDate().toISOString(),
+          rescheduledFrom: data.rescheduledFrom.toDate().toISOString(),
+          weeksApart: weeksApprox,
+          clearOriginal,
+        });
+      }
+    }
+  });
+
+  let repaired = 0;
+
+  if (!dryRun && falseReschedules.length > 0) {
+    // Firestore batch limit is 500 writes; chunk if needed.
+    const BATCH_SIZE = 400;
+    for (let i = 0; i < falseReschedules.length; i += BATCH_SIZE) {
+      const chunk = falseReschedules.slice(i, i + BATCH_SIZE);
+      const batch = db.batch();
+
+      for (const item of chunk) {
+        const ref = collection.doc(item.eventId);
+        const update: Record<string, any> = {
+          rescheduledFrom: admin.firestore.FieldValue.delete(),
+          updatedAt: now,
+        };
+        if (item.clearOriginal) {
+          update.originalDatetimeUtc = admin.firestore.FieldValue.delete();
+        }
+        batch.update(ref, update);
+      }
+
+      await batch.commit();
+      repaired += chunk.length;
+    }
+  }
+
+  return {
+    scanned: snapshot.size,
+    detected: falseReschedules.length,
+    repaired,
+    events: falseReschedules.map(({clearOriginal: _ignored, ...rest}) => rest),
   };
 }

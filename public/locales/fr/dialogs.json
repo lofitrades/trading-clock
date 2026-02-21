@@ -172,6 +172,8 @@
     "enabled": "Notifications push activées pour cet appareil.",
     "disabled": "Cet appareil a été désinscrit des notifications push.",
     "enableError": "Échec de l'activation des notifications. Veuillez réessayer.",
+    "swError": "Impossible de se connecter au service de notifications. Veuillez recharger la page et réessayer.",
+    "registered": "Cet appareil est maintenant enregistré pour recevoir des notifications push.",
     "disableError": "Échec de la désinscription de l'appareil. Veuillez réessayer.",
     "deniedError": "Vous avez refusé l'autorisation de notification. Pour l'activer, allez dans les paramètres du navigateur.",
     "deniedInstructions": "Pour activer les notifications, allez dans les paramètres de votre navigateur et autorisez les notifications pour ce site.",

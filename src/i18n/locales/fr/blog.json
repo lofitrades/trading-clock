@@ -179,7 +179,7 @@
     "currencyTooltip": "Voir les articles sur {{currency}}"
   },
   "footer": {
-    "exploreMore": "Explorer plus d'articles",
+    "exploreMore": "Explorer plus",
     "categories": "Catégories",
     "events": "Événements Économiques",
     "currencies": "Devises",

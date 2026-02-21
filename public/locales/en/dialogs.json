@@ -172,6 +172,8 @@
     "enabled": "Push notifications enabled for this device.",
     "disabled": "This device has been unregistered from push notifications.",
     "enableError": "Failed to enable notifications. Please try again.",
+    "swError": "Could not connect to notification service. Please reload the page and try again.",
+    "registered": "This device is now registered for push notifications.",
     "disableError": "Failed to unregister device. Please try again.",
     "deniedError": "You denied the notification permission. To enable, go to browser settings.",
     "deniedInstructions": "To enable notifications, go to your browser settings and allow notifications for this site.",

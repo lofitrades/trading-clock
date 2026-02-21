@@ -32,7 +32,6 @@ import {
     Card,
     CardContent,
     CardMedia,
-    Avatar,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';

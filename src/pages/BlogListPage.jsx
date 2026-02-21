@@ -6,6 +6,7 @@
  * Supports multi-language URLs via subpath routing.
  *
  * Changelog:
+ * v4.4.0 - 2026-02-21 - BEP: Changed AuthModal2 redirectPath from /clock to /calendar. Calendar is now the primary post-auth destination.
  * v4.3.0 - 2026-02-15 - BEP: Always show cover image in PostCard with fallback to default thumbnail
  * v4.2.0 - 2026-02-08 - BEP UX: Added page-transition skeleton flash on pagination click. Since all posts
  *                       are pre-fetched and page changes are instant client-side slices, there was zero
@@ -852,7 +853,7 @@ export default function BlogListPage() {
 
             {/* Modals */}
             <Suspense fallback={null}>
-                <AuthModal2 open={authModalOpen} onClose={handleCloseAuth} redirectPath="/clock" />
+                <AuthModal2 open={authModalOpen} onClose={handleCloseAuth} redirectPath="/calendar" />
             </Suspense>
             <Suspense fallback={null}>
                 <SettingsSidebar2

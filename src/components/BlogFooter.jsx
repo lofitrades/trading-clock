@@ -14,6 +14,7 @@
  * - Mobile-responsive design
  *
  * Changelog:
+ * v1.3.0 - 2026-02-21 - BEP: Changed brand link from /clock to /calendar. Calendar is now the primary app destination.
  * v1.2.1 - 2026-02-07 - BEP LOGO & ICONS: (1) Replaced T2T text button with actual favicon logo matching AppBar.tsx (DEFAULT_BRAND_LOGO_SRC). (2) Removed section title icons from Categories, Economic Events, Currencies, and Popular Tags sections. (3) Cleaner, more minimal footer design with reduced visual clutter. (4) Improved visual hierarchy focusing on text labels and content.
  */
 
@@ -594,7 +595,7 @@ const BlogFooter = memo(({
                         >
                             <Link
                                 component={RouterLink}
-                                to="/clock"
+                                to="/calendar"
                                 underline="hover"
                                 sx={{
                                     display: 'flex',

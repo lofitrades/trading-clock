@@ -6,6 +6,8 @@
  * launching the market clock or learning more.
  *
  * Changelog:
+ * v2.4.0 - 2026-02-21 - BEP: Changed primary CTA and SoftwareApplication schema URL from /clock to /calendar.
+ *                       Calendar is now the primary app destination. Nav and footer links updated.
  * v2.3.0 - 2026-02-02 - BEP SEO FIX: Added SiteNavigationElement schema to explicitly declare site
  *                       navigation structure. Helps Google prioritize crawling of pages flagged as
  *                       "Discovered - currently not indexed" (/clock, /calendar, /terms).
@@ -83,7 +85,7 @@ const softwareSchema = {
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     description:
         'Market Clock + Economic Calendar for futures and forex day traders: session timing and countdowns, Forex Factory-powered events, custom events, reminders, timezone switching, and synced settings.',
-    url: `${siteUrl}/clock`,
+    url: `${siteUrl}/calendar`,
     creator: { '@type': 'Organization', name: 'Lofi Trades', url: siteUrl },
     featureList: [
         'Market Clock (NY Time-first) with real-time countdowns',
@@ -194,7 +196,7 @@ export default function Page() {
                     <span>Time 2 Trade</span>
                 </div>
                 <nav className="nav">
-                    <a href="/clock" aria-label="Open the session clock">{t('landing.nav.openClock')}</a>
+                    <a href="/calendar" aria-label="Open the economic calendar">{t('landing.nav.openClock')}</a>
                     <a href="/calendar" aria-label="Open the economic calendar">{t('landing.nav.calendar')}</a>
                     <a href="/about" aria-label="Learn about Time 2 Trade">{t('landing.nav.about')}</a>
                     <a href="#faq" aria-label="Read frequently asked questions">{t('landing.nav.faq')}</a>
@@ -219,7 +221,7 @@ export default function Page() {
                             </p>
 
                             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                                <a className="btn btn-primary" href="/clock" aria-label="Open the Time 2 Trade clock">
+                                <a className="btn btn-primary" href="/calendar" aria-label="Open the Time 2 Trade calendar">
                                     {t('landing.hero.cta1')}
                                 </a>
                                 <a className="btn btn-secondary" href="/calendar" aria-label="Open the economic calendar">
@@ -291,7 +293,7 @@ export default function Page() {
                             <span>Time 2 Trade</span>
                         </div>
                         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                            <a href="/clock" aria-label="Launch the clock from footer" className="btn btn-secondary">{t('landing.nav.openClock')}</a>
+                            <a href="/calendar" aria-label="Open the calendar from footer" className="btn btn-secondary">{t('landing.nav.openClock')}</a>
                             <a href="/calendar" aria-label="Open the calendar from footer" className="btn btn-secondary">{t('landing.nav.calendar')}</a>
                             <a href="/about" aria-label="Read about Time 2 Trade" className="btn btn-secondary">{t('landing.nav.about')}</a>
                         </div>

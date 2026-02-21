@@ -33,6 +33,7 @@
  * v2.7.4 - 2026-01-22 - BEP: Add custom event reminder button to /clock page header. On md+: Add icon button positioned to the right of EventsFilters3. On xs/sm: Floating button in top-right corner. Opens CustomEventDialog for creating reminders. Integrated useCustomEvents hook for CRUD operations. Auth-gated with fallback to AuthModal2 for unauthenticated users.
  * 
  * Changelog:
+ * v2.9.0 - 2026-02-21 - BEP: Changed AuthModal2 redirectPath from /clock to /calendar.
  * v2.8.0 - 2026-02-12 - DOCUMENTATION: CustomEventDialog delete flow already implemented correctly in App.jsx.
  *                       Added v3.11.0/v2.11.0/v1.6.0 entries to Calendar2Page/ClockPage/NotificationCenter for
  *                       missing onDelete handler bug fix. App.jsx now serves as the reference implementation.
@@ -1237,7 +1238,7 @@ export default function App() {
               open={authModalOpen}
               onClose={() => setAuthModalOpen(false)}
               initialMode="signup"
-              redirectPath="/clock"
+              redirectPath="/calendar"
             />
           </Suspense>
         )

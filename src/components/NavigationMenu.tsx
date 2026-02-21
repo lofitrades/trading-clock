@@ -5,6 +5,7 @@
  * Matches the landing page navigation UI while supporting auth-aware menu items.
  * 
  * Changelog:
+ * v1.1.0 - 2026-02-21 - BEP: Changed auth navigation target from /clock to /calendar. Calendar is now the primary post-auth destination.
  * v1.0.4 - 2026-01-29 - BEP THEME-AWARE: Replaced hardcoded #ffffff with background.paper,
  *                       #f4f7fb with text.secondary, and rgba focus outline with primary.main.
  *                       Mobile drawer and close icon now adapt to light/dark mode.
@@ -67,8 +68,8 @@ export default function NavigationMenu({
 
   const navLinks = useMemo<NavLink[]>(() => {
     const authLink: NavLink = authed
-      ? { id: 'account', label: 'Account', to: '/clock' }
-      : { id: 'signin', label: 'Sign in', to: '/clock' };
+      ? { id: 'account', label: 'Account', to: '/calendar' }
+      : { id: 'signin', label: 'Sign in', to: '/calendar' };
 
     return [
       { id: 'primary', label: 'Go to Calendar', onClick: onOpenPrimary },

@@ -5,6 +5,7 @@
  * interactive React SPA client-side to keep marketing bundles lean.
  *
  * Changelog:
+ * v1.3.0 - 2026-02-21 - BEP: Changed demo CTA from /clock to /calendar. Calendar is now the primary app destination.
  * v1.2.0 - 2026-01-22 - Updated copy to match BEP positioning (Market Clock + Economic Calendar),
  *                       reinforced /app as a non-indexed UI shell, and refreshed loader placeholders to
  *                       reflect custom events + notifications + Forex Factory-powered calendar.
@@ -103,8 +104,8 @@ export default function Page() {
                     </div>
 
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: 14 }}>
-                        <a className="btn btn-secondary" href="/clock" aria-label="Open the clock (public route)">
-                            Open clock
+                        <a className="btn btn-secondary" href="/calendar" aria-label="Open the calendar (public route)">
+                            Open calendar
                         </a>
                         <a className="btn btn-secondary" href="/calendar" aria-label="Open the calendar (public route)">
                             Open calendar

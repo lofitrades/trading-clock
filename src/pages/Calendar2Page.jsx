@@ -8,6 +8,19 @@
  * BEP: Mobile-first, responsive, NOW/NEXT badges, jump-to-now FAB, timezone-aware.
  *
  * Changelog:
+ * v3.19.0 - 2026-02-21 - BEP SEO: Added page title via SEO component and buildSeoMeta. Browser tab now updates to "Economic Calendar | Time 2 Trade" when navigating to /calendar.
+ * v3.18.0 - 2026-02-20 - BEP PAGE-SCROLL MODE + RECENT POSTS + BLOG FOOTER:
+ *                        (1) Switched to pageScroll mode — left column grows naturally with content,
+ *                        right column is position:sticky. Removed TableContainer maxHeight on md+;
+ *                        table expands to show all events and the page scrolls instead of the container.
+ *                        (2) Updated handleJumpToNow: uses scrollIntoView for both mobile and desktop
+ *                        (auto-finds nearest scrollable ancestor). Added data-t2t-scroll-container
+ *                        listener for FAB visibility tracking in page-scroll context.
+ *                        (3) Added lazy-loaded RecentPosts component below events table — reads active
+ *                        currency filters from SettingsContext and prioritizes matching blog posts.
+ *                        Skeleton loading states for performance. Fully ClockEventsFilters-aware.
+ *                        (4) Added lazy-loaded BlogFooter below MainLayout for hub page navigation
+ *                        (categories, events, currencies, tags). Follows BlogPostPage integration pattern.
  * v3.17.0 - 2026-02-14 - BEP SYNCED FAB ANIMATION: Jump-to-now FAB on xs/sm now moves in sync
  *                        with the auto-hiding bottom AppBar. When the bar hides (scroll down), the
  *                        FAB slides from bottom:80px → bottom:24px. When the bar shows (scroll up),
@@ -194,6 +207,8 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import InsightsIcon from '@mui/icons-material/Insights';
 import PublicLayout from '../components/PublicLayout';
 import MainLayout from '../components/layouts/MainLayout';
+import SEO from '../components/SEO';
+import { buildSeoMeta } from '../utils/seoMeta';
 const SourceInfoModal = lazy(() => import('../components/SourceInfoModal'));
 import useAppBarNavItems from '../hooks/useAppBarNavItems';
 import { useCalendarData } from '../hooks/useCalendarData';
@@ -220,6 +235,8 @@ const EventNotesDialog = lazy(() => import('../components/EventNotesDialog'));
 const ClockPanelPaper = lazy(() => import('../components/ClockPanelPaper'));
 const CustomEventDialog = lazy(() => import('../components/CustomEventDialog'));
 const ClockEventsFilters = lazy(() => import('../components/ClockEventsFilters'));
+const RecentPosts = lazy(() => import('../components/RecentPosts'));
+const BlogFooter = lazy(() => import('../components/BlogFooter'));
 
 // ============================================================================
 // CONSTANTS
@@ -623,6 +640,17 @@ SkeletonRows.propTypes = {
 };
 
 // ============================================================================
+// SEO METADATA
+// ============================================================================
+
+const calendarMeta = buildSeoMeta({
+    title: 'Economic Calendar | Time 2 Trade',
+    description:
+        'Detailed economic calendar for traders: Forex Factory-powered events with impact filters, currency selection, custom events, and reminders for better trade planning.',
+    path: '/calendar',
+});
+
+// ============================================================================
 // MAIN PAGE COMPONENT
 // ============================================================================
 
@@ -805,23 +833,12 @@ export default function Calendar2Page() {
         const target = nowRowRef.current || nextRowRef.current;
         if (!target) return;
 
-        const container = tableContainerRef.current;
-
-        if (isMd && container) {
-            // BEP v3.15.0: Desktop (md+) — scroll WITHIN the TableContainer only.
-            // The container has maxHeight and overflowY:auto. We calculate the offset
-            // to center the target row inside the container without moving the page.
-            const containerRect = container.getBoundingClientRect();
-            const targetRect = target.getBoundingClientRect();
-            const targetOffsetInContainer = targetRect.top - containerRect.top + container.scrollTop;
-            const centeredScroll = targetOffsetInContainer - (containerRect.height / 2) + (targetRect.height / 2);
-            container.scrollTo({ top: Math.max(0, centeredScroll), behavior: 'smooth' });
-        } else {
-            // BEP v3.15.0: Mobile (xs/sm) — the page scrolls. Use scrollIntoView
-            // with block:'nearest' so the browser scrolls just enough to make the row
-            // visible without pushing the title/filters off-screen.
-            target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
+        // BEP v3.18.0: In pageScroll mode the TableContainer has no maxHeight —
+        // the page itself scrolls. Use scrollIntoView which automatically finds
+        // the nearest scrollable ancestor (data-t2t-scroll-container on page scroll,
+        // TableContainer in legacy mode). block:'center' on md+ centers the row;
+        // block:'nearest' on xs/sm does a minimal scroll to avoid pushing title/filters away.
+        target.scrollIntoView({ behavior: 'smooth', block: isMd ? 'center' : 'nearest' });
 
         // BEP v3.15.0: Trigger flash highlight animation on target row
         setHighlightKey((k) => k + 1);
@@ -855,21 +872,27 @@ export default function Calendar2Page() {
         setTargetRowAbove(isAbove);
     }, []);
 
-    // Listen to scroll events on BOTH the table container (desktop) and window (mobile)
-    // BEP v3.9.0: On mobile, TableContainer is fully expanded (no maxHeight), so the
-    // page itself scrolls. We listen on window to detect visibility changes on all devices.
+    // Listen to scroll events on the table container, page scroll container, AND window.
+    // BEP v3.18.0: In pageScroll mode, the TableContainer no longer has maxHeight —
+    // content scrolls inside PublicLayout's data-t2t-scroll-container instead.
+    // We listen on all potential scroll ancestors for universal visibility tracking.
     useEffect(() => {
         const container = tableContainerRef.current;
+        const scrollParent = document.querySelector('[data-t2t-scroll-container]');
 
         const handleScroll = () => {
             checkTargetRowVisibility();
         };
 
-        // Desktop: container scrolls internally (has maxHeight on md+)
+        // Desktop default mode: container scrolls internally (has maxHeight on md+)
         if (container) {
             container.addEventListener('scroll', handleScroll, { passive: true });
         }
-        // Mobile: the page scrolls, not the container
+        // pageScroll mode: PublicLayout's scroll container does the scrolling
+        if (scrollParent) {
+            scrollParent.addEventListener('scroll', handleScroll, { passive: true });
+        }
+        // Fallback: window scroll (mobile browsers / PWA)
         window.addEventListener('scroll', handleScroll, { passive: true });
 
         // Delay initial check until DOM is settled (after layout paint)
@@ -882,6 +905,9 @@ export default function Calendar2Page() {
             clearTimeout(timerId);
             if (container) {
                 container.removeEventListener('scroll', handleScroll);
+            }
+            if (scrollParent) {
+                scrollParent.removeEventListener('scroll', handleScroll);
             }
             window.removeEventListener('scroll', handleScroll);
         };
@@ -1039,8 +1065,10 @@ export default function Calendar2Page() {
                 />
             </Suspense>
 
-            {/* Events Table */}
-            <TableContainer ref={tableContainerRef} sx={{ maxHeight: { md: 'calc(var(--t2t-vv-height, 100dvh) - 260px)' }, overflowY: 'auto' }}>
+            {/* Events Table — BEP v3.18.0: No maxHeight in pageScroll mode;
+                table grows naturally and page scrolls. Sticky headers still work
+                via stickyHeader prop + DayDividerRow position:sticky. */}
+            <TableContainer ref={tableContainerRef} sx={{ overflowY: 'auto' }}>
                 <Table size="small" stickyHeader sx={{ tableLayout: 'auto' }}>
                     {/* Column widths */}
                     <colgroup>
@@ -1155,6 +1183,11 @@ export default function Calendar2Page() {
                     {t('calendar:stats.eventsCount', { count: events.length })}
                 </Typography>
             )}
+
+            {/* Recent/Related Blog Posts — filter-aware, lazy-loaded */}
+            <Suspense fallback={null}>
+                <RecentPosts />
+            </Suspense>
         </Box>
     );
 
@@ -1223,19 +1256,29 @@ export default function Calendar2Page() {
 
     return (
         <>
+            <SEO {...calendarMeta} />
             <PublicLayout
                 navItems={navItems}
                 onOpenAuth={handleOpenAuth}
                 onOpenSettings={handleOpenSettings}
                 onOpenAddReminder={handleOpenCustomDialog}
                 onBottomNavVisibilityChange={handleBottomNavVisibilityChange}
+                pageScroll
             >
-                <MainLayout
-                    left={leftContent}
-                    rightTabs={rightTabs}
-                    gap={3}
-                    stickyTop={0}
-                />
+                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                    <Box sx={{ flex: 1 }}>
+                        <MainLayout
+                            left={leftContent}
+                            rightTabs={rightTabs}
+                            gap={3}
+                            stickyTop={0}
+                            pageScroll
+                        />
+                    </Box>
+                    <Suspense fallback={null}>
+                        <BlogFooter showCategories showEvents showCurrencies showTags />
+                    </Suspense>
+                </Box>
             </PublicLayout>
 
             {/* Jump to Now FAB */}

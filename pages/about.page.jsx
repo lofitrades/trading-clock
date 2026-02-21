@@ -5,6 +5,8 @@
  * structured data, and lean markup for SEO and accessibility.
  *
  * Changelog:
+ * v1.6.0 - 2026-02-21 - BEP: Swapped primary CTA from /clock to /calendar across nav, CTA section, and footer.
+ *                       Calendar is now primary, Clock is secondary.
  * v1.5.0 - 2026-02-03 - BEP I18N: Converted all hardcoded strings to i18n translation keys.
  *                       Added useTranslation hook with 'pages' namespace. All pillars, headings, nav items,
  *                       and body copy now use t() calls. Supports full EN/ES/FR localization per BEP standards.
@@ -127,11 +129,11 @@ export default function Page() {
                 </a>
 
                 <nav className="nav" aria-label={t('common:navigation.primary')}>
-                    <a href="/clock" aria-label={t('about.header.clockAlt')}>
-                        {t('about.header.openClock')}
-                    </a>
                     <a href="/calendar" aria-label={t('about.header.calendarAlt')}>
                         {t('about.header.openCalendar')}
+                    </a>
+                    <a href="/clock" aria-label={t('about.header.clockAlt')}>
+                        {t('about.header.openClock')}
                     </a>
                     <a href="/" aria-label={t('about.header.homeAlt')}>
                         {t('about.header.home')}
@@ -197,11 +199,11 @@ export default function Page() {
                         {t('about.cta.description')}
                     </p>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                        <a className="btn btn-primary" href="/clock" aria-label={t('about.cta.clockAlt')}>
-                            {t('about.cta.openClock')}
-                        </a>
-                        <a className="btn btn-secondary" href="/calendar" aria-label={t('about.cta.calendarAlt')}>
+                        <a className="btn btn-primary" href="/calendar" aria-label={t('about.cta.calendarAlt')}>
                             {t('about.cta.openCalendar')}
+                        </a>
+                        <a className="btn btn-secondary" href="/clock" aria-label={t('about.cta.clockAlt')}>
+                            {t('about.cta.openClock')}
                         </a>
                         <a className="btn btn-secondary" href="/" aria-label={t('about.cta.homeAlt')}>
                             {t('about.cta.backHome')}
@@ -227,11 +229,11 @@ export default function Page() {
                     </a>
 
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                        <a className="btn btn-secondary" href="/clock" aria-label={t('about.footer.clockAlt')}>
-                            {t('about.footer.openClock')}
-                        </a>
                         <a className="btn btn-secondary" href="/calendar" aria-label={t('about.footer.calendarAlt')}>
                             {t('about.footer.openCalendar')}
+                        </a>
+                        <a className="btn btn-secondary" href="/clock" aria-label={t('about.footer.clockAlt')}>
+                            {t('about.footer.openClock')}
                         </a>
                         <a className="btn btn-secondary" href="/" aria-label={t('about.footer.homeAlt')}>
                             {t('about.footer.home')}

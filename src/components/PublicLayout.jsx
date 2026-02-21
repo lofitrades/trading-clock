@@ -12,6 +12,13 @@
  * - Add reminder button visible on all pages for both auth and non-auth users
  * 
  * Changelog:
+ * v1.0.57 - 2026-02-20 - BEP PAGE-SCROLL MODE: Added pageScroll prop. When true, removes
+ *                        overflow:hidden from the main Box so position:sticky inside children
+ *                        (e.g. MainLayout's right column) works correctly. Per CSS spec,
+ *                        overflow:hidden creates a "scrolling mechanism" that captures sticky
+ *                        positioning — even if the element doesn't visually scroll. Removing it
+ *                        lets sticky bind to the actual scroll container (data-t2t-scroll-container)
+ *                        instead. Used by BlogPostPage for sticky right sidebar.
  * v1.0.56 - 2026-02-14 - BEP VISIBILITY PROP: Added onBottomNavVisibilityChange prop, threaded
  *                        through to DashboardAppBar. Enables parent pages (e.g., Calendar2Page)
  *                        to react to mobile bottom nav show/hide for synced FAB animations.
@@ -93,7 +100,7 @@ import { useAuth } from '../contexts/AuthContext';
 import useCustomEvents from '../hooks/useCustomEvents';
 import useCustomEventNotifications from '../hooks/useCustomEventNotifications';
 
-const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavOnMobile, notifications, unreadCount, onMarkRead, onMarkAllRead, onClearAll, mobileHeaderAction, onOpenAddReminder, onBottomNavVisibilityChange }) => {
+const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavOnMobile, pageScroll, notifications, unreadCount, onMarkRead, onMarkAllRead, onClearAll, mobileHeaderAction, onOpenAddReminder, onBottomNavVisibilityChange }) => {
     const theme = useTheme();
     const hasNavItems = useMemo(() => Array.isArray(navItems) && navItems.length > 0, [navItems]);
     const { user } = useAuth();
@@ -199,7 +206,11 @@ const PublicLayout = ({ children, navItems, onOpenSettings, onOpenAuth, hideNavO
                         justifyContent: 'flex-start',
                         alignItems: 'center',
                         minHeight: 0,
-                        overflow: 'hidden',
+                        /* BEP: overflow:hidden prevents content from leaking outside the main area.
+                           BUT it also creates a CSS "scrolling mechanism" that captures position:sticky
+                           positioning (per CSS spec). When pageScroll=true, we remove it so sticky
+                           elements inside children bind to the actual scroll container instead. */
+                        overflow: pageScroll ? 'visible' : 'hidden',
                         pt: { xs: 'var(--t2t-mobile-header-height, 52px)', md: 0 },
                         // BEP: Mobile header height is dynamic via CSS custom property set in MobileHeader
                         // Fallback to 48px if custom property unavailable
@@ -269,6 +280,8 @@ PublicLayout.propTypes = {
     onOpenSettings: PropTypes.func,
     onOpenAuth: PropTypes.func,
     hideNavOnMobile: PropTypes.bool,
+    /** When true, removes overflow:hidden from main Box so position:sticky works in children */
+    pageScroll: PropTypes.bool,
     notifications: PropTypes.arrayOf(PropTypes.object),
     unreadCount: PropTypes.number,
     onMarkRead: PropTypes.func,
@@ -282,6 +295,7 @@ PublicLayout.propTypes = {
 PublicLayout.defaultProps = {
     navItems: [],
     hideNavOnMobile: false,
+    pageScroll: false,
     notifications: undefined,
     unreadCount: undefined,
     onMarkRead: null,

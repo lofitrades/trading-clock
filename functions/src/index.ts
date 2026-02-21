@@ -6,6 +6,7 @@
  * updates into the canonical economic events collection.
  *
  * Changelog:
+ * v1.15.0 - 2026-02-20 - BEP FIX: Added repairWeeklyReschedules callable to clear false-positive rescheduledFrom flags on weekly events.
  * v1.14.0 - 2026-02-10 - BEP FIX: onBlogPostWrite used wrong Firestore field names (languageContent→languages, activeLanguages→derived from Object.keys)
  * v1.13.0 - 2026-02-10 - BEP P0: Wired logBlogPublished (onBlogPostWrite), logGptUpload (uploadGptEvents), logUserSignup (onUserCreated trigger)
  * v1.12.0 - 2026-02-09 - Phase 7 Security: Added backfillVisibility callable for one-time visibility migration
@@ -46,6 +47,7 @@ import {
 } from "./services/gptBlogActionsService";
 import {backfillAllInsightKeys} from "./services/backfillInsightKeysService";
 import {backfillAllVisibility} from "./services/backfillVisibilityService";
+import {repairWeeklyEventReschedules} from "./models/economicEvent";
 import {
   logBlogPublished,
   logGptUpload,
@@ -870,6 +872,68 @@ export const backfillVisibility = onCall(
 
     logger.info("[BackfillVisibility] Complete", results);
     return results;
+  }
+);
+
+/**
+ * HTTPS Callable - Repair false-positive weekly event reschedules (superadmin only)
+ *
+ * Scans all canonical events for rescheduledFrom values that are approximately
+ * N × 7 days apart from datetimeUtc (N = 1..8, ±1 day tolerance). These are
+ * false positives created by the weekly cadence bug fixed in economicEvent.ts v1.8.0.
+ *
+ * For each false positive, rescheduledFrom (and originalDatetimeUtc if it was
+ * stamped only by the false reschedule) are deleted from Firestore.
+ *
+ * @param dryRun {boolean} - Pass true to audit without writing (default: false)
+ * @returns { scanned, detected, repaired, events[] }
+ */
+export const repairWeeklyReschedules = onCall(
+  {
+    timeoutSeconds: 540,
+    memory: "512MiB",
+  },
+  async (request) => {
+    const authContext = request.auth;
+    if (!authContext) {
+      throw new HttpsError("unauthenticated", "Authentication required");
+    }
+
+    const token = authContext.token || {};
+    const uid = authContext.uid;
+    let isSuperadmin = token.role === "superadmin" || token.superadmin === true;
+
+    if (!isSuperadmin) {
+      try {
+        const userDoc = await admin.firestore().collection("users").doc(uid).get();
+        const userData = userDoc.data();
+        isSuperadmin = userData?.role === "superadmin";
+      } catch (error) {
+        logger.warn("[RepairWeeklyReschedules] Failed to check Firestore role", {uid});
+      }
+    }
+
+    if (!isSuperadmin) {
+      throw new HttpsError(
+        "permission-denied",
+        "Superadmin role required for repair operations."
+      );
+    }
+
+    const dryRun = request.data?.dryRun === true;
+
+    logger.info("[RepairWeeklyReschedules] Started", {uid, dryRun});
+
+    const result = await repairWeeklyEventReschedules({dryRun});
+
+    logger.info("[RepairWeeklyReschedules] Complete", {
+      scanned: result.scanned,
+      detected: result.detected,
+      repaired: result.repaired,
+      dryRun,
+    });
+
+    return result;
   }
 );
 

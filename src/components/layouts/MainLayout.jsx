@@ -1,13 +1,39 @@
 /**
  * src/components/layouts/MainLayout.jsx
- * 
+ *
  * Purpose: Reusable two-column layout for admin and main pages.
  * Left column (scrollable) + Right column (sticky sidebar).
  * Responsive: 2-column on md+ (2fr 1fr), 1-column on xs/sm.
  * BEP: Theme-aware, responsive, flexible content slots, independent scrolling.
  * Supports Chrome-like tabbed right column via rightTabs prop (backward compat with right).
- * 
+ *
+ * Two scroll modes (md+):
+ * - Default (pageScroll=false): Both columns viewport-locked, internal scroll only.
+ *   Grid fills available height via flex:1 + minmax(0,1fr). Used by Calendar2Page, ClockPage.
+ * - pageScroll=true: Left column grows naturally, causes page-level scroll.
+ *   Right column is position:sticky, stays at top while page scrolls.
+ *   Matches AdminBlogEditorPage pattern. Used by BlogPostPage.
+ *
  * Changelog:
+ * v2.5.0 - 2026-02-20 - BEP PAGE-SCROLL MODE: Added pageScroll prop for pages with long-form
+ *                       left column content (e.g. BlogPostPage). When pageScroll=true on md+:
+ *                       (1) Grid uses default auto rows instead of minmax(0,1fr) — row height
+ *                       grows with left column content, enabling page-level scroll.
+ *                       (2) Grid drops flex:1 — no longer constrained to viewport height.
+ *                       (3) Left column Paper has natural height (no overflow:hidden, no height:100%).
+ *                       (4) Right column wrapper stretches via grid default stretch (no explicit
+ *                       height:100%) — gives sticky inner content room to travel.
+ *                       (5) TabbedStickyPanel/Paper use position:sticky + maxHeight:calc(100vh-top)
+ *                       for viewport-relative internal scroll.
+ *                       Matches AdminBlogEditorPage sticky sidebar pattern exactly.
+ *                       Default (pageScroll=false) is unchanged — Calendar2Page/ClockPage unaffected.
+ * v2.4.0 - 2026-02-20 - BEP STICKY RIGHT COLUMN: (1) Removed overflow:hidden from right column
+ *                       wrapper on md+ to allow position:sticky to work properly — sticky needs
+ *                       a scrollable ancestor to position relative to. (2) Added overflow:auto +
+ *                       maxHeight:calc(100vh - stickyTop) to right column Paper (plain mode) so
+ *                       it scrolls internally when content exceeds viewport. (3) Right column now
+ *                       sticks to top (position:sticky, top:stickyTop) while only left column
+ *                       Paper scrolls. Improves UX for long blog posts and sidebars.
  * v2.3.2 - 2026-02-14 - BEP MD+ BOTTOM GAP: Removed grid-level pb and moved md+ bottom breathing
  *                       room to the right column wrapper via pb. This keeps the md+ right Paper
  *                       off the viewport bottom without affecting overall grid sizing.
@@ -77,19 +103,22 @@ const TabbedStickyPanel = lazy(() => import('./TabbedStickyPanel'));
 
 /**
  * MainLayout Component
- * 
+ *
  * Two-column responsive grid with white Paper containers:
  * - Left: Main scrollable content (2fr width on desktop)
  * - Right: Sticky sidebar (1fr width on desktop, shown below on mobile)
- * 
+ *
  * Right column supports two modes:
  * - `right` prop: Plain Paper with content (backward compat)
  * - `rightTabs` prop: Chrome-like tabbed panel with tab persistence
- * 
+ *
  * @param {Object} props
  * @param {React.ReactNode} props.left - Left column content (required)
  * @param {React.ReactNode} props.right - Right column content (optional, plain Paper)
  * @param {Array<{key?,label,icon?,content}>} props.rightTabs - Tabbed right column (optional)
+ * @param {boolean} props.pageScroll - When true, left column grows naturally (page scrolls),
+ *   right column is position:sticky. When false (default), both columns are viewport-locked
+ *   with internal scroll only.
  * @param {number} props.gap - Gap between columns (default: 3)
  * @param {number} props.stickyTop - Distance from top for sticky positioning (default: 16)
  * @param {Object} props.sx - Additional MUI sx props for wrapper
@@ -98,6 +127,7 @@ const MainLayout = ({
     left,
     right,
     rightTabs,
+    pageScroll = false,
     gap = 3,
     stickyTop = 16,
     sx = {},
@@ -109,17 +139,16 @@ const MainLayout = ({
             sx={{
                 display: 'grid',
                 gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' },
-                /* BEP: minmax(0,1fr) on md+ overrides the default auto (minmax(min-content,max-content))
-                   so the single row can shrink to the grid's flex-constrained height instead of being
-                   floored at min-content. On xs/sm the grid stacks 1-col so auto rows are correct. */
-                gridAutoRows: { md: 'minmax(0, 1fr)' },
+                /* BEP: Two modes on md+:
+                   - Default: minmax(0,1fr) locks row to grid's flex-constrained height (viewport).
+                   - pageScroll: default auto rows — row grows with left column content. */
+                ...(!pageScroll && { gridAutoRows: { md: 'minmax(0, 1fr)' } }),
                 gap,
                 px: { xs: 2, sm: 2.75, md: 3.5 },
                 py: { xs: 1.5, sm: 2, md: 0 },
-                /* BEP: flex:1 only on md+ where the grid must fill the viewport-constrained
-                   layout. On xs/sm the grid stacks columns vertically and should use natural
-                   height so the scroll container's pb is visible below the last Paper. */
-                flex: { xs: 'none', md: 1 },
+                /* BEP: flex:1 only in default mode where grid must fill viewport.
+                   In pageScroll mode, grid grows naturally with content. */
+                flex: pageScroll ? 'none' : { xs: 'none', md: 1 },
                 minHeight: 0,
                 /* BEP: No alignItems — grid default is 'stretch', so right column wrapper
                    fills the full row height. This gives position:sticky on the inner Paper
@@ -128,8 +157,13 @@ const MainLayout = ({
             }}
         >
             {/* Left Column - Main scrollable content */}
-            {/* BEP: mb on xs/sm removed — bottom AppBar auto-hides on scroll, content fills viewport */}
-            <Box sx={{ mb: { xs: 0, md: 0 }, minHeight: { md: 0 }, overflow: { md: 'hidden' } }}>
+            {/* BEP: In default mode, overflow:hidden constrains content to viewport height.
+                In pageScroll mode, no overflow constraint — content grows naturally. */}
+            <Box sx={{
+                mb: { xs: 0, md: 0 },
+                minHeight: { md: 0 },
+                ...(!pageScroll && { overflow: { md: 'hidden' } }),
+            }}>
                 <Paper
                     variant="outlined"
                     sx={{
@@ -137,14 +171,14 @@ const MainLayout = ({
                         borderRadius: 3,
                         borderColor: 'divider',
                         boxShadow: 'none',
-                        /* BEP: On md+ the Paper is viewport-constrained so only
-                           internal content (e.g. a table) scrolls — the page itself
-                           never gets a vertical scrollbar from this column. Uses 100%
-                           to respect parent MainLayout's flex: 1 constraint. */
-                        display: { md: 'flex' },
-                        flexDirection: { md: 'column' },
-                        height: { md: '100%' },
-                        overflow: { md: 'hidden' },
+                        /* BEP: In default mode, Paper is viewport-constrained with internal scroll.
+                           In pageScroll mode, Paper has natural height — page scrolls instead. */
+                        ...(!pageScroll && {
+                            display: { md: 'flex' },
+                            flexDirection: { md: 'column' },
+                            height: { md: '100%' },
+                            overflow: { md: 'hidden' },
+                        }),
                     }}
                 >
                     {left}
@@ -152,19 +186,21 @@ const MainLayout = ({
             </Box>
 
             {/* Right Column - Sticky sidebar (shown below on mobile, sticky on desktop) */}
-            {/* BEP: No alignSelf on the wrapper — grid cell must stretch to full row height
-                so the inner Paper's position:sticky has scrollable room (same as AdminBlogEditorPage).
-                Removed overflow:hidden from md+ to allow sticky to work with parent grid scroll. */}
-            {/* BEP: mb on xs/sm gives the last visible Paper breathing room from the
-                viewport bottom. On md+ the grid handles layout so no margin needed. */}
+            {/* BEP: Grid default 'stretch' makes wrapper fill full row height.
+                In pageScroll mode, row height is driven by left column content,
+                so wrapper is tall and sticky inner content has room to travel. */}
             {hasRightColumn && (
                 <Box
                     sx={{
                         mb: { xs: 1, sm: 1.5, md: 0 },
-                        pb: { md: 2 },
+                        ...(!pageScroll && { pb: { md: 2 } }),
                         minHeight: { md: 0 },
-                        overflow: { md: 'hidden' },
-                        height: { md: '100%' },
+                        /* BEP: In default mode, overflow:hidden constrains to grid cell.
+                           In pageScroll mode, overflow:visible allows sticky to work. */
+                        overflow: { md: pageScroll ? 'visible' : 'hidden' },
+                        /* BEP: In default mode, explicit height:100% fills grid cell.
+                           In pageScroll mode, grid stretch handles height — no explicit value. */
+                        ...(!pageScroll && { height: { md: '100%' } }),
                     }}
                 >
                     {rightTabs && rightTabs.length > 0 ? (
@@ -174,6 +210,7 @@ const MainLayout = ({
                             <TabbedStickyPanel
                                 tabs={rightTabs}
                                 stickyTop={stickyTop}
+                                pageScroll={pageScroll}
                             />
                         </Suspense>
                     ) : (
@@ -187,6 +224,10 @@ const MainLayout = ({
                                 borderRadius: 3,
                                 borderColor: 'divider',
                                 boxShadow: 'none',
+                                /* BEP: maxHeight + overflow:auto for internal scroll when
+                                   content exceeds viewport. */
+                                maxHeight: { md: `calc(100vh - ${stickyTop}px)` },
+                                overflow: { md: 'auto' },
                             }}
                         >
                             {right}
@@ -211,6 +252,9 @@ MainLayout.propTypes = {
             content: PropTypes.node.isRequired,
         })
     ),
+    /** When true, left column grows naturally (page scrolls), right column is sticky.
+     *  When false (default), both columns are viewport-locked with internal scroll. */
+    pageScroll: PropTypes.bool,
     gap: PropTypes.number,
     stickyTop: PropTypes.number,
     sx: PropTypes.object,

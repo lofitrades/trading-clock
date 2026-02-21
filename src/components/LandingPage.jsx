@@ -4,6 +4,10 @@
  * Purpose: High-performance landing page with a live hero clock for futures and forex day traders.
  * Highlights Time 2 Trade value props with brand-safe visuals and responsive hero layout.
  * 
+ * v1.13.0 - 2026-02-21 - BEP: Changed primary CTA from /clock to /calendar. Non-auth hero/finalCta secondary
+ *                        button shows Calendar instead of Clock. Auth'd buttons swapped - Calendar is primary
+ *                        (contained), Clock is secondary (outlined). openApp navigates to /calendar.
+ *                        AuthModal2 redirectPath changed to /calendar.
  * v1.12.9 - 2026-02-11 - BEP LOADING UX: Replaced static gray circle placeholders with lazy-loaded
  *                        LoadingAnimation (rotating session donuts). Shows animated loading feedback in
  *                        both the deferred-render branch (!showHeroClock) and the Suspense fallback while
@@ -439,7 +443,7 @@ export default function HomePage2() {
 
     // Event handlers - memoized to prevent unnecessary re-renders
     const openApp = useCallback(() => {
-        navigate('/clock');
+        navigate('/calendar');
     }, [navigate]);
 
     const openAuthModal = useCallback(() => {
@@ -507,7 +511,7 @@ export default function HomePage2() {
                 <ContactModal open={contactModalOpen} onClose={closeContactModal} />
             </Suspense>
             <Suspense fallback={null}>
-                <AuthModal2 open={authModalOpen} onClose={closeAuthModal} redirectPath="/clock" />
+                <AuthModal2 open={authModalOpen} onClose={closeAuthModal} redirectPath="/calendar" />
             </Suspense>
             {selectedEventFromClock && isAuthenticated && (
                 <Suspense fallback={null}>
@@ -722,51 +726,6 @@ export default function HomePage2() {
                                                         variant="outlined"
                                                         color="inherit"
                                                         size="large"
-                                                        startIcon={<AccessTimeIcon />}
-                                                        sx={{
-                                                            color: theme.palette.text.primary,
-                                                            fontWeight: 700,
-                                                            px: 3,
-                                                            py: 1.5,
-                                                            borderRadius: 999,
-                                                            textTransform: 'none',
-                                                            width: { xs: '100%', md: 'auto' },
-                                                            borderColor: theme.palette.text.primary,
-                                                            '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', borderColor: theme.palette.text.primary },
-                                                        }}
-                                                    >
-                                                        {heroCtaOpenClock}
-                                                    </Button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Button
-                                                        onClick={() => navigate('/clock')}
-                                                        variant="contained"
-                                                        color="primary"
-                                                        size="large"
-                                                        startIcon={<AccessTimeIcon />}
-                                                        sx={{
-                                                            fontWeight: 800,
-                                                            px: 3,
-                                                            py: 1.5,
-                                                            borderRadius: 999,
-                                                            textTransform: 'none',
-                                                            boxShadow: 'none',
-                                                            width: { xs: '100%', md: 'auto' },
-                                                            '&:hover': {
-                                                                boxShadow: 'none',
-                                                            },
-                                                        }}
-                                                    >
-                                                        {heroCtaOpenClock}
-                                                    </Button>
-
-                                                    <Button
-                                                        onClick={() => navigate('/calendar')}
-                                                        variant="outlined"
-                                                        color="inherit"
-                                                        size="large"
                                                         startIcon={<CalendarMonthIcon />}
                                                         sx={{
                                                             color: theme.palette.text.primary,
@@ -781,6 +740,51 @@ export default function HomePage2() {
                                                         }}
                                                     >
                                                         {heroCtaCalendar}
+                                                    </Button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Button
+                                                        onClick={() => navigate('/calendar')}
+                                                        variant="contained"
+                                                        color="primary"
+                                                        size="large"
+                                                        startIcon={<CalendarMonthIcon />}
+                                                        sx={{
+                                                            fontWeight: 800,
+                                                            px: 3,
+                                                            py: 1.5,
+                                                            borderRadius: 999,
+                                                            textTransform: 'none',
+                                                            boxShadow: 'none',
+                                                            width: { xs: '100%', md: 'auto' },
+                                                            '&:hover': {
+                                                                boxShadow: 'none',
+                                                            },
+                                                        }}
+                                                    >
+                                                        {heroCtaCalendar}
+                                                    </Button>
+
+                                                    <Button
+                                                        onClick={() => navigate('/clock')}
+                                                        variant="outlined"
+                                                        color="inherit"
+                                                        size="large"
+                                                        startIcon={<AccessTimeIcon />}
+                                                        sx={{
+                                                            color: theme.palette.text.primary,
+                                                            fontWeight: 700,
+                                                            px: 3,
+                                                            py: 1.5,
+                                                            borderRadius: 999,
+                                                            textTransform: 'none',
+                                                            width: { xs: '100%', md: 'auto' },
+                                                            borderColor: theme.palette.text.primary,
+                                                            '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', borderColor: theme.palette.text.primary },
+                                                        }}
+                                                    >
+                                                        {heroCtaOpenClock}
                                                     </Button>
                                                 </>
                                             )}
@@ -1175,7 +1179,7 @@ export default function HomePage2() {
                                                         variant="outlined"
                                                         color="inherit"
                                                         size="large"
-                                                        startIcon={<AccessTimeIcon />}
+                                                        startIcon={<CalendarMonthIcon />}
                                                         sx={{
                                                             color: theme.palette.text.primary,
                                                             fontWeight: 700,
@@ -1194,11 +1198,11 @@ export default function HomePage2() {
                                             ) : (
                                                 <>
                                                     <Button
-                                                        onClick={() => navigate('/clock')}
+                                                        onClick={() => navigate('/calendar')}
                                                         variant="contained"
                                                         color="primary"
                                                         size="large"
-                                                        startIcon={<AccessTimeIcon />}
+                                                        startIcon={<CalendarMonthIcon />}
                                                         sx={{
                                                             fontWeight: 800,
                                                             px: 3,
@@ -1212,14 +1216,14 @@ export default function HomePage2() {
                                                             },
                                                         }}
                                                     >
-                                                        {heroCtaOpenClock}
+                                                        {heroCtaCalendar}
                                                     </Button>
                                                     <Button
-                                                        onClick={() => navigate('/calendar')}
+                                                        onClick={() => navigate('/clock')}
                                                         variant="outlined"
                                                         color="inherit"
                                                         size="large"
-                                                        startIcon={<CalendarMonthIcon />}
+                                                        startIcon={<AccessTimeIcon />}
                                                         sx={{
                                                             color: theme.palette.text.primary,
                                                             fontWeight: 700,
@@ -1232,7 +1236,7 @@ export default function HomePage2() {
                                                             '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', borderColor: theme.palette.text.primary },
                                                         }}
                                                     >
-                                                        {heroCtaCalendar}
+                                                        {heroCtaOpenClock}
                                                     </Button>
                                                 </>
                                             )}

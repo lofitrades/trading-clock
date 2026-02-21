@@ -13,9 +13,10 @@
  * - Fully i18n: All labels from admin:nav.* namespace
  * - Theme-aware: Respects light/dark mode
  * - UserAvatar integration with account/logout flows
- * - "Back to Site" link to /clock
+ * - "Back to Site" link to /calendar
  *
  * Changelog:
+ * v1.3.0 - 2026-02-21 - BEP: Changed "Back to Site" link from /clock to /calendar.
  * v1.2.0 - 2026-02-17 - BEP: Added Blog GPT nav item (opens BlogUploadDrawer, author+).
  *                        Fixed outside-click dropdown close: replaced position:fixed backdrop
  *                        (broken by AppBar backdropFilter creating containing block) with
@@ -172,7 +173,7 @@ const getNavConfig = (t) => ({
     ],
     backToSite: {
         label: t('admin:nav.backToSite'),
-        path: '/clock',
+        path: '/calendar',
         icon: ArrowBackIcon,
     },
 });
@@ -713,7 +714,7 @@ const AdminNavBar = ({ user }) => {
                         {/* Back to Site — desktop only (in mobile drawer) */}
                         {!isMobile && (
                             <Button
-                                onClick={() => handleNavigate('/clock')}
+                                onClick={() => handleNavigate('/calendar')}
                                 startIcon={<ArrowBackIcon sx={{ fontSize: '1rem' }} />}
                                 size="small"
                                 sx={{
@@ -835,7 +836,7 @@ const AdminNavBar = ({ user }) => {
                 <Box sx={{ mt: 'auto', borderTop: '1px solid', borderColor: 'divider' }}>
                     <List disablePadding>
                         <ListItemButton
-                            onClick={() => handleNavigate('/clock')}
+                            onClick={() => handleNavigate('/calendar')}
                             sx={{ px: 2.5, py: 1.5 }}
                         >
                             <ListItemIcon sx={{ minWidth: 36 }}>

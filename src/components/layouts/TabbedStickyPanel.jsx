@@ -16,6 +16,19 @@
  * - BEP THEME-AWARE: All colors use theme tokens (light/dark mode support)
  *
  * Changelog:
+ * v1.11.0 - 2026-02-20 - BEP PAGE-SCROLL MODE: Added pageScroll prop (forwarded from MainLayout).
+ *                        When pageScroll=true on md+: wrapper uses position:sticky + top:stickyTop
+ *                        (no height:100% — grid stretch provides height from left column content).
+ *                        Paper uses maxHeight:calc(100vh - stickyTop - 52px) for viewport-relative
+ *                        internal scroll instead of calc(100% - 52px). When pageScroll=false (default):
+ *                        wrapper fills grid cell height (height:100%), no sticky (already viewport-locked).
+ *                        Ensures right column sticks to top during page scroll on BlogPostPage.
+ * v1.10.0 - 2026-02-20 - BEP STICKY WRAPPER: Added position:sticky + top:stickyTop to the main
+ *                        wrapper Box on md+ (static on xs/sm). TabbedStickyPanel now sticks to
+ *                        the top of the viewport while tab bar + content scroll internally via
+ *                        Paper's overflowY:auto. Improves sticky positioning reliability by moving
+ *                        sticky from Paper to wrapper. Also allows the grid parent to have
+ *                        overflow:visible without breaking sticky behavior.
  * v1.9.2 - 2026-02-14 - BEP CONTENT-HEIGHT PANEL: On md+, the Paper no longer flex-grows to fill
  *                        the entire column when content is short. Instead it sizes to content up
  *                        to a maxHeight (column height minus tab bar), and only then scrolls.
@@ -77,8 +90,9 @@ const tabMemory = new Map();
  * @param {Object} props
  * @param {Array<{ key?: string, label: string, icon?: React.ReactNode, content: React.ReactNode }>} props.tabs
  * @param {number} [props.stickyTop=16] - Distance from viewport top for sticky positioning (md+)
+ * @param {boolean} [props.pageScroll=false] - When true, uses position:sticky for page-scroll mode
  */
-const TabbedStickyPanel = memo(({ tabs, stickyTop = 16 }) => {
+const TabbedStickyPanel = memo(({ tabs, stickyTop = 16, pageScroll = false }) => {
     const { pathname } = useLocation();
     const { ready } = useTranslation(undefined, { useSuspense: false });
 
@@ -101,11 +115,22 @@ const TabbedStickyPanel = memo(({ tabs, stickyTop = 16 }) => {
             sx={{
                 display: 'flex',
                 flexDirection: 'column',
-                /* BEP: On md+ fill the grid cell height (set by MainLayout's minmax(0,1fr) row).
-                   This locks the right column to the same height as the left column.
-                   Paper's overflowY:auto handles internal scrolling. On xs/sm, natural height. */
-                height: { md: '100%' },
                 minHeight: 0,
+                /* BEP: Two modes on md+:
+                   - Default (pageScroll=false): height:100% fills grid cell (viewport-locked).
+                     No sticky needed — both columns are already constrained.
+                   - pageScroll=true: position:sticky sticks to top. No explicit height —
+                     grid stretch provides the wrapper height from left column content.
+                     Tab bar + Paper stay at top while page scrolls. */
+                ...(pageScroll
+                    ? {
+                        position: { xs: 'static', md: 'sticky' },
+                        top: { xs: 'auto', md: stickyTop },
+                    }
+                    : {
+                        height: { md: '100%' },
+                    }
+                ),
             }}
         >
             {/* ─── Chrome-like Tab Bar ─────────────────────────────── */}
@@ -212,11 +237,16 @@ const TabbedStickyPanel = memo(({ tabs, stickyTop = 16 }) => {
                     /* BEP: divider color adapts to light/dark mode */
                     borderColor: 'divider',
                     boxShadow: 'none',
-                    /* BEP: On md+ the right column is height-locked by MainLayout.
-                        Paper should size to content when short, but scroll internally when long.
-                        Subtract a conservative tab-bar height so the Paper never forces overflow. */
+                    /* BEP: Two maxHeight strategies:
+                       - Default: calc(100% - 52px) — relative to grid cell height (viewport-locked).
+                       - pageScroll: calc(100vh - stickyTop - 52px) — viewport-relative, so Paper
+                         scrolls internally while sticky at top during page scroll.
+                       52px = conservative tab-bar height. */
                     flexGrow: 0,
-                    maxHeight: { md: 'calc(100% - 52px)' },
+                    maxHeight: { md: pageScroll
+                        ? `calc(100vh - ${stickyTop}px - 52px)`
+                        : 'calc(100% - 52px)'
+                    },
                     overflowY: 'auto',
                 }}
             >
@@ -252,6 +282,8 @@ TabbedStickyPanel.propTypes = {
     ).isRequired,
     /** Distance from viewport top for sticky positioning on md+ (default: 16) */
     stickyTop: PropTypes.number,
+    /** When true, enables position:sticky for page-scroll mode (default: false) */
+    pageScroll: PropTypes.bool,
 };
 
 export default TabbedStickyPanel;
